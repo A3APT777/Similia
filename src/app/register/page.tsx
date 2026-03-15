@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { seedDemoData } from '@/lib/actions/seed'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -30,6 +31,9 @@ export default function RegisterPage() {
       setLoading(false)
       return
     }
+
+    // Создаём демо-пациентов для нового аккаунта
+    await seedDemoData().catch(() => null)
 
     router.push('/dashboard')
     router.refresh()
@@ -135,7 +139,7 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full bg-emerald-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-sm shadow-emerald-900/10 mt-2"
             >
-              {loading ? 'Создаём аккаунт...' : 'Зарегистрироваться'}
+              {loading ? 'Подготавливаем аккаунт...' : 'Зарегистрироваться'}
             </button>
           </form>
 
