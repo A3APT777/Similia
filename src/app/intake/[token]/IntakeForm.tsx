@@ -449,6 +449,7 @@ export default function IntakeForm({ token, patientName, type }: Props) {
   const [answers, setAnswers] = useState<IntakeAnswers>({})
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const totalSteps = STEPS.length
   const currentStep = STEPS[step]
@@ -468,9 +469,15 @@ export default function IntakeForm({ token, patientName, type }: Props) {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
       setSubmitting(true)
-      await submitIntake(token, answers)
-      setSubmitting(false)
-      setDone(true)
+      setSubmitError('')
+      try {
+        await submitIntake(token, answers)
+        setDone(true)
+      } catch {
+        setSubmitError('Не удалось отправить анкету. Проверьте соединение и попробуйте ещё раз.')
+      } finally {
+        setSubmitting(false)
+      }
     }
   }
 
@@ -658,7 +665,12 @@ export default function IntakeForm({ token, patientName, type }: Props) {
 
       {/* Кнопка внизу */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4">
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-lg mx-auto space-y-3">
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <p className="text-sm text-red-600">{submitError}</p>
+            </div>
+          )}
           <button
             onClick={handleNext}
             disabled={!canProceed() || submitting}
