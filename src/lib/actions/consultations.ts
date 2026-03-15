@@ -1,0 +1,183 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { ConsultationType } from '@/types'
+
+// Закрыть все открытые консультации пациента (перед началом новой)
+async function closeOpenConsultations(supabase: Awaited<ReturnType<typeof createClient>>, patientId: string) {
+  await supabase
+    .from('consultations')
+    .update({ status: 'completed' })
+    .eq('patient_id', patientId)
+    .eq('status', 'in_progress')
+}
+
+// Создать консультацию прямо сейчас и открыть редактор
+export async function createConsultation(patientId: string, type: ConsultationType = 'chronic') {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Закрываем любую другую открытую консультацию этого пациента
+  await closeOpenConsultations(supabase, patientId)
+
+  const { data, error } = await supabase
+    .from('consultations')
+    .insert({
+      patient_id: patientId,
+      doctor_id: user.id,
+      notes: '',
+      status: 'in_progress',
+      type,
+    })
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  redirect(`/patients/${patientId}/consultations/${data.id}`)
+}
+
+// Запланировать приём на конкретную дату и время (scheduledAt — ISO UTC строка)
+export async function scheduleConsultation(
+  patientId: string,
+  scheduledAt: string,
+  type: ConsultationType = 'chronic'
+): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const date = scheduledAt.split('T')[0]
+
+  const { error } = await supabase
+    .from('consultations')
+    .insert({
+      patient_id: patientId,
+      doctor_id: user.id,
+      notes: '',
+      date,
+      scheduled_at: scheduledAt,
+      status: 'scheduled',
+      type,
+    })
+
+  if (error) throw new Error(error.message)
+}
+
+// Изменить тип консультации
+export async function updateConsultationType(id: string, type: ConsultationType): Promise<void> {
+  const supabase = await createClient()
+  await supabase.from('consultations').update({ type }).eq('id', id)
+}
+
+// Получить все запланированные приёмы за конкретный день (для проверки конфликтов)
+export async function getAppointmentsForDay(dayStart: string, dayEnd: string): Promise<string[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('consultations')
+    .select('scheduled_at')
+    .eq('doctor_id', user.id)
+    .eq('status', 'scheduled')
+    .gte('scheduled_at', dayStart)
+    .lte('scheduled_at', dayEnd)
+
+  return (data || []).map(c => c.scheduled_at).filter(Boolean)
+}
+
+// Начать запланированный приём — меняет статус и открывает редактор
+export async function startConsultation(consultationId: string, patientId: string) {
+  const supabase = await createClient()
+
+  // Закрываем любую другую открытую консультацию этого пациента
+  await closeOpenConsultations(supabase, patientId)
+
+  await supabase
+    .from('consultations')
+    .update({ status: 'in_progress' })
+    .eq('id', consultationId)
+
+  redirect(`/patients/${patientId}/consultations/${consultationId}`)
+}
+
+// Отменить запланированный приём
+export async function cancelConsultation(consultationId: string, patientId: string) {
+  const supabase = await createClient()
+
+  await supabase
+    .from('consultations')
+    .update({ status: 'cancelled' })
+    .eq('id', consultationId)
+
+  redirect(`/patients/${patientId}`)
+}
+
+// Автосохранение заметок — переводит статус в completed
+export async function updateConsultationNotes(id: string, notes: string) {
+  const supabase = await createClient()
+
+  await supabase
+    .from('consultations')
+    .update({
+      notes,
+      status: notes.trim().length > 0 ? 'completed' : 'in_progress',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+}
+
+// Получить все приёмы за конкретный месяц (для календаря)
+export async function getAppointmentsByMonth(year: number, month: number) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const MSK = 3 * 60 * 60 * 1000
+  const lastDay = new Date(year, month, 0).getDate()
+  const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0) - MSK).toISOString()
+  const monthEnd = new Date(Date.UTC(year, month - 1, lastDay, 23, 59, 59) - MSK).toISOString()
+
+  const { data } = await supabase
+    .from('consultations')
+    .select('id, scheduled_at, status, type, patient_id, patients(id, name)')
+    .eq('doctor_id', user.id)
+    .not('scheduled_at', 'is', null)
+    .neq('status', 'cancelled')
+    .gte('scheduled_at', monthStart)
+    .lte('scheduled_at', monthEnd)
+    .order('scheduled_at', { ascending: true })
+
+  return (data || []) as unknown as {
+    id: string
+    scheduled_at: string
+    status: string
+    type: ConsultationType
+    patient_id: string
+    patients: { id: string; name: string } | null
+  }[]
+}
+
+// Сохранить назначение после консультации
+export async function savePrescription(
+  id: string,
+  remedy: string,
+  potency: string,
+  pellets: number | null,
+  dosage: string
+): Promise<void> {
+  const supabase = await createClient()
+  await supabase
+    .from('consultations')
+    .update({ remedy: remedy || null, potency: potency || null, pellets, dosage: dosage || null })
+    .eq('id', id)
+}
+
+export async function deleteConsultation(id: string, patientId: string) {
+  const supabase = await createClient()
+  await supabase.from('consultations').delete().eq('id', id)
+  redirect(`/patients/${patientId}`)
+}

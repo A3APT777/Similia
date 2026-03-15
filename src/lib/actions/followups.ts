@@ -1,0 +1,50 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+
+export async function createFollowup(consultationId: string, patientId: string) {
+  const supabase = await createClient()
+
+  // Проверяем — нет ли уже follow-up для этой консультации
+  const { data: existing } = await supabase
+    .from('followups')
+    .select('id, token')
+    .eq('consultation_id', consultationId)
+    .single()
+
+  if (existing) return { token: existing.token }
+
+  const { data, error } = await supabase
+    .from('followups')
+    .insert({
+      consultation_id: consultationId,
+      patient_id: patientId,
+      sent_at: new Date().toISOString(),
+    })
+    .select('token')
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  return { token: data.token }
+}
+
+export async function respondFollowup(
+  token: string,
+  status: 'better' | 'same' | 'worse' | 'new_symptoms',
+  comment: string
+) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('followups')
+    .update({
+      status,
+      comment: comment || null,
+      responded_at: new Date().toISOString(),
+    })
+    .eq('token', token)
+    .is('responded_at', null) // отвечать можно только один раз
+
+  if (error) throw new Error(error.message)
+}
