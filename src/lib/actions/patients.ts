@@ -29,6 +29,8 @@ export async function createPatient(formData: FormData) {
 
 export async function updatePatient(id: string, formData: FormData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   await supabase
     .from('patients')
@@ -41,6 +43,7 @@ export async function updatePatient(id: string, formData: FormData) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('doctor_id', user.id)
 
   redirect(`/patients/${id}`)
 }

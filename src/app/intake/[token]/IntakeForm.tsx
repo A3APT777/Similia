@@ -450,6 +450,7 @@ export default function IntakeForm({ token, patientName, type }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [consentGiven, setConsentGiven] = useState(false)
 
   const totalSteps = STEPS.length
   const currentStep = STEPS[step]
@@ -534,9 +535,23 @@ export default function IntakeForm({ token, patientName, type }: Props) {
             ))}
           </div>
 
+          {/* Согласие на обработку персональных данных (152-ФЗ) */}
+          <label className="flex items-start gap-3 cursor-pointer mb-4">
+            <input
+              type="checkbox"
+              checked={consentGiven}
+              onChange={e => setConsentGiven(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-emerald-600 shrink-0"
+            />
+            <span className="text-xs text-gray-500 leading-relaxed">
+              Я согласен(а) на обработку моих персональных данных (ФИО, дата рождения, контактная информация, сведения о здоровье) в соответствии с Федеральным законом №152-ФЗ «О персональных данных». Данные используются исключительно для оказания медицинской помощи и не передаются третьим лицам.
+            </span>
+          </label>
+
           <button
             onClick={() => setStep(0)}
-            className={`w-full font-semibold text-sm py-3.5 rounded-xl transition-colors shadow-sm ${btnClass}`}
+            disabled={!consentGiven}
+            className={`w-full font-semibold text-sm py-3.5 rounded-xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
           >
             Начать заполнение →
           </button>

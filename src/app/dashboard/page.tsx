@@ -29,25 +29,33 @@ export default async function DashboardPage() {
     .select('*')
     .order('updated_at', { ascending: false })
 
-  const patientsWithConsultations = await Promise.all(
-    (patients || []).map(async (patient) => {
-      const { data: last } = await supabase
+  // Один запрос для всех последних консультаций вместо N+1
+  const patientIds = (patients || []).map(p => p.id)
+  const { data: allLastConsultations } = patientIds.length > 0
+    ? await supabase
         .from('consultations')
-        .select('date, notes, remedy')
-        .eq('patient_id', patient.id)
+        .select('patient_id, date, notes, remedy')
+        .in('patient_id', patientIds)
         .eq('status', 'completed')
         .order('date', { ascending: false })
-        .limit(1)
-        .single()
+    : { data: [] }
 
-      return {
-        ...patient,
-        last_consultation_date: last?.date || null,
-        last_consultation_preview: last?.notes || null,
-        pending_prescription: last ? !last.remedy : false,
-      }
-    })
-  )
+  const lastConsultationMap = new Map<string, { date: string; notes: string | null; remedy: string | null }>()
+  for (const c of (allLastConsultations || [])) {
+    if (!lastConsultationMap.has(c.patient_id)) {
+      lastConsultationMap.set(c.patient_id, c)
+    }
+  }
+
+  const patientsWithConsultations = (patients || []).map(patient => {
+    const last = lastConsultationMap.get(patient.id) || null
+    return {
+      ...patient,
+      last_consultation_date: last?.date || null,
+      last_consultation_preview: last?.notes || null,
+      pending_prescription: last ? !last.remedy : false,
+    }
+  })
 
   const patientsList = (patients || []).map(p => ({ id: p.id, name: p.name }))
   const name = user?.user_metadata?.name || user?.email || ''

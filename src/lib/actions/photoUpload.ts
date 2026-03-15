@@ -54,7 +54,22 @@ export async function submitPhotoUpload(
     return { success: false, error: 'Файл не выбран' }
   }
 
-  const ext = file.name.split('.').pop() || 'jpg'
+  // Максимум 10 МБ
+  if (file.size > 10 * 1024 * 1024) {
+    return { success: false, error: 'Файл слишком большой. Максимум 10 МБ.' }
+  }
+
+  // Только изображения
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+  if (!allowedTypes.includes(file.type.toLowerCase())) {
+    return { success: false, error: 'Разрешены только фотографии (JPEG, PNG, WebP, HEIC)' }
+  }
+
+  const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  if (!allowedExtensions.includes(ext)) {
+    return { success: false, error: 'Неподдерживаемый формат файла' }
+  }
   const path = `${uploadToken.doctor_id}/${uploadToken.patient_id}/${Date.now()}.${ext}`
 
   const bytes = await file.arrayBuffer()
