@@ -26,7 +26,6 @@ export default async function DashboardPage() {
     { data: patients },
     { data: recentConsultations },
     { data: recentFollowups },
-    { data: bookingRequests },
     unpaidPatients,
   ] = await Promise.all([
     supabase
@@ -51,14 +50,6 @@ export default async function DashboardPage() {
       .select('status')
       .not('responded_at', 'is', null)
       .gte('created_at', ninetyDaysAgoIso),
-    supabase
-      .from('intake_forms')
-      .select('id, patient_name, answers, created_at')
-      .eq('doctor_id', user.id)
-      .eq('status', 'pending')
-      .eq('answers->>_booking', 'true')
-      .order('created_at', { ascending: false })
-      .limit(10),
     getUnpaidPatients(),
   ])
 
@@ -211,44 +202,6 @@ export default async function DashboardPage() {
           <div data-tour="questionnaire-btn" className="mb-3">
             <NewPatientButton />
           </div>
-
-          {/* Запросы на онлайн-запись */}
-          {(bookingRequests || []).length > 0 && (
-            <div className="mb-5">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-2">
-                Запросы на запись ({bookingRequests!.length})
-              </p>
-              <div className="rounded-2xl overflow-hidden divide-y" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)', borderColor: 'rgba(45,106,79,0.2)' }}>
-                {bookingRequests!.map((req) => {
-                  const ans = req.answers as Record<string, string> | null
-                  return (
-                    <div key={req.id} className="flex items-start gap-3 px-4 py-3">
-                      <div className="w-2 h-2 rounded-full bg-teal-400 shrink-0 mt-1.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{req.patient_name || '—'}</p>
-                        {ans?.patient_phone && (
-                          <a href={`tel:${ans.patient_phone}`} className="text-xs text-gray-400 hover:text-emerald-700 transition-colors">
-                            {ans.patient_phone}
-                          </a>
-                        )}
-                        {ans?.preferred_date && (
-                          <p className="text-xs text-teal-600 mt-0.5">
-                            Желаемая дата: {new Date(ans.preferred_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-                          </p>
-                        )}
-                        {ans?.message && (
-                          <p className="text-xs text-gray-400 mt-0.5 truncate">{ans.message}</p>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-gray-300 shrink-0 mt-0.5">
-                        {new Date(req.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
 
           <div data-tour="patient-list">
             <PatientListClient patients={patientsWithConsultations} />
