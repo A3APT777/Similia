@@ -4,47 +4,78 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  backgroundColor: '#faf7f2',
+  border: '1px solid #d4c9b8',
+  borderRadius: '8px',
+  padding: '12px 16px',
+  fontSize: '16px',
+  color: '#3a2e1a',
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.15s, box-shadow 0.15s',
+}
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '12px',
+  fontWeight: 500,
+  letterSpacing: '0.08em',
+  color: '#5a7060',
+  marginBottom: '6px',
+  textTransform: 'uppercase',
+}
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [focused, setFocused] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     const supabase = createClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     })
-
     if (error) {
       setError('Не удалось отправить письмо. Проверьте email.')
       setLoading(false)
       return
     }
-
     setSent(true)
     setLoading(false)
   }
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
-        <div className="w-full max-w-sm text-center">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-            <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f7f3ed', padding: '24px' }}>
+        <div style={{ width: '100%', maxWidth: '360px', textAlign: 'center' }}>
+          <div style={{
+            width: '56px', height: '56px', borderRadius: '16px',
+            backgroundColor: 'rgba(125,212,168,0.15)',
+            border: '1px solid rgba(125,212,168,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 24px',
+          }}>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#2d6a4f" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Письмо отправлено</h1>
-          <p className="text-sm text-gray-500 leading-relaxed">
-            Проверьте почту <span className="font-medium text-gray-700">{email}</span> — там ссылка для сброса пароля.
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a3020', marginBottom: '12px' }}>
+            Письмо отправлено
+          </h1>
+          <p style={{ fontSize: '15px', color: '#5a5040', lineHeight: 1.6 }}>
+            Проверьте почту <strong style={{ color: '#3a2e1a' }}>{email}</strong> — там ссылка для сброса пароля.
           </p>
-          <p className="text-xs text-gray-400 mt-3">Не пришло? Проверьте папку «Спам»</p>
-          <Link href="/login" className="mt-6 inline-block text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+          <p style={{ fontSize: '13px', color: '#9a8a6a', marginTop: '12px' }}>
+            Не пришло? Проверьте папку «Спам»
+          </p>
+          <Link href="/login" style={{ display: 'inline-block', marginTop: '24px', fontSize: '14px', color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
             ← Вернуться на вход
           </Link>
         </div>
@@ -53,51 +84,153 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xs">H</div>
-          <span className="font-semibold text-gray-900">HomeoCase</span>
-        </div>
+    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#f7f3ed' }}>
 
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-1">Восстановление пароля</h1>
-        <p className="text-gray-500 text-sm mb-8">Введите email — пришлём ссылку для сброса</p>
+      {/* Левая панель */}
+      <div style={{
+        display: 'none',
+        width: '45%',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '48px',
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundColor: '#1a3020',
+        flexShrink: 0,
+      }} className="auth-left-panel">
+        <div style={{
+          position: 'absolute',
+          bottom: '-20px',
+          right: '-20px',
+          width: '280px',
+          height: '280px',
+          backgroundImage: 'url(/illustrations/belladonna.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          opacity: 0.08,
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to bottom, rgba(26,48,32,0.2) 0%, rgba(26,48,32,0.75) 100%)',
+          pointerEvents: 'none',
+        }} />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wide">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoFocus
-              placeholder="doctor@example.com"
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all"
-            />
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '48px' }}>
+            <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
+              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
+              <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: '#f7f3ed', letterSpacing: '0.02em' }}>
+              Similia
+            </span>
           </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
+          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '38px', fontWeight: 300, color: 'rgba(255,255,255,0.95)', lineHeight: 1.25, marginBottom: '16px' }}>
+            Восстановление<br />доступа
+          </h2>
+          <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'rgba(255,255,255,0.45)' }}>
+            Пришлём ссылку на вашу почту — сможете задать новый пароль за пару минут.
+          </p>
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-emerald-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-sm mt-2"
-          >
-            {loading ? 'Отправляю...' : 'Отправить ссылку'}
-          </button>
-        </form>
-
-        <p className="mt-6 text-sm text-gray-400 text-center">
-          <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-medium">
-            ← Вернуться на вход
-          </Link>
-        </p>
+        <div style={{ position: 'relative', zIndex: 10, paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '17px', fontStyle: 'italic', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>
+            «Similia similibus curantur»
+          </p>
+          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>Ганеман, 1796</p>
+        </div>
       </div>
+
+      {/* Правая панель — форма */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', backgroundColor: '#f7f3ed' }}>
+        <div style={{ width: '100%', maxWidth: '360px' }}>
+
+          {/* Мобильный логотип */}
+          <div className="auth-mobile-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }}>
+            <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
+              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
+              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
+              <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: '#1a3020' }}>
+              Similia
+            </span>
+          </div>
+
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a3020', marginBottom: '6px' }}>
+            Восстановление пароля
+          </h1>
+          <p style={{ fontSize: '15px', color: '#9a8a6a', marginBottom: '32px' }}>
+            Введите email — пришлём ссылку для сброса
+          </p>
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                required
+                autoFocus
+                placeholder="doctor@example.com"
+                style={{
+                  ...inputStyle,
+                  borderColor: focused ? '#2d6a4f' : '#d4c9b8',
+                  boxShadow: focused ? '0 0 0 3px rgba(45,106,79,0.1)' : 'none',
+                }}
+              />
+            </div>
+
+            {error && (
+              <div style={{ backgroundColor: '#fef0f0', border: '1px solid #fbd5d5', borderRadius: '8px', padding: '12px 16px' }}>
+                <p style={{ color: '#c0392b', fontSize: '14px' }}>{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                backgroundColor: loading ? '#5a7060' : '#1a3020',
+                color: '#f7f3ed',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '13px 20px',
+                fontSize: '15px',
+                fontWeight: 500,
+                cursor: loading ? 'default' : 'pointer',
+                transition: 'background-color 0.15s',
+                opacity: loading ? 0.7 : 1,
+              }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = '#2d6a4f' }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = '#1a3020' }}
+            >
+              {loading ? 'Отправляю...' : 'Отправить ссылку'}
+            </button>
+          </form>
+
+          <p style={{ marginTop: '24px', fontSize: '14px', color: '#9a8a6a', textAlign: 'center' }}>
+            <Link href="/login" style={{ color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
+              ← Вернуться на вход
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      <style>{`
+        @media (min-width: 1024px) {
+          .auth-left-panel { display: flex !important; }
+          .auth-mobile-logo { display: none !important; }
+        }
+      `}</style>
     </div>
   )
 }
