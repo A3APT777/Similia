@@ -2,13 +2,19 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
-import { createConsultation, cancelConsultation } from '@/lib/actions/consultations'
+import { createConsultation } from '@/lib/actions/consultations'
 import { getAge, formatDate } from '@/lib/utils'
 import FollowupSection from './FollowupSection'
 import ScheduleButton from '@/components/ScheduleButton'
-import PatientTimeline from './PatientTimeline'
+import TimelineWithFilter from './TimelineWithFilter'
 import IntakeView from './IntakeView'
 import PhotoSection from './PhotoSection'
+import CancelAppointmentButton from './CancelAppointmentButton'
+import TreatmentProgress from './TreatmentProgress'
+import TourSuccessToast from '@/components/TourSuccessToast'
+import PaidSessionsBlock from './PaidSessionsBlock'
+import DeletePatientButton from './DeletePatientButton'
+import { getDoctorSettings } from '@/lib/actions/payments'
 
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +27,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     .from('patients')
     .select('*')
     .eq('id', id)
+    .eq('doctor_id', user.id)
     .single()
 
   if (!patient) notFound()
@@ -61,6 +68,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const completedPrimaryIntake = (intakeForms || []).find(f => f.type === 'primary') || null
   const completedAcuteIntake = (intakeForms || []).find(f => f.type === 'acute') || null
 
+  const { paid_sessions_enabled } = await getDoctorSettings()
+
   async function newChronicConsultation() {
     'use server'
     await createConsultation(id, 'chronic')
@@ -73,6 +82,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
 
   return (
     <AppShell>
+      <TourSuccessToast />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
 
         {/* Назад */}
@@ -84,18 +94,25 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         </Link>
 
         {/* Карточка пациента */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 mb-5 shadow-sm">
-          <div className="flex items-start gap-3 sm:gap-4">
+        <div className="mb-5" style={{ border: '0.5px solid #d4c9b8', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ height: '3px', backgroundColor: '#1a3020' }} />
+        <div className="relative p-4 sm:p-6" style={{ backgroundColor: '#f0ebe3' }}>
+          {/* Пульсатилла — декоративный элемент в правом углу */}
+          <div
+            className="absolute right-0 top-0 w-28 h-28 sm:w-36 sm:h-36 bg-no-repeat bg-right-top bg-contain pointer-events-none"
+            style={{ backgroundImage: 'url(/illustrations/pulsatilla.jpg)', opacity: 0.07 }}
+          />
+          <div className="flex items-start gap-3 sm:gap-4 relative z-10">
             {/* Большой аватар */}
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
-              <span className="text-base sm:text-lg font-bold text-emerald-700">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '42px', height: '42px', borderRadius: '10px', backgroundColor: '#1a3020' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#f7f3ed', lineHeight: 1 }}>
                 {patient.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
               </span>
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight leading-tight">{patient.name}</h1>
+                <h1 className="text-xl sm:text-2xl font-semibold leading-tight" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a1a0a' }}>{patient.name}</h1>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <a
                     href={`/patients/${id}/export`}
@@ -117,42 +134,54 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                     </svg>
                   </Link>
+                  <DeletePatientButton patientId={id} patientName={patient.name} />
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                 {patient.birth_date && (
-                  <span className="text-sm text-gray-500">{getAge(patient.birth_date)}</span>
+                  <span className="text-[15px]" style={{ color: '#5a5040' }}>{getAge(patient.birth_date)}</span>
                 )}
                 {patient.phone && (
-                  <a href={`tel:${patient.phone}`} className="text-sm text-gray-500 hover:text-emerald-700 transition-colors">
+                  <a href={`tel:${patient.phone}`} className="text-[15px] hover:text-emerald-700 transition-colors" style={{ color: '#5a5040' }}>
                     {patient.phone}
                   </a>
                 )}
                 {patient.email && (
-                  <a href={`mailto:${patient.email}`} className="text-sm text-gray-500 hover:text-emerald-700 transition-colors truncate">
+                  <a href={`mailto:${patient.email}`} className="text-[15px] hover:text-emerald-700 transition-colors truncate" style={{ color: '#5a5040' }}>
                     {patient.email}
                   </a>
                 )}
               </div>
-              {patient.notes && (
-                <p className="mt-2 text-sm text-gray-400 italic">{patient.notes}</p>
+              {/* Конституциональный тип */}
+              {patient.constitutional_type && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span className="text-[13px]" style={{ color: '#9a8a6a' }}>Конст. тип:</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '13px', fontWeight: 500, padding: '3px 12px', borderRadius: '20px', border: '1px solid #2d6a4f', color: '#1a3020', backgroundColor: '#e8f0e8' }}>
+                    {patient.constitutional_type}
+                  </span>
+                </div>
               )}
-              <p className="mt-1.5 text-xs text-gray-300">
+              {patient.notes && (
+                <p className="mt-2 italic" style={{ fontSize: '14px', color: '#5a5040', lineHeight: '1.6' }}>{patient.notes}</p>
+              )}
+              <p className="mt-1.5" style={{ fontSize: '13px', color: '#9a8a6a' }}>
                 Первый приём: {formatDate(patient.first_visit_date)}
               </p>
             </div>
           </div>
         </div>
+        </div>
 
         {/* Кнопки действий */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 mb-5">
+        <div className="mb-5 flex flex-wrap gap-2">
           <form action={newChronicConsultation}>
             <button
               type="submit"
-              className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-900/10"
+              className="flex items-center gap-2 font-medium transition-opacity hover:opacity-90"
+              style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '8px', fontSize: '15px', fontWeight: 500, padding: '11px 20px' }}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               <span className="hidden sm:inline">Хроническая консультация</span>
@@ -162,9 +191,10 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           <form action={newAcuteConsultation}>
             <button
               type="submit"
-              className="flex items-center gap-1.5 bg-orange-500 text-white px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors shadow-sm shadow-orange-900/10"
+              className="flex items-center gap-2 font-medium transition-opacity hover:opacity-90"
+              style={{ border: '1.5px solid #c8a035', color: '#c8a035', backgroundColor: 'transparent', borderRadius: '8px', fontSize: '14px', padding: '10px 18px' }}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
               Острый случай
@@ -172,6 +202,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           </form>
           <ScheduleButton patientId={id} />
         </div>
+
+        {/* Блок оплаченных консультаций */}
+        {paid_sessions_enabled && (
+          <PaidSessionsBlock
+            patientId={id}
+            initialCount={patient.paid_sessions ?? 0}
+          />
+        )}
 
         {/* Баннер о невыписанном назначении */}
         {pendingPrescription && (
@@ -198,6 +236,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Анкеты пациента
             </h2>
+
             {completedPrimaryIntake?.answers && (
               <IntakeView
                 answers={completedPrimaryIntake.answers}
@@ -215,6 +254,12 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           </div>
         )}
 
+        {/* Динамика лечения (цепочка: препарат → реакция → следующий) */}
+        <TreatmentProgress
+          consultations={consultations || []}
+          followupByConsultation={followupByConsultation}
+        />
+
         {/* Follow-up */}
         {lastCompleted && (
           <FollowupSection
@@ -225,14 +270,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         )}
 
         {/* Фото динамики */}
-        <div className="mb-6 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <div className="mb-6 rounded-2xl p-5" style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8' }}>
           <PhotoSection patientId={id} photos={photos || []} />
         </div>
 
         {/* Таймлайн лечения */}
         <div>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <h2 className="text-base font-light" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--color-primary)' }}>
               Таймлайн лечения
             </h2>
             <span className="text-xs text-gray-300">
@@ -254,17 +299,13 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                         })
                       : ''}
                   </span>
-                  <form action={cancelConsultation.bind(null, consultation.id, id)}>
-                    <button type="submit" className="text-xs text-gray-400 hover:text-red-500 transition-colors">
-                      Отменить
-                    </button>
-                  </form>
+                  <CancelAppointmentButton consultationId={consultation.id} patientId={id} />
                 </div>
               ))}
             </div>
           )}
 
-          <PatientTimeline
+          <TimelineWithFilter
             patientId={id}
             consultations={consultations || []}
             followupByConsultation={followupByConsultation}
