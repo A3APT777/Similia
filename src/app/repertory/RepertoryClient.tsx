@@ -197,6 +197,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       const prefix = r.chapter + ', '
       return r.fullpath.startsWith(prefix) ? r.fullpath.slice(prefix.length) : r.fullpath
     }
+    // Если есть предварительный перевод из БД — используем его (быстрее и полнее)
+    if (r.fullpath_ru) return r.fullpath_ru
     return translateRubric(r.fullpath, r.chapter)
   }
 

@@ -7,6 +7,7 @@ export type RepertoryRubric = {
   source: string
   chapter: string
   fullpath: string
+  fullpath_ru: string | null
   remedies: Array<{ name: string; abbrev: string; grade: number }>
   remedy_count: number
 }
