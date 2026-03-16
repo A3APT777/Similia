@@ -38,48 +38,45 @@ export default function IntakeLinkButton({
   }
 
   if (!link) {
-    const baseClass = isAcute
-      ? 'border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-400'
-      : 'border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400'
-
     return (
       <button
         onClick={handleCreate}
         disabled={loading}
-        className={`text-sm border px-4 py-2.5 rounded-lg transition-all disabled:opacity-50 ${baseClass}`}
+        className="text-sm border px-4 py-2.5 rounded-lg transition-all disabled:opacity-50"
+        style={{
+          borderColor: isAcute ? 'var(--color-amber)' : 'var(--color-primary)',
+          color: isAcute ? 'var(--color-amber)' : 'var(--color-primary)',
+          backgroundColor: 'transparent',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.backgroundColor = isAcute ? 'rgba(200,160,53,0.08)' : 'rgba(45,106,79,0.06)')}
+        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
       >
         {loading ? 'Создаю...' : isAcute ? '⚡ Анкета острого случая' : hasCompleted ? 'Новая анкета' : '📋 Отправить анкету'}
       </button>
     )
   }
 
-  const accentClass = isAcute
-    ? 'bg-orange-50 border-orange-200'
-    : 'bg-violet-50 border-violet-200'
-  const labelClass = isAcute ? 'text-orange-700' : 'text-violet-700'
-  const urlClass = isAcute ? 'border-orange-200 text-orange-600' : 'border-violet-200 text-violet-600'
-  const copyBtnClass = isAcute ? 'bg-orange-500 border-orange-500 hover:bg-orange-600' : 'bg-violet-600 border-violet-600 hover:bg-violet-700'
-  const hintClass = isAcute ? 'text-orange-400' : 'text-violet-400'
-
   return (
-    <div className={`border rounded-xl px-4 py-3 space-y-2 ${accentClass}`}>
-      <p className={`text-xs font-semibold ${labelClass}`}>
+    <div className="border rounded-xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
+      <p className="text-xs font-semibold" style={{ color: isAcute ? 'var(--color-amber)' : 'var(--color-primary)' }}>
         {isAcute ? '⚡ Ссылка — острый случай:' : 'Ссылка для пациента:'}
       </p>
       <div className="flex items-center gap-2">
-        <p className={`text-xs truncate flex-1 bg-white border rounded-lg px-3 py-1.5 font-mono ${urlClass}`}>
+        <p
+          className="text-xs truncate flex-1 rounded-lg px-3 py-1.5 font-mono"
+          style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border)', color: '#5a5040' }}
+        >
           {link}
         </p>
         <button
           onClick={handleCopy}
-          className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border text-white transition-all ${
-            copied ? 'bg-emerald-600 border-emerald-600' : copyBtnClass
-          }`}
+          className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border text-white transition-all"
+          style={{ backgroundColor: copied ? '#2d7a50' : 'var(--color-primary)', borderColor: copied ? '#2d7a50' : 'var(--color-primary)' }}
         >
           {copied ? '✓ Скопировано' : 'Копировать'}
         </button>
       </div>
-      <p className={`text-[10px] ${hintClass}`}>Отправьте ссылку пациенту в WhatsApp, Telegram или по почте</p>
+      <p className="text-[10px]" style={{ color: '#9a8a6a' }}>Отправьте ссылку пациенту в WhatsApp, Telegram или по почте</p>
     </div>
   )
 }

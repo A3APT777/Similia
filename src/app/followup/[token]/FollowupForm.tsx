@@ -66,12 +66,51 @@ export default function FollowupForm({ token }: { token: string }) {
         ))}
       </div>
 
+      {/* Пояснение при выборе "Новые симптомы" — закон Геринга */}
+      {selected === 'new_symptoms' && (
+        <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3.5 space-y-2">
+          <p className="text-sm font-semibold text-orange-800">Уточните, пожалуйста</p>
+          <p className="text-sm text-orange-700 leading-relaxed">
+            Иногда после гомеопатического препарата симптомы появляются на коже или возвращаются
+            старые болезни — это может быть признаком правильного исцеления (закон Геринга:
+            болезнь уходит изнутри наружу).
+          </p>
+          <p className="text-sm text-orange-700 font-medium">Где появились симптомы?</p>
+          <div className="space-y-1.5 pt-0.5">
+            {[
+              { value: 'skin', label: 'На коже, суставах или поверхности тела', hint: 'возможно, хороший знак' },
+              { value: 'old', label: 'Вернулись старые симптомы, которые были раньше', hint: 'врач должен знать' },
+              { value: 'new_internal', label: 'Новое, во внутренних органах (грудь, живот, голова)', hint: 'обязательно сообщите' },
+              { value: 'other', label: 'Другое или не могу определить', hint: '' },
+            ].map(item => (
+              <label key={item.value} className="flex items-start gap-2.5 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="new_symptoms_location"
+                  value={item.value}
+                  className="mt-0.5 accent-orange-500 shrink-0"
+                />
+                <span className="text-sm text-orange-800">
+                  {item.label}
+                  {item.hint && (
+                    <span className="text-orange-500 ml-1 text-xs">— {item.hint}</span>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-orange-500 pt-1">
+            Ваши уточнения помогут врачу правильно оценить динамику лечения
+          </p>
+        </div>
+      )}
+
       <div>
         <textarea
           value={comment}
           onChange={e => setComment(e.target.value)}
           rows={3}
-          placeholder="Комментарий (необязательно)..."
+          placeholder={selected === 'new_symptoms' ? 'Опишите подробнее, что именно появилось...' : 'Комментарий (необязательно)...'}
           className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
         />
       </div>

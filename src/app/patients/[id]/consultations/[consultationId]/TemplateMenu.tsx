@@ -232,7 +232,7 @@ export default function TemplateMenu({ onInsert, consultationType = 'chronic' }:
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-900/10 z-30 overflow-hidden">
+        <div className="absolute left-0 top-full mt-1.5 w-80 bg-[#ede7dd] border border-gray-100 rounded-2xl shadow-xl shadow-gray-900/10 z-30 overflow-hidden">
 
           {/* Полные шаблоны */}
           <div className="px-3 pt-3 pb-2">

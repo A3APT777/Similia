@@ -33,8 +33,7 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
     setLoading(true)
     try {
       const { token } = await createFollowup(latestConsultationId, patientId)
-      // Обновляем состояние — перезагрузим страницу чтобы получить полный объект
-      window.location.reload()
+      setFollowup({ token } as Followup)
     } finally {
       setLoading(false)
     }
@@ -70,7 +69,7 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
       <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 mb-6">
         <p className="text-sm text-green-800 font-medium mb-2">Ссылка для опроса самочувствия готова</p>
         <div className="flex items-center gap-2">
-          <code className="text-xs text-green-700 bg-white border border-green-100 rounded px-2 py-1 flex-1 truncate">
+          <code className="text-xs text-green-700 bg-[#faf7f2] border border-green-100 rounded px-2 py-1 flex-1 truncate">
             {`${typeof window !== 'undefined' ? window.location.origin : ''}/followup/${followup.token}`}
           </code>
           <button

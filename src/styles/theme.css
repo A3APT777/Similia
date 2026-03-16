@@ -1,0 +1,32 @@
+/* Similia Design Tokens */
+
+:root {
+  --color-bg: #f7f3ed;
+  --color-card: #f0ebe3;
+  --color-card-hover: #e8e0d4;
+  --color-muted-bg: #f2ece4;
+  --color-border: #d4c9b8;
+  --color-border-light: #e0d8cc;
+  --color-input-bg: #faf7f2;
+  --color-sidebar: #1a3020;
+  --color-primary: #2d6a4f;
+  --color-amber: #c8a035;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* Глобальный фон */
+body {
+  background-color: var(--color-bg);
+}
+
+/* Серверный контент страниц */
+.page-bg {
+  background-color: var(--color-bg);
+}
+
+/* Display-шрифт для заголовков */
+.font-display,
+h1.display,
+h2.display {
+  font-family: var(--font-display);
+}

@@ -10,13 +10,20 @@ export default function SendIntakeButton() {
   const [link, setLink] = useState<LinkState>(null)
   const [loading, setLoading] = useState<IntakeType | null>(null)
   const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleCreate(type: IntakeType) {
     setLoading(type)
     setLink(null)
-    const token = await createIntakeLink(type)
-    setLink({ type, url: `${window.location.origin}/intake/${token}` })
-    setLoading(null)
+    setError(null)
+    try {
+      const token = await createIntakeLink(type)
+      setLink({ type, url: `${window.location.origin}/intake/${token}` })
+    } catch {
+      setError('Не удалось создать ссылку — попробуйте ещё раз')
+    } finally {
+      setLoading(null)
+    }
   }
 
   async function handleCopy() {
@@ -60,6 +67,10 @@ export default function SendIntakeButton() {
           Острый случай
         </button>
       </div>
+
+      {error && (
+        <p className="text-xs text-red-600 px-1">{error}</p>
+      )}
 
       {/* Ссылка */}
       {link && (

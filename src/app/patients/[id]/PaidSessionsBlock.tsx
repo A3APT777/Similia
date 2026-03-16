@@ -1,0 +1,227 @@
+'use client'
+
+import { useState, useTransition, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { addPaidSessions, getPaymentHistory } from '@/lib/actions/payments'
+import { useToast } from '@/components/ui/toast'
+
+type Props = {
+  patientId: string
+  initialCount: number
+}
+
+function formatHistoryDate(iso: string) {
+  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+}
+
+export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const [count, setCount] = useState(initialCount)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState<{ id: string; amount: number; note: string | null; created_at: string }[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [addAmount, setAddAmount] = useState(5)
+  const [addNote, setAddNote] = useState('')
+  const [isPending, startAdd] = useTransition()
+  const historyRef = useRef<HTMLDivElement>(null)
+
+  // Цветовое кодирование
+  const color = count === 0 ? '#c0392b' : count <= 2 ? '#c8a035' : '#2d6a4f'
+  const statusText = count === 0 ? 'Нет оплаченных' : count <= 2 ? 'Заканчиваются' : 'осталось'
+
+  // Закрыть дропдаун истории по клику вне
+  useEffect(() => {
+    if (!showHistory) return
+    function handleClick(e: MouseEvent) {
+      if (!historyRef.current?.contains(e.target as Node)) setShowHistory(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showHistory])
+
+  async function handleOpenHistory() {
+    if (showHistory) { setShowHistory(false); return }
+    setHistoryLoading(true)
+    setShowHistory(true)
+    const data = await getPaymentHistory(patientId)
+    setHistory(data)
+    setHistoryLoading(false)
+  }
+
+  function handleAdd() {
+    startAdd(async () => {
+      await addPaidSessions(patientId, addAmount, addNote)
+      setCount(prev => prev + addAmount)
+      setShowAddModal(false)
+      setAddAmount(5)
+      setAddNote('')
+      toast(`Добавлено ${addAmount} консультаций`)
+      router.refresh()
+    })
+  }
+
+  return (
+    <>
+      <div
+        className="rounded-2xl px-4 py-4 mb-5"
+        style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8' }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#9a8a6a' }}>
+          Оплачено консультаций
+        </p>
+
+        {/* Счётчик */}
+        <div className="flex items-end justify-between">
+          <div>
+            <p
+              className="text-[48px] font-light leading-none"
+              style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color }}
+            >
+              {count}
+            </p>
+            <p className="text-[13px] mt-1 font-medium" style={{ color }}>
+              {statusText}
+            </p>
+          </div>
+
+          {/* Кнопки */}
+          <div className="flex items-center gap-2 relative" ref={historyRef}>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+              style={{ backgroundColor: '#2d6a4f', color: '#fff' }}
+            >
+              + Добавить
+            </button>
+            <button
+              onClick={handleOpenHistory}
+              className="text-sm font-medium px-4 py-2 rounded-xl border transition-colors hover:opacity-80"
+              style={{ border: '1px solid #d4c9b8', color: '#5a5040', backgroundColor: '#faf7f2' }}
+            >
+              История
+            </button>
+
+            {/* Дропдаун истории */}
+            {showHistory && (
+              <div
+                className="absolute right-0 top-full mt-2 w-72 rounded-xl shadow-xl z-30 overflow-hidden"
+                style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8' }}
+              >
+                <p className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', borderBottom: '1px solid #d4c9b8' }}>
+                  Последние 10 записей
+                </p>
+                {historyLoading ? (
+                  <p className="px-4 py-4 text-sm" style={{ color: '#9a8a6a' }}>Загружаю...</p>
+                ) : history.length === 0 ? (
+                  <p className="px-4 py-4 text-sm" style={{ color: '#9a8a6a' }}>Записей нет</p>
+                ) : (
+                  <div className="divide-y" style={{ borderColor: '#e8e0d4' }}>
+                    {history.map(entry => (
+                      <div key={entry.id} className="flex items-center justify-between px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="text-sm font-semibold w-8"
+                            style={{ color: entry.amount > 0 ? '#2d6a4f' : '#c0392b' }}
+                          >
+                            {entry.amount > 0 ? `+${entry.amount}` : entry.amount}
+                          </span>
+                          <span className="text-sm" style={{ color: '#5a5040' }}>
+                            {entry.note || '—'}
+                          </span>
+                        </div>
+                        <span className="text-[12px]" style={{ color: '#9a8a6a' }}>
+                          {formatHistoryDate(entry.created_at)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Модалка "+ Добавить" */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div
+            className="relative rounded-2xl p-6 w-[320px] mx-4 shadow-2xl"
+            style={{ backgroundColor: '#f7f3ed', border: '0.5px solid #d4c9b8' }}
+          >
+            <h2
+              className="text-lg font-light mb-4"
+              style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a1a0a' }}
+            >
+              Добавить консультации
+            </h2>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#9a8a6a' }}>
+                  Количество
+                </label>
+                <div className="flex gap-2 mb-2">
+                  {[1, 3, 5, 10].map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setAddAmount(n)}
+                      className="flex-1 py-2 rounded-xl text-sm font-semibold border transition-all"
+                      style={addAmount === n
+                        ? { backgroundColor: '#2d6a4f', color: '#fff', borderColor: '#2d6a4f' }
+                        : { backgroundColor: '#faf7f2', color: '#5a5040', borderColor: '#d4c9b8' }}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  value={addAmount}
+                  onChange={e => setAddAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  style={{ backgroundColor: '#faf7f2', borderColor: '#d4c9b8', color: '#1a1a0a' }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#9a8a6a' }}>
+                  Заметка
+                </label>
+                <input
+                  type="text"
+                  value={addNote}
+                  onChange={e => setAddNote(e.target.value)}
+                  placeholder="оплата картой"
+                  className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  style={{ backgroundColor: '#faf7f2', borderColor: '#d4c9b8', color: '#1a1a0a' }}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={handleAdd}
+                disabled={isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ backgroundColor: '#2d6a4f' }}
+              >
+                {isPending ? 'Сохраняю...' : 'Сохранить'}
+              </button>
+              <button
+                onClick={() => { setShowAddModal(false); setAddAmount(5); setAddNote('') }}
+                className="px-4 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
+                style={{ color: '#9a8a6a' }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}

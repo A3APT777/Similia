@@ -2,6 +2,7 @@ import AppShell from '@/components/AppShell'
 import PatientForm from '@/components/PatientForm'
 import { createPatient } from '@/lib/actions/patients'
 import Link from 'next/link'
+import TourFormStarter from '@/components/TourFormStarter'
 
 export default function NewPatientPage() {
   return (
@@ -18,6 +19,7 @@ export default function NewPatientPage() {
           <PatientForm action={createPatient} submitLabel="Создать пациента" />
         </div>
       </div>
+      <TourFormStarter />
     </AppShell>
   )
 }

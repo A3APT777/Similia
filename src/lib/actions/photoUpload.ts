@@ -12,7 +12,7 @@ export async function createPhotoUploadToken(patientId: string): Promise<string>
   if (!user) redirect('/login')
 
   const token = randomUUID().replace(/-/g, '')
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
 
   await supabase.from('photo_upload_tokens').insert({
     token,

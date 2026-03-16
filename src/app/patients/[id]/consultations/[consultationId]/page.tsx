@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import ConsultationEditor from './ConsultationEditor'
 import LogoutButton from '@/components/LogoutButton'
+import { getDoctorSettings } from '@/lib/actions/payments'
 
 export default async function ConsultationPage({
   params,
@@ -15,8 +16,8 @@ export default async function ConsultationPage({
   if (!user) redirect('/login')
 
   const [{ data: consultation }, { data: patient }] = await Promise.all([
-    supabase.from('consultations').select('*').eq('id', consultationId).single(),
-    supabase.from('patients').select('*').eq('id', id).single(),
+    supabase.from('consultations').select('*').eq('id', consultationId).eq('doctor_id', user.id).single(),
+    supabase.from('patients').select('*').eq('id', id).eq('doctor_id', user.id).single(),
   ])
 
   if (!consultation || !patient) notFound()
@@ -32,11 +33,12 @@ export default async function ConsultationPage({
     .single()
 
   const name = user?.user_metadata?.name || user?.email || ''
+  const { paid_sessions_enabled } = await getDoctorSettings()
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-[#ede7dd] flex flex-col">
       {/* Шапка */}
-      <nav className="h-[54px] bg-white border-b border-gray-100 px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
+      <nav className="h-[54px] bg-[#ede7dd] border-b border-gray-100 px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
         <Link
           href={`/patients/${id}`}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors group"
@@ -56,6 +58,7 @@ export default async function ConsultationPage({
         consultation={consultation}
         patient={patient}
         previousConsultation={previousConsultation || null}
+        paidSessionsEnabled={paid_sessions_enabled}
       />
     </div>
   )

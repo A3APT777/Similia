@@ -138,25 +138,29 @@ export default function IntakeView({ answers, completedAt, type }: Props) {
       })
     : ''
 
-  const borderClass = isAcute ? 'border-orange-200' : 'border-violet-200'
-  const bgClass = isAcute ? 'bg-orange-50' : 'bg-violet-50'
-  const headerBorderClass = isAcute ? 'border-orange-200' : 'border-violet-200'
-  const iconBgClass = isAcute ? 'bg-orange-500' : 'bg-violet-600'
-  const titleClass = isAcute ? 'text-orange-800' : 'text-violet-800'
-  const dateClass = isAcute ? 'text-orange-500' : 'text-violet-500'
-  const dividerClass = isAcute ? 'divide-orange-100' : 'divide-violet-100'
-  const sectionLabelClass = isAcute ? 'text-orange-400' : 'text-violet-400'
-  const fieldLabelClass = isAcute ? 'text-orange-500' : 'text-violet-500'
+  const accentColor = isAcute ? '#f97316' : '#c8a035'
+  const accentBg = isAcute ? 'rgba(249,115,22,0.08)' : 'rgba(200,160,53,0.08)'
 
   return (
-    <div className={`border rounded-2xl overflow-hidden ${borderClass} ${bgClass}`}>
+    <div style={{
+      backgroundColor: '#f0ebe3',
+      border: `1px solid ${accentColor}`,
+      borderLeft: `4px solid ${accentColor}`,
+      borderRadius: '8px',
+      overflow: 'hidden',
+    }}>
       {/* Шапка — кликабельная */}
       <button
         onClick={() => setExpanded(v => !v)}
-        className={`w-full px-5 py-3.5 flex items-center justify-between transition-colors hover:brightness-95 ${expanded ? `border-b ${headerBorderClass}` : ''}`}
+        className="w-full flex items-center justify-between transition-colors"
+        style={{
+          padding: '14px 16px',
+          borderBottom: expanded ? `1px solid ${accentColor}` : 'none',
+          backgroundColor: expanded ? accentBg : 'transparent',
+        }}
       >
         <div className="flex items-center gap-2">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${iconBgClass}`}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: accentColor }}>
             {isAcute ? (
               <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -167,13 +171,14 @@ export default function IntakeView({ answers, completedAt, type }: Props) {
               </svg>
             )}
           </div>
-          <span className={`text-sm font-semibold ${titleClass}`}>
+          <span className="font-semibold" style={{ fontSize: '15px', color: '#1a1a0a' }}>
             {isAcute ? 'Анкета острого случая' : 'Анкета первичного приёма'}
           </span>
-          {dateStr && <span className={`text-xs ${dateClass}`}>{dateStr}</span>}
+          {dateStr && <span style={{ fontSize: '13px', color: '#9a8a6a' }}>{dateStr}</span>}
         </div>
         <svg
-          className={`w-4 h-4 transition-transform ${dateClass} ${expanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          style={{ color: '#2d6a4f' }}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -188,7 +193,7 @@ export default function IntakeView({ answers, completedAt, type }: Props) {
               .filter(f => answers[f.key]?.trim())
               .map(field => (
                 <div key={field.key} className="min-w-0">
-                  <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${sectionLabelClass}`}>
+                  <p className="font-bold uppercase tracking-wider mb-0.5" style={{ fontSize: '10px', color: accentColor }}>
                     {field.label}
                   </p>
                   <p className="text-sm text-gray-800 leading-snug">

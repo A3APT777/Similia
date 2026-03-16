@@ -141,9 +141,9 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
   )
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+    <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: '#f5f0e8', border: '1px solid #d4c9b8' }}>
       {/* Шапка: навигация по месяцам */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50">
+      <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: '0.5px solid #d4c9b8' }}>
         <button
           onClick={prevMonth}
           className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-base leading-none"
@@ -203,7 +203,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
       </div>
 
       {/* Панель выбранного дня */}
-      <div className="border-t border-gray-50 px-4 py-3">
+      <div className="px-4 py-3" style={{ borderTop: '0.5px solid #d4c9b8' }}>
         <div className="flex items-center justify-between mb-2.5">
           <p className="text-xs font-semibold text-gray-500 capitalize">
             {formatSelectedDay(selectedDay)}
@@ -247,7 +247,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
                 autoFocus
               />
               {patientSearch.length > 0 && !addPatientId && filteredPatients.length > 0 && (
-                <div className="absolute z-10 w-full top-full mt-0.5 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden">
+                <div className="absolute z-10 w-full top-full mt-0.5 rounded-xl shadow-lg overflow-hidden" style={{ backgroundColor: '#f5f0e8', border: '1px solid #d4c9b8' }}>
                   {filteredPatients.slice(0, 5).map(p => (
                     <button
                       key={p.id}

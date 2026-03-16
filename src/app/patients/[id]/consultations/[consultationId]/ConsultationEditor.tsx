@@ -1,43 +1,61 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useRef, useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateConsultationNotes, updateConsultationType } from '@/lib/actions/consultations'
+import { updateConsultationNotes, updateConsultationType, updateConsultationExtra } from '@/lib/actions/consultations'
+import { decrementPaidSession } from '@/lib/actions/payments'
 import { Consultation, Patient, ConsultationType } from '@/types'
+import { useToast } from '@/components/ui/toast'
 import { formatDate } from '@/lib/utils'
 import ComparisonPanel from './ComparisonPanel'
 import TemplateMenu from './TemplateMenu'
 import PrescriptionModal from './PrescriptionModal'
+import MiniRepertory from './MiniRepertory'
 
 type Props = {
   consultation: Consultation
   patient: Patient
   previousConsultation: Consultation | null
+  paidSessionsEnabled: boolean
 }
 
 const TYPE_CONFIG = {
   chronic: {
     label: 'Хронический',
     short: 'Хрон.',
-    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
-    dot: 'bg-emerald-500',
+    badge: '',
+    badgeStyle: { backgroundColor: 'rgba(45,106,79,0.08)', color: 'var(--color-primary)', borderColor: 'rgba(45,106,79,0.2)' },
+    dot: '',
+    dotStyle: { backgroundColor: 'var(--color-primary)' },
   },
   acute: {
     label: 'Острый случай',
     short: 'Острый',
-    badge: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100',
-    dot: 'bg-orange-500',
+    badge: '',
+    badgeStyle: { backgroundColor: 'rgba(200,160,53,0.08)', color: 'var(--color-amber)', borderColor: 'rgba(200,160,53,0.3)' },
+    dot: '',
+    dotStyle: { backgroundColor: 'var(--color-amber)' },
   },
 }
 
-export default function ConsultationEditor({ consultation, patient, previousConsultation }: Props) {
+export default function ConsultationEditor({ consultation, patient, previousConsultation, paidSessionsEnabled }: Props) {
   const router = useRouter()
+  const { toast } = useToast()
   const [notes, setNotes] = useState(consultation.notes || '')
+  const [showZeroWarning, setShowZeroWarning] = useState(false)
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'unsaved'>('saved')
-  const [rightTab, setRightTab] = useState<'prev' | 'compare'>('compare')
+  const [savedAt, setSavedAt] = useState<string | null>(null)
+  const [rubrics, setRubrics] = useState(consultation.rubrics || '')
+  const [reactionToPrev, setReactionToPrev] = useState(consultation.reaction_to_previous || '')
+  const [showExtra, setShowExtra] = useState(
+    !!(consultation.rubrics || consultation.reaction_to_previous)
+  )
+  const extraTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const [rightTab, setRightTab] = useState<'prev' | 'compare' | 'repertory'>('compare')
   const [mobileTab, setMobileTab] = useState<'editor' | 'compare'>('editor')
   const [type, setType] = useState<ConsultationType>(consultation.type ?? 'chronic')
   const [showPrescription, setShowPrescription] = useState(false)
+  const [pendingPrescription, setPendingPrescription] = useState<{ abbrev: string; potency: string; dosage: string } | null>(null)
   const [, startTypeTransition] = useTransition()
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -48,17 +66,44 @@ export default function ConsultationEditor({ consultation, patient, previousCons
     clearTimeout(timerRef.current)
     timerRef.current = setTimeout(async () => {
       setSaveState('saving')
-      await updateConsultationNotes(consultation.id, value)
-      setSaveState('saved')
+      try {
+        await updateConsultationNotes(consultation.id, value)
+        setSaveState('saved')
+        setSavedAt(new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))
+      } catch {
+        setSaveState('unsaved')
+        toast('Ошибка сохранения — попробуйте ещё раз')
+      }
     }, 1500)
   }
 
-  async function handleFinish() {
+  async function doFinish() {
     if (saveState !== 'saved') {
       clearTimeout(timerRef.current)
       await updateConsultationNotes(consultation.id, notes)
     }
     setShowPrescription(true)
+  }
+
+  async function handleFinish() {
+    if (paidSessionsEnabled && (patient.paid_sessions ?? 0) === 0) {
+      setShowZeroWarning(true)
+      return
+    }
+    await doFinish()
+  }
+
+  async function handleConsultationDone() {
+    setPendingPrescription(null)
+    if (paidSessionsEnabled) {
+      const { prevCount, newCount } = await decrementPaidSession(patient.id)
+      if (prevCount === 1) {
+        toast('Консультация сохранена. Оплаченные консультации закончились!')
+      } else if (prevCount > 1) {
+        toast(`Консультация сохранена. Осталось: ${newCount}`)
+      }
+    }
+    router.push(`/patients/${consultation.patient_id}`)
   }
 
   function toggleType() {
@@ -106,21 +151,92 @@ export default function ConsultationEditor({ consultation, patient, previousCons
     })
   }
 
+  function insertRubricFromRepertory(rubricPath: string) {
+    const current = rubrics
+    const separator = current.trim() ? ';\n' : ''
+    const newValue = current + separator + rubricPath
+    handleExtraChange(newValue, reactionToPrev)
+    if (!showExtra) setShowExtra(true)
+  }
+
+  function handleExtraChange(newRubrics: string, newReaction: string) {
+    setRubrics(newRubrics)
+    setReactionToPrev(newReaction)
+    clearTimeout(extraTimerRef.current)
+    extraTimerRef.current = setTimeout(() => {
+      updateConsultationExtra(consultation.id, newRubrics, newReaction)
+    }, 1500)
+  }
+
+  // Сохраняем URL текущей консультации — кнопка "↗ В консультацию" в репертории
+  useEffect(() => {
+    localStorage.setItem('hc-last-consultation', window.location.href)
+
+    // Проверяем, пришли ли мы из репертория с готовым назначением
+    const raw = localStorage.getItem('hc-pending-prescription')
+    if (raw) {
+      try {
+        const data = JSON.parse(raw) as { abbrev: string; potency: string; dosage: string }
+        localStorage.removeItem('hc-pending-prescription')
+        setPendingPrescription(data)
+        setShowPrescription(true)
+      } catch {}
+    }
+  }, [])
+
   const typeCfg = TYPE_CONFIG[type]
   const wordCount = notes.trim() ? notes.trim().split(/\s+/).length : 0
 
   return (
     <>
+    {/* Предупреждение: 0 оплаченных консультаций */}
+    {showZeroWarning && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="relative rounded-2xl p-6 w-[340px] mx-4 shadow-2xl" style={{ backgroundColor: '#f7f3ed', border: '1px solid #c8a035' }}>
+          <div className="flex items-start gap-3 mb-4">
+            <svg className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#c8a035' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+            </svg>
+            <div>
+              <p className="text-[15px] font-semibold" style={{ color: '#1a1a0a' }}>Нет оплаченных консультаций</p>
+              <p className="text-sm mt-1 leading-relaxed" style={{ color: '#5a5040' }}>
+                У пациента нет оплаченных консультаций. Сохранить всё равно?
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowZeroWarning(false); doFinish() }}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+              style={{ backgroundColor: '#1a3020' }}
+            >
+              Сохранить
+            </button>
+            <button
+              onClick={() => setShowZeroWarning(false)}
+              className="px-4 py-2.5 rounded-xl text-sm"
+              style={{ color: '#9a8a6a' }}
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {showPrescription && (
       <PrescriptionModal
         consultationId={consultation.id}
-        onSkip={() => router.push(`/patients/${consultation.patient_id}`)}
-        onSaved={() => router.push(`/patients/${consultation.patient_id}`)}
+        onSkip={handleConsultationDone}
+        onSaved={handleConsultationDone}
+        initialRemedy={pendingPrescription?.abbrev}
+        initialPotency={pendingPrescription?.potency}
+        initialDosage={pendingPrescription?.dosage}
       />
     )}
 
     {/* Мобильный таб-бар (скрыт на desktop) */}
-    <div className="lg:hidden flex border-b border-gray-100 bg-white shrink-0">
+    <div className="lg:hidden flex shrink-0" style={{ borderBottom: '1px solid var(--color-border-light)', backgroundColor: 'var(--color-muted-bg)' }}>
       <button
         onClick={() => setMobileTab('editor')}
         className={`flex-1 py-2.5 text-xs font-semibold transition-colors border-b-2 ${
@@ -149,10 +265,10 @@ export default function ConsultationEditor({ consultation, patient, previousCons
       <div className={`${mobileTab === 'editor' ? 'flex' : 'hidden'} lg:flex flex-col border-r border-gray-100 min-h-0`}>
 
         {/* Шапка */}
-        <div className="px-6 py-3.5 border-b border-gray-100 bg-white">
+        <div className="px-6 py-3.5" style={{ borderBottom: '1px solid var(--color-border-light)', backgroundColor: 'var(--color-card)' }}>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${typeCfg.dot}`} />
+              <div className="w-2 h-2 rounded-full shrink-0" style={typeCfg.dotStyle} />
               <div className="min-w-0">
                 <h1 className="text-sm font-semibold text-gray-900 tracking-tight truncate">{patient.name}</h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -170,11 +286,16 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    Сохранено
+                    {savedAt ? `Сохранено в ${savedAt}` : 'Сохранено'}
                   </span>
                 )}
-                {saveState === 'saving' && <span className="text-gray-400">Сохраняю...</span>}
-                {saveState === 'unsaved' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />}
+                {saveState === 'saving' && <span className="text-gray-400 animate-pulse">Сохраняю...</span>}
+                {saveState === 'unsaved' && (
+                  <span className="flex items-center gap-1 text-amber-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                    Не сохранено
+                  </span>
+                )}
               </div>
 
               <button
@@ -188,13 +309,14 @@ export default function ConsultationEditor({ consultation, patient, previousCons
         </div>
 
         {/* Тулбар: тип + шаблоны + счётчик */}
-        <div className="px-5 py-2 border-b border-gray-100 bg-white flex items-center gap-3">
+        <div className="px-5 py-2 flex items-center gap-3" style={{ borderBottom: '1px solid var(--color-border-light)', backgroundColor: 'var(--color-card)' }}>
           {/* Переключатель типа консультации */}
           <button
             type="button"
             onClick={toggleType}
             title="Нажмите, чтобы изменить тип"
-            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${typeCfg.badge}`}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all"
+            style={typeCfg.badgeStyle}
           >
             {type === 'chronic' ? (
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -212,9 +334,95 @@ export default function ConsultationEditor({ consultation, patient, previousCons
 
           <TemplateMenu onInsert={insertTemplate} consultationType={type} />
 
+          <div className="w-px h-4 bg-gray-200" />
+
+          <button
+            type="button"
+            onClick={() => { setRightTab('repertory'); setMobileTab('compare') }}
+            title="Открыть репертоий"
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+              rightTab === 'repertory'
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                : 'border-gray-200 bg-[#ede7dd] text-gray-500 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+            Репертоий
+          </button>
+
           <span className="text-xs text-gray-300 ml-auto">
             {wordCount > 0 ? `${wordCount} слов` : 'Пустая заметка'}
           </span>
+        </div>
+
+        {/* Дополнительные поля — реакция и рубрики */}
+        <div className="border-b border-gray-100 bg-[#ede7dd]">
+          <button
+            type="button"
+            onClick={() => setShowExtra(v => !v)}
+            className="w-full flex items-center justify-between px-5 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              {(rubrics || reactionToPrev) && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              )}
+              Реакция на предыдущий препарат · Рубрики реперториума
+            </span>
+            <svg
+              className={`w-3.5 h-3.5 transition-transform ${showExtra ? 'rotate-180' : ''}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showExtra && (
+            <div className="px-5 pb-3 pt-1 space-y-2 bg-gray-50/50">
+              {previousConsultation?.remedy && (
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                    Реакция на {previousConsultation.remedy}{previousConsultation.potency ? ` ${previousConsultation.potency}` : ''}
+                  </label>
+                  <textarea
+                    value={reactionToPrev}
+                    onChange={e => handleExtraChange(rubrics, e.target.value)}
+                    rows={2}
+                    placeholder="Как пациент реагировал на препарат? Что изменилось с прошлого приёма..."
+                    className="w-full text-xs text-gray-700 bg-[#faf7f2] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder-gray-300"
+                  />
+                </div>
+              )}
+              {!previousConsultation?.remedy && reactionToPrev === '' && (
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                    Реакция на предыдущий препарат
+                  </label>
+                  <textarea
+                    value={reactionToPrev}
+                    onChange={e => handleExtraChange(rubrics, e.target.value)}
+                    rows={2}
+                    placeholder="Как пациент реагировал на предыдущее назначение..."
+                    className="w-full text-xs text-gray-700 bg-[#faf7f2] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder-gray-300"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  Рубрики реперториума
+                </label>
+                <textarea
+                  value={rubrics}
+                  onChange={e => handleExtraChange(e.target.value, reactionToPrev)}
+                  rows={2}
+                  placeholder="Mind: Fear of dark; Generals: Worse cold; Head: Pain, throbbing..."
+                  className="w-full text-xs text-gray-700 bg-[#faf7f2] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder-gray-300 font-mono"
+                />
+                <p className="text-[10px] text-gray-300 mt-0.5">Через точку с запятой. Используется для подбора препарата.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Textarea */}
@@ -228,18 +436,18 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               ? `Острый случай — начните писать или выберите шаблон...\n\nЖАЛОБЫ ОСТРОГО СОСТОЯНИЯ\n—\n\nМОДАЛЬНОСТИ\nХуже от:\nЛучше от:\n\nНАЗНАЧЕНИЕ\nПрепарат:\nПотенция:`
               : `Хроническая консультация — начните писать или выберите шаблон...\n\nЖАЛОБЫ\n—\n\nМОДАЛЬНОСТИ\nХуже от:\nЛучше от:\n\nПСИХОЭМОЦИОНАЛЬНОЕ\nНастроение:`
           }
-          className="flex-1 w-full px-5 lg:px-7 py-5 lg:py-6 text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white placeholder-gray-300 font-mono min-h-[60vh] lg:min-h-0"
+          className="flex-1 w-full px-5 lg:px-7 py-5 lg:py-6 text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-[#faf7f2] placeholder-gray-300 font-mono min-h-[60vh] lg:min-h-0"
         />
       </div>
 
       {/* ══════════ Правая колонка ══════════ */}
       <div className={`${mobileTab === 'compare' ? 'flex' : 'hidden'} lg:flex flex-col bg-[#fafafa] min-h-0`}>
-        <div className="px-5 py-2.5 border-b border-gray-100 bg-white flex items-center justify-between">
+        <div className="px-5 py-2.5 border-b border-gray-100 bg-[#ede7dd] flex items-center justify-between">
           <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
             <button
               onClick={() => setRightTab('compare')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                rightTab === 'compare' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                rightTab === 'compare' ? 'bg-[#ede7dd] text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               Сравнение
@@ -247,19 +455,35 @@ export default function ConsultationEditor({ consultation, patient, previousCons
             <button
               onClick={() => setRightTab('prev')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                rightTab === 'prev' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                rightTab === 'prev' ? 'bg-[#ede7dd] text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               Прошлый приём
             </button>
+            <button
+              onClick={() => setRightTab('repertory')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                rightTab === 'repertory' ? 'bg-[#ede7dd] text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+              Репертоий
+            </button>
           </div>
-          {previousConsultation && (
+          {previousConsultation && rightTab !== 'repertory' && (
             <p className="text-xs text-gray-400">{formatDate(previousConsultation.date)}</p>
           )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {!previousConsultation ? (
+          {rightTab === 'repertory' ? (
+            <MiniRepertory
+              onSelectRubric={insertRubricFromRepertory}
+              onClose={() => setRightTab('compare')}
+            />
+          ) : !previousConsultation ? (
             <div className="flex flex-col items-center justify-center h-full py-16 text-center px-6">
               <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
                 <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

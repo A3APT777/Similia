@@ -48,24 +48,37 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Similia brand colours */
+  --color-forest:       #1a3020;
+  --color-garden:       #2d6a4f;
+  --color-mint:         #7dd4a8;
+  --color-parchment:    #f7f3ed;
+  --color-linen:        #f0ebe3;
+  --color-border:       #d4c9b8;
+  --color-border-light: #e0d8cc;
+  --color-amber:        #c8a035;
+  --color-text-dark:    #3a2e1a;
+  --color-text-muted:   #9a8a6a;
+  --color-text-label:   #5a7060;
+
+  --background: #f7f3ed;
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: #f0ebe3;
   --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
+  --popover: #f7f3ed;
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: #f2ece4;
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: #f2ece4;
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: #e8e0d4;
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: #d4c9b8;
+  --input: #faf7f2;
+  --ring: #2d6a4f;
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -120,10 +133,78 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    font-size: 16px;
   }
+  body {
+    @apply bg-background text-foreground;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* Скроллбары */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f0ebe3; }
+  ::-webkit-scrollbar-thumb { background: #c4b89a; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9a8a6a; }
+  * { scrollbar-width: thin; scrollbar-color: #c4b89a #f0ebe3; }
+}
+
+/* ─── Driver.js tour styles ─────────────────────────────────────────────── */
+
+#driver-popover-content {
+  background: #f7f3ed !important;
+  border: 0.5px solid #d4c9b8 !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  max-width: 320px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15) !important;
+}
+
+.driver-popover-title {
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-size: 18px !important;
+  color: #1a1a0a !important;
+  margin-bottom: 8px !important;
+  font-weight: 400 !important;
+}
+
+.driver-popover-description {
+  font-size: 14px !important;
+  color: #3a2e1a !important;
+  line-height: 1.6 !important;
+}
+
+.driver-popover-progress-text {
+  font-size: 12px !important;
+  color: #9a8a6a !important;
+}
+
+.driver-popover-footer {
+  margin-top: 16px !important;
+}
+
+.driver-popover-footer button {
+  background: #1a3020 !important;
+  color: white !important;
+  border-radius: 8px !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+}
+
+.driver-popover-prev-btn {
+  background: transparent !important;
+  color: #2d6a4f !important;
+  border: 1px solid #2d6a4f !important;
+}
+
+.driver-popover-close-btn {
+  color: #9a8a6a !important;
+  background: transparent !important;
+  border: none !important;
+  font-size: 18px !important;
+  padding: 4px 8px !important;
 }

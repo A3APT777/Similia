@@ -1,0 +1,35 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { startPatientFormTour, destroyActiveTour } from '@/lib/tour'
+import 'driver.js/dist/driver.css'
+
+export default function TourFormStarter() {
+  const [tourActive, setTourActive] = useState(false)
+
+  useEffect(() => {
+    if (localStorage.getItem('tour_active') !== 'true') return
+    setTourActive(true)
+    // Небольшая задержка — дать форме отрендериться перед запуском тура
+    const timer = setTimeout(() => {
+      startPatientFormTour()
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!tourActive) return null
+
+  return (
+    <button
+      onClick={() => {
+        destroyActiveTour()
+        localStorage.setItem('tour_active', 'false')
+        setTourActive(false)
+      }}
+      className="fixed bottom-6 right-6 z-[9999] text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg transition-all hover:opacity-90"
+      style={{ backgroundColor: '#1a3020', color: '#fff', border: '1px solid #2d6a4f' }}
+    >
+      Пропустить обучение
+    </button>
+  )
+}

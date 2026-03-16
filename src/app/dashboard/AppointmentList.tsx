@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { startConsultation } from '@/lib/actions/consultations'
 import { Consultation, Patient } from '@/types'
@@ -52,6 +52,46 @@ function groupByDay(appts: AppointmentWithPatient[]) {
   return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
 }
 
+function CopyReminderButton({ name, scheduledAt }: { name: string; scheduledAt: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = useCallback(() => {
+    const date = new Date(scheduledAt).toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+    })
+    const text = `Здравствуйте, ${name}! Напоминаем о вашем приёме ${date} (МСК). Если возникнут вопросы — пишите.`
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [name, scheduledAt])
+
+  return (
+    <button
+      onClick={copy}
+      title="Скопировать напоминание"
+      className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-emerald-700 transition-colors px-1.5 py-1 rounded-lg hover:bg-emerald-50"
+    >
+      {copied ? (
+        <>
+          <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+          <span className="text-emerald-600">Скопировано</span>
+        </>
+      ) : (
+        <>
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 4.5h-1.5a2.251 2.251 0 00-2.15 1.836m5.3 0H9.15" />
+          </svg>
+          <span className="hidden sm:inline">Напомнить</span>
+        </>
+      )}
+    </button>
+  )
+}
+
 export default function AppointmentList({ appointments }: Props) {
   const [, setTick] = useState(0)
   useEffect(() => {
@@ -73,7 +113,7 @@ export default function AppointmentList({ appointments }: Props) {
           <div key={day}>
             <p className="text-[11px] font-medium text-gray-500 mb-1.5 capitalize">{formatDayHeader(day)}</p>
 
-            <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-gray-50">
+            <div className="rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-[#d4c9b8]" style={{ backgroundColor: '#f0ebe3', border: '0.5px solid #d4c9b8' }}>
               {dayAppts.map(appt => {
                 const { label, variant } = getTimeLabel(appt.scheduled_at!)
                 const done = appt.status === 'completed'
@@ -84,7 +124,7 @@ export default function AppointmentList({ appointments }: Props) {
                   <div
                     key={appt.id}
                     className={`flex items-center gap-3.5 px-4 py-3 transition-colors ${
-                      isUrgent ? 'bg-amber-50/70' : done ? 'opacity-50' : 'hover:bg-gray-50/60'
+                      isUrgent ? 'bg-amber-50/70' : done ? 'opacity-50' : 'hover:bg-[#e8e0d4]/60'
                     }`}
                   >
                     {/* Полоска статуса */}
@@ -125,6 +165,11 @@ export default function AppointmentList({ appointments }: Props) {
                         <p className="text-[11px] text-gray-400 mt-0.5">{appt.patients.phone}</p>
                       )}
                     </div>
+
+                    {/* Напоминание */}
+                    {!done && (
+                      <CopyReminderButton name={appt.patients.name} scheduledAt={appt.scheduled_at!} />
+                    )}
 
                     {/* Действие */}
                     <div className="shrink-0">

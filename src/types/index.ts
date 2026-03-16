@@ -6,7 +6,9 @@ export type Patient = {
   phone: string | null
   email: string | null
   notes: string | null
+  constitutional_type: string | null
   first_visit_date: string
+  paid_sessions: number
   created_at: string
   updated_at: string
 }
@@ -27,6 +29,8 @@ export type Consultation = {
   potency: string | null
   pellets: number | null
   dosage: string | null
+  rubrics: string | null
+  reaction_to_previous: string | null
   created_at: string
   updated_at: string
 }
@@ -46,6 +50,7 @@ export type IntakeForm = {
   answers: IntakeAnswers | null
   created_at: string
   completed_at: string | null
+  expires_at: string | null
 }
 
 export type Followup = {
@@ -57,5 +62,26 @@ export type Followup = {
   comment: string | null
   sent_at: string | null
   responded_at: string | null
+  created_at: string
+}
+
+export type PatientPhoto = {
+  id: string
+  patient_id: string
+  doctor_id: string
+  storage_path: string
+  public_url: string
+  taken_at: string
+  notes: string | null
+  created_at: string
+}
+
+export type PhotoUploadToken = {
+  id: string
+  patient_id: string
+  doctor_id: string
+  token: string
+  expires_at: string
+  used: boolean
   created_at: string
 }

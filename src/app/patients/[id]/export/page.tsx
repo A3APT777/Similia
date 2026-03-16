@@ -63,7 +63,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: patient } = await supabase.from('patients').select('*').eq('id', id).single()
+  const { data: patient } = await supabase.from('patients').select('*').eq('id', id).eq('doctor_id', user.id).single()
   if (!patient) notFound()
 
   const { data: consultations } = await supabase
@@ -110,7 +110,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
           {/* ── Шапка ── */}
           <div className="flex items-start justify-between mb-8 pb-6 border-b-2 border-gray-900">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">HomeoCase · История пациента</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Similia · История пациента</p>
               <h1 className="text-2xl font-bold text-gray-900 leading-tight">{patient.name}</h1>
               <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-sm text-gray-500">
                 {patient.birth_date && <span>{getAge(patient.birth_date)}</span>}
@@ -243,7 +243,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
 
           {/* ── Подвал ── */}
           <div className="mt-10 pt-4 border-t border-gray-200 flex items-center justify-between">
-            <p className="text-xs text-gray-300">HomeoCase</p>
+            <p className="text-xs text-gray-300">Similia</p>
             <p className="text-xs text-gray-300">Конфиденциально · только для врача</p>
           </div>
 

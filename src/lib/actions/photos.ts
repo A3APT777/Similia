@@ -15,6 +15,10 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
 
   if (!file || !patientId) return
 
+  if (file.size > 10 * 1024 * 1024) throw new Error('Файл слишком большой. Максимум 10 МБ.')
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+  if (!allowedTypes.includes(file.type.toLowerCase())) throw new Error('Разрешены только фотографии (JPEG, PNG, WebP, HEIC).')
+
   const ext = file.name.split('.').pop() || 'jpg'
   const path = `${user.id}/${patientId}/${Date.now()}.${ext}`
 

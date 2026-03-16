@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2 mb-8">
           <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xs">H</div>
-          <span className="font-semibold text-gray-900">HomeoCase</span>
+          <span className="font-semibold text-gray-900">Similia</span>
         </div>
 
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-1">Новый пароль</h1>

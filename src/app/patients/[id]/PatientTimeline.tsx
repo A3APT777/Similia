@@ -142,7 +142,7 @@ function ConsultationCard({
   const dotColor = isCancelled
     ? 'bg-gray-300 border-gray-200'
     : isScheduled
-    ? `bg-white ${isAcute ? 'border-orange-300' : 'border-emerald-300'}`
+    ? `${isAcute ? 'border-orange-300' : 'border-emerald-300'}`
     : isInProgress
     ? 'bg-amber-400 border-amber-300'
     : isAcute
@@ -154,7 +154,7 @@ function ConsultationCard({
 
       {/* Вертикальная линия + точка */}
       <div className="flex flex-col items-center shrink-0 w-8">
-        <div className={`w-3.5 h-3.5 rounded-full border-2 z-10 mt-1 shrink-0 ${dotColor} ${isScheduled ? 'ring-2 ring-emerald-100' : ''}`} />
+        <div className={`w-3.5 h-3.5 rounded-full border-2 z-10 mt-1 shrink-0 ${dotColor} ${isScheduled ? 'ring-2 ring-emerald-100' : ''}`} style={isScheduled ? { backgroundColor: '#f5f0e8' } : undefined} />
         {(!isLast || !!followup) && (
           <div className="flex-1 w-px bg-gray-100 mt-1.5" />
         )}
@@ -164,17 +164,17 @@ function ConsultationCard({
       <div className="flex-1 min-w-0 pb-1">
         {/* Дата + тег относительного времени */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="text-xs text-gray-400 font-medium">{dateStr}</span>
+          <span className="font-medium" style={{ fontSize: '14px', color: '#1a3020' }}>{dateStr}</span>
           {!isScheduled && !isCancelled && (
-            <span className="text-[10px] text-gray-300">{daysAgo(event.sortKey)}</span>
+            <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{daysAgo(event.sortKey)}</span>
           )}
           {isAcute && !isCancelled && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200">
+            <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200">
               ⚡ Острый
             </span>
           )}
           {isScheduled && (
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+            <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full border ${
               isAcute
                 ? 'bg-orange-50 text-orange-700 border-orange-200'
                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -183,12 +183,12 @@ function ConsultationCard({
             </span>
           )}
           {isInProgress && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
               Идёт
             </span>
           )}
           {isCancelled && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+            <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
               Отменён
             </span>
           )}
@@ -196,54 +196,53 @@ function ConsultationCard({
 
         <Link
           href={`/patients/${patientId}/consultations/${consultation.id}`}
-          className={`group block bg-white border rounded-2xl px-4 py-3.5 hover:shadow-sm transition-all ${
-            isAcute
-              ? 'border-orange-100 hover:border-orange-300 border-l-2 border-l-orange-400'
-              : 'border-gray-100 hover:border-emerald-200'
-          }`}
+          className="group block transition-all"
+          style={{
+            backgroundColor: '#f0ebe3',
+            border: '1px solid #d4c9b8',
+            borderLeft: isAcute ? '4px solid #c8a035' : '4px solid #2d6a4f',
+            borderRadius: '8px',
+            padding: '16px',
+          }}
         >
-          <p className={`text-sm font-semibold mb-1.5 transition-colors ${
-            isAcute
-              ? 'text-orange-700 group-hover:text-orange-800'
-              : 'text-gray-800 group-hover:text-emerald-700'
-          }`}>
+          <p className="mb-1.5 font-semibold" style={{ fontSize: '15px', color: isAcute ? '#c8a035' : '#1a1a0a' }}>
             {title}
           </p>
 
           {isScheduled ? (
-            <p className="text-sm text-gray-400 italic">Запланированный приём</p>
+            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>Запланированный приём</p>
           ) : isCompleted && consultation.notes ? (
-            <p className="text-sm text-gray-500 leading-relaxed">
+            <p style={{ fontSize: '14px', color: '#5a5040', lineHeight: '1.6' }}>
               {preview(consultation.notes, 140)}
             </p>
           ) : isCompleted && !consultation.notes ? (
-            <p className="text-sm text-gray-300 italic">Без заметок</p>
+            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>Без заметок</p>
           ) : isInProgress ? (
-            <p className="text-sm text-gray-400 italic">Приём идёт...</p>
+            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>Приём идёт...</p>
           ) : null}
 
           {/* Назначение */}
           {isCompleted && consultation.remedy ? (
-            <div className="mt-2 inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
-              <svg className="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="mt-2 inline-flex items-center gap-1.5" style={{ background: '#e8f0e8', border: '1px solid #2d6a4f', borderRadius: '6px', padding: '8px 12px' }}>
+              <svg className="w-3.5 h-3.5 shrink-0" style={{ color: '#2d6a4f' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <span className="text-xs font-semibold text-emerald-700">
+              <span style={{ fontSize: '14px', fontWeight: 500, color: '#1a3020' }}>
                 {consultation.remedy}{consultation.potency ? ` ${consultation.potency}` : ''}
               </span>
               {consultation.pellets && (
-                <span className="text-xs text-emerald-600">· {consultation.pellets} гор.</span>
+                <span style={{ fontSize: '13px', color: '#2d6a4f' }}>· {consultation.pellets} гор.</span>
               )}
               {consultation.dosage && (
-                <span className="text-xs text-emerald-600 opacity-70">· {consultation.dosage}</span>
+                <span style={{ fontSize: '13px', color: '#2d6a4f', opacity: 0.7 }}>· {consultation.dosage}</span>
               )}
             </div>
           ) : isCompleted && !consultation.remedy ? (
-            <div className="mt-2 inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-              <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="mt-2 inline-flex items-center gap-1.5" style={{ background: 'rgba(200,160,53,0.08)', border: '1px solid #c8a035', borderRadius: '6px', padding: '8px 12px' }}>
+              <svg className="w-3.5 h-3.5 shrink-0" style={{ color: '#c8a035' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
               </svg>
-              <span className="text-xs font-medium text-amber-700">Назначение не выписано</span>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: '#c8a035' }}>Назначение не выписано</span>
             </div>
           ) : null}
         </Link>
@@ -281,11 +280,11 @@ function FollowupCard({
       {/* Карточка */}
       <div className="flex-1 min-w-0 pb-1">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs text-gray-400 font-medium">{dateStr}</span>
-          <span className="text-[10px] text-gray-300">{daysAgo(event.sortKey)}</span>
+          <span className="font-medium" style={{ fontSize: '14px', color: '#1a3020' }}>{dateStr}</span>
+          <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{daysAgo(event.sortKey)}</span>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl px-4 py-3.5">
+        <div style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8', borderRadius: '8px', padding: '16px' }}>
           <div className="flex items-center gap-2 mb-1.5">
             <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.badge}`}>
               {cfg.icon}
@@ -293,7 +292,7 @@ function FollowupCard({
             </span>
           </div>
           {followup.comment && (
-            <p className="text-sm text-gray-500 italic leading-relaxed">
+            <p className="text-[15px] text-gray-500 italic leading-relaxed">
               «{followup.comment}»
             </p>
           )}

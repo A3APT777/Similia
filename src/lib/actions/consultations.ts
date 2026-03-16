@@ -5,11 +5,16 @@ import { redirect } from 'next/navigation'
 import { ConsultationType } from '@/types'
 
 // Закрыть все открытые консультации пациента (перед началом новой)
-async function closeOpenConsultations(supabase: Awaited<ReturnType<typeof createClient>>, patientId: string) {
+async function closeOpenConsultations(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  patientId: string,
+  doctorId: string
+) {
   await supabase
     .from('consultations')
     .update({ status: 'completed' })
     .eq('patient_id', patientId)
+    .eq('doctor_id', doctorId)
     .eq('status', 'in_progress')
 }
 
@@ -20,7 +25,7 @@ export async function createConsultation(patientId: string, type: ConsultationTy
   if (!user) redirect('/login')
 
   // Закрываем любую другую открытую консультацию этого пациента
-  await closeOpenConsultations(supabase, patientId)
+  await closeOpenConsultations(supabase, patientId, user.id)
 
   const { data, error } = await supabase
     .from('consultations')
@@ -69,7 +74,14 @@ export async function scheduleConsultation(
 // Изменить тип консультации
 export async function updateConsultationType(id: string, type: ConsultationType): Promise<void> {
   const supabase = await createClient()
-  await supabase.from('consultations').update({ type }).eq('id', id)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase
+    .from('consultations')
+    .update({ type })
+    .eq('id', id)
+    .eq('doctor_id', user.id)
 }
 
 // Получить все запланированные приёмы за конкретный день (для проверки конфликтов)
@@ -92,14 +104,17 @@ export async function getAppointmentsForDay(dayStart: string, dayEnd: string): P
 // Начать запланированный приём — меняет статус и открывает редактор
 export async function startConsultation(consultationId: string, patientId: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   // Закрываем любую другую открытую консультацию этого пациента
-  await closeOpenConsultations(supabase, patientId)
+  await closeOpenConsultations(supabase, patientId, user.id)
 
   await supabase
     .from('consultations')
     .update({ status: 'in_progress' })
     .eq('id', consultationId)
+    .eq('doctor_id', user.id)
 
   redirect(`/patients/${patientId}/consultations/${consultationId}`)
 }
@@ -107,11 +122,14 @@ export async function startConsultation(consultationId: string, patientId: strin
 // Отменить запланированный приём
 export async function cancelConsultation(consultationId: string, patientId: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   await supabase
     .from('consultations')
     .update({ status: 'cancelled' })
     .eq('id', consultationId)
+    .eq('doctor_id', user.id)
 
   redirect(`/patients/${patientId}`)
 }
@@ -119,6 +137,8 @@ export async function cancelConsultation(consultationId: string, patientId: stri
 // Автосохранение заметок — переводит статус в completed
 export async function updateConsultationNotes(id: string, notes: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   await supabase
     .from('consultations')
@@ -128,6 +148,7 @@ export async function updateConsultationNotes(id: string, notes: string) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('doctor_id', user.id)
 }
 
 // Получить все приёмы за конкретный месяц (для календаря)
@@ -170,14 +191,46 @@ export async function savePrescription(
   dosage: string
 ): Promise<void> {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
   await supabase
     .from('consultations')
     .update({ remedy: remedy || null, potency: potency || null, pellets, dosage: dosage || null })
     .eq('id', id)
+    .eq('doctor_id', user.id)
+}
+
+// Сохранить рубрики и реакцию на предыдущий препарат
+export async function updateConsultationExtra(
+  id: string,
+  rubrics: string,
+  reactionToPrevious: string
+): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase
+    .from('consultations')
+    .update({
+      rubrics: rubrics || null,
+      reaction_to_previous: reactionToPrevious || null,
+    })
+    .eq('id', id)
+    .eq('doctor_id', user.id)
 }
 
 export async function deleteConsultation(id: string, patientId: string) {
   const supabase = await createClient()
-  await supabase.from('consultations').delete().eq('id', id)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase
+    .from('consultations')
+    .delete()
+    .eq('id', id)
+    .eq('doctor_id', user.id)
+
   redirect(`/patients/${patientId}`)
 }

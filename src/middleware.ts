@@ -10,13 +10,62 @@ const PUBLIC_PATHS = [
   '/intake',
   '/followup',
   '/upload',
+  '/book',
+  '/privacy',
 ]
+
+// Публичные маршруты с rate limiting (защита от спама)
+const RATE_LIMITED_PATHS = ['/book/', '/intake/', '/followup/', '/upload/']
+
+// Простой in-process счётчик (сбрасывается при cold start, но лучше чем ничего).
+// Для production с высокой нагрузкой заменить на Upstash Redis.
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+
+const RATE_LIMIT_MAX = 10       // максимум запросов
+const RATE_LIMIT_WINDOW = 60_000 // за 60 секунд
+
+function checkRateLimit(ip: string, path: string): boolean {
+  const key = `${ip}:${path.split('/').slice(0, 3).join('/')}`
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW })
+    return true // разрешено
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false // превышен лимит
+  }
+
+  entry.count++
+  return true
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Проверяем, является ли путь публичным
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+
+  // Rate limiting для публичных форм
+  const isRateLimited = RATE_LIMITED_PATHS.some(p => pathname.startsWith(p))
+  if (isRateLimited) {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
+
+    if (!checkRateLimit(ip, pathname)) {
+      return new NextResponse('Слишком много запросов. Подождите минуту.', {
+        status: 429,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Retry-After': '60',
+        },
+      })
+    }
+  }
 
   let response = NextResponse.next({
     request,

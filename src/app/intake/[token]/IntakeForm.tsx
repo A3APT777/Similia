@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { submitIntake } from '@/lib/actions/intake'
 import { IntakeAnswers, IntakeType } from '@/types'
 
@@ -445,12 +445,48 @@ export default function IntakeForm({ token, patientName, type }: Props) {
   const progressClass = isAcute ? 'bg-orange-500' : 'bg-emerald-500'
   const focusRingClass = isAcute ? 'focus:border-orange-400 focus:ring-orange-500/10' : 'focus:border-emerald-400 focus:ring-emerald-500/10'
 
+  const DRAFT_KEY = `intake_draft_${token}`
+  const restoredRef = useRef(false)
+
   const [step, setStep] = useState(-1)
   const [answers, setAnswers] = useState<IntakeAnswers>({})
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [consentGiven, setConsentGiven] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(false)
+
+  // Восстанавливаем черновик из localStorage при первом рендере
+  useEffect(() => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw) as { step: number; answers: IntakeAnswers }
+      if (draft.answers && Object.keys(draft.answers).length > 0) {
+        setAnswers(draft.answers)
+        if (typeof draft.step === 'number' && draft.step >= 0) {
+          setStep(draft.step)
+          setDraftRestored(true)
+        }
+      }
+    } catch {
+      // localStorage недоступен или данные повреждены — игнорируем
+    }
+  }, [DRAFT_KEY])
+
+  // Сохраняем черновик при каждом изменении ответов или шага
+  useEffect(() => {
+    if (done) return
+    try {
+      if (Object.keys(answers).length > 0) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, answers }))
+      }
+    } catch {
+      // localStorage недоступен — игнорируем
+    }
+  }, [answers, step, done, DRAFT_KEY])
 
   const totalSteps = STEPS.length
   const currentStep = STEPS[step]
@@ -473,6 +509,7 @@ export default function IntakeForm({ token, patientName, type }: Props) {
       setSubmitError('')
       try {
         await submitIntake(token, answers)
+        try { localStorage.removeItem(DRAFT_KEY) } catch { /* игнорируем */ }
         setDone(true)
       } catch {
         setSubmitError('Не удалось отправить анкету. Проверьте соединение и попробуйте ещё раз.')
@@ -548,13 +585,37 @@ export default function IntakeForm({ token, patientName, type }: Props) {
             </span>
           </label>
 
+          {/* Баннер восстановленного черновика */}
+          {draftRestored && (
+            <div className={`mb-3 flex items-start gap-2.5 rounded-xl px-4 py-3 text-sm border ${isAcute ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              <span>Найден незавершённый черновик — продолжите с того места, где остановились.</span>
+            </div>
+          )}
+
           <button
-            onClick={() => setStep(0)}
+            onClick={() => draftRestored ? setStep(step) : setStep(0)}
             disabled={!consentGiven}
             className={`w-full font-semibold text-sm py-3.5 rounded-xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
           >
-            Начать заполнение →
+            {draftRestored ? 'Продолжить заполнение →' : 'Начать заполнение →'}
           </button>
+
+          {draftRestored && (
+            <button
+              onClick={() => {
+                try { localStorage.removeItem(DRAFT_KEY) } catch { /* игнорируем */ }
+                setAnswers({})
+                setStep(0)
+                setDraftRestored(false)
+              }}
+              className="w-full text-xs text-gray-400 hover:text-gray-600 mt-2 transition-colors"
+            >
+              Начать заново
+            </button>
+          )}
         </div>
       </div>
     )

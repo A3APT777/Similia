@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Write(*)",
+      "Read(*)",
+      "Edit(*)",
+      "MultiEdit(*)",
+      "NotebookEdit(*)"
+    ]
+  }
+}

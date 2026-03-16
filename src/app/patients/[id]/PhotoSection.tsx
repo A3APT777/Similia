@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { uploadPhoto, deletePhoto } from '@/lib/actions/photos'
 import { createPhotoUploadToken } from '@/lib/actions/photoUpload'
+import { useToast } from '@/components/ui/toast'
 
 type Photo = {
   id: string
@@ -30,6 +31,7 @@ function formatPhotoDate(dateStr: string) {
 
 export default function PhotoSection({ patientId, photos }: Props) {
   const router = useRouter()
+  const { toast } = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [showForm, setShowForm] = useState(false)
@@ -65,9 +67,14 @@ export default function PhotoSection({ patientId, photos }: Props) {
     formData.set('patientId', patientId)
 
     startUpload(async () => {
-      await uploadPhoto(formData)
-      handleCancel()
-      router.refresh()
+      try {
+        await uploadPhoto(formData)
+        handleCancel()
+        router.refresh()
+        toast('Фото сохранено')
+      } catch {
+        toast('Ошибка загрузки фото', 'error')
+      }
     })
   }
 
@@ -84,6 +91,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
     if (!uploadLink) return
     navigator.clipboard.writeText(uploadLink)
     setLinkCopied(true)
+    toast('Ссылка скопирована')
     setTimeout(() => setLinkCopied(false), 2000)
   }
 
@@ -94,6 +102,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
       if (lightbox?.id === photo.id) setLightbox(null)
       setDeleteId(null)
       router.refresh()
+      toast('Фото удалено', 'info')
     })
   }
 
@@ -108,7 +117,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
           <button
             onClick={handleCreateLink}
             disabled={creatingLink}
-            className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:border-violet-300 hover:text-violet-700 hover:bg-violet-50 disabled:opacity-50 transition-all"
+            className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:border-[#2d6a4f] hover:text-[#2d6a4f] hover:bg-[rgba(45,106,79,0.05)] disabled:opacity-50 transition-all"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -136,22 +145,24 @@ export default function PhotoSection({ patientId, photos }: Props) {
 
       {/* Ссылка для пациента */}
       {uploadLink && (
-        <div className="mb-4 bg-violet-50 border border-violet-200 rounded-xl p-3">
-          <p className="text-xs font-semibold text-violet-700 mb-2">Ссылка для пациента · действительна 24 часа</p>
+        <div className="mb-4 rounded-xl p-3" style={{ backgroundColor: '#f0ebe3', border: '1px solid #c8a035' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#c8a035' }}>Ссылка для пациента · действительна 24 часа</p>
           <div className="flex items-center gap-2">
             <input
               readOnly
               value={uploadLink}
-              className="flex-1 text-xs bg-white border border-violet-200 rounded-lg px-3 py-2 text-gray-700 min-w-0"
+              className="flex-1 text-xs rounded-lg px-3 py-2 text-gray-700 min-w-0"
+              style={{ backgroundColor: '#faf7f2', border: '1px solid #c8a035' }}
             />
             <button
               onClick={handleCopyLink}
-              className="shrink-0 text-xs font-medium bg-violet-600 text-white px-3 py-2 rounded-lg hover:bg-violet-700 transition-colors"
+              className="shrink-0 text-xs font-medium text-white px-3 py-2 rounded-lg transition-colors hover:opacity-90"
+              style={{ backgroundColor: '#1a3020' }}
             >
               {linkCopied ? 'Скопировано!' : 'Копировать'}
             </button>
           </div>
-          <p className="text-[10px] text-violet-500 mt-1.5">Пациент откроет ссылку на телефоне и загрузит фото прямо в карточку</p>
+          <p className="text-[10px] mt-1.5" style={{ color: '#9a8a6a' }}>Пациент откроет ссылку на телефоне и загрузит фото прямо в карточку</p>
         </div>
       )}
 
@@ -175,7 +186,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   value={takenAt}
                   onChange={e => setTakenAt(e.target.value)}
                   required
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
                 />
               </div>
               <div>
@@ -188,7 +199,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   value={note}
                   onChange={e => setNote(e.target.value)}
                   placeholder="Состояние кожи, динамика симптома..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
                 />
               </div>
               <input type="file" name="file" className="hidden" ref={fileRef} />
@@ -218,12 +229,13 @@ export default function PhotoSection({ patientId, photos }: Props) {
       {photos.length === 0 && !showForm ? (
         <div
           onClick={() => fileRef.current?.click()}
-          className="border-2 border-dashed border-gray-200 rounded-2xl py-10 flex flex-col items-center gap-2 cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-all"
+          className="flex flex-col items-center gap-2 cursor-pointer transition-all hover:border-[#2d6a4f]"
+          style={{ border: '2px dashed #c4b89a', borderRadius: '12px', padding: '40px 0', backgroundColor: '#f0ebe3' }}
         >
-          <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <svg className="w-8 h-8" style={{ color: '#c4b89a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
           </svg>
-          <p className="text-sm text-gray-400">Нажмите чтобы загрузить первое фото</p>
+          <p style={{ fontSize: '14px', color: '#9a8a6a' }}>Нажмите чтобы загрузить первое фото</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2.5">

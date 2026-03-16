@@ -23,7 +23,7 @@ export default function PrintTrigger() {
       </button>
       <button
         onClick={() => window.close()}
-        className="text-sm text-gray-400 hover:text-gray-700 border border-gray-200 px-3 py-2.5 rounded-xl bg-white hover:bg-gray-50 transition-colors shadow-sm"
+        className="text-sm text-gray-400 hover:text-gray-700 border border-gray-200 px-3 py-2.5 rounded-xl bg-[#ede7dd] hover:bg-gray-50 transition-colors shadow-sm"
       >
         Закрыть
       </button>
