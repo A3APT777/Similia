@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Patient = { id: string; name: string }
 
 export default function UnpaidWidget({ patients }: { patients: Patient[] }) {
+  const { lang } = useLanguage()
   const [open, setOpen] = useState(false)
   if (patients.length === 0) return null
 
@@ -15,12 +18,12 @@ export default function UnpaidWidget({ patients }: { patients: Patient[] }) {
         onClick={() => setOpen(v => !v)}
         className="flex items-center justify-between w-full"
       >
-        <span className="text-xs text-gray-500">Должны оплатить</span>
+        <span className="text-xs text-gray-500">{t(lang).unpaid.title}</span>
         <span
           className="text-sm font-semibold"
           style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#c0392b' }}
         >
-          {patients.length} {patients.length === 1 ? 'пациент' : patients.length < 5 ? 'пациента' : 'пациентов'}
+          {t(lang).unpaid.countPatients(patients.length)}
         </span>
       </button>
 

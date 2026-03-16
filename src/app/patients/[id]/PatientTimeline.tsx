@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Consultation, Followup } from '@/types'
 import { preview } from '@/lib/utils'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 // ─── Типы событий на таймлайне ───────────────────────────────────────────────
 
@@ -56,21 +58,21 @@ function formatLocalDate(dateStr: string): string {
 }
 
 // Сколько дней назад
-function daysAgo(timestamp: number): string {
+function daysAgo(timestamp: number, lang: Parameters<typeof t>[0]): string {
+  const tr = t(lang).timeline
   const diff = Math.floor((Date.now() - timestamp) / 86400000)
-  if (diff === 0) return 'сегодня'
-  if (diff === 1) return 'вчера'
-  if (diff < 7) return `${diff} дн. назад`
-  if (diff < 30) return `${Math.floor(diff / 7)} нед. назад`
-  if (diff < 365) return `${Math.floor(diff / 30)} мес. назад`
-  return `${Math.floor(diff / 365)} г. назад`
+  if (diff === 0) return tr.today
+  if (diff === 1) return tr.yesterday
+  if (diff < 7) return tr.daysAgo(diff)
+  if (diff < 30) return tr.weeksAgo(Math.floor(diff / 7))
+  if (diff < 365) return tr.monthsAgo(Math.floor(diff / 30))
+  return tr.yearsAgo(Math.floor(diff / 365))
 }
 
 // ─── Конфигурация статусов follow-up ─────────────────────────────────────────
 
-const followupConfig = {
+const followupStyles = {
   better: {
-    label: 'Лучше',
     dot: 'bg-emerald-500',
     badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     icon: (
@@ -80,7 +82,6 @@ const followupConfig = {
     ),
   },
   same: {
-    label: 'Без изменений',
     dot: 'bg-gray-400',
     badge: 'bg-gray-50 text-gray-600 border-gray-200',
     icon: (
@@ -90,7 +91,6 @@ const followupConfig = {
     ),
   },
   worse: {
-    label: 'Хуже',
     dot: 'bg-red-500',
     badge: 'bg-red-50 text-red-600 border-red-200',
     icon: (
@@ -100,7 +100,6 @@ const followupConfig = {
     ),
   },
   new_symptoms: {
-    label: 'Новые симптомы',
     dot: 'bg-orange-400',
     badge: 'bg-orange-50 text-orange-700 border-orange-200',
     icon: (
@@ -111,16 +110,25 @@ const followupConfig = {
   },
 }
 
+const followupLabelKeys: Record<string, string> = {
+  better: 'better',
+  same: 'same',
+  worse: 'worse',
+  new_symptoms: 'newSymptoms',
+}
+
 // ─── Карточка консультации ────────────────────────────────────────────────────
 
 function ConsultationCard({
   event,
   patientId,
   isLast,
+  lang,
 }: {
   event: ConsultationEvent
   patientId: string
   isLast: boolean
+  lang: Parameters<typeof t>[0]
 }) {
   const { consultation, index, followup } = event
   const isScheduled = consultation.status === 'scheduled'
@@ -134,10 +142,10 @@ function ConsultationCard({
     : formatLocalDate(consultation.date)
 
   const title = isAcute
-    ? 'Острый случай'
+    ? t(lang).timeline.acuteCase
     : index === 1
-    ? 'Первая консультация'
-    : `Консультация №${index}`
+    ? t(lang).timeline.firstConsultation
+    : t(lang).timeline.consultationN(index)
 
   const dotColor = isCancelled
     ? 'bg-gray-300 border-gray-200'
@@ -166,11 +174,11 @@ function ConsultationCard({
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span className="font-medium" style={{ fontSize: '14px', color: '#1a3020' }}>{dateStr}</span>
           {!isScheduled && !isCancelled && (
-            <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{daysAgo(event.sortKey)}</span>
+            <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{daysAgo(event.sortKey, lang)}</span>
           )}
           {isAcute && !isCancelled && (
             <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200">
-              ⚡ Острый
+              ⚡ {t(lang).consultation.acuteShort}
             </span>
           )}
           {isScheduled && (
@@ -179,17 +187,17 @@ function ConsultationCard({
                 ? 'bg-orange-50 text-orange-700 border-orange-200'
                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'
             }`}>
-              Предстоит
+              {t(lang).timeline.upcoming}
             </span>
           )}
           {isInProgress && (
             <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-              Идёт
+              {t(lang).timeline.inProgress}
             </span>
           )}
           {isCancelled && (
             <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
-              Отменён
+              {t(lang).timeline.cancelled}
             </span>
           )}
         </div>
@@ -210,15 +218,15 @@ function ConsultationCard({
           </p>
 
           {isScheduled ? (
-            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>Запланированный приём</p>
+            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.scheduledAppointment}</p>
           ) : isCompleted && consultation.notes ? (
             <p style={{ fontSize: '14px', color: '#5a5040', lineHeight: '1.6' }}>
               {preview(consultation.notes, 140)}
             </p>
           ) : isCompleted && !consultation.notes ? (
-            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>Без заметок</p>
+            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.noNotes}</p>
           ) : isInProgress ? (
-            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>Приём идёт...</p>
+            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.appointmentInProgress}</p>
           ) : null}
 
           {/* Назначение */}
@@ -231,7 +239,7 @@ function ConsultationCard({
                 {consultation.remedy}{consultation.potency ? ` ${consultation.potency}` : ''}
               </span>
               {consultation.pellets && (
-                <span style={{ fontSize: '13px', color: '#2d6a4f' }}>· {consultation.pellets} гор.</span>
+                <span style={{ fontSize: '13px', color: '#2d6a4f' }}>· {consultation.pellets} {t(lang).timeline.pellets}</span>
               )}
               {consultation.dosage && (
                 <span style={{ fontSize: '13px', color: '#2d6a4f', opacity: 0.7 }}>· {consultation.dosage}</span>
@@ -242,7 +250,7 @@ function ConsultationCard({
               <svg className="w-3.5 h-3.5 shrink-0" style={{ color: '#c8a035' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
               </svg>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#c8a035' }}>Назначение не выписано</span>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: '#c8a035' }}>{t(lang).timeline.noPrescription}</span>
             </div>
           ) : null}
         </Link>
@@ -256,12 +264,17 @@ function ConsultationCard({
 function FollowupCard({
   event,
   isLast,
+  lang,
 }: {
   event: FollowupEvent
   isLast: boolean
+  lang: Parameters<typeof t>[0]
 }) {
   const { followup } = event
-  const cfg = followupConfig[followup.status as keyof typeof followupConfig]
+  const status = followup.status || ''
+  const style = followupStyles[status as keyof typeof followupStyles]
+  const labelKey = followupLabelKeys[status]
+  const cfg = style && labelKey ? { ...style, label: (t(lang).timeline as Record<string, any>)[labelKey] as string } : null
   if (!cfg) return null
 
   const dateStr = followup.responded_at
@@ -281,7 +294,7 @@ function FollowupCard({
       <div className="flex-1 min-w-0 pb-1">
         <div className="flex items-center gap-2 mb-2">
           <span className="font-medium" style={{ fontSize: '14px', color: '#1a3020' }}>{dateStr}</span>
-          <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{daysAgo(event.sortKey)}</span>
+          <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{daysAgo(event.sortKey, lang)}</span>
         </div>
 
         <div style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8', borderRadius: '8px', padding: '16px' }}>
@@ -311,10 +324,12 @@ type Props = {
 }
 
 export default function PatientTimeline({ patientId, consultations, followupByConsultation }: Props) {
+  const { lang } = useLanguage()
+
   if (!consultations.length) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-300 text-sm">Пока нет ни одной консультации</p>
+        <p className="text-gray-300 text-sm">{t(lang).timeline.noConsultations}</p>
       </div>
     )
   }
@@ -363,6 +378,7 @@ export default function PatientTimeline({ patientId, consultations, followupByCo
               event={event}
               patientId={patientId}
               isLast={isLast}
+              lang={lang}
             />
           )
         }
@@ -372,6 +388,7 @@ export default function PatientTimeline({ patientId, consultations, followupByCo
             key={`f-${event.followup.id}`}
             event={event}
             isLast={isLast}
+            lang={lang}
           />
         )
       })}

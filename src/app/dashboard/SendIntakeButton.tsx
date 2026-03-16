@@ -3,10 +3,13 @@
 import { useState } from 'react'
 import { createIntakeLink } from '@/lib/actions/intake'
 import { IntakeType } from '@/types'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type LinkState = { type: IntakeType; url: string } | null
 
 export default function SendIntakeButton() {
+  const { lang } = useLanguage()
   const [link, setLink] = useState<LinkState>(null)
   const [loading, setLoading] = useState<IntakeType | null>(null)
   const [copied, setCopied] = useState(false)
@@ -20,7 +23,7 @@ export default function SendIntakeButton() {
       const token = await createIntakeLink(type)
       setLink({ type, url: `${window.location.origin}/intake/${token}` })
     } catch {
-      setError('Не удалось создать ссылку — попробуйте ещё раз')
+      setError(t(lang).sendIntake.linkError)
     } finally {
       setLoading(null)
     }
@@ -49,7 +52,7 @@ export default function SendIntakeButton() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           )}
-          Первичная анкета
+          {t(lang).sendIntake.primary}
         </button>
 
         <button
@@ -64,7 +67,7 @@ export default function SendIntakeButton() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
             </svg>
           )}
-          Острый случай
+          {t(lang).sendIntake.acute}
         </button>
       </div>
 
@@ -76,7 +79,7 @@ export default function SendIntakeButton() {
       {link && (
         <div className={`border rounded-xl px-4 py-3 space-y-2 ${link.type === 'acute' ? 'bg-orange-50 border-orange-200' : 'bg-violet-50 border-violet-200'}`}>
           <p className={`text-xs font-semibold ${link.type === 'acute' ? 'text-orange-700' : 'text-violet-700'}`}>
-            {link.type === 'acute' ? '⚡ Ссылка для острого случая:' : '📋 Ссылка для новой анкеты:'}
+            {link.type === 'acute' ? `⚡ ${t(lang).sendIntake.acuteLink}` : `📋 ${t(lang).sendIntake.newLink}`}
           </p>
           <div className="flex items-center gap-2">
             <p className={`text-xs truncate flex-1 bg-white border rounded-lg px-3 py-1.5 font-mono ${link.type === 'acute' ? 'border-orange-200 text-orange-600' : 'border-violet-200 text-violet-600'}`}>
@@ -90,11 +93,11 @@ export default function SendIntakeButton() {
                   : link.type === 'acute' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-violet-600 hover:bg-violet-700'
               }`}
             >
-              {copied ? '✓ Скопировано' : 'Копировать'}
+              {copied ? `✓ ${t(lang).sendIntake.copied}` : t(lang).sendIntake.copy}
             </button>
           </div>
           <p className={`text-[10px] ${link.type === 'acute' ? 'text-orange-400' : 'text-violet-400'}`}>
-            Действительна 24 часа · Пациент заполнит анкету и появится в вашем списке
+            {t(lang).sendIntake.linkValid}
           </p>
         </div>
       )}

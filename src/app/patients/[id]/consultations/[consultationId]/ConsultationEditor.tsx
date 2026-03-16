@@ -7,6 +7,8 @@ import { decrementPaidSession } from '@/lib/actions/payments'
 import { Consultation, Patient, ConsultationType } from '@/types'
 import { useToast } from '@/components/ui/toast'
 import { formatDate } from '@/lib/utils'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 import ComparisonPanel from './ComparisonPanel'
 import TemplateMenu from './TemplateMenu'
 import PrescriptionModal from './PrescriptionModal'
@@ -19,21 +21,13 @@ type Props = {
   paidSessionsEnabled: boolean
 }
 
-const TYPE_CONFIG = {
+const TYPE_STYLE = {
   chronic: {
-    label: 'Хронический',
-    short: 'Хрон.',
-    badge: '',
     badgeStyle: { backgroundColor: 'rgba(45,106,79,0.08)', color: 'var(--color-primary)', borderColor: 'rgba(45,106,79,0.2)' },
-    dot: '',
     dotStyle: { backgroundColor: 'var(--color-primary)' },
   },
   acute: {
-    label: 'Острый случай',
-    short: 'Острый',
-    badge: '',
     badgeStyle: { backgroundColor: 'rgba(200,160,53,0.08)', color: 'var(--color-amber)', borderColor: 'rgba(200,160,53,0.3)' },
-    dot: '',
     dotStyle: { backgroundColor: 'var(--color-amber)' },
   },
 }
@@ -41,6 +35,7 @@ const TYPE_CONFIG = {
 export default function ConsultationEditor({ consultation, patient, previousConsultation, paidSessionsEnabled }: Props) {
   const router = useRouter()
   const { toast } = useToast()
+  const { lang } = useLanguage()
   const [notes, setNotes] = useState(consultation.notes || '')
   const [showZeroWarning, setShowZeroWarning] = useState(false)
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'unsaved'>('saved')
@@ -72,7 +67,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
         setSavedAt(new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))
       } catch {
         setSaveState('unsaved')
-        toast('Ошибка сохранения — попробуйте ещё раз')
+        toast(t(lang).consultation.saveError)
       }
     }, 1500)
   }
@@ -98,9 +93,9 @@ export default function ConsultationEditor({ consultation, patient, previousCons
     if (paidSessionsEnabled) {
       const { prevCount, newCount } = await decrementPaidSession(patient.id)
       if (prevCount === 1) {
-        toast('Консультация сохранена. Оплаченные консультации закончились!')
+        toast(t(lang).consultation.savedPaymentDone)
       } else if (prevCount > 1) {
-        toast(`Консультация сохранена. Осталось: ${newCount}`)
+        toast(t(lang).consultation.savedRemaining(newCount))
       }
     }
     router.push(`/patients/${consultation.patient_id}`)
@@ -184,7 +179,12 @@ export default function ConsultationEditor({ consultation, patient, previousCons
     }
   }, [])
 
-  const typeCfg = TYPE_CONFIG[type]
+  const typeStyle = TYPE_STYLE[type]
+  const typeCfg = {
+    ...typeStyle,
+    label: type === 'chronic' ? t(lang).consultation.chronic : t(lang).consultation.acute,
+    short: type === 'chronic' ? t(lang).consultation.chronicShort : t(lang).consultation.acuteShort,
+  }
   const wordCount = notes.trim() ? notes.trim().split(/\s+/).length : 0
 
   return (
@@ -198,9 +198,9 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
             </svg>
             <div>
-              <p className="text-[15px] font-semibold" style={{ color: '#1a1a0a' }}>Нет оплаченных консультаций</p>
+              <p className="text-[15px] font-semibold" style={{ color: '#1a1a0a' }}>{t(lang).consultation.noPayment}</p>
               <p className="text-sm mt-1 leading-relaxed" style={{ color: '#5a5040' }}>
-                У пациента нет оплаченных консультаций. Сохранить всё равно?
+                {t(lang).consultation.noPaymentDesc}
               </p>
             </div>
           </div>
@@ -210,14 +210,14 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
               style={{ backgroundColor: '#1a3020' }}
             >
-              Сохранить
+              {t(lang).consultation.save}
             </button>
             <button
               onClick={() => setShowZeroWarning(false)}
               className="px-4 py-2.5 rounded-xl text-sm"
               style={{ color: '#9a8a6a' }}
             >
-              Отмена
+              {t(lang).consultation.cancel}
             </button>
           </div>
         </div>
@@ -245,7 +245,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
             : 'text-gray-400 border-transparent'
         }`}
       >
-        Редактор
+        {t(lang).consultation.editor}
       </button>
       <button
         onClick={() => setMobileTab('compare')}
@@ -255,7 +255,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
             : 'text-gray-400 border-transparent'
         }`}
       >
-        {previousConsultation ? 'Сравнение' : 'Прошлый приём'}
+        {previousConsultation ? t(lang).consultation.comparison : t(lang).consultation.prevVisit}
       </button>
     </div>
 
@@ -286,14 +286,14 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    {savedAt ? `Сохранено в ${savedAt}` : 'Сохранено'}
+                    {savedAt ? t(lang).consultation.savedAt(savedAt) : t(lang).consultation.save}
                   </span>
                 )}
-                {saveState === 'saving' && <span className="text-gray-400 animate-pulse">Сохраняю...</span>}
+                {saveState === 'saving' && <span className="text-gray-400 animate-pulse">{t(lang).consultation.saving}</span>}
                 {saveState === 'unsaved' && (
                   <span className="flex items-center gap-1 text-amber-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                    Не сохранено
+                    {t(lang).consultation.unsaved}
                   </span>
                 )}
               </div>
@@ -302,7 +302,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                 onClick={handleFinish}
                 className="bg-emerald-600 text-white text-xs px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-semibold shadow-sm shadow-emerald-900/10"
               >
-                Закончить приём
+                {t(lang).consultation.finish}
               </button>
             </div>
           </div>
@@ -349,11 +349,11 @@ export default function ConsultationEditor({ consultation, patient, previousCons
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
             </svg>
-            Реперторий
+            {t(lang).consultation.repertory}
           </button>
 
           <span className="text-xs text-gray-300 ml-auto">
-            {wordCount > 0 ? `${wordCount} слов` : 'Пустая заметка'}
+            {wordCount > 0 ? t(lang).consultation.words(wordCount) : t(lang).consultation.emptyNote}
           </span>
         </div>
 
@@ -368,7 +368,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               {(rubrics || reactionToPrev) && (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
               )}
-              Реакция на предыдущий препарат · Рубрики реперториума
+              {t(lang).consultation.reactionHint}
             </span>
             <svg
               className={`w-3.5 h-3.5 transition-transform ${showExtra ? 'rotate-180' : ''}`}
@@ -389,7 +389,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                     value={reactionToPrev}
                     onChange={e => handleExtraChange(rubrics, e.target.value)}
                     rows={2}
-                    placeholder="Как пациент реагировал на препарат? Что изменилось с прошлого приёма..."
+                    placeholder={t(lang).consultation.reactionPlaceholder}
                     className="w-full text-xs text-gray-700 bg-[#faf7f2] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder-gray-300"
                   />
                 </div>
@@ -410,7 +410,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               )}
               <div>
                 <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                  Рубрики реперториума
+                  {t(lang).consultation.rubrics}
                 </label>
                 <textarea
                   value={rubrics}
@@ -419,7 +419,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                   placeholder="Mind: Fear of dark; Generals: Worse cold; Head: Pain, throbbing..."
                   className="w-full text-xs text-gray-700 bg-[#faf7f2] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder-gray-300 font-mono"
                 />
-                <p className="text-[10px] text-gray-300 mt-0.5">Через точку с запятой. Используется для подбора препарата.</p>
+                <p className="text-[10px] text-gray-300 mt-0.5">{t(lang).consultation.rubricsSemicolon}</p>
               </div>
             </div>
           )}
@@ -450,7 +450,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                 rightTab === 'compare' ? 'bg-[#ede7dd] text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              Сравнение
+              {t(lang).consultation.comparison}
             </button>
             <button
               onClick={() => setRightTab('prev')}
@@ -458,7 +458,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                 rightTab === 'prev' ? 'bg-[#ede7dd] text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              Прошлый приём
+              {t(lang).consultation.prevVisit}
             </button>
             <button
               onClick={() => setRightTab('repertory')}
@@ -469,7 +469,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
               </svg>
-              Реперторий
+              {t(lang).consultation.repertory}
             </button>
           </div>
           {previousConsultation && rightTab !== 'repertory' && (
@@ -490,8 +490,8 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-400">Это первая консультация</p>
-              <p className="text-xs text-gray-300 mt-1">Не с чем сравнивать</p>
+              <p className="text-sm text-gray-400">{t(lang).consultation.firstConsultation}</p>
+              <p className="text-xs text-gray-300 mt-1">{t(lang).consultation.nothingToCompare}</p>
             </div>
           ) : rightTab === 'compare' ? (
             <ComparisonPanel currentNotes={notes} previousNotes={previousConsultation.notes || ''} />
@@ -502,7 +502,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                   {previousConsultation.notes}
                 </pre>
               ) : (
-                <p className="text-sm text-gray-300 italic">Заметки не добавлены</p>
+                <p className="text-sm text-gray-300 italic">{t(lang).consultation.noNotes}</p>
               )}
             </div>
           )}

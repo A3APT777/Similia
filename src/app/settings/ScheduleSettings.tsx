@@ -3,16 +3,10 @@
 import { useState, useTransition } from 'react'
 import { saveDoctorSchedule, type DoctorSchedule } from '@/lib/actions/schedule'
 import { useToast } from '@/components/ui/toast'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
-const DAYS = [
-  { key: 'mon', label: 'Пн' },
-  { key: 'tue', label: 'Вт' },
-  { key: 'wed', label: 'Ср' },
-  { key: 'thu', label: 'Чт' },
-  { key: 'fri', label: 'Пт' },
-  { key: 'sat', label: 'Сб' },
-  { key: 'sun', label: 'Вс' },
-]
+const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
 function timeOptions(from: number, to: number, step: number = 30): string[] {
   const opts = []
@@ -26,6 +20,7 @@ function timeOptions(from: number, to: number, step: number = 30): string[] {
 
 export default function ScheduleSettings({ initial }: { initial: DoctorSchedule }) {
   const { toast } = useToast()
+  const { lang } = useLanguage()
   const [isPending, startTransition] = useTransition()
   const [data, setData] = useState<DoctorSchedule>(initial)
 
@@ -41,7 +36,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
   function handleSave() {
     startTransition(async () => {
       await saveDoctorSchedule(data)
-      toast('Расписание сохранено')
+      toast(t(lang).settings.scheduleSaved)
     })
   }
 
@@ -57,34 +52,34 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
       {/* Длительность */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label style={labelStyle}>Длительность консультации</label>
+          <label style={labelStyle}>{t(lang).settings.consultationDuration}</label>
           <select style={selectStyle} value={data.session_duration} onChange={e => setData(p => ({ ...p, session_duration: Number(e.target.value) }))}>
-            {[30, 45, 60, 90].map(v => <option key={v} value={v}>{v} мин</option>)}
+            {[30, 45, 60, 90].map(v => <option key={v} value={v}>{v} {t(lang).settings.min}</option>)}
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Перерыв между приёмами</label>
+          <label style={labelStyle}>{t(lang).settings.breakBetween}</label>
           <select style={selectStyle} value={data.break_duration} onChange={e => setData(p => ({ ...p, break_duration: Number(e.target.value) }))}>
-            {[0, 10, 15, 20, 30].map(v => <option key={v} value={v}>{v} мин</option>)}
+            {[0, 10, 15, 20, 30].map(v => <option key={v} value={v}>{v} {t(lang).settings.min}</option>)}
           </select>
         </div>
       </div>
 
       {/* Рабочие дни */}
       <div>
-        <label style={labelStyle}>Рабочие дни</label>
+        <label style={labelStyle}>{t(lang).settings.workDays}</label>
         <div className="flex gap-2 flex-wrap">
-          {DAYS.map(day => (
+          {DAY_KEYS.map((key, i) => (
             <button
-              key={day.key}
+              key={key}
               type="button"
-              onClick={() => toggleDay(day.key)}
+              onClick={() => toggleDay(key)}
               className="px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-              style={data.working_days.includes(day.key)
+              style={data.working_days.includes(key)
                 ? { backgroundColor: '#2d6a4f', color: '#fff', border: '1px solid #2d6a4f' }
                 : { backgroundColor: '#f0ebe3', color: '#9a8a6a', border: '1px solid #d4c9b8' }}
             >
-              {day.label}
+              {t(lang).settings.days[i]}
             </button>
           ))}
         </div>
@@ -92,7 +87,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
 
       {/* Рабочее время */}
       <div>
-        <label style={labelStyle}>Рабочее время</label>
+        <label style={labelStyle}>{t(lang).settings.workHours}</label>
         <div className="flex items-center gap-3">
           <select style={selectStyle} value={data.start_time} onChange={e => setData(p => ({ ...p, start_time: e.target.value }))}>
             {timeOptions(7, 12).map(t => <option key={t} value={t}>{t}</option>)}
@@ -107,7 +102,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
       {/* Обед */}
       <div>
         <div className="flex items-center gap-3 mb-3">
-          <label style={{ ...labelStyle, marginBottom: 0 }}>Обеденный перерыв</label>
+          <label style={{ ...labelStyle, marginBottom: 0 }}>{t(lang).settings.lunchBreak}</label>
           <button
             type="button"
             onClick={() => setData(p => ({ ...p, lunch_enabled: !p.lunch_enabled }))}
@@ -139,7 +134,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
         className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
         style={{ backgroundColor: '#1a3020' }}
       >
-        {isPending ? 'Сохраняю...' : 'Сохранить расписание'}
+        {isPending ? t(lang).settings.saving : t(lang).settings.saveSchedule}
       </button>
     </div>
   )

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { scheduleConsultation, getAppointmentsForDay } from '@/lib/actions/consultations'
 import { ConsultationType } from '@/types'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 // Рабочие слоты — каждый час с 9:00 до 18:00 (время МСК)
 const HOUR_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
@@ -39,6 +41,7 @@ function mskToUtcIso(mskDate: string, mskTime: string): string {
 
 export default function ScheduleButton({ patientId }: { patientId: string }) {
   const router = useRouter()
+  const { lang } = useLanguage()
 
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -84,7 +87,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
           const slotMin = sh * 60 + sm
           return !existing.some(iso => Math.abs(getMskMinutes(iso) - slotMin) < 60)
         })
-        setConflictMsg('В это время уже есть запись.')
+        setConflictMsg(t(lang).scheduleBtn.conflict)
         setFreeSlots(free)
         return
       }
@@ -95,7 +98,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
       router.refresh()
       setOpen(false)
     } catch {
-      setConflictMsg('Не удалось записать. Попробуйте ещё раз.')
+      setConflictMsg(t(lang).scheduleBtn.error)
     } finally {
       setLoading(false)
     }
@@ -113,7 +116,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
         className="flex items-center gap-1.5 font-medium transition-colors hover:opacity-90"
         style={{ border: '1.5px solid #2d6a4f', color: '#2d6a4f', backgroundColor: 'transparent', borderRadius: '8px', fontSize: '15px', padding: '10px 16px' }}
       >
-        + Записать на приём
+        {t(lang).scheduleBtn.schedule}
       </button>
     )
   }
@@ -131,7 +134,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          Хронический
+          {t(lang).scheduleBtn.chronic}
         </button>
         <button
           type="button"
@@ -142,7 +145,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          ⚡ Острый
+          ⚡ {t(lang).scheduleBtn.acute}
         </button>
       </div>
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
@@ -158,12 +161,12 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
           required
           className="border border-green-200 rounded-lg px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-green-400 w-24"
         />
-        <span className="text-xs text-green-600 shrink-0">МСК</span>
+        <span className="text-xs text-green-600 shrink-0">{t(lang).scheduleBtn.msk}</span>
         <button type="submit" disabled={loading} className="bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-green-800 disabled:opacity-50 transition-colors">
-          {loading ? 'Проверяю...' : 'Записать'}
+          {loading ? t(lang).scheduleBtn.checking : t(lang).scheduleBtn.book}
         </button>
         <button type="button" onClick={() => { setOpen(false); resetConflict() }} className="text-gray-400 hover:text-gray-600 text-sm px-2">
-          Отмена
+          {t(lang).scheduleBtn.cancel}
         </button>
       </form>
 
@@ -173,7 +176,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
           {freeSlots !== null && (
             freeSlots.length > 0 ? (
               <div>
-                <p className="text-xs text-gray-500 mb-1.5">Свободное время:</p>
+                <p className="text-xs text-gray-500 mb-1.5">{t(lang).scheduleBtn.freeTime}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {freeSlots.map(slot => (
                     <button
@@ -188,7 +191,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-gray-400">На этот день нет свободного времени.</p>
+              <p className="text-xs text-gray-400">{t(lang).scheduleBtn.noFreeTime}</p>
             )
           )}
         </div>

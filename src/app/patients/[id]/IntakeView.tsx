@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { IntakeAnswers, IntakeType } from '@/types'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Section = {
   title: string
@@ -125,6 +127,7 @@ type Props = {
 }
 
 export default function IntakeView({ answers, completedAt, type }: Props) {
+  const { lang } = useLanguage()
   const [expanded, setExpanded] = useState(false)
   const isAcute = type === 'acute'
   const sections = isAcute ? ACUTE_SECTIONS : PRIMARY_SECTIONS
@@ -172,7 +175,7 @@ export default function IntakeView({ answers, completedAt, type }: Props) {
             )}
           </div>
           <span className="font-semibold" style={{ fontSize: '15px', color: '#1a1a0a' }}>
-            {isAcute ? 'Анкета острого случая' : 'Анкета первичного приёма'}
+            {isAcute ? t(lang).intake.acuteIntakeTitle : t(lang).intake.primaryIntake}
           </span>
           {dateStr && <span style={{ fontSize: '13px', color: '#9a8a6a' }}>{dateStr}</span>}
         </div>

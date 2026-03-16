@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Consultation, Followup } from '@/types'
 import PatientTimeline from './PatientTimeline'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 const INITIAL_LIMIT = 20
 
@@ -13,6 +15,7 @@ type Props = {
 }
 
 export default function TimelineWithFilter({ patientId, consultations, followupByConsultation }: Props) {
+  const { lang } = useLanguage()
   const [remedy, setRemedy] = useState('')
   const [limit, setLimit] = useState(INITIAL_LIMIT)
 
@@ -49,7 +52,7 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
                 setRemedy(e.target.value)
                 setLimit(INITIAL_LIMIT) // сбрасываем пагинацию при новом поиске
               }}
-              placeholder="Поиск по препарату или заметкам..."
+              placeholder={t(lang).timelineFilter.search}
               className="w-full pl-8 pr-8 py-2 text-sm border border-[#d4c9b8] rounded-xl focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
               style={{ backgroundColor: '#faf7f2' }}
             />
@@ -81,11 +84,11 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
           )}
 
           {remedy && filtered.length === 0 && (
-            <p className="text-xs text-gray-400 mt-2 px-1">Ничего не найдено по запросу «{remedy}»</p>
+            <p className="text-xs text-gray-400 mt-2 px-1">{t(lang).timelineFilter.nothingFound(remedy)}</p>
           )}
           {remedy && filtered.length > 0 && (
             <p className="text-xs text-gray-400 mt-2 px-1">
-              Найдено {filtered.length} {filtered.length === 1 ? 'консультация' : filtered.length < 5 ? 'консультации' : 'консультаций'}
+              {t(lang).timelineFilter.found(filtered.length)}
             </p>
           )}
         </div>
@@ -104,7 +107,7 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
             onClick={() => setLimit(l => l + INITIAL_LIMIT)}
             className="text-sm text-gray-400 hover:text-emerald-700 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 px-5 py-2.5 rounded-xl transition-all"
           >
-            Показать ещё ({filtered.length - limit} консультаций)
+            {t(lang).timelineFilter.showMore(filtered.length - limit)}
           </button>
         </div>
       )}
@@ -112,7 +115,7 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
       {/* Заглушка когда всё показано и консультаций много */}
       {!hasMore && filtered.length > INITIAL_LIMIT && !remedy && (
         <p className="mt-4 text-center text-xs text-gray-300">
-          Все {filtered.length} консультаций загружены
+          {t(lang).timelineFilter.allLoaded(filtered.length)}
         </p>
       )}
     </div>

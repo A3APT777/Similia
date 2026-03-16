@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAppointmentsByMonth, scheduleConsultation } from '@/lib/actions/consultations'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type CalendarAppt = {
   id: string
@@ -14,11 +16,6 @@ type CalendarAppt = {
 
 type Patient = { id: string; name: string }
 
-const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
-]
 const HOUR_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
 
 function toMskDateStr(iso: string) {
@@ -43,6 +40,7 @@ function nowMsk() {
 }
 
 export default function CalendarWidget({ patients }: { patients: Patient[] }) {
+  const { lang } = useLanguage()
   const router = useRouter()
   const today = todayMsk()
   const initial = nowMsk()
@@ -130,7 +128,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
       setPatientSearch('')
       setAddPatientId('')
     } catch {
-      setAddError('Не удалось записать')
+      setAddError(t(lang).calendar.saveFailed)
     } finally {
       setAddLoading(false)
     }
@@ -150,7 +148,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
         >
           ‹
         </button>
-        <p className="text-sm font-semibold text-gray-700">{MONTHS[month - 1]} {year}</p>
+        <p className="text-sm font-semibold text-gray-700">{t(lang).calendar.months[month - 1]} {year}</p>
         <button
           onClick={nextMonth}
           className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-base leading-none"
@@ -161,7 +159,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
 
       {/* Дни недели */}
       <div className="grid grid-cols-7 px-2 pt-2.5">
-        {WEEKDAYS.map(d => (
+        {t(lang).calendar.weekdays.map(d => (
           <div key={d} className="text-center text-[10px] font-semibold text-gray-300 uppercase tracking-wide py-1">{d}</div>
         ))}
       </div>
@@ -213,13 +211,13 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
               onClick={() => setShowAdd(true)}
               className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
             >
-              + Записать
+              {t(lang).calendar.addAppointment}
             </button>
           )}
         </div>
 
         {selectedAppts.length === 0 && !showAdd && (
-          <p className="text-xs text-gray-300 italic">Нет записей</p>
+          <p className="text-xs text-gray-300 italic">{t(lang).calendar.noAppointments}</p>
         )}
 
         <div className="space-y-1 mb-2">
@@ -240,7 +238,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Имя пациента..."
+                placeholder={t(lang).calendar.patientName}
                 value={patientSearch}
                 onChange={e => { setPatientSearch(e.target.value); setAddPatientId('') }}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
@@ -263,7 +261,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
 
             {/* Слоты времени */}
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Время (МСК)</p>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t(lang).calendar.time}</p>
               {freeSlots.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {freeSlots.map(slot => (
@@ -281,7 +279,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-red-400">День полностью занят</p>
+                <p className="text-xs text-red-400">{t(lang).calendar.dayFull}</p>
               )}
             </div>
 
@@ -293,13 +291,13 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
                 disabled={!addPatientId || addLoading || freeSlots.length === 0}
                 className="flex-1 text-xs bg-emerald-600 text-white py-2 rounded-xl hover:bg-emerald-700 disabled:opacity-40 transition-colors font-semibold shadow-sm"
               >
-                {addLoading ? 'Записываю...' : 'Записать'}
+                {addLoading ? t(lang).calendar.saving : t(lang).calendar.save}
               </button>
               <button
                 onClick={() => { setShowAdd(false); setPatientSearch(''); setAddPatientId('') }}
                 className="text-xs text-gray-400 hover:text-gray-600 px-3 transition-colors"
               >
-                Отмена
+                {t(lang).calendar.cancel}
               </button>
             </div>
           </div>

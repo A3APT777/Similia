@@ -15,6 +15,8 @@ import TourSuccessToast from '@/components/TourSuccessToast'
 import PaidSessionsBlock from './PaidSessionsBlock'
 import DeletePatientButton from './DeletePatientButton'
 import { getDoctorSettings } from '@/lib/actions/payments'
+import { t } from '@/lib/i18n'
+import { getLang } from '@/lib/i18n-server'
 
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
@@ -69,6 +71,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const completedAcuteIntake = (intakeForms || []).find(f => f.type === 'acute') || null
 
   const { paid_sessions_enabled } = await getDoctorSettings()
+  const lang = await getLang()
 
   async function newChronicConsultation() {
     'use server'
@@ -90,7 +93,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Все пациенты
+          {t(lang).patientCard.allPatients}
         </Link>
 
         {/* Карточка пациента */}
@@ -129,7 +132,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                     href={`/patients/${id}/edit`}
                     className="text-xs text-gray-400 hover:text-gray-700 transition-colors border border-gray-200 hover:border-gray-300 px-2.5 py-1.5 rounded-lg"
                   >
-                    <span className="hidden sm:inline">Изменить</span>
+                    <span className="hidden sm:inline">{t(lang).patientCard.edit}</span>
                     <svg className="w-3.5 h-3.5 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                     </svg>
@@ -156,7 +159,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               {/* Конституциональный тип */}
               {patient.constitutional_type && (
                 <div className="mt-2 flex items-center gap-1.5">
-                  <span className="text-[13px]" style={{ color: '#9a8a6a' }}>Конст. тип:</span>
+                  <span className="text-[13px]" style={{ color: '#9a8a6a' }}>{t(lang).patientCard.constType}</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '13px', fontWeight: 500, padding: '3px 12px', borderRadius: '20px', border: '1px solid #2d6a4f', color: '#1a3020', backgroundColor: '#e8f0e8' }}>
                     {patient.constitutional_type}
                   </span>
@@ -166,7 +169,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                 <p className="mt-2 italic" style={{ fontSize: '14px', color: '#5a5040', lineHeight: '1.6' }}>{patient.notes}</p>
               )}
               <p className="mt-1.5" style={{ fontSize: '13px', color: '#9a8a6a' }}>
-                Первый приём: {formatDate(patient.first_visit_date)}
+                {t(lang).patientCard.firstVisit} {formatDate(patient.first_visit_date)}
               </p>
             </div>
           </div>
@@ -184,8 +187,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              <span className="hidden sm:inline">Хроническая консультация</span>
-              <span className="sm:hidden">Консультация</span>
+              <span className="hidden sm:inline">{t(lang).patientCard.chronic}</span>
+              <span className="sm:hidden">{t(lang).patientCard.consultation}</span>
             </button>
           </form>
           <form action={newAcuteConsultation}>
@@ -197,7 +200,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
-              Острый случай
+              {t(lang).patientCard.acute}
             </button>
           </form>
           <ScheduleButton patientId={id} />
@@ -218,14 +221,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
             </svg>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-amber-800">Назначение не выписано</p>
-              <p className="text-xs text-amber-600 mt-0.5">Последняя консультация завершена без указания препарата</p>
+              <p className="text-sm font-medium text-amber-800">{t(lang).patientCard.noPrescription}</p>
+              <p className="text-xs text-amber-600 mt-0.5">{t(lang).patientCard.noPrescriptionDesc}</p>
             </div>
             <a
               href={`/patients/${id}/consultations/${lastCompleted.id}`}
               className="text-xs font-semibold text-amber-700 hover:text-amber-900 border border-amber-300 hover:border-amber-400 rounded-lg px-3 py-1.5 transition-colors shrink-0"
             >
-              Выписать
+              {t(lang).patientCard.prescribe}
             </a>
           </div>
         )}
@@ -234,7 +237,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         {(completedPrimaryIntake || completedAcuteIntake) && (
           <div className="mb-5 space-y-3">
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Анкеты пациента
+              {t(lang).patientCard.intakes}
             </h2>
 
             {completedPrimaryIntake?.answers && (
@@ -278,10 +281,10 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         <div>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-light" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--color-primary)' }}>
-              Таймлайн лечения
+              {t(lang).patientCard.timeline}
             </h2>
             <span className="text-xs text-gray-300">
-              {consultations?.length || 0} {(consultations?.length || 0) === 1 ? 'консультация' : (consultations?.length || 0) < 5 ? 'консультации' : 'консультаций'}
+              {t(lang).patientCard.countConsultations(consultations?.length || 0)}
             </span>
           </div>
 
@@ -291,7 +294,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               {consultations.filter(c => c.status === 'scheduled').map(consultation => (
                 <div key={consultation.id} className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5 text-sm">
                   <span className="text-emerald-700 font-medium">
-                    Запись:{' '}
+                    {t(lang).patientCard.scheduled}{' '}
                     {consultation.scheduled_at
                       ? new Date(consultation.scheduled_at).toLocaleString('ru-RU', {
                           timeZone: 'Europe/Moscow',

@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { startConsultation } from '@/lib/actions/consultations'
 import { Consultation, Patient } from '@/types'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type AppointmentWithPatient = Consultation & { patients: Pick<Patient, 'id' | 'name' | 'phone'> }
 
@@ -11,13 +13,13 @@ type Props = {
   appointments: AppointmentWithPatient[]
 }
 
-function getTimeLabel(scheduledAt: string): { label: string; variant: 'urgent' | 'soon' | 'past' | null } {
+function getTimeLabel(scheduledAt: string, lang: 'ru' | 'en'): { label: string; variant: 'urgent' | 'soon' | 'past' | null } {
   const diffMin = Math.round((new Date(scheduledAt).getTime() - Date.now()) / 60000)
   if (diffMin < -30) return { label: '', variant: 'past' }
-  if (diffMin < 0)   return { label: `${Math.abs(diffMin)} мин назад`, variant: 'past' }
-  if (diffMin === 0) return { label: 'сейчас',          variant: 'urgent' }
-  if (diffMin <= 10) return { label: `через ${diffMin} мин`, variant: 'urgent' }
-  if (diffMin <= 45) return { label: `через ${diffMin} мин`, variant: 'soon' }
+  if (diffMin < 0)   return { label: `${Math.abs(diffMin)} ${t(lang).appointments.minAgo}`, variant: 'past' }
+  if (diffMin === 0) return { label: t(lang).appointments.now,          variant: 'urgent' }
+  if (diffMin <= 10) return { label: t(lang).appointments.inMin(diffMin), variant: 'urgent' }
+  if (diffMin <= 45) return { label: t(lang).appointments.inMin(diffMin), variant: 'soon' }
   return { label: '', variant: null }
 }
 
@@ -29,13 +31,13 @@ function toMskDateStr(iso: string) {
   return new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
 }
 
-function formatDayHeader(dateStr: string): string {
+function formatDayHeader(dateStr: string, lang: 'ru' | 'en'): string {
   const today   = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
   const tmrDate = new Date(); tmrDate.setDate(tmrDate.getDate() + 1)
   const tomorrow = tmrDate.toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
 
-  if (dateStr === today)    return 'Сегодня'
-  if (dateStr === tomorrow) return 'Завтра'
+  if (dateStr === today)    return t(lang).appointments.today
+  if (dateStr === tomorrow) return t(lang).appointments.tomorrow
 
   const [y, mo, d] = dateStr.split('-').map(Number)
   return new Date(Date.UTC(y, mo - 1, d, 12)).toLocaleDateString('ru-RU', {
@@ -52,15 +54,19 @@ function groupByDay(appts: AppointmentWithPatient[]) {
   return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
 }
 
-function CopyReminderButton({ name, scheduledAt }: { name: string; scheduledAt: string }) {
+function CopyReminderButton({ name, scheduledAt, lang }: { name: string; scheduledAt: string; lang: 'ru' | 'en' }) {
   const [copied, setCopied] = useState(false)
 
   const copy = useCallback(() => {
-    const date = new Date(scheduledAt).toLocaleString('ru-RU', {
+    const dateStr = new Date(scheduledAt).toLocaleString('ru-RU', {
       timeZone: 'Europe/Moscow',
-      day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+      day: 'numeric', month: 'long',
     })
-    const text = `Здравствуйте, ${name}! Напоминаем о вашем приёме ${date} (МСК). Если возникнут вопросы — пишите.`
+    const timeStr = new Date(scheduledAt).toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      hour: '2-digit', minute: '2-digit',
+    })
+    const text = t(lang).appointments.reminderText(name, dateStr, timeStr)
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -70,7 +76,7 @@ function CopyReminderButton({ name, scheduledAt }: { name: string; scheduledAt: 
   return (
     <button
       onClick={copy}
-      title="Скопировать напоминание"
+      title={t(lang).appointments.copyReminder}
       className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-emerald-700 transition-colors px-1.5 py-1 rounded-lg hover:bg-emerald-50"
     >
       {copied ? (
@@ -78,14 +84,14 @@ function CopyReminderButton({ name, scheduledAt }: { name: string; scheduledAt: 
           <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
           </svg>
-          <span className="text-emerald-600">Скопировано</span>
+          <span className="text-emerald-600">{t(lang).appointments.copied}</span>
         </>
       ) : (
         <>
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 4.5h-1.5a2.251 2.251 0 00-2.15 1.836m5.3 0H9.15" />
           </svg>
-          <span className="hidden sm:inline">Напомнить</span>
+          <span className="hidden sm:inline">{t(lang).appointments.remind}</span>
         </>
       )}
     </button>
@@ -93,10 +99,11 @@ function CopyReminderButton({ name, scheduledAt }: { name: string; scheduledAt: 
 }
 
 export default function AppointmentList({ appointments }: Props) {
+  const { lang } = useLanguage()
   const [, setTick] = useState(0)
   useEffect(() => {
-    const t = setInterval(() => setTick(n => n + 1), 60000)
-    return () => clearInterval(t)
+    const iv = setInterval(() => setTick(n => n + 1), 60000)
+    return () => clearInterval(iv)
   }, [])
 
   const active = appointments.filter(a => a.status !== 'cancelled')
@@ -105,17 +112,17 @@ export default function AppointmentList({ appointments }: Props) {
   return (
     <div className="mb-7">
       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
-        Расписание
+        {t(lang).appointments.schedule}
       </p>
 
       <div className="space-y-4">
         {groupByDay(active).map(([day, dayAppts]) => (
           <div key={day}>
-            <p className="text-[11px] font-medium text-gray-500 mb-1.5 capitalize">{formatDayHeader(day)}</p>
+            <p className="text-[11px] font-medium text-gray-500 mb-1.5 capitalize">{formatDayHeader(day, lang)}</p>
 
             <div className="rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-[#d4c9b8]" style={{ backgroundColor: '#f0ebe3', border: '0.5px solid #d4c9b8' }}>
               {dayAppts.map(appt => {
-                const { label, variant } = getTimeLabel(appt.scheduled_at!)
+                const { label, variant } = getTimeLabel(appt.scheduled_at!, lang)
                 const done = appt.status === 'completed'
                 const live = appt.status === 'in_progress'
                 const isUrgent = variant === 'urgent'
@@ -168,7 +175,7 @@ export default function AppointmentList({ appointments }: Props) {
 
                     {/* Напоминание */}
                     {!done && (
-                      <CopyReminderButton name={appt.patients.name} scheduledAt={appt.scheduled_at!} />
+                      <CopyReminderButton name={appt.patients.name} scheduledAt={appt.scheduled_at!} lang={lang} />
                     )}
 
                     {/* Действие */}
@@ -178,14 +185,14 @@ export default function AppointmentList({ appointments }: Props) {
                           href={`/patients/${appt.patients.id}/consultations/${appt.id}`}
                           className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
                         >
-                          Открыть →
+                          {t(lang).appointments.open} →
                         </Link>
                       ) : live ? (
                         <Link
                           href={`/patients/${appt.patients.id}/consultations/${appt.id}`}
                           className="text-[11px] bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors font-semibold shadow-sm"
                         >
-                          Продолжить →
+                          {t(lang).appointments.continue} →
                         </Link>
                       ) : (
                         <form action={startConsultation.bind(null, appt.id, appt.patients.id)}>
@@ -197,7 +204,7 @@ export default function AppointmentList({ appointments }: Props) {
                                 : 'border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700'
                             }`}
                           >
-                            Начать →
+                            {t(lang).appointments.start} →
                           </button>
                         </form>
                       )}

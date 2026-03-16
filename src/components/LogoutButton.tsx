@@ -2,9 +2,12 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 export default function LogoutButton({ dark = true }: { dark?: boolean }) {
   const router = useRouter()
+  const { lang } = useLanguage()
 
   async function handleLogout() {
     const supabase = createClient()
@@ -15,7 +18,7 @@ export default function LogoutButton({ dark = true }: { dark?: boolean }) {
   return (
     <button
       onClick={handleLogout}
-      title="Выйти"
+      title={t(lang).nav.logout}
       className={`shrink-0 p-1.5 rounded-md transition-colors ${
         dark
           ? 'text-white/20 hover:text-white/50 hover:bg-white/[0.07]'

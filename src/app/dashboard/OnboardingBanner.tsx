@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = {
   hasRealPatients: boolean
@@ -9,34 +11,37 @@ type Props = {
   hasScheduled: boolean
 }
 
-const STEPS = [
-  {
-    key: 'patient',
-    done: (p: Props) => p.hasRealPatients,
-    title: 'Добавьте первого пациента',
-    desc: 'Создайте карточку или отправьте анкету',
-    href: '/patients/new',
-    label: 'Добавить пациента',
-  },
-  {
-    key: 'intake',
-    done: (p: Props) => p.hasSentIntake,
-    title: 'Отправьте анкету пациенту',
-    desc: 'Он заполнит до приёма — сэкономит 20 минут',
-    href: null,
-    label: null,
-  },
-  {
-    key: 'schedule',
-    done: (p: Props) => p.hasScheduled,
-    title: 'Запланируйте первый приём',
-    desc: 'Откройте карточку пациента и нажмите «Запланировать»',
-    href: null,
-    label: null,
-  },
-]
+function getSteps(lang: 'ru' | 'en') {
+  return [
+    {
+      key: 'patient',
+      done: (p: Props) => p.hasRealPatients,
+      title: t(lang).onboarding.addPatient,
+      desc: t(lang).onboarding.addPatientDesc,
+      href: '/patients/new',
+      label: t(lang).onboarding.addPatientBtn,
+    },
+    {
+      key: 'intake',
+      done: (p: Props) => p.hasSentIntake,
+      title: t(lang).onboarding.sendIntake,
+      desc: t(lang).onboarding.sendIntakeDesc,
+      href: null,
+      label: null,
+    },
+    {
+      key: 'schedule',
+      done: (p: Props) => p.hasScheduled,
+      title: t(lang).onboarding.scheduleFirst,
+      desc: t(lang).onboarding.scheduleFirstDesc,
+      href: null,
+      label: null,
+    },
+  ]
+}
 
 export default function OnboardingBanner(props: Props) {
+  const { lang } = useLanguage()
   const [ready, setReady] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
@@ -50,6 +55,7 @@ export default function OnboardingBanner(props: Props) {
   // Не рендерим пока не прочитали localStorage — убирает мелькание
   if (!ready || dismissed) return null
 
+  const STEPS = getSteps(lang)
   const completedCount = STEPS.filter(s => s.done(props)).length
   if (completedCount === STEPS.length) return null
 
@@ -62,9 +68,9 @@ export default function OnboardingBanner(props: Props) {
     <div className="mb-5 rounded-2xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <p className="text-sm font-semibold text-gray-900">С чего начать</p>
+          <p className="text-sm font-semibold text-gray-900">{t(lang).onboarding.title}</p>
           <p className="text-xs text-gray-400 mt-0.5">
-            Выполнено {completedCount} из {STEPS.length} шагов
+            {t(lang).onboarding.completed(completedCount, STEPS.length)}
           </p>
         </div>
         <button

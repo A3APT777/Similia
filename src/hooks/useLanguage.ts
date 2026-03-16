@@ -28,6 +28,7 @@ export function useLanguage() {
 
   const setLang = useCallback((l: Lang) => {
     localStorage.setItem(STORAGE_KEY, l)
+    document.cookie = `hc-lang=${l};path=/;max-age=31536000`
     setLangState(l)
     window.dispatchEvent(new CustomEvent<Lang>(EVENT_NAME, { detail: l }))
   }, [])

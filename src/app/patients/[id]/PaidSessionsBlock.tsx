@@ -4,6 +4,8 @@ import { useState, useTransition, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { addPaidSessions, getPaymentHistory } from '@/lib/actions/payments'
 import { useToast } from '@/components/ui/toast'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = {
   patientId: string
@@ -17,6 +19,7 @@ function formatHistoryDate(iso: string) {
 export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
   const router = useRouter()
   const { toast } = useToast()
+  const { lang } = useLanguage()
   const [count, setCount] = useState(initialCount)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -29,7 +32,7 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
 
   // Цветовое кодирование
   const color = count === 0 ? '#c0392b' : count <= 2 ? '#c8a035' : '#2d6a4f'
-  const statusText = count === 0 ? 'Нет оплаченных' : count <= 2 ? 'Заканчиваются' : 'осталось'
+  const statusText = count === 0 ? t(lang).paidSessions.noPaid : count <= 2 ? t(lang).paidSessions.running_low : t(lang).paidSessions.remaining
 
   // Закрыть дропдаун истории по клику вне
   useEffect(() => {
@@ -57,7 +60,7 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
       setShowAddModal(false)
       setAddAmount(5)
       setAddNote('')
-      toast(`Добавлено ${addAmount} консультаций`)
+      toast(t(lang).paidSessions.added(addAmount))
       router.refresh()
     })
   }
@@ -69,7 +72,7 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
         style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8' }}
       >
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#9a8a6a' }}>
-          Оплачено консультаций
+          {t(lang).paidSessions.paidConsultations}
         </p>
 
         {/* Счётчик */}
@@ -93,14 +96,14 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
               className="text-sm font-medium px-4 py-2 rounded-xl transition-colors"
               style={{ backgroundColor: '#2d6a4f', color: '#fff' }}
             >
-              + Добавить
+              {t(lang).paidSessions.add}
             </button>
             <button
               onClick={handleOpenHistory}
               className="text-sm font-medium px-4 py-2 rounded-xl border transition-colors hover:opacity-80"
               style={{ border: '1px solid #d4c9b8', color: '#5a5040', backgroundColor: '#faf7f2' }}
             >
-              История
+              {t(lang).paidSessions.history}
             </button>
 
             {/* Дропдаун истории */}
@@ -110,12 +113,12 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
                 style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8' }}
               >
                 <p className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', borderBottom: '1px solid #d4c9b8' }}>
-                  Последние 10 записей
+                  {t(lang).paidSessions.last10}
                 </p>
                 {historyLoading ? (
-                  <p className="px-4 py-4 text-sm" style={{ color: '#9a8a6a' }}>Загружаю...</p>
+                  <p className="px-4 py-4 text-sm" style={{ color: '#9a8a6a' }}>{t(lang).paidSessions.loading}</p>
                 ) : history.length === 0 ? (
-                  <p className="px-4 py-4 text-sm" style={{ color: '#9a8a6a' }}>Записей нет</p>
+                  <p className="px-4 py-4 text-sm" style={{ color: '#9a8a6a' }}>{t(lang).paidSessions.noRecords}</p>
                 ) : (
                   <div className="divide-y" style={{ borderColor: '#e8e0d4' }}>
                     {history.map(entry => (
@@ -155,13 +158,13 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
               className="text-lg font-light mb-4"
               style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a1a0a' }}
             >
-              Добавить консультации
+              {t(lang).paidSessions.addTitle}
             </h2>
 
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#9a8a6a' }}>
-                  Количество
+                  {t(lang).paidSessions.amount}
                 </label>
                 <div className="flex gap-2 mb-2">
                   {[1, 3, 5, 10].map(n => (
@@ -189,7 +192,7 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#9a8a6a' }}>
-                  Заметка
+                  {t(lang).paidSessions.note}
                 </label>
                 <input
                   type="text"
@@ -209,14 +212,14 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ backgroundColor: '#2d6a4f' }}
               >
-                {isPending ? 'Сохраняю...' : 'Сохранить'}
+                {isPending ? t(lang).paidSessions.saving : t(lang).paidSessions.save}
               </button>
               <button
                 onClick={() => { setShowAddModal(false); setAddAmount(5); setAddNote('') }}
                 className="px-4 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
                 style={{ color: '#9a8a6a' }}
               >
-                Отмена
+                {t(lang).paidSessions.cancel}
               </button>
             </div>
           </div>

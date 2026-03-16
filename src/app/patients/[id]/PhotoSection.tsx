@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { uploadPhoto, deletePhoto } from '@/lib/actions/photos'
 import { createPhotoUploadToken } from '@/lib/actions/photoUpload'
 import { useToast } from '@/components/ui/toast'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Photo = {
   id: string
@@ -32,6 +34,7 @@ function formatPhotoDate(dateStr: string) {
 export default function PhotoSection({ patientId, photos }: Props) {
   const router = useRouter()
   const { toast } = useToast()
+  const { lang } = useLanguage()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [showForm, setShowForm] = useState(false)
@@ -71,9 +74,9 @@ export default function PhotoSection({ patientId, photos }: Props) {
         await uploadPhoto(formData)
         handleCancel()
         router.refresh()
-        toast('Фото сохранено')
+        toast(t(lang).photo.saved)
       } catch {
-        toast('Ошибка загрузки фото', 'error')
+        toast(t(lang).photo.uploadError, 'error')
       }
     })
   }
@@ -91,7 +94,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
     if (!uploadLink) return
     navigator.clipboard.writeText(uploadLink)
     setLinkCopied(true)
-    toast('Ссылка скопирована')
+    toast(t(lang).photo.linkCopied)
     setTimeout(() => setLinkCopied(false), 2000)
   }
 
@@ -102,7 +105,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
       if (lightbox?.id === photo.id) setLightbox(null)
       setDeleteId(null)
       router.refresh()
-      toast('Фото удалено', 'info')
+      toast(t(lang).photo.deleted, 'info')
     })
   }
 
@@ -111,7 +114,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          Фото динамики
+          {t(lang).photo.title}
         </h2>
         <div className="flex items-center gap-2">
           <button
@@ -122,7 +125,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
             </svg>
-            {creatingLink ? 'Создаю...' : 'Запросить фото'}
+            {creatingLink ? t(lang).intake.creating : t(lang).photo.requestPhoto}
           </button>
           <button
             onClick={() => fileRef.current?.click()}
@@ -131,7 +134,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.043 11.095" />
             </svg>
-            Загрузить фото
+            {t(lang).photo.uploadPhoto}
           </button>
         </div>
         <input
@@ -146,7 +149,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
       {/* Ссылка для пациента */}
       {uploadLink && (
         <div className="mb-4 rounded-xl p-3" style={{ backgroundColor: '#f0ebe3', border: '1px solid #c8a035' }}>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#c8a035' }}>Ссылка для пациента · действительна 24 часа</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#c8a035' }}>{t(lang).photo.linkHint}</p>
           <div className="flex items-center gap-2">
             <input
               readOnly
@@ -159,10 +162,10 @@ export default function PhotoSection({ patientId, photos }: Props) {
               className="shrink-0 text-xs font-medium text-white px-3 py-2 rounded-lg transition-colors hover:opacity-90"
               style={{ backgroundColor: '#1a3020' }}
             >
-              {linkCopied ? 'Скопировано!' : 'Копировать'}
+              {linkCopied ? t(lang).photo.copied : t(lang).photo.copy}
             </button>
           </div>
-          <p className="text-[10px] mt-1.5" style={{ color: '#9a8a6a' }}>Пациент откроет ссылку на телефоне и загрузит фото прямо в карточку</p>
+          <p className="text-[10px] mt-1.5" style={{ color: '#9a8a6a' }}>{t(lang).photo.sendHint}</p>
         </div>
       )}
 
@@ -178,7 +181,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <div className="flex-1 space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                  Дата фото
+                  {t(lang).photo.photoDate}
                 </label>
                 <input
                   type="date"
@@ -191,7 +194,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                  Заметка (необязательно)
+                  {t(lang).photo.noteOptional}
                 </label>
                 <input
                   type="text"
@@ -212,14 +215,14 @@ export default function PhotoSection({ patientId, photos }: Props) {
               disabled={uploading}
               className="bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >
-              {uploading ? 'Загружаю...' : 'Сохранить'}
+              {uploading ? t(lang).photo.uploading : t(lang).photo.save}
             </button>
             <button
               type="button"
               onClick={handleCancel}
               className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 transition-all"
             >
-              Отмена
+              {t(lang).photo.cancel}
             </button>
           </div>
         </form>
@@ -235,7 +238,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
           <svg className="w-8 h-8" style={{ color: '#c4b89a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
           </svg>
-          <p style={{ fontSize: '14px', color: '#9a8a6a' }}>Нажмите чтобы загрузить первое фото</p>
+          <p style={{ fontSize: '14px', color: '#9a8a6a' }}>{t(lang).photo.clickToUpload}</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2.5">
@@ -303,13 +306,13 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   onClick={() => handleDelete(lightbox)}
                   className="text-xs text-red-400 hover:text-red-300 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded-lg transition-all"
                 >
-                  Удалить
+                  {t(lang).photo.delete}
                 </button>
                 <button
                   onClick={() => setLightbox(null)}
                   className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 px-3 py-1.5 rounded-lg transition-all"
                 >
-                  Закрыть
+                  {t(lang).photo.close}
                 </button>
               </div>
             </div>

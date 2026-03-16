@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { createNewPatientToken } from '@/lib/actions/newPatient'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 export default function NewPatientButton() {
+  const { lang } = useLanguage()
   const [link, setLink] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -40,7 +43,7 @@ export default function NewPatientButton() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         )}
-        Записать нового пациента
+        {t(lang).newPatient.title}
       </button>
 
       {link && (
@@ -53,10 +56,10 @@ export default function NewPatientButton() {
               className="text-xl font-light mb-2"
               style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: '#1a1a0a' }}
             >
-              Записать нового пациента
+              {t(lang).newPatient.title}
             </h2>
             <p className="text-sm mb-5" style={{ color: '#9a8a6a' }}>
-              Скопируйте ссылку и отправьте её будущему пациенту. Он заполнит анкету и выберет удобное время для первого приёма.
+              {t(lang).newPatient.copyLink}
             </p>
 
             <div
@@ -72,19 +75,19 @@ export default function NewPatientButton() {
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
                 style={{ backgroundColor: copied ? '#2d6a4f' : '#1a3020', color: '#f7f3ed' }}
               >
-                {copied ? '✓ Скопировано' : '📋 Скопировать ссылку'}
+                {copied ? `✓ ${t(lang).newPatient.copied}` : `📋 ${t(lang).newPatient.copyBtn}`}
               </button>
               <button
                 onClick={() => { setLink(null); setCopied(false) }}
                 className="px-4 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
                 style={{ color: '#9a8a6a' }}
               >
-                Закрыть
+                {t(lang).newPatient.close}
               </button>
             </div>
 
             <p className="text-xs mt-3 text-center" style={{ color: '#b8a898' }}>
-              Ссылка действительна 30 дней
+              {t(lang).newPatient.linkValid}
             </p>
           </div>
         </div>

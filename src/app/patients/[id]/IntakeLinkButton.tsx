@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { createIntakeLink } from '@/lib/actions/intake'
 import { IntakeType } from '@/types'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = {
   patientId: string
@@ -17,6 +19,7 @@ export default function IntakeLinkButton({
   type = 'primary',
   hasCompleted = false,
 }: Props) {
+  const { lang } = useLanguage()
   const [link, setLink] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -51,7 +54,7 @@ export default function IntakeLinkButton({
         onMouseEnter={e => (e.currentTarget.style.backgroundColor = isAcute ? 'rgba(200,160,53,0.08)' : 'rgba(45,106,79,0.06)')}
         onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
       >
-        {loading ? 'Создаю...' : isAcute ? '⚡ Анкета острого случая' : hasCompleted ? 'Новая анкета' : '📋 Отправить анкету'}
+        {loading ? t(lang).intake.creating : isAcute ? `⚡ ${t(lang).intake.acuteIntake}` : hasCompleted ? t(lang).intake.newIntake : `📋 ${t(lang).intake.sendBtn}`}
       </button>
     )
   }
@@ -59,7 +62,7 @@ export default function IntakeLinkButton({
   return (
     <div className="border rounded-xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
       <p className="text-xs font-semibold" style={{ color: isAcute ? 'var(--color-amber)' : 'var(--color-primary)' }}>
-        {isAcute ? '⚡ Ссылка — острый случай:' : 'Ссылка для пациента:'}
+        {isAcute ? `⚡ ${t(lang).intake.acuteLink}` : t(lang).intake.patientLink}
       </p>
       <div className="flex items-center gap-2">
         <p
@@ -73,10 +76,10 @@ export default function IntakeLinkButton({
           className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border text-white transition-all"
           style={{ backgroundColor: copied ? '#2d7a50' : 'var(--color-primary)', borderColor: copied ? '#2d7a50' : 'var(--color-primary)' }}
         >
-          {copied ? '✓ Скопировано' : 'Копировать'}
+          {copied ? `✓ ${t(lang).intake.copied}` : t(lang).intake.copy}
         </button>
       </div>
-      <p className="text-[10px]" style={{ color: '#9a8a6a' }}>Отправьте ссылку пациенту в WhatsApp, Telegram или по почте</p>
+      <p className="text-[10px]" style={{ color: '#9a8a6a' }}>{t(lang).intake.sendHint}</p>
     </div>
   )
 }

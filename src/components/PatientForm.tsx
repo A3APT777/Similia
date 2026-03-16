@@ -4,6 +4,8 @@ import { Patient } from '@/types'
 import { useRouter } from 'next/navigation'
 import { useTransition, useState, useRef, useEffect } from 'react'
 import { CONSTITUTIONAL_TYPES } from '@/lib/remedies'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = {
   patient?: Patient
@@ -17,6 +19,7 @@ const labelClass = "block text-sm font-medium text-gray-600 mb-1"
 export default function PatientForm({ patient, action, submitLabel }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  const { lang } = useLanguage()
 
   // Конституциональный тип с автодополнением
   const [constType, setConstType] = useState(patient?.constitutional_type || '')
@@ -62,27 +65,27 @@ export default function PatientForm({ patient, action, submitLabel }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div data-tour="patient-name">
-        <label className={labelClass}>Имя *</label>
+        <label className={labelClass}>{t(lang).patientForm.name}</label>
         <input name="name" type="text" required defaultValue={patient?.name || ''} placeholder="Иванова Мария Петровна" className={inputClass} />
       </div>
       <div data-tour="patient-birthdate">
-        <label className={labelClass}>Дата рождения</label>
+        <label className={labelClass}>{t(lang).patientForm.birthDate}</label>
         <input name="birth_date" type="date" defaultValue={patient?.birth_date || ''} className={inputClass} />
       </div>
       <div data-tour="patient-phone">
-        <label className={labelClass}>Телефон</label>
+        <label className={labelClass}>{t(lang).patientForm.phone}</label>
         <input name="phone" type="tel" defaultValue={patient?.phone || ''} placeholder="+7 999 000 00 00" className={inputClass} />
       </div>
       <div data-tour="patient-email">
-        <label className={labelClass}>Email</label>
+        <label className={labelClass}>{t(lang).patientForm.email}</label>
         <input name="email" type="email" defaultValue={patient?.email || ''} placeholder="patient@example.com" className={inputClass} />
       </div>
 
       {/* Конституциональный тип */}
       <div data-tour="patient-constitution">
         <label className={labelClass}>
-          Конституциональный тип
-          <span className="ml-1.5 text-[10px] font-normal text-gray-400">основной полихрест</span>
+          {t(lang).patientForm.constitutionalType}
+          <span className="ml-1.5 text-[10px] font-normal text-gray-400">{t(lang).patientForm.constitutionalHint}</span>
         </label>
         <div className="relative">
           <input
@@ -114,15 +117,15 @@ export default function PatientForm({ patient, action, submitLabel }: Props) {
       </div>
 
       <div data-tour="patient-note">
-        <label className={labelClass}>Заметка о пациенте</label>
-        <textarea name="notes" rows={2} defaultValue={patient?.notes || ''} placeholder="Аллергии, особенности, важные детали..." className={inputClass + ' resize-none'} />
+        <label className={labelClass}>{t(lang).patientForm.notes}</label>
+        <textarea name="notes" rows={2} defaultValue={patient?.notes || ''} placeholder={t(lang).patientForm.notesPlaceholder} className={inputClass + ' resize-none'} />
       </div>
       <div className="flex gap-3 pt-2" data-tour="patient-submit">
         <button type="submit" disabled={pending} className="text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors" style={{ backgroundColor: 'var(--color-primary)' }}>
-          {pending ? 'Сохраняю...' : submitLabel}
+          {pending ? t(lang).patientForm.saving : submitLabel}
         </button>
         <button type="button" onClick={() => router.back()} className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2">
-          Отмена
+          {t(lang).patientForm.cancel}
         </button>
       </div>
     </form>

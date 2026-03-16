@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react'
 import { compareConsultations } from '@/lib/compareConsultations'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = {
   currentNotes: string
@@ -9,6 +11,7 @@ type Props = {
 }
 
 export default function ComparisonPanel({ currentNotes, previousNotes }: Props) {
+  const { lang } = useLanguage()
   const result = useMemo(
     () => compareConsultations(currentNotes, previousNotes),
     [currentNotes, previousNotes]
@@ -27,8 +30,8 @@ export default function ComparisonPanel({ currentNotes, previousNotes }: Props) 
             <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-400">Начните писать заметки</p>
-        <p className="text-xs text-gray-300 mt-1">Сравнение появится автоматически</p>
+        <p className="text-sm text-gray-400">{t(lang).comparison.startWriting}</p>
+        <p className="text-xs text-gray-300 mt-1">{t(lang).comparison.willAppear}</p>
       </div>
     )
   }
@@ -41,8 +44,8 @@ export default function ComparisonPanel({ currentNotes, previousNotes }: Props) 
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-400">Симптомы не распознаны</p>
-        <p className="text-xs text-gray-300 mt-1">Попробуйте писать по одному симптому на строку</p>
+        <p className="text-sm text-gray-400">{t(lang).comparison.notRecognized}</p>
+        <p className="text-xs text-gray-300 mt-1">{t(lang).comparison.tryOnePerLine}</p>
       </div>
     )
   }
@@ -56,19 +59,19 @@ export default function ComparisonPanel({ currentNotes, previousNotes }: Props) 
         {result.newItems.length > 0 && (
           <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-xs font-semibold text-emerald-700">{result.newItems.length} новых</span>
+            <span className="text-xs font-semibold text-emerald-700">{result.newItems.length} {t(lang).comparison.newCount}</span>
           </div>
         )}
         {result.goneItems.length > 0 && (
           <div className="flex items-center gap-1.5 bg-red-50 border border-red-100 rounded-xl px-3 py-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-            <span className="text-xs font-semibold text-red-600">{result.goneItems.length} прошли</span>
+            <span className="text-xs font-semibold text-red-600">{result.goneItems.length} {t(lang).comparison.resolvedCount}</span>
           </div>
         )}
         {result.sameItems.length > 0 && (
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-            <span className="text-xs font-semibold text-gray-500">{result.sameItems.length} без изм.</span>
+            <span className="text-xs font-semibold text-gray-500">{result.sameItems.length} {t(lang).comparison.unchangedCount}</span>
           </div>
         )}
       </div>
@@ -79,7 +82,7 @@ export default function ComparisonPanel({ currentNotes, previousNotes }: Props) 
           <div className="flex items-center gap-2 mb-2">
             <div className="w-1 h-4 rounded-full bg-emerald-400" />
             <h3 className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">
-              Новые симптомы
+              {t(lang).comparison.newSymptoms}
             </h3>
           </div>
           <div className="space-y-1.5">
@@ -104,7 +107,7 @@ export default function ComparisonPanel({ currentNotes, previousNotes }: Props) 
           <div className="flex items-center gap-2 mb-2">
             <div className="w-1 h-4 rounded-full bg-red-400" />
             <h3 className="text-xs font-semibold text-red-600 uppercase tracking-wider">
-              Исчезли / прошли
+              {t(lang).comparison.resolved}
             </h3>
           </div>
           <div className="space-y-1.5">
@@ -129,7 +132,7 @@ export default function ComparisonPanel({ currentNotes, previousNotes }: Props) 
           <div className="flex items-center gap-2 mb-2">
             <div className="w-1 h-4 rounded-full bg-gray-300" />
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Без изменений
+              {t(lang).comparison.unchanged}
             </h3>
           </div>
           <div className="space-y-1.5">
@@ -145,7 +148,7 @@ export default function ComparisonPanel({ currentNotes, previousNotes }: Props) 
                   <span className="text-sm text-gray-600 leading-snug">{item.current}</span>
                   {item.changed && (
                     <p className="text-[10px] text-gray-400 mt-0.5 italic">
-                      Было: {item.previous}
+                      {t(lang).comparison.was} {item.previous}
                     </p>
                   )}
                 </div>
@@ -157,7 +160,7 @@ export default function ComparisonPanel({ currentNotes, previousNotes }: Props) 
 
       {/* Подсказка */}
       <p className="text-[10px] text-gray-300 text-center pt-2 border-t border-gray-50">
-        Всего {total} наблюдений · Сравнение обновляется автоматически
+        {t(lang).comparison.totalObservations(total)}
       </p>
     </div>
   )

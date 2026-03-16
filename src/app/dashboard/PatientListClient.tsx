@@ -4,15 +4,17 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Patient } from '@/types'
 import { getAge, formatDateShort, preview } from '@/lib/utils'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
-function EmptyState({ hasSearch, search }: { hasSearch: boolean; search: string }) {
+function EmptyState({ hasSearch, search, lang }: { hasSearch: boolean; search: string; lang: 'ru' | 'en' }) {
   if (hasSearch) {
     return (
       <div className="border rounded-2xl py-12 text-center" style={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
         <svg className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--color-border)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <p className="text-sm text-gray-400">Ничего не найдено по запросу «{search}»</p>
+        <p className="text-sm text-gray-400">{t(lang).patientList.nothingFound(search)}</p>
       </div>
     )
   }
@@ -24,9 +26,9 @@ function EmptyState({ hasSearch, search }: { hasSearch: boolean; search: string 
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
         </svg>
       </div>
-      <p className="text-sm font-medium text-gray-700 mb-1">Пока нет ни одного пациента</p>
+      <p className="text-sm font-medium text-gray-700 mb-1">{t(lang).patientList.noPatients}</p>
       <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
-        Добавьте первого пациента вручную или отправьте анкету — она создаст карточку автоматически
+        {t(lang).patientList.noPatientsDesc}
       </p>
       <div className="flex flex-col sm:flex-row gap-2 justify-center">
         <Link
@@ -37,7 +39,7 @@ function EmptyState({ hasSearch, search }: { hasSearch: boolean; search: string 
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          Добавить пациента
+          {t(lang).patientList.addPatient}
         </Link>
         <a
           href="#intake"
@@ -48,7 +50,7 @@ function EmptyState({ hasSearch, search }: { hasSearch: boolean; search: string 
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          Отправить анкету
+          {t(lang).patientList.sendIntake}
         </a>
       </div>
     </div>
@@ -85,6 +87,7 @@ function getAvatarColor(name: string) {
 }
 
 export default function PatientListClient({ patients }: { patients: PatientWithLastConsultation[] }) {
+  const { lang } = useLanguage()
   const [search, setSearch] = useState('')
 
   const filtered = patients.filter(p =>
@@ -104,7 +107,7 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Поиск пациента..."
+          placeholder={t(lang).patientList.search}
           className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none transition-all"
           style={{ backgroundColor: '#faf7f2', border: '1px solid #d4c9b8', outline: 'none' }}
           onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
@@ -114,7 +117,7 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
 
       {/* Пустое состояние */}
       {filtered.length === 0 && (
-        <EmptyState hasSearch={!!search} search={search} />
+        <EmptyState hasSearch={!!search} search={search} lang={lang} />
       )}
 
       {/* Таблица пациентов */}
@@ -125,9 +128,9 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
           <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: '0.5px solid #e0d8cc', backgroundColor: '#ede7dd' }}>
             <div className="w-7 shrink-0" />
             <div className="flex-1 min-w-0">
-              <span className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#9a8a6a' }}>Пациент</span>
+              <span className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#9a8a6a' }}>{t(lang).patientList.patient}</span>
             </div>
-            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] w-20 text-right shrink-0" style={{ color: '#9a8a6a' }}>Визит</span>
+            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] w-20 text-right shrink-0" style={{ color: '#9a8a6a' }}>{t(lang).patientList.visit}</span>
           </div>
 
           {/* Строки */}
@@ -204,8 +207,8 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
           {/* Итог */}
           <div className="px-4 py-2.5" style={{ borderTop: '0.5px solid #e0d8cc', backgroundColor: '#ede7dd' }}>
             <p className="text-[13px]" style={{ color: '#9a8a6a' }}>
-              {filtered.length} {filtered.length === 1 ? 'пациент' : filtered.length < 5 ? 'пациента' : 'пациентов'}
-              {search && ` · найдено по запросу «${search}»`}
+              {t(lang).patientList.countPatients(filtered.length)}
+              {search && ` · ${t(lang).patientList.foundByQuery}`}
             </p>
           </div>
         </div>

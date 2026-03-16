@@ -1,18 +1,23 @@
+'use client'
+
 import { Consultation, Followup } from '@/types'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = {
   consultations: Consultation[]
   followupByConsultation: Record<string, Followup>
 }
 
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  better:       { label: 'Улучшение',         color: 'text-green-700 bg-green-50 border-green-200' },
-  same:         { label: 'Без изменений',      color: 'text-gray-600 bg-gray-50 border-gray-200' },
-  worse:        { label: 'Ухудшение',          color: 'text-red-600 bg-red-50 border-red-200' },
-  new_symptoms: { label: 'Новые симптомы',     color: 'text-orange-600 bg-orange-50 border-orange-200' },
+const STATUS_STYLE: Record<string, { labelKey: string; color: string }> = {
+  better:       { labelKey: 'improvement',    color: 'text-green-700 bg-green-50 border-green-200' },
+  same:         { labelKey: 'noChange',       color: 'text-gray-600 bg-gray-50 border-gray-200' },
+  worse:        { labelKey: 'worsening',      color: 'text-red-600 bg-red-50 border-red-200' },
+  new_symptoms: { labelKey: 'newSymptoms',    color: 'text-orange-600 bg-orange-50 border-orange-200' },
 }
 
 export default function TreatmentProgress({ consultations, followupByConsultation }: Props) {
+  const { lang } = useLanguage()
   // Берём только завершённые консультации с назначением, от старых к новым
   const withRx = consultations
     .filter(c => c.status === 'completed' && c.remedy)
@@ -24,13 +29,14 @@ export default function TreatmentProgress({ consultations, followupByConsultatio
   return (
     <div className="mb-5">
       <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-        Динамика лечения
+        {t(lang).treatmentProgress.title}
       </h2>
       <div className="border border-gray-100 rounded-2xl p-4 shadow-sm overflow-x-auto" style={{ backgroundColor: '#f0ebe3' }}>
         <div className="flex items-center gap-0 min-w-max">
           {withRx.map((c, idx) => {
             const followup = followupByConsultation[c.id]
-            const statusInfo = followup?.status ? STATUS_LABEL[followup.status] : null
+            const statusStyle = followup?.status ? STATUS_STYLE[followup.status] : null
+            const statusInfo = statusStyle ? { label: (t(lang).treatmentProgress as Record<string, any>)[statusStyle.labelKey] as string, color: statusStyle.color } : null
             const isLast = idx === withRx.length - 1
 
             return (
@@ -61,7 +67,7 @@ export default function TreatmentProgress({ consultations, followupByConsultatio
 
                   {/* Тип */}
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${c.type === 'acute' ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-600'}`}>
-                    {c.type === 'acute' ? 'острый' : 'хрон.'}
+                    {c.type === 'acute' ? t(lang).treatmentProgress.acute : t(lang).treatmentProgress.chronic}
                   </span>
                 </div>
 
@@ -73,7 +79,7 @@ export default function TreatmentProgress({ consultations, followupByConsultatio
                         {statusInfo.label}
                       </span>
                     ) : (
-                      <span className="text-[10px] text-gray-300 mb-1">нет отзыва</span>
+                      <span className="text-[10px] text-gray-300 mb-1">{t(lang).treatmentProgress.noFeedback}</span>
                     )}
                     <div className="flex items-center gap-0 w-full">
                       <div className="flex-1 h-px bg-gray-200" />

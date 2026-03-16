@@ -4,6 +4,7 @@ import { useState, useRef, useMemo, useEffect } from 'react'
 import { searchRepertory, getPatientsSimple, type RepertoryRubric } from '@/lib/actions/repertory'
 import { translateRubric } from '@/lib/repertory-translations'
 import { useLanguage } from '@/hooks/useLanguage'
+import { t } from '@/lib/i18n'
 
 // ── Цветовая схема V3 ─────────────────────────────────────────────
 const C = {
@@ -263,7 +264,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               value={query}
               onChange={e => handleQueryChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Поиск симптома... тревога, fear, боль ночью"
+              placeholder={t(lang).repertory.searchPlaceholder}
               className="w-full pl-10 pr-4 py-2.5 text-base rounded-lg focus:outline-none"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.10)',
@@ -280,7 +281,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 rounded pointer-events-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.30)' }}
                 >
-                  [Enter] добавить
+                  {t(lang).repertory.enterToAdd}
                 </span>
                 <button
                   onPointerDown={() => handleQueryChange('')}
@@ -310,12 +311,12 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             {lastConsultation ? (
               <>
                 <span>←</span>
-                <span className="hidden sm:inline">К консультации</span>
+                <span className="hidden sm:inline">{t(lang).repertory.toConsultation}</span>
               </>
             ) : (
               <>
                 <span>←</span>
-                <span className="hidden sm:inline">На главную</span>
+                <span className="hidden sm:inline">{t(lang).repertory.toHome}</span>
               </>
             )}
           </button>
@@ -328,16 +329,16 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
           >
             <span className="shrink-0 text-[11px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
-              Топ сейчас:
+              {t(lang).repertory.topNow}
             </span>
             <div className="flex items-baseline gap-x-2.5 gap-y-0.5 flex-wrap flex-1 min-w-0">
               {loading ? (
                 <span className="text-[11px] animate-pulse" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                  загрузка...
+                  {t(lang).repertory.loading}
                 </span>
               ) : headerTopRemedies.top.length === 0 ? (
                 <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                  нет данных
+                  {t(lang).repertory.noData}
                 </span>
               ) : (
                 <>
@@ -358,7 +359,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   ))}
                   {headerTopRemedies.extra > 0 && (
                     <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                      +{headerTopRemedies.extra} ещё
+                      +{headerTopRemedies.extra} {t(lang).repertory.more}
                     </span>
                   )}
                 </>
@@ -408,7 +409,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 className="text-[12px] font-semibold uppercase tracking-widest mb-2"
                 style={{ color: C.muted }}
               >
-                Недавно использованные
+                {t(lang).repertory.recentlyUsed}
               </p>
               <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
                 {recentRubrics.map(r => {
@@ -442,14 +443,14 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           >
             <p className="text-[14px]" style={{ color: C.muted }}>
               {loading ? (
-                <span className="animate-pulse">Загрузка...</span>
+                <span className="animate-pulse">{t(lang).common.loading}</span>
               ) : query ? (
                 <>
-                  Результаты поиска:&nbsp;
+                  {t(lang).repertory.searchResults}&nbsp;
                   <span style={{ color: C.text }}>«{query}»</span>
                   &nbsp;·&nbsp;
                   <span style={{ color: C.link }}>{total.toLocaleString('ru-RU')}</span>
-                  &nbsp;рубрик
+                  &nbsp;{t(lang).repertory.rubrics}
                 </>
               ) : (
                 <>
@@ -458,7 +459,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   </span>
                   &nbsp;·&nbsp;
                   <span style={{ color: C.link }}>{total.toLocaleString('ru-RU')}</span>
-                  &nbsp;рубрик
+                  &nbsp;{t(lang).repertory.rubrics}
                 </>
               )}
             </p>
@@ -469,7 +470,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               style={{ borderColor: C.border, color: analysisEntries.length > 0 ? C.link : C.muted }}
               onPointerDown={() => setShowAnalysis(v => !v)}
             >
-              Анализ
+              {t(lang).repertory.analysis}
               {analysisEntries.length > 0 && (
                 <span
                   className="w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
@@ -495,14 +496,14 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               </div>
             ) : rubrics.length === 0 ? (
               <div className="text-center py-16" style={{ color: C.muted }}>
-                <p className="text-sm">Нет рубрик по вашему запросу</p>
+                <p className="text-sm">{t(lang).repertory.noRubrics}</p>
                 {query && (
                   <button
                     onPointerDown={() => handleQueryChange('')}
                     className="mt-2 text-sm underline"
                     style={{ color: C.link }}
                   >
-                    Очистить поиск
+                    {t(lang).repertory.clearSearch}
                   </button>
                 )}
               </div>
@@ -533,7 +534,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                       className="px-4 py-1.5 text-sm border rounded disabled:opacity-30 transition-colors"
                       style={{ borderColor: C.border, color: C.link }}
                     >
-                      ← Пред.
+                      {t(lang).repertory.prev}
                     </button>
                     <span className="text-sm" style={{ color: C.muted }}>
                       {page + 1} / {totalPages}
@@ -544,7 +545,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                       className="px-4 py-1.5 text-sm border rounded disabled:opacity-30 transition-colors"
                       style={{ borderColor: C.border, color: C.link }}
                     >
-                      След. →
+                      {t(lang).repertory.next}
                     </button>
                   </div>
                 )}
@@ -565,7 +566,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           >
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold" style={{ color: C.text }}>
-                Анализ
+                {t(lang).repertory.analysis}
               </span>
               {analysisEntries.length > 0 && (
                 <span
@@ -596,10 +597,10 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 </svg>
               </div>
               <p className="text-sm font-medium" style={{ color: C.secondary }}>
-                Добавьте рубрики
+                {t(lang).repertory.addRubrics}
               </p>
               <p className="text-[13px] mt-1 leading-relaxed" style={{ color: C.muted }}>
-                Нажмите [+] у рубрики или Enter в поиске
+                {t(lang).repertory.addHint}
               </p>
             </div>
           ) : (
@@ -659,7 +660,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     className="text-[12px] font-semibold uppercase tracking-widest mb-3"
                     style={{ color: C.muted }}
                   >
-                    Топ препаратов
+                    {t(lang).repertory.topRemedies}
                   </p>
                   <div className="space-y-1.5">
                     {analysisScores.slice(0, 15).map(([abbrev, data], rank) => {
@@ -736,7 +737,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   style={{ borderColor: C.border, color: C.secondary, backgroundColor: 'transparent' }}
                   onPointerDown={() => setAnalysisEntries([])}
                 >
-                  Очистить
+                  {t(lang).repertory.clear}
                 </button>
               </div>
             )}
@@ -760,7 +761,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           >
             {/* Заголовок */}
             <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #f0f0f0' }}>
-              <h2 className="text-base font-semibold text-gray-900">Выбрать пациента</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t(lang).repertory.selectPatient}</h2>
               <button
                 onPointerDown={() => setShowPatientModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -775,7 +776,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 type="text"
                 value={patientSearch}
                 onChange={e => setPatientSearch(e.target.value)}
-                placeholder="Поиск по имени..."
+                placeholder={t(lang).repertory.searchByName}
                 autoFocus
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-emerald-400"
               />
@@ -788,7 +789,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : patients.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).length === 0 ? (
-                <div className="text-center py-10 text-sm text-gray-400">Пациенты не найдены</div>
+                <div className="text-center py-10 text-sm text-gray-400">{t(lang).repertory.noPatientsFound}</div>
               ) : (
                 patients
                   .filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase()))
@@ -816,7 +817,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 onPointerDown={() => setShowPatientModal(false)}
                 className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
-                Отмена
+                {t(lang).repertory.cancelBtn}
               </button>
             </div>
           </div>

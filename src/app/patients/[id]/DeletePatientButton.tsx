@@ -2,8 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { deletePatient } from '@/lib/actions/patients'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 export default function DeletePatientButton({ patientId, patientName }: { patientId: string; patientName: string }) {
+  const { lang } = useLanguage()
   const [showModal, setShowModal] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -27,12 +30,12 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
           e.currentTarget.style.backgroundColor = 'transparent'
           e.currentTarget.style.borderColor = '#f5c6c6'
         }}
-        title="Удалить пациента"
+        title={t(lang).deletePatient.btn}
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
         </svg>
-        <span className="hidden sm:inline">Удалить</span>
+        <span className="hidden sm:inline">{t(lang).deletePatient.delete}</span>
       </button>
 
       {showModal && (
@@ -48,13 +51,13 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
                 </svg>
               </div>
               <div>
-                <h2 className="text-base font-semibold" style={{ color: '#1a1a0a' }}>Удалить пациента?</h2>
+                <h2 className="text-base font-semibold" style={{ color: '#1a1a0a' }}>{t(lang).deletePatient.confirm}</h2>
                 <p className="text-sm" style={{ color: '#9a8a6a' }}>{patientName}</p>
               </div>
             </div>
 
             <p className="text-sm leading-relaxed mb-5" style={{ color: '#5a5040' }}>
-              Будут удалены все консультации, анкеты, фото и история платежей. Это действие нельзя отменить.
+              {t(lang).deletePatient.warning}
             </p>
 
             <div className="flex gap-2">
@@ -64,7 +67,7 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{ backgroundColor: '#c0392b' }}
               >
-                {isPending ? 'Удаляю...' : 'Удалить'}
+                {isPending ? t(lang).deletePatient.deleting : t(lang).deletePatient.delete}
               </button>
               <button
                 onClick={() => setShowModal(false)}
@@ -72,7 +75,7 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
                 className="px-5 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
                 style={{ color: '#9a8a6a' }}
               >
-                Отмена
+                {t(lang).deletePatient.cancel}
               </button>
             </div>
           </div>

@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { savePrescription } from '@/lib/actions/consultations'
 import { useToast } from '@/components/ui/toast'
 import { searchRemediesDB, RemedyResult } from '@/lib/actions/remedies'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 // Часто используемые потенции в гомеопатии
 const POTENCY_CHIPS = ['6C', '12C', '30C', '200C', '1M', '10M', 'LM1', 'LM2', 'LM3']
@@ -19,6 +21,7 @@ type Props = {
 
 export default function PrescriptionModal({ consultationId, onSkip, onSaved, initialRemedy, initialPotency, initialDosage }: Props) {
   const { toast } = useToast()
+  const { lang } = useLanguage()
   const [remedy, setRemedy] = useState(initialRemedy || '')
   const [potency, setPotency] = useState(initialPotency || '')
   const [pellets, setPellets] = useState<number | null>(null)
@@ -93,7 +96,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
     setSaving(true)
     await savePrescription(consultationId, remedy.trim(), potency.trim(), pellets, dosage.trim())
     setSaving(false)
-    toast(`Назначение выписано: ${remedy.trim()}${potency ? ' ' + potency : ''}`)
+    toast(t(lang).prescription.prescribed(remedy.trim() + (potency ? ' ' + potency : '')))
     onSaved()
   }
 
@@ -110,8 +113,8 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900">Назначение препарата</h2>
-              <p className="text-xs text-gray-400">Можно заполнить позже в карточке консультации</p>
+              <h2 className="text-base font-semibold text-gray-900">{t(lang).prescription.title}</h2>
+              <p className="text-xs text-gray-400">{t(lang).prescription.hint}</p>
             </div>
           </div>
         </div>
@@ -122,7 +125,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
           {/* Препарат с автодополнением */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Препарат
+              {t(lang).prescription.remedy}
             </label>
             <div className="relative">
               <input
@@ -177,7 +180,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
           {/* Потенция */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Потенция
+              {t(lang).prescription.potency}
             </label>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {POTENCY_CHIPS.map(p => (
@@ -199,7 +202,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               type="text"
               value={potency}
               onChange={e => setPotency(e.target.value)}
-              placeholder="Или введите вручную..."
+              placeholder={t(lang).prescription.schemeManual}
               className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
             />
           </div>
@@ -207,7 +210,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
           {/* Количество горошинок */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Количество горошинок
+              {t(lang).prescription.pellets}
             </label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5, 6, 7].map(n => (
@@ -230,13 +233,13 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
           {/* Схема приёма */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Схема приёма
+              {t(lang).prescription.scheme}
             </label>
             <textarea
               value={dosage}
               onChange={e => setDosage(e.target.value)}
               rows={2}
-              placeholder="Например: однократно, повтор при возвращении симптомов..."
+              placeholder={t(lang).prescription.schemePlaceholder}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 resize-none focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
             />
           </div>
@@ -249,13 +252,13 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
             disabled={saving || !remedy.trim()}
             className="flex-1 bg-emerald-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
-            {saving ? 'Сохраняю...' : 'Выписать и завершить'}
+            {saving ? t(lang).prescription.saving : t(lang).prescription.prescribeAndFinish}
           </button>
           <button
             onClick={onSkip}
             className="text-sm text-gray-400 hover:text-gray-700 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-all"
           >
-            Позже
+            {t(lang).prescription.later}
           </button>
         </div>
       </div>

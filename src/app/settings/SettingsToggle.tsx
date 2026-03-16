@@ -3,18 +3,21 @@
 import { useState, useTransition } from 'react'
 import { updatePaidSessionsEnabled } from '@/lib/actions/payments'
 import { useToast } from '@/components/ui/toast'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 export default function SettingsToggle({ initialEnabled }: { initialEnabled: boolean }) {
   const [enabled, setEnabled] = useState(initialEnabled)
   const [, startTransition] = useTransition()
   const { toast } = useToast()
+  const { lang } = useLanguage()
 
   function handleToggle() {
     const next = !enabled
     setEnabled(next)
     startTransition(async () => {
       await updatePaidSessionsEnabled(next)
-      toast(next ? 'Учёт оплаты включён' : 'Учёт оплаты отключён')
+      toast(next ? t(lang).settings.paymentEnabled : t(lang).settings.paymentDisabled)
     })
   }
 
@@ -35,12 +38,12 @@ export default function SettingsToggle({ initialEnabled }: { initialEnabled: boo
           </div>
           <div>
             <p className="text-[15px] font-semibold" style={{ color: '#1a1a0a' }}>
-              Учёт оплаченных консультаций
+              {t(lang).settings.paymentToggle}
             </p>
             <p className="text-[13px] mt-1 leading-relaxed" style={{ color: '#5a5040' }}>
               {enabled
-                ? 'Включено — на карточке каждого пациента отображается счётчик оплаченных консультаций и уведомления об остатке.'
-                : 'Выключено — счётчик скрыт, уведомления не показываются.'}
+                ? t(lang).settings.paymentOn
+                : t(lang).settings.paymentOff}
             </p>
           </div>
         </div>
@@ -51,7 +54,7 @@ export default function SettingsToggle({ initialEnabled }: { initialEnabled: boo
           onClick={handleToggle}
           className="relative shrink-0 mt-0.5"
           style={{ width: 44, height: 24 }}
-          aria-label={enabled ? 'Выключить' : 'Включить'}
+          aria-label={enabled ? t(lang).settings.disable : t(lang).settings.enable}
         >
           <div
             className="absolute inset-0 rounded-full transition-colors duration-200"

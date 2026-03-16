@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 // ─── Полные шаблоны ───────────────────────────────────────────────────────────
 
 const FULL_TEMPLATES = [
   {
     id: 'primary',
-    label: 'Первичный приём',
-    description: 'Полный сбор анамнеза',
+    labelKey: 'primary' as const,
+    descKey: 'primaryDesc' as const,
     icon: '📋',
     text: `ЖАЛОБЫ
 —
@@ -64,8 +66,8 @@ const FULL_TEMPLATES = [
   },
   {
     id: 'repeat',
-    label: 'Повторный приём',
-    description: 'Динамика после лечения',
+    labelKey: 'followup' as const,
+    descKey: 'followupDesc' as const,
     icon: '🔄',
     text: `ДИНАМИКА С ПРОШЛОГО ПРИЁМА
 Общее самочувствие:
@@ -95,8 +97,8 @@ const FULL_TEMPLATES = [
   },
   {
     id: 'acute',
-    label: 'Острое состояние',
-    description: 'Быстрый острый случай',
+    labelKey: 'acuteState' as const,
+    descKey: 'acuteStateDesc' as const,
     icon: '⚡',
     text: `ОСТРЫЕ ЖАЛОБЫ
 —
@@ -126,8 +128,8 @@ const FULL_TEMPLATES = [
   },
   {
     id: 'child',
-    label: 'Ребёнок',
-    description: 'Детский приём',
+    labelKey: 'child' as const,
+    descKey: 'childDesc' as const,
     icon: '👶',
     text: `ЖАЛОБЫ (со слов родителя)
 —
@@ -189,6 +191,7 @@ type Props = {
 // ─── Компонент ────────────────────────────────────────────────────────────────
 
 export default function TemplateMenu({ onInsert, consultationType = 'chronic' }: Props) {
+  const { lang } = useLanguage()
   // Рекомендуемый шаблон зависит от типа консультации
   const recommendedId = consultationType === 'acute' ? 'acute' : 'primary'
   const [open, setOpen] = useState(false)
@@ -225,7 +228,7 @@ export default function TemplateMenu({ onInsert, consultationType = 'chronic' }:
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        Шаблон
+        {t(lang).templates.template}
         <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
@@ -237,7 +240,7 @@ export default function TemplateMenu({ onInsert, consultationType = 'chronic' }:
           {/* Полные шаблоны */}
           <div className="px-3 pt-3 pb-2">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
-              Полные шаблоны
+              {t(lang).templates.fullTemplates}
             </p>
             <div className="space-y-0.5">
               {FULL_TEMPLATES.map(tpl => {
@@ -254,15 +257,15 @@ export default function TemplateMenu({ onInsert, consultationType = 'chronic' }:
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className={`text-sm font-medium transition-colors ${isRecommended ? 'text-emerald-700' : 'text-gray-800 group-hover:text-emerald-700'}`}>
-                          {tpl.label}
+                          {(t(lang).templates as Record<string, any>)[tpl.labelKey]}
                         </p>
                         {isRecommended && (
                           <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-100 px-1.5 py-0.5 rounded">
-                            Рекомендован
+                            {t(lang).templates.recommended}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-400">{tpl.description}</p>
+                      <p className="text-[11px] text-gray-400">{(t(lang).templates as Record<string, any>)[tpl.descKey]}</p>
                     </div>
                   </button>
                 )
@@ -276,7 +279,7 @@ export default function TemplateMenu({ onInsert, consultationType = 'chronic' }:
           {/* Быстрые секции */}
           <div className="px-3 pt-2 pb-3">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
-              Добавить раздел
+              {t(lang).templates.addSection}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {QUICK_SECTIONS.map(s => (

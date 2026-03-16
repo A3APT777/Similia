@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { startTour } from '@/lib/tour'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 import 'driver.js/dist/driver.css'
 
 type Props = {
@@ -10,6 +12,7 @@ type Props = {
 }
 
 export default function TourModal({ show, onClose }: Props) {
+  const { lang } = useLanguage()
   if (!show) return null
 
   function dismiss() {
@@ -56,10 +59,10 @@ export default function TourModal({ show, onClose }: Props) {
           className="text-xl font-light mb-1"
           style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a1a0a' }}
         >
-          Добро пожаловать в Similia!
+          {t(lang).tour.welcome}
         </h2>
         <p className="text-sm text-gray-400 mb-5 leading-relaxed">
-          Пройдите короткое знакомство с приложением — 2 минуты
+          {t(lang).tour.tourDesc}
         </p>
 
         {/* Кнопки */}
@@ -70,14 +73,14 @@ export default function TourModal({ show, onClose }: Props) {
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             <span className="text-base">🌿</span>
-            Начать знакомство
+            {t(lang).tour.startTour}
           </button>
           <button
             onClick={dismiss}
             className="w-full px-4 py-2.5 text-sm transition-colors text-center"
             style={{ color: '#9a8a6a' }}
           >
-            ✕ Пропустить, я разберусь
+            ✕ {t(lang).tour.skip}
           </button>
         </div>
       </div>

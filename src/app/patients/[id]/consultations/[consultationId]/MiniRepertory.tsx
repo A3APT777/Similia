@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { searchRepertory, RepertoryRubric } from '@/lib/actions/repertory'
 import { CHAPTER_NAMES, translateRubric } from '@/lib/repertory-translations'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 const CHAPTERS_SHORT = [
   'Mind', 'Head', 'Eye', 'Ear', 'Nose', 'Face', 'Mouth', 'Throat',
@@ -16,6 +18,7 @@ type Props = {
 }
 
 export default function MiniRepertory({ onSelectRubric, onClose }: Props) {
+  const { lang } = useLanguage()
   const [query, setQuery] = useState('')
   const [chapter, setChapter] = useState('Mind')
   const [rubrics, setRubrics] = useState<RepertoryRubric[]>([])
@@ -70,8 +73,8 @@ export default function MiniRepertory({ onSelectRubric, onClose }: Props) {
       {/* Шапка */}
       <div className="px-4 py-3 border-b border-gray-100 bg-[#ede7dd] flex items-center justify-between shrink-0">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Реперторий</h3>
-          <p className="text-[10px] text-gray-400 mt-0.5">Нажмите на рубрику, чтобы добавить</p>
+          <h3 className="text-sm font-semibold text-gray-900">{t(lang).miniRepertory.title}</h3>
+          <p className="text-[10px] text-gray-400 mt-0.5">{t(lang).miniRepertory.hint}</p>
         </div>
         <button
           onClick={onClose}
@@ -94,7 +97,7 @@ export default function MiniRepertory({ onSelectRubric, onClose }: Props) {
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Поиск по рубрикам..."
+            placeholder={t(lang).miniRepertory.search}
             className="w-full pl-7 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-500/20 placeholder-gray-300 transition-all"
           />
         </div>
@@ -128,7 +131,7 @@ export default function MiniRepertory({ onSelectRubric, onClose }: Props) {
           </div>
         ) : rubrics.length === 0 ? (
           <div className="flex items-center justify-center h-20 text-xs text-gray-300">
-            Рубрики не найдены
+            {t(lang).miniRepertory.notFound}
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
@@ -171,7 +174,7 @@ export default function MiniRepertory({ onSelectRubric, onClose }: Props) {
             onClick={() => setPage(p => p - 1)}
             className="text-[10px] text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            ← Назад
+            ← {t(lang).miniRepertory.prev}
           </button>
           <span className="text-[10px] text-gray-300">{page + 1} / {totalPages}</span>
           <button
@@ -179,7 +182,7 @@ export default function MiniRepertory({ onSelectRubric, onClose }: Props) {
             onClick={() => setPage(p => p + 1)}
             className="text-[10px] text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            Вперёд →
+            {t(lang).miniRepertory.next} →
           </button>
         </div>
       )}

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getAge } from '@/lib/utils'
 import PrintTrigger from './PrintTrigger'
+import { t } from '@/lib/i18n'
+import { getLang } from '@/lib/i18n-server'
 
 // Секции анкет для отображения в PDF
 const PRIMARY_SECTIONS = [
@@ -97,6 +99,8 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
     timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', year: 'numeric',
   })
 
+  const lang = await getLang()
+
   // Нумерация хронических консультаций
   let chronicIndex = 0
 
@@ -110,7 +114,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
           {/* ── Шапка ── */}
           <div className="flex items-start justify-between mb-8 pb-6 border-b-2 border-gray-900">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Similia · История пациента</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">{t(lang).export.title}</p>
               <h1 className="text-2xl font-bold text-gray-900 leading-tight">{patient.name}</h1>
               <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-sm text-gray-500">
                 {patient.birth_date && <span>{getAge(patient.birth_date)}</span>}
@@ -118,11 +122,11 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                 {patient.email && <span>{patient.email}</span>}
               </div>
               <p className="text-xs text-gray-400 mt-1.5">
-                Первый приём: {formatLocalDate(patient.first_visit_date)} · {completed.length} консультаций
+                {t(lang).export.firstVisit} {formatLocalDate(patient.first_visit_date)} · {completed.length} {t(lang).export.consultations}
               </p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xs text-gray-400">Экспортировано</p>
+              <p className="text-xs text-gray-400">{t(lang).export.exported}</p>
               <p className="text-xs text-gray-500 font-medium">{exportDate}</p>
             </div>
           </div>
@@ -130,11 +134,11 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
           {/* ── Анкеты ── */}
           {(primaryIntake || acuteIntake) && (
             <div className="mb-8">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Анкеты пациента</h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">{t(lang).export.intakes}</h2>
 
               {[
-                primaryIntake && { intake: primaryIntake, sections: PRIMARY_SECTIONS, label: 'Первичная анкета' },
-                acuteIntake && { intake: acuteIntake, sections: ACUTE_SECTIONS, label: 'Анкета острого случая' },
+                primaryIntake && { intake: primaryIntake, sections: PRIMARY_SECTIONS, label: t(lang).export.primaryIntake },
+                acuteIntake && { intake: acuteIntake, sections: ACUTE_SECTIONS, label: t(lang).export.acuteIntake },
               ].filter(Boolean).map(({ intake, sections, label }: any) => (
                 <div key={intake.id} className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
@@ -167,7 +171,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
           {/* ── Консультации ── */}
           {completed.length > 0 && (
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">История консультаций</h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">{t(lang).export.consultationHistory}</h2>
 
               <div className="space-y-5">
                 {completed.map(c => {
@@ -180,9 +184,9 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                     : formatLocalDate(c.date)
 
                   const title = isAcute
-                    ? 'Острый случай'
-                    : chronicIndex === 1 ? 'Первая консультация'
-                    : `Консультация №${chronicIndex}`
+                    ? t(lang).timeline.acuteCase
+                    : chronicIndex === 1 ? t(lang).timeline.firstConsultation
+                    : t(lang).timeline.consultationN(chronicIndex)
 
                   return (
                     <div key={c.id} className="border border-gray-200 rounded-xl overflow-hidden print:break-inside-avoid">
@@ -194,7 +198,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                           </p>
                           {isAcute && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
-                              Острый
+                              {t(lang).consultation.acuteShort}
                             </span>
                           )}
                         </div>
@@ -205,7 +209,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                         {/* Заметки */}
                         {c.notes?.trim() && (
                           <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Заметки</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t(lang).export.notes}</p>
                             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.notes}</p>
                           </div>
                         )}
@@ -214,9 +218,9 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                         {c.remedy && (
                           <div className="flex items-center gap-3 pt-1 border-t border-gray-100">
                             <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Назначение</p>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">{t(lang).export.prescription}</p>
                               <p className="text-sm font-semibold text-gray-800">
-                                {c.remedy}{c.potency ? ` ${c.potency}` : ''}{c.pellets ? ` · ${c.pellets} гор.` : ''}
+                                {c.remedy}{c.potency ? ` ${c.potency}` : ''}{c.pellets ? ` · ${c.pellets} ${t(lang).export.pellets}` : ''}
                               </p>
                               {c.dosage && <p className="text-xs text-gray-500 mt-0.5">{c.dosage}</p>}
                             </div>
@@ -224,7 +228,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                             {/* Ответ пациента */}
                             {followup?.status && FOLLOWUP_LABELS[followup.status] && (
                               <div className="ml-auto text-right">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Ответ пациента</p>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">{t(lang).export.patientResponse}</p>
                                 <p className="text-sm font-semibold text-gray-700">{FOLLOWUP_LABELS[followup.status]}</p>
                                 {followup.comment && (
                                   <p className="text-xs text-gray-400 italic mt-0.5 max-w-48">«{followup.comment}»</p>
@@ -244,7 +248,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
           {/* ── Подвал ── */}
           <div className="mt-10 pt-4 border-t border-gray-200 flex items-center justify-between">
             <p className="text-xs text-gray-300">Similia</p>
-            <p className="text-xs text-gray-300">Конфиденциально · только для врача</p>
+            <p className="text-xs text-gray-300">{t(lang).export.confidential}</p>
           </div>
 
         </div>

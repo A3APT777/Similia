@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
+import { t } from '@/lib/i18n'
+import { getLang } from '@/lib/i18n-server'
 import PatientListClient from './PatientListClient'
 import AppointmentList from './AppointmentList'
 import MoscowClock from '@/components/MoscowClock'
@@ -82,6 +84,7 @@ export default async function DashboardPage() {
   })
 
   const patientsList = (patients || []).map(p => ({ id: p.id, name: p.name }))
+  const lang = await getLang()
   const name = user?.user_metadata?.name || user?.email || ''
   const firstName = name.split(' ')[0] || name
 
@@ -133,12 +136,10 @@ export default async function DashboardPage() {
                 className="text-[26px] sm:text-[32px] font-light leading-tight mb-1"
                 style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.95)' }}
               >
-                Добрый день, {firstName}
+                {t(lang).dashboard.greeting}, {firstName}
               </h1>
               <p className="text-[13px] mb-5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                {todayCount > 0
-                  ? `Сегодня ${todayCount} ${todayCount === 1 ? 'приём' : todayCount < 5 ? 'приёма' : 'приёмов'}`
-                  : 'Сегодня нет приёмов'}
+                {t(lang).dashboard.todayAppointments(todayCount)}
               </p>
 
               {/* Stat-карточки */}
@@ -147,19 +148,19 @@ export default async function DashboardPage() {
                   <p className="text-[22px] sm:text-[26px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.9)' }}>
                     {totalPatients}
                   </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Пациентов</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{t(lang).dashboard.patients}</p>
                 </div>
                 <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.08)' }}>
                   <p className="text-[22px] sm:text-[26px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.9)' }}>
                     {todayCount}
                   </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Сегодня</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{t(lang).dashboard.today}</p>
                 </div>
                 <div className="rounded-xl px-3 py-2.5" style={{ background: pendingCount > 0 ? 'rgba(200,160,53,0.2)' : 'rgba(255,255,255,0.08)' }}>
                   <p className="text-[22px] sm:text-[26px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: pendingCount > 0 ? 'var(--color-amber)' : 'rgba(255,255,255,0.9)' }}>
                     {pendingCount}
                   </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Без назначения</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{t(lang).dashboard.noPrescription}</p>
                 </div>
               </div>
             </div>
@@ -183,8 +184,8 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ color: '#1a1a0a' }}>Реперторий</p>
-              <p className="text-xs text-gray-400 mt-0.5">74 482 рубрики · Repertorium Publicum · поиск на русском и английском</p>
+              <p className="text-sm font-semibold" style={{ color: '#1a1a0a' }}>{t(lang).dashboard.repertoryTitle}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{t(lang).dashboard.repertoryDesc}</p>
             </div>
             <svg className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -195,7 +196,7 @@ export default async function DashboardPage() {
 
           {/* Заголовок списка пациентов */}
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
-            Пациенты
+            {t(lang).dashboard.patientsSection}
           </p>
 
           {/* Запись нового пациента */}
@@ -214,7 +215,7 @@ export default async function DashboardPage() {
             <MoscowClock />
           </div>
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3 lg:hidden">
-            Календарь
+            {t(lang).dashboard.calendar}
           </p>
           <CalendarWidget patients={patientsList} />
 
@@ -222,12 +223,12 @@ export default async function DashboardPage() {
           {(totalConsultations90d > 0 || betterPct !== null || topRemedy) && (
             <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
-                За последние 90 дней
+                {t(lang).dashboard.last90days}
               </p>
               <div className="space-y-3">
                 {totalConsultations90d > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Консультаций</span>
+                    <span className="text-xs text-gray-500">{t(lang).dashboard.consultations}</span>
                     <span className="text-sm font-semibold text-gray-900" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
                       {totalConsultations90d}
                     </span>
@@ -235,7 +236,7 @@ export default async function DashboardPage() {
                 )}
                 {betterPct !== null && followups.length >= 3 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Стало лучше</span>
+                    <span className="text-xs text-gray-500">{t(lang).dashboard.gotBetter}</span>
                     <span className="text-sm font-semibold" style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
                       {betterPct}%
                     </span>
@@ -243,7 +244,7 @@ export default async function DashboardPage() {
                 )}
                 {topRemedy && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Топ препарат</span>
+                    <span className="text-xs text-gray-500">{t(lang).dashboard.topRemedy}</span>
                     <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-lg">
                       {topRemedy}
                     </span>
@@ -257,8 +258,8 @@ export default async function DashboardPage() {
                 {betterPct !== null && followups.length >= 3 && (
                   <div className="mt-2 pt-2 border-t border-gray-50">
                     <div className="flex items-center justify-between text-[10px] text-gray-300 mb-1">
-                      <span>Динамика самочувствия</span>
-                      <span>{followups.length} отв.</span>
+                      <span>{t(lang).dashboard.dynamics}</span>
+                      <span>{followups.length} {t(lang).dashboard.responses}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                       <div
@@ -267,8 +268,8 @@ export default async function DashboardPage() {
                       />
                     </div>
                     <div className="flex justify-between text-[10px] text-gray-300 mt-1">
-                      <span>{betterCount} лучше</span>
-                      <span>{followups.length - betterCount} не лучше</span>
+                      <span>{betterCount} {t(lang).dashboard.better}</span>
+                      <span>{followups.length - betterCount} {t(lang).dashboard.notBetter}</span>
                     </div>
                   </div>
                 )}
