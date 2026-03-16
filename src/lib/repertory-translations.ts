@@ -1501,6 +1501,59 @@ const T: Record<string, string> = {
   'lain': 'полежавши',
   'slow': 'медленный',
   'leucorrhea': 'бели',
+  'metrorrhagia': 'метроррагия',
+  'prosopalgia': 'прозопалгия',
+
+  // ── СЛОВА ИЗ CHAPTER_NAMES, КОТОРЫЕ НУЖНЫ И В СЛОВАРЕ T ────────
+  // (когда эти слова встречаются как модификатор в другом разделе)
+  'sleep': 'сон',
+  'face': 'лицо',
+  'vision': 'зрение',
+  'hearing': 'слух',
+  'stool': 'стул',
+  'urine': 'моча',
+  'chill': 'озноб',
+  'fever': 'жар',
+  'perspiration': 'пот',
+  'generalities': 'общее',
+  'clinical': 'клиническое',
+  'extremities': 'конечности',
+
+  // ── ЕЩЁ ПРОПУЩЕННЫЕ ЧАСТЫЕ СЛОВА ───────────────────────────────
+  'etc': 'и т.д.',
+  'injuries': 'травмы',
+  'injury': 'травма',
+  'against': 'против',
+  'crusty': 'покрытый коркой',
+  'lifting': 'подъём',
+  'together': 'вместе',
+  'drops': 'капли',
+  'extend': 'распространяется',
+  'toward': 'к',
+  'towards': 'к',
+  'grasping': 'хватание',
+  'roughness': 'шероховатость',
+  'elevated': 'приподнятый',
+  'wrists': 'запястья',
+  'uncovering': 'раскрывание',
+  'movements': 'движения',
+  'front': 'спереди',
+  'seminal': 'семенной',
+  'loose': 'рыхлый',
+  'digging': 'роющий',
+  'bright': 'яркий',
+  'caries': 'кариес',
+  'entering': 'вхождение',
+  'time': 'время',
+  'fast': 'быстрый',
+  'bubbling': 'бурлящий',
+  'speaking': 'разговор',
+  'large': 'большой',
+  'nipples': 'соски',
+  'insanity': 'безумие',
+  'hanging': 'свисание',
+  'can': '',
+  'had': '',
 
   // ── ПСИХИКА (ДОПОЛНИТЕЛЬНЫЕ ФОРМЫ) ──────────────────────────────
   'restless sleep': 'беспокойный сон',
@@ -1547,14 +1600,17 @@ function translateSegment(segment: string): string {
       }
     }
     if (!matched) {
-      // Переводим одно слово
-      const w = words[i].toLowerCase().replace(/[.,;:!?]$/, '')
-      const punct = words[i].match(/[.,;:!?]$/) ? words[i].slice(-1) : ''
+      // Переводим одно слово, убирая скобки и пунктуацию
+      const raw = words[i]
+      const leading = raw.match(/^[(\[{]+/)?.[0] || ''
+      const trailing = raw.match(/[)\]}.,:;!?]+$/)?.[0] || ''
+      const core = raw.slice(leading.length, raw.length - (trailing.length || 0))
+      const w = core.toLowerCase()
       const translated = T[w]
       if (translated !== undefined) {
-        if (translated) result.push(translated + punct)
+        if (translated) result.push(leading + translated + trailing)
       } else {
-        result.push(words[i]) // оставляем оригинал
+        result.push(raw) // оставляем оригинал
       }
       i++
     }
