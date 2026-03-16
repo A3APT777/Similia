@@ -70,7 +70,7 @@ export default function MiniRepertory({ onSelectRubric, onClose }: Props) {
       {/* Шапка */}
       <div className="px-4 py-3 border-b border-gray-100 bg-[#ede7dd] flex items-center justify-between shrink-0">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Репертоий</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Реперторий</h3>
           <p className="text-[10px] text-gray-400 mt-0.5">Нажмите на рубрику, чтобы добавить</p>
         </div>
         <button

@@ -122,16 +122,16 @@ export async function getUnpaidPatients(): Promise<{ id: string; name: string }[
 
   if (!zeroPatients || zeroPatients.length === 0) return []
 
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const patientIds = zeroPatients.map(p => p.id)
 
-  const { data: recent } = await supabase
-    .from('consultations')
+  // Показываем только пациентов, которым ранее начислялись оплаченные сеансы
+  // (есть записи в payment_history), но сейчас paid_sessions === 0
+  const { data: withHistory } = await supabase
+    .from('payment_history')
     .select('patient_id')
     .in('patient_id', patientIds)
-    .eq('status', 'completed')
-    .gte('date', thirtyDaysAgo)
+    .eq('doctor_id', user.id)
 
-  const activeIds = new Set((recent || []).map(c => c.patient_id))
-  return zeroPatients.filter(p => activeIds.has(p.id))
+  const paidBefore = new Set((withHistory || []).map(h => h.patient_id))
+  return zeroPatients.filter(p => paidBefore.has(p.id))
 }

@@ -11,7 +11,7 @@ import TourModal, { useTourAutoShow } from './TourModal'
 const NAV = {
   workbench: { ru: 'Рабочий стол', en: 'Workbench' },
   home: { ru: 'Главная', en: 'Dashboard' },
-  repertory: { ru: 'Репертоий', en: 'Repertory' },
+  repertory: { ru: 'Реперторий', en: 'Repertory' },
   patientsSection: { ru: 'Пациенты', en: 'Patients' },
   newPatient: { ru: 'Новый пациент', en: 'New Patient' },
 }

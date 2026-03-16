@@ -37,15 +37,18 @@ const STEPS = [
 ]
 
 export default function OnboardingBanner(props: Props) {
+  const [ready, setReady] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
     if (localStorage.getItem('onboarding_dismissed') === '1') {
       setDismissed(true)
     }
+    setReady(true)
   }, [])
 
-  if (dismissed) return null
+  // Не рендерим пока не прочитали localStorage — убирает мелькание
+  if (!ready || dismissed) return null
 
   const completedCount = STEPS.filter(s => s.done(props)).length
   if (completedCount === STEPS.length) return null

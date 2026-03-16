@@ -192,7 +192,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ color: '#1a1a0a' }}>Репертоий</p>
+              <p className="text-sm font-semibold" style={{ color: '#1a1a0a' }}>Реперторий</p>
               <p className="text-xs text-gray-400 mt-0.5">74 482 рубрики · Repertorium Publicum · поиск на русском и английском</p>
             </div>
             <svg className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

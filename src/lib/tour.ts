@@ -3,7 +3,7 @@ const tourSteps = [
     element: '[data-tour="sidebar"]',
     popover: {
       title: '👋 Добро пожаловать в Similia!',
-      description: 'Это ваша главная навигация. Здесь находятся все разделы — Главная, Репертоий и Пациенты.',
+      description: 'Это ваша главная навигация. Здесь находятся все разделы — Главная, Реперторий и Пациенты.',
       side: 'right' as const,
     },
   },
@@ -34,7 +34,7 @@ const tourSteps = [
   {
     element: '[data-tour="repertory-link"]',
     popover: {
-      title: '📖 Репертоий',
+      title: '📖 Реперторий',
       description: 'Встроенный репертоий Кента с 74 000 рубрик. Ищите симптомы прямо во время консультации.',
       side: 'right' as const,
     },
