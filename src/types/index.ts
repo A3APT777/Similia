@@ -32,6 +32,7 @@ export type Consultation = {
   observations: string
   recommendations: string
   repertory_data: RepertoryEntry[]
+  structured_symptoms: StructuredSymptom[]
   scheduled_at: string | null
   status: ConsultationStatus
   type: ConsultationType
@@ -43,6 +44,15 @@ export type Consultation = {
   reaction_to_previous: string | null
   created_at: string
   updated_at: string
+}
+
+export type SymptomStatus = 'new' | 'resolved' | 'better' | 'worse' | 'same'
+
+export type StructuredSymptom = {
+  id: string           // unique ID, generated as slugified label
+  label: string        // human-readable symptom text
+  section: 'complaints' | 'observations' | 'notes' | 'recommendations'
+  status?: SymptomStatus  // set during comparison, not by user
 }
 
 export type IntakeAnswers = Record<string, string>

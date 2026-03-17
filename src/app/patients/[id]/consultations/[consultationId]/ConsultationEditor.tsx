@@ -4,7 +4,7 @@ import { useRef, useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateConsultationNotes, updateConsultationType, updateConsultationExtra, updateConsultationFields } from '@/lib/actions/consultations'
 import { decrementPaidSession } from '@/lib/actions/payments'
-import { Consultation, Patient, ConsultationType } from '@/types'
+import { Consultation, Patient, ConsultationType, StructuredSymptom } from '@/types'
 import { useToast } from '@/components/ui/toast'
 import { formatDate } from '@/lib/utils'
 import { t } from '@/lib/i18n'
@@ -13,6 +13,7 @@ import ComparisonPanel from './ComparisonPanel'
 import TemplateMenu, { StructuredTemplate } from './TemplateMenu'
 import PrescriptionModal from './PrescriptionModal'
 import MiniRepertory from './MiniRepertory'
+import SymptomTags from './SymptomTags'
 
 type Props = {
   consultation: Consultation
@@ -40,6 +41,8 @@ export default function ConsultationEditor({ consultation, patient, previousCons
   const [complaints, setComplaints] = useState(consultation.complaints || '')
   const [observations, setObservations] = useState(consultation.observations || '')
   const [recommendations, setRecommendations] = useState(consultation.recommendations || '')
+  const [symptoms, setSymptoms] = useState<StructuredSymptom[]>(consultation.structured_symptoms || [])
+  const symptomsTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [showZeroWarning, setShowZeroWarning] = useState(false)
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -115,7 +118,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
       clearTimeout(timerRef.current)
       clearTimeout(fieldsTimerRef.current)
       await updateConsultationNotes(consultation.id, notes)
-      await updateConsultationFields(consultation.id, { complaints, observations, recommendations })
+      await updateConsultationFields(consultation.id, { complaints, observations, recommendations, structured_symptoms: symptoms })
     }
     setShowPrescription(true)
   }
@@ -210,6 +213,14 @@ export default function ConsultationEditor({ consultation, patient, previousCons
         textarea.setSelectionRange(newCursorPos, newCursorPos)
       }
     })
+  }
+
+  function handleSymptomsChange(newSymptoms: StructuredSymptom[]) {
+    setSymptoms(newSymptoms)
+    clearTimeout(symptomsTimerRef.current)
+    symptomsTimerRef.current = setTimeout(() => {
+      updateConsultationFields(consultation.id, { structured_symptoms: newSymptoms })
+    }, 1500)
   }
 
   function insertRubricFromRepertory(rubricPath: string) {
@@ -521,6 +532,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                 className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
                 style={{ minHeight: '72px', overflow: 'hidden' }}
               />
+              <SymptomTags section="complaints" symptoms={symptoms} onChange={handleSymptomsChange} previousSymptoms={previousConsultation?.structured_symptoms} />
             </div>
 
             {/* ШАГ 2 — Наблюдения */}
@@ -548,6 +560,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                 className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
                 style={{ minHeight: '88px', overflow: 'hidden' }}
               />
+              <SymptomTags section="observations" symptoms={symptoms} onChange={handleSymptomsChange} previousSymptoms={previousConsultation?.structured_symptoms} />
             </div>
 
             {/* ШАГ 3 — Анализ */}
@@ -695,6 +708,8 @@ export default function ConsultationEditor({ consultation, patient, previousCons
                       notes: previousConsultation.notes || '',
                       recommendations: previousConsultation.recommendations || '',
                     }}
+                    currentSymptoms={symptoms}
+                    previousSymptoms={previousConsultation.structured_symptoms || []}
                   />
                 </div>
               )}
