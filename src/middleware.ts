@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import crypto from 'crypto'
 
 // Публичные маршруты — доступны без авторизации
 const PUBLIC_PATHS = [
@@ -69,8 +68,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Генерируем nonce для CSP — заменяет unsafe-inline
-  const nonce = crypto.randomBytes(16).toString('base64')
+  // Генерируем nonce для CSP — заменяет unsafe-inline (Web Crypto API для Edge Runtime)
+  const nonceBytes = new Uint8Array(16)
+  globalThis.crypto.getRandomValues(nonceBytes)
+  const nonce = btoa(String.fromCharCode(...nonceBytes))
   const csp = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
