@@ -486,118 +486,143 @@ export default function ConsultationEditor({ consultation, patient, previousCons
 
         {/* ═══ Клинический воркфлоу ═══ */}
         <div className="flex-1 overflow-y-auto bg-[#faf7f2] min-h-[60vh] lg:min-h-0">
-          <div className="px-5 lg:px-7 py-4 space-y-1">
+          <div className="px-5 lg:px-7 py-4 space-y-5">
 
             {/* ШАГ 1 — Описание случая */}
-            <div className="relative pl-7">
-              <div className="absolute left-0 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: complaints.trim() ? '#2d6a4f' : '#e0dcd4', color: complaints.trim() ? '#fff' : '#9a8a6a' }}>1</div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#1a3020' }}>
+            <div className="relative pl-8">
+              <div className="absolute left-0 top-0 w-5.5 h-5.5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: complaints.trim() ? '#2d6a4f' : '#e0dcd4', color: complaints.trim() ? '#fff' : '#9a8a6a', width: '22px', height: '22px' }}>1</div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#1a3020' }}>
                 {lang === 'ru' ? 'Описание случая' : 'Case description'}
               </label>
-              <p className="text-[10px] mb-1.5" style={{ color: '#b0a090' }}>
-                {lang === 'ru' ? 'Что привело пациента? Основные жалобы, начало, течение' : 'What brought the patient? Main complaints, onset, course'}
-              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-0 mb-2">
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· что привело' : '· what brought'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· когда началось' : '· when started'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· динамика' : '· dynamics'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· локализация' : '· location'}</span>
+              </div>
               <textarea
                 data-autoresize
                 value={complaints}
                 onChange={e => handleFieldChange('complaints', e.target.value)}
                 onInput={e => autoResize(e.currentTarget)}
                 autoFocus
-                placeholder={lang === 'ru' ? 'Пациент обратился с...' : 'Patient presents with...'}
+                placeholder={lang === 'ru'
+                  ? 'Обратился с... Началось... Сейчас...'
+                  : 'Presents with... Started... Currently...'}
                 rows={3}
-                className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
                 style={{ minHeight: '72px', overflow: 'hidden' }}
               />
             </div>
 
-            {/* ШАГ 2 — Наблюдения и ключевые симптомы */}
-            <div className="relative pl-7">
-              <div className="absolute left-0 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: observations.trim() ? '#2d6a4f' : '#e0dcd4', color: observations.trim() ? '#fff' : '#9a8a6a' }}>2</div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#1a3020' }}>
+            {/* ШАГ 2 — Наблюдения */}
+            <div className="relative pl-8">
+              <div className="absolute left-0 top-0 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: observations.trim() ? '#2d6a4f' : '#e0dcd4', color: observations.trim() ? '#fff' : '#9a8a6a', width: '22px', height: '22px' }}>2</div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#1a3020' }}>
                 {lang === 'ru' ? 'Наблюдения и симптомы' : 'Observations & symptoms'}
               </label>
-              <p className="text-[10px] mb-1.5" style={{ color: '#b0a090' }}>
-                {lang === 'ru' ? 'Модальности, ощущения, конституция, психика, общие' : 'Modalities, sensations, constitution, mind, generals'}
-              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-0 mb-2">
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· ощущения' : '· sensations'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· хуже от' : '· worse from'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· лучше от' : '· better from'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· психика' : '· mind'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· общие' : '· generals'}</span>
+              </div>
               <textarea
                 data-autoresize
                 value={observations}
                 onChange={e => handleFieldChange('observations', e.target.value)}
                 onInput={e => autoResize(e.currentTarget)}
-                placeholder={lang === 'ru' ? 'Хуже от... Лучше от... Ощущения...' : 'Worse from... Better from... Sensations...'}
-                rows={3}
-                className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
-                style={{ minHeight: '72px', overflow: 'hidden' }}
+                placeholder={lang === 'ru'
+                  ? 'Ощущения: ...\nХуже: ...\nЛучше: ...\nПсихика: ...'
+                  : 'Sensations: ...\nWorse: ...\nBetter: ...\nMind: ...'}
+                rows={4}
+                className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                style={{ minHeight: '88px', overflow: 'hidden' }}
               />
             </div>
 
-            {/* ШАГ 3 — Анализ случая (клиническое мышление) */}
-            <div className="relative pl-7">
-              <div className="absolute left-0 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: notes.trim() ? '#2d6a4f' : '#e0dcd4', color: notes.trim() ? '#fff' : '#9a8a6a' }}>3</div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#1a3020' }}>
+            {/* ШАГ 3 — Анализ */}
+            <div className="relative pl-8">
+              <div className="absolute left-0 top-0 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: notes.trim() ? '#2d6a4f' : '#e0dcd4', color: notes.trim() ? '#fff' : '#9a8a6a', width: '22px', height: '22px' }}>3</div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#1a3020' }}>
                 {lang === 'ru' ? 'Анализ случая' : 'Case analysis'}
               </label>
-              <p className="text-[10px] mb-1.5" style={{ color: '#b0a090' }}>
-                {lang === 'ru' ? 'DD, клиническая гипотеза, обоснование выбора' : 'DD, clinical hypothesis, rationale'}
-              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-0 mb-2">
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· DD препаратов' : '· DD remedies'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· аргументы выбора' : '· selection rationale'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· ключевые рубрики' : '· key rubrics'}</span>
+              </div>
               <textarea
                 data-autoresize
                 ref={textareaRef}
                 value={notes}
                 onChange={e => handleChange(e.target.value)}
                 onInput={e => autoResize(e.currentTarget)}
-                placeholder={lang === 'ru' ? 'DD: ... vs ... Ключевые рубрики: ...' : 'DD: ... vs ... Key rubrics: ...'}
+                placeholder={lang === 'ru'
+                  ? 'DD: ... vs ...\nВ пользу: ...\nПротив: ...\nВыбор: ...'
+                  : 'DD: ... vs ...\nFor: ...\nAgainst: ...\nChoice: ...'}
                 rows={3}
-                className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
                 style={{ minHeight: '72px', overflow: 'hidden' }}
               />
             </div>
 
-            {/* ШАГ 4 — Рекомендации и цель лечения */}
-            <div className="relative pl-7">
-              <div className="absolute left-0 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: recommendations.trim() ? '#2d6a4f' : '#e0dcd4', color: recommendations.trim() ? '#fff' : '#9a8a6a' }}>4</div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#1a3020' }}>
-                {lang === 'ru' ? 'План и цель лечения' : 'Plan & treatment goal'}
+            {/* ШАГ 4 — План лечения */}
+            <div className="relative pl-8">
+              <div className="absolute left-0 top-0 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: recommendations.trim() ? '#2d6a4f' : '#e0dcd4', color: recommendations.trim() ? '#fff' : '#9a8a6a', width: '22px', height: '22px' }}>4</div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#1a3020' }}>
+                {lang === 'ru' ? 'План лечения' : 'Treatment plan'}
               </label>
-              <p className="text-[10px] mb-1.5" style={{ color: '#b0a090' }}>
-                {lang === 'ru' ? 'Что считаем улучшением? Когда повторный приём?' : 'What counts as improvement? When to follow up?'}
-              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-0 mb-2">
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· цель лечения' : '· treatment goal'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· критерии улучшения' : '· improvement criteria'}</span>
+                <span className="text-[10px]" style={{ color: '#b0a090' }}>{lang === 'ru' ? '· срок контроля' : '· follow-up timing'}</span>
+              </div>
               <textarea
                 data-autoresize
                 value={recommendations}
                 onChange={e => handleFieldChange('recommendations', e.target.value)}
                 onInput={e => autoResize(e.currentTarget)}
-                placeholder={lang === 'ru' ? 'Цель: ... Повторный приём через...' : 'Goal: ... Follow-up in...'}
-                rows={2}
-                className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
-                style={{ minHeight: '56px', overflow: 'hidden' }}
+                placeholder={lang === 'ru'
+                  ? 'Цель: ...\nУлучшение = ...\nКонтроль через ...'
+                  : 'Goal: ...\nImprovement = ...\nFollow-up in ...'}
+                rows={3}
+                className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                style={{ minHeight: '72px', overflow: 'hidden' }}
               />
             </div>
 
-            {/* ═══ Клиническая формулировка — итог ═══ */}
-            {(complaints.trim() || observations.trim() || notes.trim()) && (
-              <div className="mt-3 pt-3 pl-7" style={{ borderTop: '1px solid #e0dcd4' }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#2d6a4f' }}>
-                  {lang === 'ru' ? 'Клиническая формулировка' : 'Clinical summary'}
-                </p>
-                <div className="text-[12px] leading-relaxed space-y-1" style={{ color: '#5a5040' }}>
+            {/* ═══ Клиническая формулировка — живой итог ═══ */}
+            {(complaints.trim() || notes.trim()) && (
+              <div className="ml-8 rounded-xl p-4" style={{ backgroundColor: '#e8f0e8', border: '1px solid rgba(45,106,79,0.2)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-4 h-4" style={{ color: '#2d6a4f' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" /></svg>
+                  <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#2d6a4f' }}>
+                    {lang === 'ru' ? 'Формулировка случая' : 'Case formulation'}
+                  </span>
+                  <span className="text-[10px] ml-auto" style={{ color: '#6a9a6a' }}>
+                    {[complaints.trim(), observations.trim(), notes.trim(), recommendations.trim()].filter(Boolean).length}/4
+                  </span>
+                </div>
+                <div className="text-[13px] leading-[1.7] space-y-1.5" style={{ color: '#2a3a20' }}>
                   {complaints.trim() && (
-                    <p><span className="font-semibold" style={{ color: '#1a3020' }}>{lang === 'ru' ? 'Случай:' : 'Case:'}</span> {complaints.trim().split('\n')[0].substring(0, 120)}</p>
+                    <p><span className="font-bold">{lang === 'ru' ? 'Случай' : 'Case'}:</span> {complaints.trim().split('\n')[0].substring(0, 150)}</p>
                   )}
                   {observations.trim() && (
-                    <p><span className="font-semibold" style={{ color: '#1a3020' }}>{lang === 'ru' ? 'Ключевое:' : 'Key:'}</span> {observations.trim().split('\n')[0].substring(0, 120)}</p>
+                    <p><span className="font-bold">{lang === 'ru' ? 'Ключевое' : 'Key'}:</span> {observations.trim().split('\n').slice(0, 2).join('; ').substring(0, 150)}</p>
                   )}
                   {notes.trim() && (
-                    <p><span className="font-semibold" style={{ color: '#1a3020' }}>{lang === 'ru' ? 'Анализ:' : 'Analysis:'}</span> {notes.trim().split('\n')[0].substring(0, 120)}</p>
+                    <p><span className="font-bold">{lang === 'ru' ? 'Анализ' : 'Analysis'}:</span> {notes.trim().split('\n')[0].substring(0, 150)}</p>
                   )}
                   {recommendations.trim() && (
-                    <p><span className="font-semibold" style={{ color: '#2d6a4f' }}>{lang === 'ru' ? 'Цель:' : 'Goal:'}</span> {recommendations.trim().split('\n')[0].substring(0, 120)}</p>
+                    <p><span className="font-bold" style={{ color: '#2d6a4f' }}>{lang === 'ru' ? 'Цель' : 'Goal'}:</span> {recommendations.trim().split('\n')[0].substring(0, 150)}</p>
                   )}
                 </div>
               </div>
             )}
 
-            <div className="h-4" />
+            <div className="h-6" />
           </div>
         </div>
       </div>
@@ -667,12 +692,35 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               }}
             />
           ) : (
-            <div className="px-6 py-5">
-              {previousConsultation.notes ? (
-                <pre className="text-sm text-gray-500 leading-relaxed whitespace-pre-wrap font-mono">
-                  {previousConsultation.notes}
-                </pre>
-              ) : (
+            /* Структурированный вид прошлого приёма */
+            <div className="px-5 py-4 space-y-4">
+              {/* Назначение — акцент */}
+              {previousConsultation.remedy && (
+                <div className="rounded-xl p-3" style={{ backgroundColor: '#e8f0e8', border: '1px solid rgba(45,106,79,0.2)' }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#2d6a4f' }}>
+                    {lang === 'ru' ? 'Назначение' : 'Prescription'}
+                  </p>
+                  <p className="text-base font-bold" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a3020' }}>
+                    {previousConsultation.remedy} <span style={{ color: '#2d6a4f' }}>{previousConsultation.potency}</span>
+                  </p>
+                  {previousConsultation.dosage && (
+                    <p className="text-[12px] mt-0.5" style={{ color: '#5a5040' }}>{previousConsultation.dosage}</p>
+                  )}
+                </div>
+              )}
+              {/* Секции */}
+              {[
+                { label: lang === 'ru' ? 'Жалобы' : 'Complaints', text: previousConsultation.complaints },
+                { label: lang === 'ru' ? 'Наблюдения' : 'Observations', text: previousConsultation.observations },
+                { label: lang === 'ru' ? 'Анализ' : 'Analysis', text: previousConsultation.notes },
+                { label: lang === 'ru' ? 'План' : 'Plan', text: previousConsultation.recommendations },
+              ].filter(s => s.text?.trim()).map((section, i) => (
+                <div key={i}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9a8a6a' }}>{section.label}</p>
+                  <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: '#5a5040' }}>{section.text}</p>
+                </div>
+              ))}
+              {!previousConsultation.complaints && !previousConsultation.notes && (
                 <p className="text-sm text-gray-300 italic">{t(lang).consultation.noNotes}</p>
               )}
             </div>
