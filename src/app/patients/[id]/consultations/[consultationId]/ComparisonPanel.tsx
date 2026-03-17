@@ -1,8 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
-import { compareConsultations, ComparisonResult } from '@/lib/compareConsultations'
-import { t } from '@/lib/i18n'
+import { useState, useCallback } from 'react'
+import { compareConsultations } from '@/lib/compareConsultations'
 import { useLanguage } from '@/hooks/useLanguage'
 
 type FieldData = {
@@ -17,247 +16,238 @@ type Props = {
   previous: FieldData
 }
 
-// Иконки для каждой секции
-const SECTION_ICONS: Record<string, string> = {
-  complaints: '\u{1F4CB}',
-  observations: '\u{1F50D}',
-  notes: '\u{1F4DD}',
-  recommendations: '\u{1F48A}',
+type ChangeItem = {
+  text: string
+  prevText?: string
+  source: string // из какой секции
 }
 
-// Ключи секций в порядке отображения
-const SECTION_KEYS = ['complaints', 'observations', 'notes', 'recommendations'] as const
-type SectionKey = typeof SECTION_KEYS[number]
+type AnalysisResult = {
+  appeared: ChangeItem[]   // новое
+  resolved: ChangeItem[]   // исчезло (прошло)
+  persists: ChangeItem[]   // сохраняется
+  changed: ChangeItem[]    // изменилось (формулировка)
+}
+
+const LABELS = {
+  ru: {
+    title: 'Изменения с прошлого приёма',
+    refresh: 'Обновить анализ',
+    appeared: 'Появилось',
+    resolved: 'Прошло',
+    changed: 'Изменилось',
+    persists: 'Сохраняется',
+    empty: 'Начните заполнять приём — анализ появится здесь',
+    noChanges: 'Пока нет данных для сравнения',
+    was: 'было:',
+    complaints: 'жалобы',
+    observations: 'наблюд.',
+    notes: 'анализ',
+    recommendations: 'план',
+  },
+  en: {
+    title: 'Changes since last visit',
+    refresh: 'Refresh analysis',
+    appeared: 'New',
+    resolved: 'Resolved',
+    changed: 'Changed',
+    persists: 'Persists',
+    empty: 'Start filling in — analysis will appear here',
+    noChanges: 'No data to compare yet',
+    was: 'was:',
+    complaints: 'complaints',
+    observations: 'observ.',
+    notes: 'analysis',
+    recommendations: 'plan',
+  },
+}
+
+const SOURCE_LABELS = {
+  complaints: { ru: 'жалобы', en: 'complaints' },
+  observations: { ru: 'наблюд.', en: 'observ.' },
+  notes: { ru: 'анализ', en: 'analysis' },
+  recommendations: { ru: 'план', en: 'plan' },
+} as const
+
+const FIELDS = ['complaints', 'observations', 'notes', 'recommendations'] as const
+
+function analyze(current: FieldData, previous: FieldData, lang: 'ru' | 'en'): AnalysisResult {
+  const appeared: ChangeItem[] = []
+  const resolved: ChangeItem[] = []
+  const persists: ChangeItem[] = []
+  const changed: ChangeItem[] = []
+
+  for (const field of FIELDS) {
+    const result = compareConsultations(current[field], previous[field])
+    const src = SOURCE_LABELS[field][lang]
+
+    for (const item of result.newItems) {
+      appeared.push({ text: item, source: src })
+    }
+    for (const item of result.goneItems) {
+      resolved.push({ text: item, source: src })
+    }
+    for (const item of result.sameItems) {
+      if (item.changed) {
+        changed.push({ text: item.current, prevText: item.previous, source: src })
+      } else {
+        persists.push({ text: item.current, source: src })
+      }
+    }
+  }
+
+  return { appeared, resolved, persists, changed }
+}
 
 export default function ComparisonPanel({ current, previous }: Props) {
   const { lang } = useLanguage()
+  const L = LABELS[lang]
 
-  // Считаем diff для каждой секции
-  const sections = useMemo(() => {
-    return SECTION_KEYS.map(key => ({
-      key,
-      current: current[key],
-      previous: previous[key],
-      result: compareConsultations(current[key], previous[key]),
-    }))
-  }, [current, previous])
+  // Анализ по кнопке, не realtime
+  const [result, setResult] = useState<AnalysisResult | null>(null)
+  const [isStale, setIsStale] = useState(true)
 
-  // Проверяем, есть ли хоть что-то для показа
-  const allCurrentEmpty = SECTION_KEYS.every(k => !current[k].trim())
+  const doAnalyze = useCallback(() => {
+    setResult(analyze(current, previous, lang))
+    setIsStale(false)
+  }, [current, previous, lang])
 
-  if (allCurrentEmpty) {
+  // Помечаем как устаревший при любом изменении current
+  // (но не пересчитываем — только по кнопке)
+  const allEmpty = FIELDS.every(f => !current[f].trim())
+
+  if (allEmpty && !result) {
     return (
-      <div className="flex flex-col items-center justify-center h-full py-16 text-center px-6">
-        <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
-          <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-          </svg>
-        </div>
-        <p className="text-sm text-gray-400">{t(lang).comparison.startWriting}</p>
-        <p className="text-xs text-gray-300 mt-1">{t(lang).comparison.willAppear}</p>
+      <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+        <p className="text-[13px] text-gray-400">{L.empty}</p>
       </div>
     )
   }
 
-  // Подсчёт общей статистики по всем секциям
-  let totalNew = 0, totalGone = 0, totalSame = 0
-  for (const s of sections) {
-    totalNew += s.result.newItems.length
-    totalGone += s.result.goneItems.length
-    totalSame += s.result.sameItems.length
+  // Если ещё не анализировали — показываем кнопку
+  if (!result || isStale) {
+    return (
+      <div className="px-4 py-4">
+        <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#9a8a6a' }}>{L.title}</p>
+        <button
+          onClick={doAnalyze}
+          className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold rounded-xl border transition-all hover:shadow-sm"
+          style={{ color: '#2d6a4f', borderColor: 'rgba(45,106,79,0.3)', backgroundColor: 'rgba(45,106,79,0.05)' }}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+          {result ? L.refresh : L.title}
+        </button>
+        {result && <ResultView result={result} lang={lang} />}
+      </div>
+    )
   }
-  const total = totalNew + totalGone + totalSame
 
   return (
-    <div className="px-6 py-5 space-y-5 overflow-y-auto">
-      {/* Сводка */}
-      <div className="flex items-center gap-3">
-        {totalNew > 0 && (
-          <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-xs font-semibold text-emerald-700">{totalNew} {t(lang).comparison.newCount}</span>
-          </div>
-        )}
-        {totalGone > 0 && (
-          <div className="flex items-center gap-1.5 bg-red-50 border border-red-100 rounded-xl px-3 py-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-            <span className="text-xs font-semibold text-red-600">{totalGone} {t(lang).comparison.resolvedCount}</span>
-          </div>
-        )}
-        {totalSame > 0 && (
-          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-            <span className="text-xs font-semibold text-gray-500">{totalSame} {t(lang).comparison.unchangedCount}</span>
-          </div>
-        )}
+    <div className="px-4 py-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a' }}>{L.title}</p>
+        <button
+          onClick={() => setIsStale(true)}
+          className="text-[10px] text-gray-400 hover:text-emerald-600 transition-colors"
+          title={L.refresh}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+        </button>
+      </div>
+      <ResultView result={result} lang={lang} />
+    </div>
+  )
+}
+
+// Отображение результата анализа
+function ResultView({ result, lang }: { result: AnalysisResult; lang: 'ru' | 'en' }) {
+  const L = LABELS[lang]
+  const { appeared, resolved, changed, persists } = result
+  const total = appeared.length + resolved.length + changed.length + persists.length
+
+  if (total === 0) {
+    return <p className="text-[13px] text-gray-300 text-center py-4">{L.noChanges}</p>
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Сводка — цифры */}
+      <div className="flex flex-wrap gap-2">
+        {appeared.length > 0 && <Badge count={appeared.length} label={L.appeared} color="#2563eb" bg="#eff6ff" border="#bfdbfe" />}
+        {resolved.length > 0 && <Badge count={resolved.length} label={L.resolved} color="#059669" bg="#ecfdf5" border="#a7f3d0" />}
+        {changed.length > 0 && <Badge count={changed.length} label={L.changed} color="#d97706" bg="#fffbeb" border="#fde68a" />}
+        {persists.length > 0 && <Badge count={persists.length} label={L.persists} color="#6b7280" bg="#f9fafb" border="#e5e7eb" />}
       </div>
 
-      {/* Секции по полям */}
-      {sections.map(({ key, current: cur, previous: prev, result }) => (
-        <SectionDiff
-          key={key}
-          sectionKey={key}
-          currentText={cur}
-          previousText={prev}
-          result={result}
-          lang={lang}
-        />
-      ))}
+      {/* Появилось */}
+      {appeared.length > 0 && (
+        <Section title={L.appeared} color="#2563eb" items={appeared.map(i => (
+          <Item key={i.text} icon="+" iconColor="#2563eb" bg="#eff6ff" border="#dbeafe" text={i.text} source={i.source} />
+        ))} />
+      )}
 
-      {/* Подсказка */}
-      {total > 0 && (
-        <p className="text-[10px] text-gray-300 text-center pt-2 border-t border-gray-50">
-          {t(lang).comparison.totalObservations(total)}
-        </p>
+      {/* Прошло */}
+      {resolved.length > 0 && (
+        <Section title={L.resolved} color="#059669" items={resolved.map(i => (
+          <Item key={i.text} icon="✓" iconColor="#059669" bg="#ecfdf5" border="#d1fae5" text={i.text} source={i.source} strikethrough />
+        ))} />
+      )}
+
+      {/* Изменилось */}
+      {changed.length > 0 && (
+        <Section title={L.changed} color="#d97706" items={changed.map(i => (
+          <div key={i.text} className="rounded-lg px-3 py-2" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
+            <div className="flex items-start gap-2">
+              <span className="text-[11px] font-bold mt-0.5" style={{ color: '#d97706' }}>~</span>
+              <div className="min-w-0">
+                <p className="text-[13px] leading-snug" style={{ color: '#92400e' }}>{i.text}</p>
+                {i.prevText && (
+                  <p className="text-[11px] mt-0.5 italic" style={{ color: '#b45309' }}>{L.was} {i.prevText}</p>
+                )}
+                <span className="text-[9px] uppercase tracking-wider" style={{ color: '#d4a050' }}>{i.source}</span>
+              </div>
+            </div>
+          </div>
+        ))} />
+      )}
+
+      {/* Сохраняется */}
+      {persists.length > 0 && (
+        <Section title={L.persists} color="#9ca3af" items={persists.map(i => (
+          <Item key={i.text} icon="=" iconColor="#9ca3af" bg="#f9fafb" border="#e5e7eb" text={i.text} source={i.source} muted />
+        ))} />
       )}
     </div>
   )
 }
 
-// Компонент одной секции сравнения
-function SectionDiff({
-  sectionKey,
-  currentText,
-  previousText,
-  result,
-  lang,
-}: {
-  sectionKey: SectionKey
-  currentText: string
-  previousText: string
-  result: ComparisonResult
-  lang: 'ru' | 'en'
-}) {
-  const hasCurrent = !!currentText.trim()
-  const hasPrevious = !!previousText.trim()
-
-  // Если обе пустые — пропускаем секцию
-  if (!hasCurrent && !hasPrevious) return null
-
-  const icon = SECTION_ICONS[sectionKey]
-
-  // Получаем локализованное название секции
-  const sectionLabel = (() => {
-    const labels = t(lang).comparison
-    switch (sectionKey) {
-      case 'complaints': return labels.complaints
-      case 'observations': return labels.observations
-      case 'notes': return labels.notes
-      case 'recommendations': return labels.recommendations
-    }
-  })()
-
-  // Если предыдущая пустая, а текущая нет — всё новое
-  if (!hasPrevious && hasCurrent) {
-    return (
-      <section>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm">{icon}</span>
-          <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-            {sectionLabel}
-          </h3>
-          <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
-            {t(lang).comparison.newSection}
-          </span>
-        </div>
-        <div className="space-y-1.5">
-          {result.newItems.map((item, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5"
-            >
-              <svg className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="text-sm text-emerald-800 leading-snug">{item}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    )
-  }
-
-  // Если текущая пустая, а предыдущая нет — показываем прочерк
-  if (hasPrevious && !hasCurrent) {
-    return (
-      <section>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm">{icon}</span>
-          <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-            {sectionLabel}
-          </h3>
-        </div>
-        <div className="text-sm text-gray-300 italic px-3.5 py-2">
-          {t(lang).comparison.noData}
-        </div>
-      </section>
-    )
-  }
-
-  // Обе заполнены — показываем полный diff
-  const hasAnything =
-    result.newItems.length > 0 ||
-    result.goneItems.length > 0 ||
-    result.sameItems.length > 0
-
-  // Если diff не распознал ничего — пропускаем (для заметок например)
-  if (!hasAnything) return null
-
+function Badge({ count, label, color, bg, border }: { count: number; label: string; color: string; bg: string; border: string }) {
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-sm">{icon}</span>
-        <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-          {sectionLabel}
-        </h3>
-      </div>
-      <div className="space-y-1.5">
-        {/* Новые */}
-        {result.newItems.map((item, i) => (
-          <div
-            key={`new-${i}`}
-            className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5"
-          >
-            <svg className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="text-sm text-emerald-800 leading-snug">{item}</span>
-          </div>
-        ))}
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg" style={{ color, backgroundColor: bg, border: `1px solid ${border}` }}>
+      {count} {label}
+    </span>
+  )
+}
 
-        {/* Исчезнувшие */}
-        {result.goneItems.map((item, i) => (
-          <div
-            key={`gone-${i}`}
-            className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5"
-          >
-            <svg className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-            </svg>
-            <span className="text-sm text-red-700 leading-snug line-through decoration-red-300">{item}</span>
-          </div>
-        ))}
+function Section({ title, color, items }: { title: string; color: string; items: React.ReactNode[] }) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color }}>{title}</p>
+      <div className="space-y-1">{items}</div>
+    </div>
+  )
+}
 
-        {/* Без изменений */}
-        {result.sameItems.map((item, i) => (
-          <div
-            key={`same-${i}`}
-            className="flex items-start gap-2.5 bg-[#ede7dd] border border-gray-100 rounded-xl px-3.5 py-2.5"
-          >
-            <svg className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
-            </svg>
-            <div className="min-w-0">
-              <span className="text-sm text-gray-600 leading-snug">{item.current}</span>
-              {item.changed && (
-                <p className="text-[10px] text-gray-400 mt-0.5 italic">
-                  {t(lang).comparison.was} {item.previous}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
+function Item({ icon, iconColor, bg, border, text, source, strikethrough, muted }: {
+  icon: string; iconColor: string; bg: string; border: string; text: string; source: string; strikethrough?: boolean; muted?: boolean
+}) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: bg, border: `1px solid ${border}` }}>
+      <span className="text-[11px] font-bold mt-0.5 shrink-0" style={{ color: iconColor }}>{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className={`text-[13px] leading-snug ${strikethrough ? 'line-through' : ''}`} style={{ color: muted ? '#9ca3af' : '#374151' }}>{text}</p>
+        <span className="text-[9px] uppercase tracking-wider" style={{ color: muted ? '#d1d5db' : '#b0a090' }}>{source}</span>
       </div>
-    </section>
+    </div>
   )
 }
