@@ -1,16 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { Consultation, StructuredSymptom, ClinicalAssessment, ClinicalDecision } from '@/types'
+import { Consultation, StructuredSymptom, ClinicalAssessment, ClinicalDecision, Patient } from '@/types'
 import ActiveRemedy from './ActiveRemedy'
-import ClinicalSummaryBlock from './ClinicalSummaryBlock'
-import CaseStateBlock from './CaseStateBlock'
 import SymptomDynamicsPanel from './SymptomDynamics'
 import DecisionBlock from './DecisionBlock'
 import PreviousVisitSummary from './PreviousVisitSummary'
+import { getAge } from '@/lib/utils'
 
 type Props = {
   previousConsultation: Consultation | null
+  patient: Patient
   symptoms: StructuredSymptom[]
   previousSymptoms: StructuredSymptom[]
   assessment: ClinicalAssessment | null
@@ -20,139 +19,143 @@ type Props = {
 
 export default function RightPanel({
   previousConsultation,
+  patient,
   symptoms,
   previousSymptoms,
   assessment,
   onOpenRepertory,
   lang,
 }: Props) {
-  const [showDecisions, setShowDecisions] = useState(false)
 
-  // Первая консультация — нет предыдущей
+  // Первая консультация — показываем карточку пациента
   if (!previousConsultation) {
     return (
-      <div style={{
-        padding: '16px',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <span style={{ fontSize: '13px', color: '#9ca3af' }}>
-          {lang === 'ru' ? 'Первая консультация' : 'First consultation'}
-        </span>
+      <div style={{ padding: '12px' }}>
+        <FirstVisitContext patient={patient} lang={lang} />
+        {symptoms.length === 0 && <EmptySymptomHint lang={lang} />}
+        {symptoms.length > 0 && assessment && (
+          <SymptomDynamicsPanel
+            symptoms={symptoms}
+            previousSymptoms={[]}
+            assessment={assessment}
+            lang={lang}
+          />
+        )}
       </div>
     )
   }
 
-  // Определяем, есть ли симптомы с dynamics
-  const hasDynamicSymptoms = symptoms.some(s => s.dynamics) ||
-    (previousSymptoms.length > 0 && symptoms.length > 0)
+  const hasDynamics = symptoms.length > 0 || previousSymptoms.length > 0
 
   return (
-    <div style={{
-      padding: '12px',
-      height: '100%',
-      overflowY: 'auto',
-    }}>
-      {/* 1. Активный препарат */}
+    <div style={{ padding: '12px' }}>
+
+      {/* 1. Активный препарат — всегда первым если есть */}
       {previousConsultation.remedy && (
-        <ActiveRemedy
-          previousConsultation={previousConsultation}
-          lang={lang}
-        />
+        <ActiveRemedy previousConsultation={previousConsultation} lang={lang} />
       )}
 
-      {/* 2. Clinical summary (badges) */}
-      {assessment && symptoms.length > 0 && (
-        <ClinicalSummaryBlock assessment={assessment} lang={lang} />
+      {/* Если нет симптомов — подсказка */}
+      {symptoms.length === 0 && !previousConsultation.remedy && (
+        <EmptySymptomHint lang={lang} />
       )}
 
-      {/* 3. Case state badge */}
-      {assessment && (
-        <CaseStateBlock caseState={assessment.caseState} lang={lang} />
+      {/* Если нет симптомов но есть препарат — краткая подсказка */}
+      {symptoms.length === 0 && previousConsultation.remedy && (
+        <div style={{
+          fontSize: '12px', color: '#b0a090', lineHeight: 1.5,
+          padding: '10px 12px',
+          backgroundColor: '#faf7f2',
+          borderRadius: '8px',
+          marginBottom: '12px',
+        }}>
+          {lang === 'ru'
+            ? 'Добавьте симптомы слева — здесь появится анализ динамики'
+            : 'Add symptoms on the left — dynamics will appear here'}
+        </div>
       )}
 
-      {/* 4. Symptom dynamics list */}
-      {hasDynamicSymptoms && (
+      {/* 2. Динамика симптомов + статус */}
+      {hasDynamics && (
         <SymptomDynamicsPanel
           symptoms={symptoms}
           previousSymptoms={previousSymptoms}
+          assessment={assessment}
           lang={lang}
         />
       )}
 
-      {/* 5. Decision block toggle */}
+      {/* 3. Решение */}
       {assessment && (
-        <>
-          {!showDecisions ? (
-            <button
-              onClick={() => setShowDecisions(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: '1px solid #e5e0d8',
-                backgroundColor: '#faf7f2',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: '#2d6a4f',
-                marginBottom: '12px',
-                transition: 'background-color 0.15s ease',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#f0ebe3')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#faf7f2')}
-            >
-              {/* Action icon */}
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1.75V12.25M1.75 7H12.25" stroke="#2d6a4f" strokeWidth="1.2" strokeLinecap="round" />
-              </svg>
-              {lang === 'ru' ? 'Варианты действий' : 'Action options'}
-            </button>
-          ) : (
-            <div>
-              <button
-                onClick={() => setShowDecisions(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  fontSize: '11px',
-                  color: '#9ca3af',
-                  padding: '0 0 6px 0',
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M9 3L3 9M3 3L9 9" stroke="#9ca3af" strokeWidth="1.2" strokeLinecap="round" />
-                </svg>
-                {lang === 'ru' ? 'Скрыть' : 'Hide'}
-              </button>
-              <DecisionBlock
-                assessment={assessment}
-                onConfirm={(decision: ClinicalDecision) => {
-                  // Здесь можно добавить сохранение решения
-                  setShowDecisions(false)
-                }}
-                onOpenRepertory={onOpenRepertory}
-                lang={lang}
-              />
-            </div>
-          )}
-        </>
+        <DecisionBlock
+          assessment={assessment}
+          onConfirm={(_decision: ClinicalDecision) => {/* сохранение при необходимости */}}
+          onOpenRepertory={onOpenRepertory}
+          lang={lang}
+        />
       )}
 
-      {/* 6. Previous visit summary (collapsible) */}
-      <PreviousVisitSummary
-        previousConsultation={previousConsultation}
-        lang={lang}
-      />
+      {/* 4. Прошлый приём */}
+      <PreviousVisitSummary previousConsultation={previousConsultation} lang={lang} />
+    </div>
+  )
+}
+
+// Карточка контекста для первого визита
+function FirstVisitContext({ patient, lang }: { patient: Patient; lang: 'ru' | 'en' }) {
+  const hasContext = patient.constitutional_type || patient.birth_date || patient.notes
+
+  return (
+    <div style={{
+      backgroundColor: '#f0f7f0',
+      borderLeft: '3px solid #2d6a4f',
+      borderRadius: '6px',
+      padding: '10px 12px',
+      marginBottom: '12px',
+    }}>
+      <div style={{ fontSize: '10px', fontWeight: 600, color: '#2d6a4f', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+        {lang === 'ru' ? 'Первый приём' : 'First visit'}
+      </div>
+
+      {patient.constitutional_type && (
+        <div style={{ fontFamily: 'var(--font-cormorant)', fontSize: '16px', fontWeight: 600, color: '#1a3020', marginBottom: '4px' }}>
+          {patient.constitutional_type}
+        </div>
+      )}
+
+      <div style={{ fontSize: '11px', color: '#6b7280', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {patient.birth_date && <span>{getAge(patient.birth_date)}</span>}
+        {!hasContext && (
+          <span style={{ color: '#b0a090' }}>
+            {lang === 'ru' ? 'Данные не заполнены' : 'No data yet'}
+          </span>
+        )}
+      </div>
+
+      {patient.notes && (
+        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px', lineHeight: 1.5, borderTop: '1px solid rgba(45,106,79,0.1)', paddingTop: '6px' }}>
+          {patient.notes.length > 120 ? patient.notes.slice(0, 120) + '…' : patient.notes}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Подсказка когда симптомов нет
+function EmptySymptomHint({ lang }: { lang: 'ru' | 'en' }) {
+  return (
+    <div style={{
+      fontSize: '12px',
+      color: '#b0a090',
+      lineHeight: 1.6,
+      padding: '10px 12px',
+      backgroundColor: '#faf7f2',
+      borderRadius: '8px',
+      marginBottom: '12px',
+    }}>
+      {lang === 'ru'
+        ? 'Добавьте симптомы слева — здесь появится анализ динамики'
+        : 'Add symptoms on the left — dynamics will appear here'}
     </div>
   )
 }

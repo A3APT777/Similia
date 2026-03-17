@@ -295,3 +295,19 @@ export async function deleteConsultation(id: string, patientId: string) {
 
   redirect(`/patients/${patientId}`)
 }
+
+export async function saveRepertoryData(
+  consultationId: string,
+  data: { rubricId: number; fullpath: string; fullpath_ru?: string | null; weight: 1 | 2 | 3; eliminate?: boolean }[]
+): Promise<void> {
+  uuidSchema.parse(consultationId)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase
+    .from('consultations')
+    .update({ repertory_data: data, updated_at: new Date().toISOString() })
+    .eq('id', consultationId)
+    .eq('doctor_id', user.id)
+}
