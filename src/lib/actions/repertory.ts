@@ -106,3 +106,45 @@ export async function getRemedyRubrics(
     r.remedies.some(rem => rem.abbrev === remedyAbbrev || rem.name.toLowerCase().includes(remedyAbbrev.toLowerCase()))
   )
 }
+
+// Топ препаратов по рубрикам из repertory_data консультации
+export async function getTopRemediesFromRubricIds(
+  entries: { rubricId: number; weight: 1 | 2 | 3; eliminate?: boolean }[]
+): Promise<{ abbrev: string; name: string; score: number }[]> {
+  if (!entries.length) return []
+  const supabase = await createClient()
+  const ids = entries.map(e => e.rubricId)
+
+  const { data } = await supabase
+    .from('repertory_rubrics')
+    .select('id, remedies')
+    .in('id', ids)
+  if (!data?.length) return []
+
+  type RubricRow = { id: number; remedies: { name: string; abbrev: string; grade: number }[] }
+  const entryMap = new Map(entries.map(e => [e.rubricId, e]))
+  const eliminateIds = entries.filter(e => e.eliminate).map(e => e.rubricId)
+  const eliminateRemedies = new Map<number, Set<string>>()
+  const scores = new Map<string, { name: string; score: number }>()
+
+  for (const rubric of data as RubricRow[]) {
+    const entry = entryMap.get(rubric.id)
+    if (!entry) continue
+    if (entry.eliminate) {
+      eliminateRemedies.set(rubric.id, new Set(rubric.remedies.map(r => r.abbrev)))
+    }
+    for (const remedy of rubric.remedies) {
+      const prev = scores.get(remedy.abbrev) ?? { name: remedy.name, score: 0 }
+      prev.score += remedy.grade * entry.weight
+      scores.set(remedy.abbrev, prev)
+    }
+  }
+
+  let results = Array.from(scores.entries()).map(([abbrev, d]) => ({ abbrev, name: d.name, score: d.score }))
+  if (eliminateIds.length > 0) {
+    results = results.filter(r =>
+      eliminateIds.every(id => eliminateRemedies.get(id)?.has(r.abbrev) ?? false)
+    )
+  }
+  return results.sort((a, b) => b.score - a.score).slice(0, 5)
+}

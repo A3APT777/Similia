@@ -427,6 +427,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
                 <MiniRepertory
                   consultationId={consultation.id}
                   initialRepertoryData={consultation.repertory_data}
+                  initialQuery={patient.constitutional_type || ''}
                   onSelectRubric={(rubric: string) => {
                     const current = state.rubrics
                     const sep = current.trim() ? ';\n' : ''
@@ -450,6 +451,10 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
                 previousSymptoms={previousConsultation?.structured_symptoms || []}
                 assessment={state.symptoms.length > 0 ? assessment : null}
                 onOpenRepertory={handleOpenRepertory}
+                onAssignRemedy={(abbrev) => {
+                  setRepertoryAssignedRemedy(abbrev)
+                  setMobileTab('editor')
+                }}
                 lang={lang}
               />
             </div>

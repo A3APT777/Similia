@@ -91,14 +91,14 @@ export default function SymptomInput({ symptoms, onChange, previousSymptoms = []
                         key={d.value}
                         type="button"
                         onClick={() => updateDynamics(sym.id, d.value)}
-                        className="w-6 h-6 sm:w-5 sm:h-5 flex items-center justify-center rounded text-[10px] font-bold transition-all"
+                        className="flex items-center gap-0.5 px-1.5 h-6 rounded text-[10px] font-bold transition-all"
                         style={{
                           color: sym.dynamics === d.value ? '#fff' : d.color,
                           backgroundColor: sym.dynamics === d.value ? d.color : d.color + '18',
                         }}
-                        title={d[lang]}
                       >
-                        {d.icon}
+                        <span>{d.icon}</span>
+                        <span style={{ fontSize: '9px', fontWeight: 500 }}>{d[lang]}</span>
                       </button>
                     ))
                   ) : (

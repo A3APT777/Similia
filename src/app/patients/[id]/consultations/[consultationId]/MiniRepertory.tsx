@@ -23,14 +23,15 @@ type AnalysisEntry = {
 type Props = {
   consultationId: string
   initialRepertoryData?: RepertoryEntry[]
+  initialQuery?: string
   onSelectRubric: (rubricPath: string) => void
   onClose: () => void
   onAssignRemedy?: (abbrev: string) => void
 }
 
-export default function MiniRepertory({ consultationId, initialRepertoryData, onSelectRubric, onClose, onAssignRemedy }: Props) {
+export default function MiniRepertory({ consultationId, initialRepertoryData, initialQuery, onSelectRubric, onClose, onAssignRemedy }: Props) {
   const { lang } = useLanguage()
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery || '')
   const [chapter, setChapter] = useState('Mind')
   const [rubrics, setRubrics] = useState<RepertoryRubric[]>([])
   const [total, setTotal] = useState(0)

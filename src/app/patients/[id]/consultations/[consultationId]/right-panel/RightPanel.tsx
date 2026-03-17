@@ -5,6 +5,7 @@ import ActiveRemedy from './ActiveRemedy'
 import SymptomDynamicsPanel from './SymptomDynamics'
 import DecisionBlock from './DecisionBlock'
 import PreviousVisitSummary from './PreviousVisitSummary'
+import TopRemediesPanel from './TopRemediesPanel'
 import { getAge } from '@/lib/utils'
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
   previousSymptoms: StructuredSymptom[]
   assessment: ClinicalAssessment | null
   onOpenRepertory: () => void
+  onAssignRemedy?: (abbrev: string) => void
   lang: 'ru' | 'en'
 }
 
@@ -24,6 +26,7 @@ export default function RightPanel({
   previousSymptoms,
   assessment,
   onOpenRepertory,
+  onAssignRemedy,
   lang,
 }: Props) {
 
@@ -41,6 +44,7 @@ export default function RightPanel({
             lang={lang}
           />
         )}
+        <TopRemediesPanel lang={lang} onAssignRemedy={onAssignRemedy} />
       </div>
     )
   }
@@ -85,7 +89,10 @@ export default function RightPanel({
         />
       )}
 
-      {/* 3. Решение */}
+      {/* 3. Топ препаратов из репертория */}
+      <TopRemediesPanel lang={lang} onAssignRemedy={onAssignRemedy} />
+
+      {/* 4. Решение */}
       {assessment && (
         <DecisionBlock
           assessment={assessment}
