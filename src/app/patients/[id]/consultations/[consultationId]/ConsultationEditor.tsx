@@ -401,14 +401,22 @@ export default function ConsultationEditor({ consultation, patient, previousCons
 
           <button
             type="button"
-            onClick={() => { setRightTab('repertory'); setMobileTab('compare') }}
-            className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${
+            onClick={() => {
+              if (rightTab === 'repertory') {
+                setRightTab('compare')
+              } else {
+                setRightTab('repertory')
+                setMobileTab('compare')
+              }
+            }}
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${
               rightTab === 'repertory'
                 ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
                 : 'border-gray-200 bg-[#ede7dd] text-gray-400 hover:text-emerald-700 hover:border-emerald-200'
             }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+            {t(lang).consultation.repertory}
           </button>
 
           <span className="text-[10px] text-gray-300 ml-auto tabular-nums">
