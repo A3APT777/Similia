@@ -91,7 +91,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
 
   const freeSlots = HOUR_SLOTS.filter(slot => {
     const [h, m] = slot.split(':').map(Number)
-    return !busyMins.some(b => Math.abs(b - h * 60 + m) < 60)
+    return !busyMins.some(b => Math.abs(b - (h * 60 + m)) < 60)
   })
 
   function formatSelectedDay(dateStr: string) {

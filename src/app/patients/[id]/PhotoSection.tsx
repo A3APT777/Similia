@@ -101,7 +101,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
   function handleDelete(photo: Photo) {
     setDeleteId(photo.id)
     startDelete(async () => {
-      await deletePhoto(photo.id, photo.storage_path)
+      await deletePhoto(photo.id)
       if (lightbox?.id === photo.id) setLightbox(null)
       setDeleteId(null)
       router.refresh()

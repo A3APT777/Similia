@@ -45,11 +45,21 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
   })
 }
 
-export async function deletePhoto(id: string, storagePath: string): Promise<void> {
+export async function deletePhoto(id: string): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  await supabase.storage.from('patient-photos').remove([storagePath])
+  // Получаем storagePath из БД, а не от клиента — защита от path traversal
+  const { data: photo } = await supabase
+    .from('patient_photos')
+    .select('storage_path')
+    .eq('id', id)
+    .eq('doctor_id', user.id)
+    .single()
+
+  if (!photo) return
+
+  await supabase.storage.from('patient-photos').remove([photo.storage_path])
   await supabase.from('patient_photos').delete().eq('id', id).eq('doctor_id', user.id)
 }

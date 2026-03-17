@@ -38,7 +38,11 @@ export async function searchRepertory(
     q = q.eq('chapter', chapters)
   }
 
-  if (query.trim()) q = q.ilike('fullpath', `%${query.trim()}%`)
+  if (query.trim()) {
+    // Экранируем спецсимволы LIKE для защиты от обхода паттерна
+    const safeQuery = query.trim().replace(/[%_]/g, '')
+    if (safeQuery) q = q.ilike('fullpath', `%${safeQuery}%`)
+  }
 
   const { data, count, error } = await q
   if (error) return { rubrics: [], total: 0 }
@@ -47,9 +51,13 @@ export async function searchRepertory(
 
 export async function getPatientsSimple(): Promise<{ id: string; name: string; lastVisit: string | null }[]> {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
   const { data } = await supabase
     .from('patients')
     .select('id, name, updated_at')
+    .eq('doctor_id', user.id)
     .order('updated_at', { ascending: false })
     .limit(20)
   return (data || []).map((p: { id: string; name: string; updated_at: string | null }) => ({
@@ -63,10 +71,14 @@ export async function getPatientConsultationsSimple(
   patientId: string
 ): Promise<{ id: string; date: string; status: string }[]> {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
   const { data } = await supabase
     .from('consultations')
     .select('id, date, status')
     .eq('patient_id', patientId)
+    .eq('doctor_id', user.id)
     .neq('status', 'cancelled')
     .order('date', { ascending: false })
     .limit(15)

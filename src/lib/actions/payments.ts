@@ -35,17 +35,14 @@ export async function addPaidSessions(patientId: string, amount: number, note: s
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('paid_sessions')
-    .eq('id', patientId)
-    .eq('doctor_id', user.id)
-    .single()
+  if (amount <= 0 || amount > 100) return
 
-  if (!patient) return
-
-  const newCount = (patient.paid_sessions ?? 0) + amount
-  await supabase.from('patients').update({ paid_sessions: newCount }).eq('id', patientId).eq('doctor_id', user.id)
+  // Атомарное обновление через RPC — защита от race condition
+  await supabase.rpc('increment_paid_sessions', {
+    p_patient_id: patientId,
+    p_doctor_id: user.id,
+    p_amount: amount,
+  })
 
   await supabase.from('payment_history').insert({
     patient_id: patientId,
@@ -79,24 +76,24 @@ export async function decrementPaidSession(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { prevCount: 0, newCount: 0 }
 
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('paid_sessions')
-    .eq('id', patientId)
-    .eq('doctor_id', user.id)
-    .single()
-
-  const prevCount = patient?.paid_sessions ?? 0
-  if (prevCount === 0) return { prevCount: 0, newCount: 0 }
-
-  const newCount = prevCount - 1
-  await supabase.from('patients').update({ paid_sessions: newCount }).eq('id', patientId).eq('doctor_id', user.id)
-  await supabase.from('payment_history').insert({
-    patient_id: patientId,
-    doctor_id: user.id,
-    amount: -1,
-    note: 'авто',
+  // Атомарное уменьшение через RPC — защита от race condition
+  const { data } = await supabase.rpc('decrement_paid_session', {
+    p_patient_id: patientId,
+    p_doctor_id: user.id,
   })
+
+  const result = data?.[0] || { prev_count: 0, new_count: 0 }
+  const prevCount = result.prev_count ?? 0
+  const newCount = result.new_count ?? 0
+
+  if (prevCount > 0) {
+    await supabase.from('payment_history').insert({
+      patient_id: patientId,
+      doctor_id: user.id,
+      amount: -1,
+      note: 'авто',
+    })
+  }
 
   return { prevCount, newCount }
 }

@@ -10,11 +10,13 @@ const PUBLIC_PATHS = [
   '/intake',
   '/followup',
   '/upload',
+  '/new',
   '/privacy',
+  '/terms',
 ]
 
 // Публичные маршруты с rate limiting (защита от спама)
-const RATE_LIMITED_PATHS = ['/intake/', '/followup/', '/upload/']
+const RATE_LIMITED_PATHS = ['/intake/', '/followup/', '/upload/', '/new/']
 
 // Простой in-process счётчик (сбрасывается при cold start, но лучше чем ничего).
 // Для production с высокой нагрузкой заменить на Upstash Redis.

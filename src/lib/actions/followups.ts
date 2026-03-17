@@ -8,6 +8,16 @@ export async function createFollowup(consultationId: string, patientId: string) 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Проверяем что консультация принадлежит текущему врачу
+  const { data: consultation } = await supabase
+    .from('consultations')
+    .select('id')
+    .eq('id', consultationId)
+    .eq('doctor_id', user.id)
+    .single()
+
+  if (!consultation) throw new Error('Консультация не найдена')
+
   // Проверяем — нет ли уже follow-up для этой консультации
   const { data: existing } = await supabase
     .from('followups')

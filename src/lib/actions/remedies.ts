@@ -11,12 +11,15 @@ export type RemedyResult = {
 export async function searchRemediesDB(query: string): Promise<RemedyResult[]> {
   if (!query.trim()) return []
   const supabase = await createClient()
-  const q = query.trim()
+  // Экранируем спецсимволы PostgREST для защиты от filter injection
+  const q = query.trim().replace(/[%_.*,()]/g, '')
+  if (!q) return []
 
+  const pattern = `%${q}%`
   const { data } = await supabase
     .from('homeo_remedies')
     .select('abbrev, name_latin, name_ru')
-    .or(`name_latin.ilike.%${q}%,abbrev.ilike.%${q}%,name_ru.ilike.%${q}%`)
+    .or(`name_latin.ilike.${pattern},abbrev.ilike.${pattern},name_ru.ilike.${pattern}`)
     .order('name_latin')
     .limit(12)
 
