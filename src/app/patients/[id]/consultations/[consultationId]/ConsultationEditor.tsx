@@ -10,7 +10,7 @@ import { formatDate } from '@/lib/utils'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 import ComparisonPanel from './ComparisonPanel'
-import TemplateMenu from './TemplateMenu'
+import TemplateMenu, { StructuredTemplate } from './TemplateMenu'
 import PrescriptionModal from './PrescriptionModal'
 import MiniRepertory from './MiniRepertory'
 
@@ -139,8 +139,34 @@ export default function ConsultationEditor({ consultation, patient, previousCons
     })
   }
 
-  // Вставить шаблон в позицию курсора (или в конец)
-  function insertTemplate(templateText: string) {
+  // Вставить структурированный шаблон во все поля разом
+  function insertStructuredTemplate(template: StructuredTemplate) {
+    // Обновляем локальный стейт
+    setComplaints(template.complaints)
+    setObservations(template.observations)
+    setNotes(template.notes)
+    setRecommendations(template.recommendations)
+
+    // Сохраняем в БД
+    setSaveState('saving')
+    Promise.all([
+      updateConsultationNotes(consultation.id, template.notes),
+      updateConsultationFields(consultation.id, {
+        complaints: template.complaints,
+        observations: template.observations,
+        recommendations: template.recommendations,
+      }),
+    ]).then(() => {
+      setSaveState('saved')
+      setSavedAt(new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))
+    }).catch(() => {
+      setSaveState('unsaved')
+      toast(t(lang).consultation.saveError)
+    })
+  }
+
+  // Вставить текст быстрой секции в notes (в позицию курсора или в конец)
+  function insertTemplateText(templateText: string) {
     const textarea = textareaRef.current
     const current = notes
 
@@ -363,7 +389,12 @@ export default function ConsultationEditor({ consultation, patient, previousCons
 
           <div className="w-px h-4 bg-gray-200" />
 
-          <TemplateMenu onInsert={insertTemplate} consultationType={type} />
+          <TemplateMenu
+            onInsertStructured={insertStructuredTemplate}
+            onInsertText={insertTemplateText}
+            consultationType={type}
+            currentFields={{ complaints, observations, notes, recommendations }}
+          />
 
           <div className="w-px h-4 bg-gray-200" />
 
@@ -578,7 +609,15 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               <p className="text-xs text-gray-300 mt-1">{t(lang).consultation.nothingToCompare}</p>
             </div>
           ) : rightTab === 'compare' ? (
-            <ComparisonPanel currentNotes={notes} previousNotes={previousConsultation.notes || ''} />
+            <ComparisonPanel
+              current={{ complaints, observations, notes, recommendations }}
+              previous={{
+                complaints: previousConsultation.complaints || '',
+                observations: previousConsultation.observations || '',
+                notes: previousConsultation.notes || '',
+                recommendations: previousConsultation.recommendations || '',
+              }}
+            />
           ) : (
             <div className="px-6 py-5">
               {previousConsultation.notes ? (

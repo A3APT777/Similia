@@ -424,6 +424,14 @@ const ru = {
     resolvedCount: 'прошли',
     unchangedCount: 'без изм.',
     totalObservations: (n: number) => `Всего ${n} наблюдений · Сравнение обновляется автоматически`,
+    complaints: 'Жалобы',
+    observations: 'Наблюдения',
+    notes: 'Заметки',
+    recommendations: 'Рекомендации',
+    previous: 'Было',
+    current: 'Стало',
+    noData: '—',
+    newSection: 'Новое',
   },
 
   // ── Мини-реперторий ────────────────────────────────────────
@@ -1030,6 +1038,14 @@ const en: Translations = {
     resolvedCount: 'resolved',
     unchangedCount: 'unchanged',
     totalObservations: (n: number) => `${n} total observations · Comparison updates automatically`,
+    complaints: 'Complaints',
+    observations: 'Observations',
+    notes: 'Notes',
+    recommendations: 'Recommendations',
+    previous: 'Was',
+    current: 'Now',
+    noData: '—',
+    newSection: 'New',
   },
 
   miniRepertory: {

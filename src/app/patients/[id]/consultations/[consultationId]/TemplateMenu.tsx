@@ -4,18 +4,32 @@ import { useState, useRef, useEffect } from 'react'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
-// ─── Полные шаблоны ───────────────────────────────────────────────────────────
+// ─── Тип структурированного шаблона ─────────────────────────────────────────
 
-const FULL_TEMPLATES = [
+export type StructuredTemplate = {
+  complaints: string
+  observations: string
+  notes: string
+  recommendations: string
+}
+
+// ─── Полные шаблоны (структурированные) ─────────────────────────────────────
+
+const FULL_TEMPLATES: {
+  id: string
+  labelKey: string
+  descKey: string
+  icon: string
+  fields: StructuredTemplate
+}[] = [
   {
     id: 'primary',
-    labelKey: 'primary' as const,
-    descKey: 'primaryDesc' as const,
+    labelKey: 'primary',
+    descKey: 'primaryDesc',
     icon: '📋',
-    text: `ЖАЛОБЫ
-—
-
-ОЩУЩЕНИЯ
+    fields: {
+      complaints: 'ЖАЛОБЫ\n—\n',
+      observations: `ОЩУЩЕНИЯ
 Характер:
 Локализация:
 Иррадиация:
@@ -53,23 +67,19 @@ const FULL_TEMPLATES = [
 Засыпание:
 Сновидения:
 Положение:
-Просыпание:
-
-СОПУТСТВУЮЩИЕ СИМПТОМЫ
-—
-
-НАЗНАЧЕНИЕ
-Препарат:
-Потенция:
-Дозировка:
-Повтор: `,
+Просыпание:`,
+      notes: 'СОПУТСТВУЮЩИЕ СИМПТОМЫ\n—\n',
+      recommendations: '',
+    },
   },
   {
     id: 'repeat',
-    labelKey: 'followup' as const,
-    descKey: 'followupDesc' as const,
+    labelKey: 'followup',
+    descKey: 'followupDesc',
     icon: '🔄',
-    text: `ДИНАМИКА С ПРОШЛОГО ПРИЁМА
+    fields: {
+      complaints: 'ТЕКУЩИЕ ЖАЛОБЫ\n—\n',
+      observations: `ДИНАМИКА С ПРОШЛОГО ПРИЁМА
 Общее самочувствие:
 
 ИЗМЕНЕНИЯ В СИМПТОМАХ
@@ -85,25 +95,19 @@ const FULL_TEMPLATES = [
 ПСИХОЭМОЦИОНАЛЬНОЕ
 Изменения в настроении:
 Сон:
-Энергия:
-
-ТЕКУЩИЕ ЖАЛОБЫ
-—
-
-НАЗНАЧЕНИЕ
-Препарат:
-Потенция:
-Изменение схемы: `,
+Энергия:`,
+      notes: '',
+      recommendations: '',
+    },
   },
   {
     id: 'acute',
-    labelKey: 'acuteState' as const,
-    descKey: 'acuteStateDesc' as const,
+    labelKey: 'acuteState',
+    descKey: 'acuteStateDesc',
     icon: '⚡',
-    text: `ОСТРЫЕ ЖАЛОБЫ
-—
-
-НАЧАЛО
+    fields: {
+      complaints: 'ОСТРЫЕ ЖАЛОБЫ\n—\n',
+      observations: `НАЧАЛО
 Когда началось:
 Как быстро развилось:
 Этиология (причина):
@@ -119,22 +123,19 @@ const FULL_TEMPLATES = [
 ОБЩЕЕ
 Температура:
 Жажда:
-Настроение/поведение:
-
-НАЗНАЧЕНИЕ
-Препарат:
-Потенция:
-Дозировка: `,
+Настроение/поведение:`,
+      notes: '',
+      recommendations: '',
+    },
   },
   {
     id: 'child',
-    labelKey: 'child' as const,
-    descKey: 'childDesc' as const,
+    labelKey: 'child',
+    descKey: 'childDesc',
     icon: '👶',
-    text: `ЖАЛОБЫ (со слов родителя)
-—
-
-КАК ВЕДЁТ СЕБЯ РЕБЁНОК
+    fields: {
+      complaints: 'ЖАЛОБЫ (со слов родителя)\n—\n',
+      observations: `КАК ВЕДЁТ СЕБЯ РЕБЁНОК
 Активность:
 Капризность:
 Контактность:
@@ -158,16 +159,14 @@ const FULL_TEMPLATES = [
 Страхи ночью:
 
 ФИЗИЧЕСКОЕ РАЗВИТИЕ
-Соответствует возрасту:
-
-НАЗНАЧЕНИЕ
-Препарат:
-Потенция:
-Дозировка: `,
+Соответствует возрасту:`,
+      notes: '',
+      recommendations: '',
+    },
   },
 ]
 
-// ─── Быстрые секции (вставляются по отдельности) ──────────────────────────────
+// ─── Быстрые секции (вставляются по отдельности в notes) ────────────────────
 
 const QUICK_SECTIONS = [
   { id: 'complaints',    label: 'Жалобы',             text: 'ЖАЛОБЫ\n—\n' },
@@ -181,20 +180,23 @@ const QUICK_SECTIONS = [
   { id: 'prescription', label: 'Назначение',          text: 'НАЗНАЧЕНИЕ\nПрепарат: \nПотенция: \nДозировка: \nПовтор: \n' },
 ]
 
-// ─── Пропсы ───────────────────────────────────────────────────────────────────
+// ─── Пропсы ─────────────────────────────────────────────────────────────────
 
 type Props = {
-  onInsert: (text: string) => void
+  onInsertStructured: (template: StructuredTemplate) => void
+  onInsertText: (text: string) => void
   consultationType?: 'chronic' | 'acute'
+  currentFields: { complaints: string; observations: string; notes: string; recommendations: string }
 }
 
-// ─── Компонент ────────────────────────────────────────────────────────────────
+// ─── Компонент ──────────────────────────────────────────────────────────────
 
-export default function TemplateMenu({ onInsert, consultationType = 'chronic' }: Props) {
+export default function TemplateMenu({ onInsertStructured, onInsertText, consultationType = 'chronic', currentFields }: Props) {
   const { lang } = useLanguage()
   // Рекомендуемый шаблон зависит от типа консультации
   const recommendedId = consultationType === 'acute' ? 'acute' : 'primary'
   const [open, setOpen] = useState(false)
+  const [confirmTemplate, setConfirmTemplate] = useState<StructuredTemplate | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Закрываем при клике вне меню
@@ -203,16 +205,73 @@ export default function TemplateMenu({ onInsert, consultationType = 'chronic' }:
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setOpen(false)
+        setConfirmTemplate(null)
       }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
-  function handleInsert(text: string) {
-    onInsert(text)
+  // Проверка: есть ли данные в целевых полях
+  function hasExistingContent(fields: StructuredTemplate): boolean {
+    const keys: (keyof StructuredTemplate)[] = ['complaints', 'observations', 'notes', 'recommendations']
+    return keys.some(k => fields[k] && currentFields[k].trim().length > 0)
+  }
+
+  function handleFullTemplate(fields: StructuredTemplate) {
+    if (hasExistingContent(fields)) {
+      // Показываем диалог подтверждения
+      setConfirmTemplate(fields)
+    } else {
+      // Все поля пустые — применяем сразу
+      onInsertStructured(fields)
+      setOpen(false)
+    }
+  }
+
+  function handleReplace() {
+    if (confirmTemplate) {
+      onInsertStructured(confirmTemplate)
+    }
+    setConfirmTemplate(null)
     setOpen(false)
   }
+
+  function handleAppend() {
+    if (confirmTemplate) {
+      // Добавляем с разделителем \n\n
+      const merged: StructuredTemplate = {
+        complaints: currentFields.complaints.trim() && confirmTemplate.complaints
+          ? currentFields.complaints + '\n\n' + confirmTemplate.complaints
+          : currentFields.complaints || confirmTemplate.complaints,
+        observations: currentFields.observations.trim() && confirmTemplate.observations
+          ? currentFields.observations + '\n\n' + confirmTemplate.observations
+          : currentFields.observations || confirmTemplate.observations,
+        notes: currentFields.notes.trim() && confirmTemplate.notes
+          ? currentFields.notes + '\n\n' + confirmTemplate.notes
+          : currentFields.notes || confirmTemplate.notes,
+        recommendations: currentFields.recommendations.trim() && confirmTemplate.recommendations
+          ? currentFields.recommendations + '\n\n' + confirmTemplate.recommendations
+          : currentFields.recommendations || confirmTemplate.recommendations,
+      }
+      onInsertStructured(merged)
+    }
+    setConfirmTemplate(null)
+    setOpen(false)
+  }
+
+  function handleCancel() {
+    setConfirmTemplate(null)
+  }
+
+  function handleQuickInsert(text: string) {
+    onInsertText(text)
+    setOpen(false)
+  }
+
+  const labels = lang === 'ru'
+    ? { replace: 'Заменить', append: 'Добавить', cancel: 'Отмена', fieldsNotEmpty: 'Некоторые поля уже заполнены' }
+    : { replace: 'Replace', append: 'Append', cancel: 'Cancel', fieldsNotEmpty: 'Some fields already have content' }
 
   return (
     <div className="relative" ref={menuRef}>
@@ -237,62 +296,93 @@ export default function TemplateMenu({ onInsert, consultationType = 'chronic' }:
       {open && (
         <div className="absolute left-0 top-full mt-1.5 w-80 bg-[#ede7dd] border border-gray-100 rounded-2xl shadow-xl shadow-gray-900/10 z-30 overflow-hidden">
 
-          {/* Полные шаблоны */}
-          <div className="px-3 pt-3 pb-2">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
-              {t(lang).templates.fullTemplates}
-            </p>
-            <div className="space-y-0.5">
-              {FULL_TEMPLATES.map(tpl => {
-                const isRecommended = tpl.id === recommendedId
-                return (
-                  <button
-                    key={tpl.id}
-                    onClick={() => handleInsert(tpl.text)}
-                    className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors group ${
-                      isRecommended ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="text-base leading-none shrink-0">{tpl.icon}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className={`text-sm font-medium transition-colors ${isRecommended ? 'text-emerald-700' : 'text-gray-800 group-hover:text-emerald-700'}`}>
-                          {(t(lang).templates as Record<string, any>)[tpl.labelKey]}
-                        </p>
-                        {isRecommended && (
-                          <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-100 px-1.5 py-0.5 rounded">
-                            {t(lang).templates.recommended}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-gray-400">{(t(lang).templates as Record<string, any>)[tpl.descKey]}</p>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Разделитель */}
-          <div className="border-t border-gray-100 mx-3" />
-
-          {/* Быстрые секции */}
-          <div className="px-3 pt-2 pb-3">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
-              {t(lang).templates.addSection}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_SECTIONS.map(s => (
+          {/* Диалог подтверждения (если поля не пустые) */}
+          {confirmTemplate && (
+            <div className="px-3 pt-3 pb-3 border-b border-gray-200 bg-amber-50/60">
+              <p className="text-xs text-amber-700 font-medium mb-2">{labels.fieldsNotEmpty}</p>
+              <div className="flex gap-1.5">
                 <button
-                  key={s.id}
-                  onClick={() => handleInsert(s.text)}
-                  className="text-xs text-gray-600 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 px-2.5 py-1 rounded-lg transition-all"
+                  onClick={handleReplace}
+                  className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
                 >
-                  {s.label}
+                  {labels.replace}
                 </button>
-              ))}
+                <button
+                  onClick={handleAppend}
+                  className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                >
+                  {labels.append}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-3 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {labels.cancel}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Полные шаблоны */}
+          {!confirmTemplate && (
+            <>
+              <div className="px-3 pt-3 pb-2">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                  {t(lang).templates.fullTemplates}
+                </p>
+                <div className="space-y-0.5">
+                  {FULL_TEMPLATES.map(tpl => {
+                    const isRecommended = tpl.id === recommendedId
+                    return (
+                      <button
+                        key={tpl.id}
+                        onClick={() => handleFullTemplate(tpl.fields)}
+                        className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors group ${
+                          isRecommended ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="text-base leading-none shrink-0">{tpl.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className={`text-sm font-medium transition-colors ${isRecommended ? 'text-emerald-700' : 'text-gray-800 group-hover:text-emerald-700'}`}>
+                              {(t(lang).templates as Record<string, any>)[tpl.labelKey]}
+                            </p>
+                            {isRecommended && (
+                              <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-100 px-1.5 py-0.5 rounded">
+                                {t(lang).templates.recommended}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-400">{(t(lang).templates as Record<string, any>)[tpl.descKey]}</p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Разделитель */}
+              <div className="border-t border-gray-100 mx-3" />
+
+              {/* Быстрые секции */}
+              <div className="px-3 pt-2 pb-3">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                  {t(lang).templates.addSection}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {QUICK_SECTIONS.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => handleQuickInsert(s.text)}
+                      className="text-xs text-gray-600 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 px-2.5 py-1 rounded-lg transition-all"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
