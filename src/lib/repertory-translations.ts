@@ -1510,17 +1510,11 @@ const T: Record<string, string> = {
   'face': 'лицо',
   'vision': 'зрение',
   'hearing': 'слух',
-  'stool': 'стул',
-  'urine': 'моча',
-  'chill': 'озноб',
-  'fever': 'жар',
-  'perspiration': 'пот',
   'generalities': 'общее',
   'clinical': 'клиническое',
   'extremities': 'конечности',
 
   // ── ЕЩЁ ПРОПУЩЕННЫЕ ЧАСТЫЕ СЛОВА ───────────────────────────────
-  'etc': 'и т.д.',
   'injuries': 'травмы',
   'injury': 'травма',
   'against': 'против',
@@ -1558,7 +1552,6 @@ const T: Record<string, string> = {
   // ── МАССОВОЕ ДОБАВЛЕНИЕ: 438 слов с частотой ≥ 20 ──────────────
 
   // Служебные / местоимения / союзы
-  'like': 'как',
   'if': 'если',
   'off': '',
   'but': 'но',
@@ -1706,7 +1699,6 @@ const T: Record<string, string> = {
   'ulcerated': 'изъязвлённый',
   'paralyzed': 'парализованный',
   'suppurating': 'нагнаивающийся',
-  'colored': 'окрашенный',
   'discontented': 'недовольный',
 
   // Действия / глаголы
@@ -1781,7 +1773,6 @@ const T: Record<string, string> = {
   'getting': 'при получении',
 
   // Состояния / медицинские
-  'cramp': 'спазм',
   'stupefaction': 'оцепенение',
   'chorea': 'хорея',
   'sensitiveness': 'чувствительность',
@@ -1993,7 +1984,6 @@ const T: Record<string, string> = {
   'humming': 'гудение',
   'expression': 'выражение',
   'pursued': 'преследуемый',
-  'red': 'красный',
 
   // ── МАССОВОЕ ДОБАВЛЕНИЕ: слова с частотой 10-19 ────────────────
 
@@ -2122,7 +2112,6 @@ const T: Record<string, string> = {
   'sad': 'грустный',
   'exhausting': 'истощающий',
   'contracted': 'сжатый',
-  'deep': 'глубокий',
   'late': 'поздний',
   'early': 'ранний',
   'round': 'круглый',
@@ -2275,8 +2264,6 @@ const T: Record<string, string> = {
   'eructation': 'отрыжка',
   'fungus': 'грибок',
   'awkwardness': 'неловкость',
-  'dislocation': 'вывих',
-  'diplopia': 'диплопия',
 
   // Вещества / пища
   'sweets': 'сладости',
@@ -2489,21 +2476,14 @@ const T: Record<string, string> = {
   'portion': 'часть',
   'remains': 'остаётся',
   'process': 'отросток',
-  'white': 'белый',
-  'yellow': 'жёлтый',
-  'black': 'чёрный',
-  'touched': 'при прикосновении',
   'including': 'включая',
   'attention': 'внимание',
-  'sensation': 'ощущение',
   'tenderness': 'болезненность',
   'scratched': 'расчёсанный',
   'slightest': 'малейший',
   'object': 'предмет',
   'current': 'ток',
-  'swelling': 'отёк',
   'ulcer': 'язва',
-  'feather': 'перо',
   'bar': 'полоса',
   'tooth': 'зуб',
 
@@ -2613,7 +2593,6 @@ const T: Record<string, string> = {
   'comedones': 'комедоны',
   'carbuncles': 'карбункулы',
   'exostosis': 'экзостоз',
-  'chorea': 'хорея',
   'wen': 'жировик',
   'steatoma': 'стеатома',
   'chancres': 'шанкры',
@@ -2865,7 +2844,6 @@ const T: Record<string, string> = {
   'killing': 'убивание',
   'chopped': 'рубленый',
   'travelling': 'путешествие',
-  'beat': 'удар',
   'beats': 'удары',
   'swallows': 'глотает',
 
@@ -2884,7 +2862,6 @@ const T: Record<string, string> = {
   'egg': 'яйцо',
   'flowers': 'цветы',
   'pears': 'груши',
-  'sugar': 'сахар',
   'lime': 'известь',
   'starch': 'крахмал',
   'paper': 'бумага',
@@ -3083,7 +3060,6 @@ const T: Record<string, string> = {
   'excited': 'возбуждённый',
   'pregnant': 'беременная',
   'living': 'живущий',
-  'scared': 'испуганный',
   'scared': 'испуганный',
   'infant': 'младенец',
   'married': 'замужняя',

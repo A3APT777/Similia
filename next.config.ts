@@ -14,21 +14,17 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://mc.yandex.ru",
+      "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https://*.supabase.co https://mc.yandex.ru",
-      "connect-src 'self' https://*.supabase.co https://mc.yandex.ru",
+      "img-src 'self' data: blob: https://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co",
       "frame-ancestors 'none'",
     ].join('; '),
   },
 ]
 
 const nextConfig: NextConfig = {
-  typescript: {
-    // TypeScript проверка запускается отдельно через tsc (OOM в build worker на Node v25)
-    ignoreBuildErrors: true,
-  },
   async headers() {
     return [
       {
