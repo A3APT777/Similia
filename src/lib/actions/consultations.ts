@@ -253,6 +253,9 @@ export async function updateConsultationFields(
     recommendations?: string
     repertory_data?: unknown[]
     structured_symptoms?: unknown[]
+    mode?: string
+    case_state?: string | null
+    clinical_assessment?: unknown
   }
 ): Promise<void> {
   uuidSchema.parse(id)
@@ -266,6 +269,9 @@ export async function updateConsultationFields(
   if (fields.recommendations !== undefined) update.recommendations = fields.recommendations
   if (fields.repertory_data !== undefined) update.repertory_data = fields.repertory_data
   if (fields.structured_symptoms !== undefined) update.structured_symptoms = fields.structured_symptoms
+  if (fields.mode !== undefined) update.mode = fields.mode
+  if (fields.case_state !== undefined) update.case_state = fields.case_state
+  if (fields.clinical_assessment !== undefined) update.clinical_assessment = fields.clinical_assessment
 
   await supabase
     .from('consultations')

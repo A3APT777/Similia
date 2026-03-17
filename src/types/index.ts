@@ -33,6 +33,9 @@ export type Consultation = {
   recommendations: string
   repertory_data: RepertoryEntry[]
   structured_symptoms: StructuredSymptom[]
+  mode: ConsultationMode
+  case_state: CaseState | null
+  clinical_assessment: ClinicalAssessment | null
   scheduled_at: string | null
   status: ConsultationStatus
   type: ConsultationType
@@ -46,14 +49,51 @@ export type Consultation = {
   updated_at: string
 }
 
-export type SymptomStatus = 'new' | 'resolved' | 'better' | 'worse' | 'same'
+// === Structured Symptoms ===
+
+export type SymptomCategory =
+  | 'chief_complaint'    // главная жалоба
+  | 'concomitant'        // сопутствующее
+  | 'modality_worse'     // хуже от
+  | 'modality_better'    // лучше от
+  | 'mental'             // психика
+  | 'general'            // общее
+  | 'sleep'              // сон
+  | 'appetite'           // аппетит
+  | 'observation'        // наблюдение врача
+  | 'other'
+
+export type SymptomDynamics = 'new' | 'better' | 'worse' | 'same' | 'resolved'
 
 export type StructuredSymptom = {
-  id: string           // unique ID, generated as slugified label
-  label: string        // human-readable symptom text
-  section: 'complaints' | 'observations' | 'notes' | 'recommendations'
-  status?: SymptomStatus  // set during comparison, not by user
+  id: string              // crypto.randomUUID()
+  label: string
+  category: SymptomCategory
+  section?: string        // legacy compat — будет удалено
+  dynamics?: SymptomDynamics
+  value?: string          // "7/10", "3 раза/мес"
+  notes?: string
+  createdAt: string       // ISO
 }
+
+// === Clinical Decision Layer ===
+
+export type CaseState = 'improving' | 'aggravation' | 'no_effect' | 'deterioration' | 'relapse' | 'unclear'
+
+export type ClinicalDecision = 'continue' | 'wait' | 'increase' | 'change' | 'antidote' | 'refer'
+
+export type ClinicalAssessment = {
+  caseState: CaseState
+  suggestedDecision: ClinicalDecision
+  confirmedDecision?: ClinicalDecision
+  decisionStatus: 'draft' | 'confirmed'
+  summary: string
+  reasoning: string
+  doctorNote?: string
+  computedAt: string
+}
+
+export type ConsultationMode = 'quick' | 'deep'
 
 export type IntakeAnswers = Record<string, string>
 

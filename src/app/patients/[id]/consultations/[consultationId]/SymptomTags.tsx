@@ -36,7 +36,7 @@ export default function SymptomTags({ section, symptoms, onChange, previousSympt
       setInput('')
       return
     }
-    const newSym: StructuredSymptom = { id, label, section }
+    const newSym: StructuredSymptom = { id, label, section, category: section === 'complaints' ? 'chief_complaint' : section === 'observations' ? 'observation' : 'other', createdAt: new Date().toISOString() }
     onChange([...symptoms, newSym])
     setInput('')
     inputRef.current?.focus()

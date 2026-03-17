@@ -1,10 +1,10 @@
-import { StructuredSymptom, SymptomStatus } from '@/types'
+import { StructuredSymptom, SymptomDynamics } from '@/types'
 
 export type ComparedSymptom = {
   id: string
   label: string
   section: string
-  status: SymptomStatus
+  status: SymptomDynamics
   prevLabel?: string  // if label changed
 }
 
@@ -42,18 +42,18 @@ export function compareStructured(
   for (const sym of current) {
     const prev = prevMap.get(sym.id)
     if (!prev) {
-      appeared.push({ id: sym.id, label: sym.label, section: sym.section, status: 'new' })
+      appeared.push({ id: sym.id, label: sym.label, section: sym.category || sym.section || 'other', status: 'new' })
     } else if (prev.label !== sym.label) {
-      changed.push({ id: sym.id, label: sym.label, section: sym.section, status: 'same', prevLabel: prev.label })
+      changed.push({ id: sym.id, label: sym.label, section: sym.category || sym.section || 'other', status: 'same', prevLabel: prev.label })
     } else {
-      persists.push({ id: sym.id, label: sym.label, section: sym.section, status: 'same' })
+      persists.push({ id: sym.id, label: sym.label, section: sym.category || sym.section || 'other', status: 'same' })
     }
   }
 
   // Check previous symptoms not in current
   for (const sym of previous) {
     if (!currMap.has(sym.id)) {
-      resolved.push({ id: sym.id, label: sym.label, section: sym.section, status: 'resolved' })
+      resolved.push({ id: sym.id, label: sym.label, section: sym.category || sym.section || 'other', status: 'resolved' })
     }
   }
 
