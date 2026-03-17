@@ -314,7 +314,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
           <button
             type="button"
             onClick={toggleType}
-            title="Нажмите, чтобы изменить тип"
+            title={t(lang).consultation.changeTypeHint}
             className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all"
             style={typeCfg.badgeStyle}
           >
@@ -383,7 +383,7 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               {previousConsultation?.remedy && (
                 <div>
                   <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                    Реакция на {previousConsultation.remedy}{previousConsultation.potency ? ` ${previousConsultation.potency}` : ''}
+                    {t(lang).consultation.reactionTo} {previousConsultation.remedy}{previousConsultation.potency ? ` ${previousConsultation.potency}` : ''}
                   </label>
                   <textarea
                     value={reactionToPrev}
@@ -397,13 +397,13 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               {!previousConsultation?.remedy && reactionToPrev === '' && (
                 <div>
                   <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                    Реакция на предыдущий препарат
+                    {t(lang).consultation.prevRemedyReaction}
                   </label>
                   <textarea
                     value={reactionToPrev}
                     onChange={e => handleExtraChange(rubrics, e.target.value)}
                     rows={2}
-                    placeholder="Как пациент реагировал на предыдущее назначение..."
+                    placeholder={t(lang).consultation.prevRemedyPlaceholder}
                     className="w-full text-xs text-gray-700 bg-[#faf7f2] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder-gray-300"
                   />
                 </div>
@@ -433,8 +433,8 @@ export default function ConsultationEditor({ consultation, patient, previousCons
           autoFocus
           placeholder={
             type === 'acute'
-              ? `Острый случай — начните писать или выберите шаблон...\n\nЖАЛОБЫ ОСТРОГО СОСТОЯНИЯ\n—\n\nМОДАЛЬНОСТИ\nХуже от:\nЛучше от:\n\nНАЗНАЧЕНИЕ\nПрепарат:\nПотенция:`
-              : `Хроническая консультация — начните писать или выберите шаблон...\n\nЖАЛОБЫ\n—\n\nМОДАЛЬНОСТИ\nХуже от:\nЛучше от:\n\nПСИХОЭМОЦИОНАЛЬНОЕ\nНастроение:`
+              ? t(lang).consultation.acutePlaceholder
+              : t(lang).consultation.chronicPlaceholder
           }
           className="flex-1 w-full px-5 lg:px-7 py-5 lg:py-6 text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-[#faf7f2] placeholder-gray-300 font-mono min-h-[60vh] lg:min-h-0"
         />

@@ -201,7 +201,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   name="note"
                   value={note}
                   onChange={e => setNote(e.target.value)}
-                  placeholder="Состояние кожи, динамика симптома..."
+                  placeholder={t(lang).photo.notePlaceholder}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
                 />
               </div>

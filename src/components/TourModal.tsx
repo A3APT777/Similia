@@ -23,7 +23,7 @@ export default function TourModal({ show, onClose }: Props) {
   function handleStart() {
     localStorage.setItem('tour_completed', 'true')
     onClose()
-    setTimeout(() => void startTour(), 150)
+    setTimeout(() => void startTour(lang), 150)
   }
 
   return (

@@ -153,6 +153,7 @@ const ru = {
     notesPlaceholder: 'Аллергии, особенности, важные детали...',
     saving: 'Сохраняю...',
     cancel: 'Отмена',
+    namePlaceholder: 'Иванова Мария Петровна',
   },
 
   // ── Настройки ──────────────────────────────────────────────
@@ -265,6 +266,7 @@ const ru = {
     save: 'Сохранить',
     cancel: 'Отмена',
     added: (n: number) => `Добавлено ${n} консультаций`,
+    notePlaceholder: 'оплата картой',
   },
 
   // ── Таймлайн ──────────────────────────────────────────────
@@ -329,6 +331,7 @@ const ru = {
     save: 'Сохранить',
     cancel: 'Отмена',
     clickToUpload: 'Нажмите чтобы загрузить первое фото',
+    notePlaceholder: 'Состояние кожи, динамика симптома...',
     delete: 'Удалить',
     close: 'Закрыть',
     saved: 'Фото сохранено',
@@ -367,6 +370,12 @@ const ru = {
     noNotes: 'Заметки не добавлены',
     savedPaymentDone: 'Консультация сохранена. Оплаченные консультации закончились!',
     savedRemaining: (n: number) => `Консультация сохранена. Осталось: ${n}`,
+    changeTypeHint: 'Нажмите, чтобы изменить тип',
+    reactionTo: 'Реакция на',
+    prevRemedyReaction: 'Реакция на предыдущий препарат',
+    prevRemedyPlaceholder: 'Как пациент реагировал на предыдущее назначение...',
+    chronicPlaceholder: 'Жалобы, анамнез, осмотр, назначение...',
+    acutePlaceholder: 'Острые симптомы, начало, модальности...',
   },
 
   // ── Назначение ────────────────────────────────────────────
@@ -470,6 +479,9 @@ const ru = {
     selectPatientAndConsultation: 'Выбрать пациента и консультацию',
     weight: (w: number) => `Вес ×${w}`,
     delete: 'Удалить',
+    schemePlaceholder: '3 гранулы под язык, рассасывать',
+    alreadyInAnalysis: 'Уже в анализе',
+    addToAnalysis: 'Добавить в анализ',
   },
 
   // ── Запись на приём ────────────────────────────────────────
@@ -512,6 +524,8 @@ const ru = {
     pellets: 'гор.',
     patientResponse: 'Ответ пациента',
     confidential: 'Конфиденциально · только для врача',
+    savePdf: 'Сохранить PDF',
+    closeWindow: 'Закрыть',
   },
 
   // ── Авторизация ──────────────────────────────────────────
@@ -562,6 +576,53 @@ const ru = {
     registerFeatures: ['Бесплатно для одного врача', 'Данные хранятся в России', 'Работает с любого устройства'],
   },
 
+  // ── Ошибки ───────────────────────────────────────────────
+  error: {
+    somethingWrong: 'Что-то пошло не так',
+    unexpectedDesc: 'Произошла непредвиденная ошибка. Мы уже знаем о ней и работаем над исправлением.',
+    tryAgain: 'Попробовать снова',
+    goHome: 'На главную',
+    errorCode: 'Код ошибки',
+    criticalError: 'Критическая ошибка',
+    criticalDesc: 'Приложение столкнулось с серьёзной ошибкой. Пожалуйста, перезагрузите страницу.',
+    reload: 'Перезагрузить',
+  },
+
+  // ── Шаги тура ───────────────────────────────────────────
+  tourSteps: {
+    welcomeTitle: '👋 Добро пожаловать в Similia!',
+    welcomeDesc: 'Это ваша главная навигация. Здесь находятся все разделы — Главная, Реперторий и Пациенты.',
+    addPatientTitle: '➕ Добавить пациента',
+    addPatientDesc: 'Нажмите сюда чтобы создать карточку нового пациента. Займёт около двух минут.',
+    intakeTitle: '📋 Анкета до приёма',
+    intakeDesc: 'Отправьте пациенту ссылку — он заполнит анкету дома до визита. Экономит 20 минут на первичке.',
+    searchTitle: '🔍 Поиск пациентов',
+    searchDesc: 'Все пациенты здесь. Поиск по имени или препарату — мгновенный.',
+    repertoryTitle: '📖 Реперторий',
+    repertoryDesc: 'Встроенный реперторий Кента с 74 000 рубрик. Ищите симптомы прямо во время консультации.',
+    statsTitle: '📊 Ваша статистика',
+    statsDesc: 'Здесь будет расти ваша статистика — консультации, динамика пациентов, самые частые препараты.',
+    doneBtn: '🎉 Начать работу',
+    nextBtn: 'Далее →',
+    prevBtn: '← Назад',
+    progress: '{{current}} из {{total}}',
+    formDoneBtn: '✅ Понятно!',
+    formName: '👤 Имя пациента',
+    formNameDesc: 'Введите полное имя. Можно редактировать потом.',
+    formBirthdate: '🎂 Дата рождения',
+    formBirthdateDesc: 'Необязательно, но помогает при анализе.',
+    formPhone: '📱 Телефон',
+    formPhoneDesc: 'Для связи и напоминаний о приёме.',
+    formEmail: '✉️ Email',
+    formEmailDesc: 'Необязательно.',
+    formConstitution: '🌿 Конституциональный тип',
+    formConstitutionDesc: 'Основной полихрест пациента, если известен.',
+    formNote: '📝 Заметка',
+    formNoteDesc: 'Аллергии, важные детали, что угодно.',
+    formSubmit: '✅ Готово!',
+    formSubmitDesc: 'Нажмите «Создать» — и карточка пациента готова.',
+  },
+
   // ── Общее ─────────────────────────────────────────────────
   common: {
     saving: 'Сохраняю...',
@@ -574,6 +635,7 @@ const ru = {
     copied: 'Скопировано',
     copy: 'Копировать',
     loading: 'Загрузка...',
+    hide: 'Скрыть',
   },
 }
 
@@ -712,6 +774,7 @@ const en: Translations = {
     notesPlaceholder: 'Allergies, special conditions, important details...',
     saving: 'Saving...',
     cancel: 'Cancel',
+    namePlaceholder: 'Jane Smith',
   },
 
   settings: {
@@ -817,6 +880,7 @@ const en: Translations = {
     save: 'Save',
     cancel: 'Cancel',
     added: (n: number) => `Added ${n} consultation${n !== 1 ? 's' : ''}`,
+    notePlaceholder: 'card payment',
   },
 
   timeline: {
@@ -877,6 +941,7 @@ const en: Translations = {
     save: 'Save',
     cancel: 'Cancel',
     clickToUpload: 'Click to upload first photo',
+    notePlaceholder: 'Skin condition, symptom progress...',
     delete: 'Delete',
     close: 'Close',
     saved: 'Photo saved',
@@ -914,6 +979,12 @@ const en: Translations = {
     noNotes: 'No notes added',
     savedPaymentDone: 'Consultation saved. Paid sessions exhausted!',
     savedRemaining: (n: number) => `Consultation saved. Remaining: ${n}`,
+    changeTypeHint: 'Click to change type',
+    reactionTo: 'Reaction to',
+    prevRemedyReaction: 'Reaction to previous remedy',
+    prevRemedyPlaceholder: 'How did the patient react to the previous prescription...',
+    chronicPlaceholder: 'Complaints, history, examination, prescription...',
+    acutePlaceholder: 'Acute symptoms, onset, modalities...',
   },
 
   prescription: {
@@ -1012,6 +1083,9 @@ const en: Translations = {
     selectPatientAndConsultation: 'Select patient and consultation',
     weight: (w: number) => `Weight ×${w}`,
     delete: 'Remove',
+    schemePlaceholder: '3 pellets under tongue, dissolve',
+    alreadyInAnalysis: 'Already in analysis',
+    addToAnalysis: 'Add to analysis',
   },
 
   scheduleBtn: {
@@ -1051,6 +1125,8 @@ const en: Translations = {
     pellets: 'pel.',
     patientResponse: 'Patient response',
     confidential: 'Confidential · for physician only',
+    savePdf: 'Save PDF',
+    closeWindow: 'Close',
   },
 
   auth: {
@@ -1100,6 +1176,51 @@ const en: Translations = {
     registerFeatures: ['Free for one practitioner', 'Data stored in Russia', 'Works on any device'],
   },
 
+  error: {
+    somethingWrong: 'Something went wrong',
+    unexpectedDesc: 'An unexpected error occurred. We are aware and working on a fix.',
+    tryAgain: 'Try again',
+    goHome: 'Go home',
+    errorCode: 'Error code',
+    criticalError: 'Critical error',
+    criticalDesc: 'The application encountered a serious error. Please reload the page.',
+    reload: 'Reload',
+  },
+
+  tourSteps: {
+    welcomeTitle: '👋 Welcome to Similia!',
+    welcomeDesc: 'This is your main navigation. All sections are here — Dashboard, Repertory and Patients.',
+    addPatientTitle: '➕ Add patient',
+    addPatientDesc: 'Click here to create a new patient card. Takes about two minutes.',
+    intakeTitle: '📋 Pre-visit intake',
+    intakeDesc: 'Send the patient a link — they fill out the form at home. Saves 20 minutes.',
+    searchTitle: '🔍 Search patients',
+    searchDesc: 'All patients are here. Search by name or remedy — instant.',
+    repertoryTitle: '📖 Repertory',
+    repertoryDesc: 'Built-in Kent\'s repertory with 74,000 rubrics. Search symptoms during consultations.',
+    statsTitle: '📊 Your statistics',
+    statsDesc: 'Your statistics will grow here — consultations, patient dynamics, most used remedies.',
+    doneBtn: '🎉 Get started',
+    nextBtn: 'Next →',
+    prevBtn: '← Back',
+    progress: '{{current}} of {{total}}',
+    formDoneBtn: '✅ Got it!',
+    formName: '👤 Patient name',
+    formNameDesc: 'Enter full name. Can be edited later.',
+    formBirthdate: '🎂 Date of birth',
+    formBirthdateDesc: 'Optional, but helps with analysis.',
+    formPhone: '📱 Phone',
+    formPhoneDesc: 'For contact and appointment reminders.',
+    formEmail: '✉️ Email',
+    formEmailDesc: 'Optional.',
+    formConstitution: '🌿 Constitutional type',
+    formConstitutionDesc: 'Main polycrest if known.',
+    formNote: '📝 Note',
+    formNoteDesc: 'Allergies, important details, anything.',
+    formSubmit: '✅ Done!',
+    formSubmitDesc: 'Click "Create" — and the patient card is ready.',
+  },
+
   common: {
     saving: 'Saving...',
     save: 'Save',
@@ -1111,6 +1232,7 @@ const en: Translations = {
     copied: 'Copied',
     copy: 'Copy',
     loading: 'Loading...',
+    hide: 'Hide',
   },
 }
 

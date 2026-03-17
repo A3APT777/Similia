@@ -76,7 +76,7 @@ export default function OnboardingBanner(props: Props) {
         <button
           onClick={dismiss}
           className="text-gray-300 hover:text-gray-500 transition-colors shrink-0 mt-0.5"
-          title="Скрыть"
+          title={t(lang).common.hide}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

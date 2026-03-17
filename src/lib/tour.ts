@@ -1,108 +1,111 @@
-const tourSteps = [
+import type { Lang } from '@/hooks/useLanguage'
+import { t } from '@/lib/i18n'
+
+const getTourSteps = (lang: Lang) => [
   {
     element: '[data-tour="sidebar"]',
     popover: {
-      title: '👋 Добро пожаловать в Similia!',
-      description: 'Это ваша главная навигация. Здесь находятся все разделы — Главная, Реперторий и Пациенты.',
+      title: t(lang).tourSteps.welcomeTitle,
+      description: t(lang).tourSteps.welcomeDesc,
       side: 'right' as const,
     },
   },
   {
     element: '[data-tour="new-patient"]',
     popover: {
-      title: '➕ Добавить пациента',
-      description: 'Нажмите сюда чтобы создать карточку нового пациента. Займёт около двух минут.',
+      title: t(lang).tourSteps.addPatientTitle,
+      description: t(lang).tourSteps.addPatientDesc,
       side: 'right' as const,
     },
   },
   {
     element: '[data-tour="questionnaire-btn"]',
     popover: {
-      title: '📋 Анкета до приёма',
-      description: 'Отправьте пациенту ссылку — он заполнит анкету дома до визита. Экономит 20 минут на первичке.',
+      title: t(lang).tourSteps.intakeTitle,
+      description: t(lang).tourSteps.intakeDesc,
       side: 'bottom' as const,
     },
   },
   {
     element: '[data-tour="patient-list"]',
     popover: {
-      title: '🔍 Поиск пациентов',
-      description: 'Все пациенты здесь. Поиск по имени или препарату — мгновенный.',
+      title: t(lang).tourSteps.searchTitle,
+      description: t(lang).tourSteps.searchDesc,
       side: 'top' as const,
     },
   },
   {
     element: '[data-tour="repertory-link"]',
     popover: {
-      title: '📖 Реперторий',
-      description: 'Встроенный репертоий Кента с 74 000 рубрик. Ищите симптомы прямо во время консультации.',
+      title: t(lang).tourSteps.repertoryTitle,
+      description: t(lang).tourSteps.repertoryDesc,
       side: 'right' as const,
     },
   },
   {
     element: '[data-tour="stats"]',
     popover: {
-      title: '📊 Ваша статистика',
-      description: 'Здесь будет расти ваша статистика — консультации, динамика пациентов, самые частые препараты.',
+      title: t(lang).tourSteps.statsTitle,
+      description: t(lang).tourSteps.statsDesc,
       side: 'bottom' as const,
     },
   },
 ]
 
-const patientFormSteps = [
+const getPatientFormSteps = (lang: Lang) => [
   {
     element: '[data-tour="patient-name"]',
     popover: {
-      title: '👤 Имя пациента',
-      description: 'Начните с полного имени. Это поле обязательно — по нему вы будете искать пациента в системе.',
+      title: t(lang).tourSteps.formName,
+      description: t(lang).tourSteps.formNameDesc,
       side: 'bottom' as const,
     },
   },
   {
     element: '[data-tour="patient-birthdate"]',
     popover: {
-      title: '🎂 Дата рождения',
-      description: 'Укажите дату рождения — система автоматически рассчитает возраст пациента.',
+      title: t(lang).tourSteps.formBirthdate,
+      description: t(lang).tourSteps.formBirthdateDesc,
       side: 'bottom' as const,
     },
   },
   {
     element: '[data-tour="patient-phone"]',
     popover: {
-      title: '📱 Телефон',
-      description: 'Телефон нужен для связи. Он отобразится прямо в карточке — можно нажать и позвонить.',
+      title: t(lang).tourSteps.formPhone,
+      description: t(lang).tourSteps.formPhoneDesc,
       side: 'bottom' as const,
     },
   },
   {
     element: '[data-tour="patient-email"]',
     popover: {
-      title: '✉️ Email',
-      description: 'Email для отправки анкеты или напоминаний о визите.',
+      title: t(lang).tourSteps.formEmail,
+      description: t(lang).tourSteps.formEmailDesc,
       side: 'bottom' as const,
     },
   },
   {
     element: '[data-tour="patient-constitution"]',
     popover: {
-      title: '🌿 Конституциональный тип',
-      description: 'Начните вводить — система покажет подсказки из базы полихрестов. Можно заполнить позже.',
+      title: t(lang).tourSteps.formConstitution,
+      description: t(lang).tourSteps.formConstitutionDesc,
       side: 'bottom' as const,
     },
   },
   {
     element: '[data-tour="patient-note"]',
     popover: {
-      title: '📝 Заметка',
-      description: 'Здесь пишите всё важное: аллергии, особенности характера, ключевые симптомы. Видно только вам.',
+      title: t(lang).tourSteps.formNote,
+      description: t(lang).tourSteps.formNoteDesc,
       side: 'top' as const,
     },
   },
   {
     element: '[data-tour="patient-submit"]',
     popover: {
-      title: '✅ Готово!',
-      description: 'Нажмите "Создать пациента" — карточка создана. Дальше можно начать консультацию или записать на приём.',
+      title: t(lang).tourSteps.formSubmit,
+      description: t(lang).tourSteps.formSubmitDesc,
       side: 'top' as const,
     },
   },
@@ -118,8 +121,9 @@ export const destroyActiveTour = () => {
   }
 }
 
-export const startTour = async () => {
+export const startTour = async (lang: Lang) => {
   const { driver } = await import('driver.js')
+  const ts = t(lang).tourSteps
 
   let currentStepIndex = 0
   let redirecting = false
@@ -130,10 +134,10 @@ export const startTour = async () => {
     overlayOpacity: 0.7,
     smoothScroll: true,
     allowClose: true,
-    doneBtnText: '🎉 Начать работу',
-    nextBtnText: 'Далее →',
-    prevBtnText: '← Назад',
-    progressText: '{{current}} из {{total}}',
+    doneBtnText: ts.doneBtn,
+    nextBtnText: ts.nextBtn,
+    prevBtnText: ts.prevBtn,
+    progressText: ts.progress,
     onNextClick: (_el, _step, { driver: d }) => {
       const wasOnStep = currentStepIndex
       currentStepIndex++
@@ -160,7 +164,7 @@ export const startTour = async () => {
       }
       d.destroy()
     },
-    steps: tourSteps.map(step => ({
+    steps: getTourSteps(lang).map(step => ({
       element: step.element,
       popover: step.popover,
     })),
@@ -169,8 +173,9 @@ export const startTour = async () => {
   driverObj.drive()
 }
 
-export const startPatientFormTour = async () => {
+export const startPatientFormTour = async (lang: Lang) => {
   const { driver } = await import('driver.js')
+  const ts = t(lang).tourSteps
 
   _formDriver = driver({
     showProgress: true,
@@ -178,10 +183,10 @@ export const startPatientFormTour = async () => {
     overlayOpacity: 0.7,
     smoothScroll: true,
     allowClose: true,
-    doneBtnText: '✅ Понятно!',
-    nextBtnText: 'Далее →',
-    prevBtnText: '← Назад',
-    progressText: '{{current}} из {{total}}',
+    doneBtnText: ts.formDoneBtn,
+    nextBtnText: ts.nextBtn,
+    prevBtnText: ts.prevBtn,
+    progressText: ts.progress,
     onNextClick: (_el, _step, { driver: d }) => { d.moveNext() },
     onPrevClick: (_el, _step, { driver: d }) => { d.movePrevious() },
     onDestroyStarted: (_el, _step, { driver: d }) => {
@@ -190,7 +195,7 @@ export const startPatientFormTour = async () => {
       _formDriver = null
       d.destroy()
     },
-    steps: patientFormSteps.map(step => ({
+    steps: getPatientFormSteps(lang).map(step => ({
       element: step.element,
       popover: step.popover,
     })),

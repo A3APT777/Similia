@@ -66,7 +66,7 @@ export default function PatientForm({ patient, action, submitLabel }: Props) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div data-tour="patient-name">
         <label className={labelClass}>{t(lang).patientForm.name}</label>
-        <input name="name" type="text" required defaultValue={patient?.name || ''} placeholder="Иванова Мария Петровна" className={inputClass} />
+        <input name="name" type="text" required defaultValue={patient?.name || ''} placeholder={t(lang).patientForm.namePlaceholder} className={inputClass} />
       </div>
       <div data-tour="patient-birthdate">
         <label className={labelClass}>{t(lang).patientForm.birthDate}</label>

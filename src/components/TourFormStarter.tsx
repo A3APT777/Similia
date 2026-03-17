@@ -15,10 +15,10 @@ export default function TourFormStarter() {
     setTourActive(true)
     // Небольшая задержка — дать форме отрендериться перед запуском тура
     const timer = setTimeout(() => {
-      startPatientFormTour()
+      startPatientFormTour(lang)
     }, 600)
     return () => clearTimeout(timer)
-  }, [])
+  }, [lang])
 
   if (!tourActive) return null
 

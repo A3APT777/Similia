@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 export default function GlobalError({
   error,
@@ -9,12 +11,14 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const { lang } = useLanguage()
+
   useEffect(() => {
     console.error('[Global Error]', error)
   }, [error])
 
   return (
-    <html lang="ru">
+    <html lang={lang}>
       <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', backgroundColor: '#f0ebe3' }}>
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ textAlign: 'center', maxWidth: '400px' }}>
@@ -30,10 +34,10 @@ export default function GlobalError({
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontSize: '32px', fontWeight: 400, color: '#1a1a0a', marginBottom: '12px',
             }}>
-              Критическая ошибка
+              {t(lang).error.criticalError}
             </h2>
             <p style={{ fontSize: '14px', color: '#9a8a6a', lineHeight: 1.6, marginBottom: '24px' }}>
-              Приложение столкнулось с серьёзной ошибкой. Попробуйте обновить страницу.
+              {t(lang).error.criticalDesc}
             </p>
             <button
               onClick={reset}
@@ -44,7 +48,7 @@ export default function GlobalError({
                 cursor: 'pointer',
               }}
             >
-              Перезагрузить
+              {t(lang).error.reload}
             </button>
           </div>
         </div>

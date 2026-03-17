@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
       'unknown'
 
     if (!checkRateLimit(ip, pathname)) {
-      return new NextResponse('Слишком много запросов. Подождите минуту.', {
+      return new NextResponse('Too many requests. Please wait a minute.', {
         status: 429,
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',

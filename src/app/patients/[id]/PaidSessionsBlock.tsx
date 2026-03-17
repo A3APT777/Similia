@@ -206,7 +206,7 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
                   type="text"
                   value={addNote}
                   onChange={e => setAddNote(e.target.value)}
-                  placeholder="оплата картой"
+                  placeholder={t(lang).paidSessions.notePlaceholder}
                   className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   style={{ backgroundColor: '#faf7f2', borderColor: '#d4c9b8', color: '#1a1a0a' }}
                 />

@@ -513,6 +513,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   <RubricRow
                     key={rubric.id}
                     rubric={rubric}
+                    lang={lang}
                     localName={localize(rubric)}
                     isExpanded={expandedIds.has(rubric.id)}
                     inAnalysis={isInAnalysis(rubric.id)}
@@ -635,7 +636,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                             color: ae.weight === w ? 'white' : C.muted,
                             border: `1px solid ${ae.weight === w ? C.link : C.border}`,
                           }}
-                          title={`Вес ×${w}`}
+                          title={t(lang).repertory.weight(w)}
                         >
                           {w}
                         </button>
@@ -644,7 +645,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                         onPointerDown={() => removeFromAnalysis(ae.rubric.id)}
                         className="ml-0.5 w-4 h-4 flex items-center justify-center text-[11px]"
                         style={{ color: C.muted }}
-                        title="Удалить"
+                        title={t(lang).repertory.delete}
                       >
                         ✕
                       </button>
@@ -830,6 +831,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       {prescribeModal && (
         <PrescribeModalDialog
           modal={prescribeModal}
+          lang={lang}
           onChange={setPrescribeModal}
           onSaveToConsultation={savePrescriptionToConsultation}
           onSelectPatient={goSelectPatient}
@@ -842,10 +844,11 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
 // ── Строка рубрики ─────────────────────────────────────────────────
 function RubricRow({
-  rubric, localName, isExpanded, inAnalysis, isFocused,
+  rubric, lang, localName, isExpanded, inAnalysis, isFocused,
   onToggleExpand, onAddToAnalysis,
 }: {
   rubric: RepertoryRubric
+  lang: 'ru' | 'en'
   localName: string
   isExpanded: boolean
   inAnalysis: boolean
@@ -922,7 +925,7 @@ function RubricRow({
             backgroundColor: inAnalysis ? '#1a7a40' : C.link,
             borderRadius: 4,
           }}
-          title={inAnalysis ? 'Уже в анализе' : 'Добавить в анализ'}
+          title={inAnalysis ? t(lang).repertory.alreadyInAnalysis : t(lang).repertory.addToAnalysis}
         >
           {inAnalysis ? (
             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -1000,23 +1003,26 @@ function RubricRow({
 
 // ── Модал "Выписать препарат" ──────────────────────────────────────
 const POTENCIES = ['6C', '12C', '30C', '200C', '1M', '10M', 'LM1', 'LM2', 'LM3']
-const DURATIONS = ['1 неделя', '2 недели', '1 месяц', 'до улучшения']
-const FORMS = [
-  { value: 'granules', label: 'Гранулы' },
-  { value: 'drops',    label: 'Капли'   },
-  { value: 'powder',   label: 'Порошок' },
-] as const
 
 function PrescribeModalDialog({
-  modal, onChange, onSaveToConsultation, onSelectPatient, onClose,
+  modal, lang, onChange, onSaveToConsultation, onSelectPatient, onClose,
 }: {
   modal: NonNullable<PrescribeModal>
+  lang: 'ru' | 'en'
   onChange: (m: PrescribeModal) => void
   onSaveToConsultation: () => void
   onSelectPatient: () => void
   onClose: () => void
 }) {
   const hasActiveConsultation = typeof window !== 'undefined' && !!localStorage.getItem('hc-last-consultation')
+  const L = t(lang).repertory
+
+  const DURATIONS = [L.week1, L.weeks2, L.month1, L.untilBetter]
+  const FORMS = [
+    { value: 'granules' as const, label: L.granules },
+    { value: 'drops' as const,    label: L.drops   },
+    { value: 'powder' as const,   label: L.powder  },
+  ]
 
   return (
     <div
@@ -1030,9 +1036,9 @@ function PrescribeModalDialog({
       >
         {/* Заголовок */}
         <div className="px-6 pt-6 pb-4" style={{ borderBottom: '1px solid #e0d8cc' }}>
-          <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: '#9a8a6a' }}>Назначение</p>
+          <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: '#9a8a6a' }}>{L.prescribeTitle}</p>
           <h2 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: 26, fontWeight: 600, color: '#1a3020', lineHeight: 1.2 }}>
-            Выписать {modal.name || modal.abbrev}
+            {L.prescribe(modal.name || modal.abbrev)}
           </h2>
         </div>
 
@@ -1040,7 +1046,7 @@ function PrescribeModalDialog({
           {/* Потенция */}
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5a5040' }}>
-              Потенция
+              {L.potency}
             </label>
             <div className="flex gap-1.5 flex-wrap">
               {POTENCIES.map(p => (
@@ -1065,7 +1071,7 @@ function PrescribeModalDialog({
           {/* Форма */}
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5a5040' }}>
-              Форма
+              {L.form}
             </label>
             <div className="flex gap-2">
               {FORMS.map(f => (
@@ -1090,13 +1096,13 @@ function PrescribeModalDialog({
           {/* Схема */}
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5a5040' }}>
-              Схема приёма
+              {L.scheme}
             </label>
             <input
               type="text"
               value={modal.scheme}
               onChange={e => onChange({ ...modal, scheme: e.target.value })}
-              placeholder="3 гранулы под язык, 1 раз в день"
+              placeholder={L.schemePlaceholder}
               className="w-full px-3 py-2.5 text-sm rounded-lg"
               style={{
                 border: '1px solid #d4c9b8',
@@ -1112,7 +1118,7 @@ function PrescribeModalDialog({
           {/* Длительность */}
           <div>
             <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5a5040' }}>
-              Длительность
+              {L.duration}
             </label>
             <div className="flex gap-1.5 flex-wrap">
               {DURATIONS.map(d => (
@@ -1144,7 +1150,7 @@ function PrescribeModalDialog({
               className="w-full py-3 text-sm font-semibold text-white rounded-xl transition-colors"
               style={{ backgroundColor: '#1a3020' }}
             >
-              Сохранить в текущую консультацию
+              {L.saveToConsultation}
             </button>
           )}
           <button
@@ -1158,7 +1164,7 @@ function PrescribeModalDialog({
               ...(hasActiveConsultation ? {} : { color: 'white' }),
             }}
           >
-            Выбрать пациента и консультацию
+            {L.selectPatientAndConsultation}
           </button>
           <button
             type="button"
@@ -1166,7 +1172,7 @@ function PrescribeModalDialog({
             className="w-full py-2 text-sm rounded-xl transition-colors"
             style={{ color: '#9a8a6a', backgroundColor: 'transparent' }}
           >
-            Отмена
+            {L.cancelBtn}
           </button>
         </div>
       </div>

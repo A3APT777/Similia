@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 export default function Error({
   error,
@@ -9,6 +11,8 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const { lang } = useLanguage()
+
   useEffect(() => {
     console.error('[App Error]', error)
   }, [error])
@@ -28,10 +32,10 @@ export default function Error({
           className="text-3xl font-light mb-3"
           style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: '#1a1a0a' }}
         >
-          Что-то пошло не так
+          {t(lang).error.somethingWrong}
         </h2>
         <p className="text-sm mb-6" style={{ color: '#9a8a6a', lineHeight: 1.6 }}>
-          Произошла непредвиденная ошибка. Попробуйте обновить страницу или вернитесь позже.
+          {t(lang).error.unexpectedDesc}
         </p>
         <div className="flex gap-3 justify-center">
           <button
@@ -39,19 +43,19 @@ export default function Error({
             className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: '#1a3020' }}
           >
-            Попробовать снова
+            {t(lang).error.tryAgain}
           </button>
           <a
             href="/dashboard"
             className="px-5 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
             style={{ color: '#9a8a6a', border: '1px solid #d4c9b8' }}
           >
-            На главную
+            {t(lang).error.goHome}
           </a>
         </div>
         {error.digest && (
           <p className="mt-4 text-xs" style={{ color: '#c4b89a' }}>
-            Код ошибки: {error.digest}
+            {t(lang).error.errorCode}: {error.digest}
           </p>
         )}
       </div>
