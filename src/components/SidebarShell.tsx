@@ -97,12 +97,6 @@ export default function SidebarShell({ firstName, initials, children }: Props) {
           </svg>
         )}
 
-        {navLink('/dashboard#patients', t(lang).nav.patients,
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128H5.228A2 2 0 013 17.16V17a6.003 6.003 0 017.002-5.254M15.002 12a3 3 0 10-6 0 3 3 0 006 0z" />
-          </svg>
-        )}
-
         <div className="pt-3">
           <p className="px-3 pb-2 text-[11px] font-semibold text-white/20 uppercase tracking-[0.1em]">
             {t(lang).nav.patients}
