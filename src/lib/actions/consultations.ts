@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ConsultationType } from '@/types'
+import { uuidSchema, consultationTypeSchema, isoDateTimeSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 // Закрыть все открытые консультации пациента (перед началом новой)
 async function closeOpenConsultations(
@@ -20,6 +22,8 @@ async function closeOpenConsultations(
 
 // Создать консультацию прямо сейчас и открыть редактор
 export async function createConsultation(patientId: string, type: ConsultationType = 'chronic') {
+  uuidSchema.parse(patientId)
+  consultationTypeSchema.parse(type)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -50,6 +54,9 @@ export async function scheduleConsultation(
   scheduledAt: string,
   type: ConsultationType = 'chronic'
 ): Promise<void> {
+  uuidSchema.parse(patientId)
+  isoDateTimeSchema.parse(scheduledAt)
+  consultationTypeSchema.parse(type)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -73,6 +80,8 @@ export async function scheduleConsultation(
 
 // Изменить тип консультации
 export async function updateConsultationType(id: string, type: ConsultationType): Promise<void> {
+  uuidSchema.parse(id)
+  consultationTypeSchema.parse(type)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -103,6 +112,8 @@ export async function getAppointmentsForDay(dayStart: string, dayEnd: string): P
 
 // Начать запланированный приём — меняет статус и открывает редактор
 export async function startConsultation(consultationId: string, patientId: string) {
+  uuidSchema.parse(consultationId)
+  uuidSchema.parse(patientId)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -121,6 +132,8 @@ export async function startConsultation(consultationId: string, patientId: strin
 
 // Отменить запланированный приём
 export async function cancelConsultation(consultationId: string, patientId: string) {
+  uuidSchema.parse(consultationId)
+  uuidSchema.parse(patientId)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -136,6 +149,8 @@ export async function cancelConsultation(consultationId: string, patientId: stri
 
 // Автосохранение заметок — переводит статус в completed
 export async function updateConsultationNotes(id: string, notes: string) {
+  uuidSchema.parse(id)
+  z.string().max(50000, 'Заметки слишком длинные').parse(notes)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -190,6 +205,11 @@ export async function savePrescription(
   pellets: number | null,
   dosage: string
 ): Promise<void> {
+  uuidSchema.parse(id)
+  z.string().max(200).parse(remedy)
+  z.string().max(50).parse(potency)
+  z.number().int().min(0).max(100).nullable().parse(pellets)
+  z.string().max(500).parse(dosage)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -207,6 +227,9 @@ export async function updateConsultationExtra(
   rubrics: string,
   reactionToPrevious: string
 ): Promise<void> {
+  uuidSchema.parse(id)
+  z.string().max(5000).parse(rubrics)
+  z.string().max(2000).parse(reactionToPrevious)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -222,6 +245,8 @@ export async function updateConsultationExtra(
 }
 
 export async function deleteConsultation(id: string, patientId: string) {
+  uuidSchema.parse(id)
+  uuidSchema.parse(patientId)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

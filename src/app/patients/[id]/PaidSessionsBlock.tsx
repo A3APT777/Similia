@@ -34,6 +34,14 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
   const color = count === 0 ? '#c0392b' : count <= 2 ? '#c8a035' : '#2d6a4f'
   const statusText = count === 0 ? t(lang).paidSessions.noPaid : count <= 2 ? t(lang).paidSessions.running_low : t(lang).paidSessions.remaining
 
+  // Закрытие модалки по Escape
+  useEffect(() => {
+    if (!showAddModal) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') { setShowAddModal(false); setAddAmount(5); setAddNote('') } }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showAddModal])
+
   // Закрыть дропдаун истории по клику вне
   useEffect(() => {
     if (!showHistory) return
@@ -149,7 +157,7 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
 
       {/* Модалка "+ Добавить" */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={(e) => { if (e.target === e.currentTarget) { setShowAddModal(false); setAddAmount(5); setAddNote('') } }}>
           <div
             className="relative rounded-2xl p-6 w-[320px] mx-4 shadow-2xl"
             style={{ backgroundColor: '#f7f3ed', border: '0.5px solid #d4c9b8' }}

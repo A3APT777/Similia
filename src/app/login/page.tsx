@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -30,6 +32,7 @@ const labelStyle: React.CSSProperties = {
 
 export default function LoginPage() {
   const router = useRouter()
+  const { lang } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -43,7 +46,7 @@ export default function LoginPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setError('Неверный email или пароль')
+      setError(t(lang).auth.invalidCredentials)
       setLoading(false)
       return
     }
@@ -117,21 +120,19 @@ export default function LoginPage() {
             lineHeight: 1.25,
             marginBottom: '16px',
           }}>
-            Ведите пациентов<br />с ясной головой
+            {t(lang).auth.loginHero.split('\n').map((line, i, arr) => (
+              <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+            ))}
           </h2>
           <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'rgba(255,255,255,0.45)' }}>
-            Цифровая карточка вместо блокнота. Все консультации, расписание и динамика самочувствия — в одном месте.
+            {t(lang).auth.loginHeroDesc}
           </p>
         </div>
 
         {/* Галочки и цитата */}
         <div style={{ position: 'relative', zIndex: 10 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-            {[
-              'Все записи по каждому пациенту',
-              'Расписание и запись онлайн',
-              'Опрос самочувствия после приёма',
-            ].map(f => (
+            {t(lang).auth.features.map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
                   width: '20px', height: '20px', borderRadius: '50%',
@@ -194,10 +195,10 @@ export default function LoginPage() {
             color: '#1a3020',
             marginBottom: '6px',
           }}>
-            Добро пожаловать
+            {t(lang).auth.welcome}
           </h1>
           <p style={{ fontSize: '15px', color: '#9a8a6a', marginBottom: '32px' }}>
-            Войдите в свой аккаунт
+            {t(lang).auth.signInPrompt}
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -218,9 +219,9 @@ export default function LoginPage() {
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label style={{ ...labelStyle, marginBottom: 0 }}>Пароль</label>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>{t(lang).auth.password}</label>
                 <Link href="/forgot-password" style={{ fontSize: '14px', color: '#2d6a4f', textDecoration: 'none' }}>
-                  Забыли пароль?
+                  {t(lang).auth.forgotPassword}
                 </Link>
               </div>
               <input
@@ -260,19 +261,19 @@ export default function LoginPage() {
               onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = '#2d6a4f' }}
               onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = '#1a3020' }}
             >
-              {loading ? 'Входим...' : 'Войти'}
+              {loading ? t(lang).auth.signingIn : t(lang).auth.signIn}
             </button>
           </form>
 
           <p style={{ marginTop: '24px', fontSize: '14px', color: '#9a8a6a', textAlign: 'center' }}>
-            Нет аккаунта?{' '}
+            {t(lang).auth.noAccount}{' '}
             <Link href="/register" style={{ color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
-              Зарегистрироваться
+              {t(lang).auth.register}
             </Link>
           </p>
 
           <p style={{ marginTop: '16px', fontSize: '12px', color: '#9a8a6a', textAlign: 'center' }}>
-            Регистрация бесплатна · Данные хранятся в России
+            {t(lang).auth.freeAndSecure}
           </p>
         </div>
       </div>

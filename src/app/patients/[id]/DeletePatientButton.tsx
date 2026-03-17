@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { deletePatient } from '@/lib/actions/patients'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -9,6 +9,14 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
   const { lang } = useLanguage()
   const [showModal, setShowModal] = useState(false)
   const [isPending, startTransition] = useTransition()
+
+  // Закрытие модалки по Escape
+  useEffect(() => {
+    if (!showModal) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowModal(false) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showModal])
 
   function handleConfirm() {
     startTransition(async () => {

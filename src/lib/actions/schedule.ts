@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { doctorScheduleSchema } from '@/lib/validation'
 
 export type DoctorSchedule = {
   session_duration: number
@@ -39,6 +40,7 @@ export async function getDoctorScheduleAuth(): Promise<DoctorSchedule> {
 }
 
 export async function saveDoctorSchedule(schedule: DoctorSchedule): Promise<void> {
+  doctorScheduleSchema.parse(schedule)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

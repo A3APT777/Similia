@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { uuidSchema } from '@/lib/validation'
 
 export async function uploadPhoto(formData: FormData): Promise<void> {
   const supabase = await createClient()
@@ -15,12 +16,16 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
 
   if (!file || !patientId) return
 
+  uuidSchema.parse(patientId)
+  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']
+  if (!allowedExtensions.includes(ext)) throw new Error('Недопустимое расширение файла. Разрешены: jpg, jpeg, png, webp, heic, heif')
+
   if (file.size > 10 * 1024 * 1024) throw new Error('Файл слишком большой. Максимум 10 МБ.')
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
   if (!allowedTypes.includes(file.type.toLowerCase())) throw new Error('Разрешены только фотографии (JPEG, PNG, WebP, HEIC).')
 
-  const ext = file.name.split('.').pop() || 'jpg'
-  const path = `${user.id}/${patientId}/${Date.now()}.${ext}`
+  const path = `${user.id}/${patientId}/${Date.now()}.${ext || 'jpg'}`
 
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
@@ -46,6 +51,7 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
 }
 
 export async function deletePhoto(id: string): Promise<void> {
+  uuidSchema.parse(id)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

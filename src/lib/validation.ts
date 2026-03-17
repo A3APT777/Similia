@@ -35,6 +35,46 @@ export const prescriptionSchema = z.object({
   dosage: z.string().max(500).optional(),
 })
 
+// === Общие схемы ===
+
+export const uuidSchema = z.string().uuid('Неверный формат ID')
+
+export const consultationTypeSchema = z.enum(['chronic', 'acute'], {
+  message: 'Тип консультации должен быть chronic или acute',
+})
+
+export const isoDateTimeSchema = z.string().regex(
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/,
+  'Неверный формат даты/времени (ожидается ISO)',
+)
+
+export const followupStatusSchema = z.enum(['better', 'same', 'worse', 'new_symptoms'], {
+  message: 'Неверный статус follow-up',
+})
+
+export const intakeAnswersSchema = z.record(z.string(), z.unknown()).refine(
+  (v) => v !== null && typeof v === 'object',
+  'Ответы должны быть объектом',
+)
+
+export const doctorScheduleSchema = z.object({
+  session_duration: z.number().int().min(5).max(480),
+  break_duration: z.number().int().min(0).max(120),
+  working_days: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, 'Неверный формат времени'),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/, 'Неверный формат времени'),
+  lunch_enabled: z.boolean(),
+  lunch_start: z.string().regex(/^\d{2}:\d{2}$/, 'Неверный формат времени'),
+  lunch_end: z.string().regex(/^\d{2}:\d{2}$/, 'Неверный формат времени'),
+})
+
+export const searchQuerySchema = z.string().max(100, 'Запрос слишком длинный')
+
+export const addPaidSessionsSchema = z.object({
+  amount: z.number().int().min(1, 'Минимум 1 сеанс').max(100, 'Максимум 100 сеансов'),
+  note: z.string().max(200, 'Заметка слишком длинная'),
+})
+
 // Утилита — возвращает ошибку или null
 export function validate<T>(schema: z.ZodSchema<T>, data: unknown): { data: T; error: null } | { data: null; error: string } {
   const result = schema.safeParse(data)

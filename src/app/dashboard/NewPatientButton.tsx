@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createNewPatientToken } from '@/lib/actions/newPatient'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -10,6 +10,14 @@ export default function NewPatientButton() {
   const [link, setLink] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // Закрытие модалки по Escape
+  useEffect(() => {
+    if (!link) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') { setLink(null); setCopied(false) } }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [link])
 
   async function handleCreate() {
     setLoading(true)
@@ -47,7 +55,7 @@ export default function NewPatientButton() {
       </button>
 
       {link && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={(e) => { if (e.target === e.currentTarget) { setLink(null); setCopied(false) } }}>
           <div
             className="w-full rounded-2xl p-6 shadow-2xl"
             style={{ maxWidth: 420, backgroundColor: '#f7f3ed', border: '0.5px solid #d4c9b8' }}

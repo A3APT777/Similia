@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { searchQuerySchema } from '@/lib/validation'
 
 export type RemedyResult = {
   abbrev: string
@@ -9,6 +10,7 @@ export type RemedyResult = {
 }
 
 export async function searchRemediesDB(query: string): Promise<RemedyResult[]> {
+  searchQuerySchema.parse(query)
   if (!query.trim()) return []
   const supabase = await createClient()
   // Экранируем спецсимволы PostgREST для защиты от filter injection

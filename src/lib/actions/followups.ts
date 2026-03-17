@@ -2,8 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { uuidSchema, followupStatusSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 export async function createFollowup(consultationId: string, patientId: string) {
+  uuidSchema.parse(consultationId)
+  uuidSchema.parse(patientId)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -47,6 +51,9 @@ export async function respondFollowup(
   status: 'better' | 'same' | 'worse' | 'new_symptoms',
   comment: string
 ) {
+  uuidSchema.parse(token)
+  followupStatusSchema.parse(status)
+  z.string().max(2000, 'Комментарий слишком длинный').parse(comment)
   const supabase = await createClient()
 
   const { error } = await supabase

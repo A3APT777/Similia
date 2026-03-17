@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -28,6 +30,7 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function ForgotPasswordPage() {
+  const { lang } = useLanguage()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -43,7 +46,7 @@ export default function ForgotPasswordPage() {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     })
     if (error) {
-      setError('Не удалось отправить письмо. Проверьте email.')
+      setError(t(lang).auth.resetError)
       setLoading(false)
       return
     }
@@ -67,16 +70,16 @@ export default function ForgotPasswordPage() {
             </svg>
           </div>
           <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a3020', marginBottom: '12px' }}>
-            Письмо отправлено
+            {t(lang).auth.emailSent}
           </h1>
           <p style={{ fontSize: '15px', color: '#5a5040', lineHeight: 1.6 }}>
-            Проверьте почту <strong style={{ color: '#3a2e1a' }}>{email}</strong> — там ссылка для сброса пароля.
+            {t(lang).auth.checkEmail}
           </p>
           <p style={{ fontSize: '13px', color: '#9a8a6a', marginTop: '12px' }}>
-            Не пришло? Проверьте папку «Спам»
+            {t(lang).auth.checkSpam}
           </p>
           <Link href="/login" style={{ display: 'inline-block', marginTop: '24px', fontSize: '14px', color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
-            ← Вернуться на вход
+            {t(lang).auth.backToLogin}
           </Link>
         </div>
       </div>
@@ -130,10 +133,12 @@ export default function ForgotPasswordPage() {
           </div>
 
           <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '38px', fontWeight: 300, color: 'rgba(255,255,255,0.95)', lineHeight: 1.25, marginBottom: '16px' }}>
-            Восстановление<br />доступа
+            {t(lang).auth.resetHero.split('\n').map((line, i, arr) => (
+              <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+            ))}
           </h2>
           <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'rgba(255,255,255,0.45)' }}>
-            Пришлём ссылку на вашу почту — сможете задать новый пароль за пару минут.
+            {t(lang).auth.resetHeroDesc}
           </p>
         </div>
 
@@ -162,10 +167,10 @@ export default function ForgotPasswordPage() {
           </div>
 
           <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a3020', marginBottom: '6px' }}>
-            Восстановление пароля
+            {t(lang).auth.resetPassword}
           </h1>
           <p style={{ fontSize: '15px', color: '#9a8a6a', marginBottom: '32px' }}>
-            Введите email — пришлём ссылку для сброса
+            {t(lang).auth.resetPrompt}
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -213,13 +218,13 @@ export default function ForgotPasswordPage() {
               onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = '#2d6a4f' }}
               onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = '#1a3020' }}
             >
-              {loading ? 'Отправляю...' : 'Отправить ссылку'}
+              {loading ? t(lang).auth.sending : t(lang).auth.sendLink}
             </button>
           </form>
 
           <p style={{ marginTop: '24px', fontSize: '14px', color: '#9a8a6a', textAlign: 'center' }}>
             <Link href="/login" style={{ color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
-              ← Вернуться на вход
+              {t(lang).auth.backToLogin}
             </Link>
           </p>
         </div>

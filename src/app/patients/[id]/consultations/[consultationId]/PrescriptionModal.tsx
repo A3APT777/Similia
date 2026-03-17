@@ -80,6 +80,13 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
     }
   }
 
+  // Закрытие модалки по Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onSkip() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onSkip])
+
   // Закрываем dropdown при клике вне
   useEffect(() => {
     function handleClick(e: MouseEvent) {

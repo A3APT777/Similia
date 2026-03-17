@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { uuidSchema, addPaidSessionsSchema } from '@/lib/validation'
 
 export async function getDoctorSettings(): Promise<{ paid_sessions_enabled: boolean }> {
   const supabase = await createClient()
@@ -31,11 +32,11 @@ export async function updatePaidSessionsEnabled(enabled: boolean): Promise<void>
 }
 
 export async function addPaidSessions(patientId: string, amount: number, note: string): Promise<void> {
+  uuidSchema.parse(patientId)
+  addPaidSessionsSchema.parse({ amount, note })
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-
-  if (amount <= 0 || amount > 100) return
 
   // Атомарное обновление через RPC — защита от race condition
   await supabase.rpc('increment_paid_sessions', {
@@ -52,31 +53,14 @@ export async function addPaidSessions(patientId: string, amount: number, note: s
   })
 }
 
-export async function getPaymentHistory(patientId: string): Promise<
-  { id: string; amount: number; note: string | null; created_at: string }[]
-> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
-
-  const { data } = await supabase
-    .from('payment_history')
-    .select('id, amount, note, created_at')
-    .eq('patient_id', patientId)
-    .eq('doctor_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(10)
-  return data || []
-}
-
 export async function decrementPaidSession(
   patientId: string
 ): Promise<{ prevCount: number; newCount: number }> {
+  uuidSchema.parse(patientId)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { prevCount: 0, newCount: 0 }
 
-  // Атомарное уменьшение через RPC — защита от race condition
   const { data } = await supabase.rpc('decrement_paid_session', {
     p_patient_id: patientId,
     p_doctor_id: user.id,
@@ -96,6 +80,24 @@ export async function decrementPaidSession(
   }
 
   return { prevCount, newCount }
+}
+
+export async function getPaymentHistory(patientId: string): Promise<
+  { id: string; amount: number; note: string | null; created_at: string }[]
+> {
+  uuidSchema.parse(patientId)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('payment_history')
+    .select('id, amount, note, created_at')
+    .eq('patient_id', patientId)
+    .eq('doctor_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(10)
+  return data || []
 }
 
 export async function getUnpaidPatients(): Promise<{ id: string; name: string }[]> {

@@ -21,16 +21,16 @@ const C = {
 
 // ── Группы разделов ───────────────────────────────────────────────
 const SECTION_GROUPS = [
-  { label: 'Все разделы', chapters: [] as string[] },
-  { label: 'Психика', chapters: ['Mind'] },
-  { label: 'Голова', chapters: ['Head', 'Vertigo'] },
-  { label: 'Глаза · Уши', chapters: ['Eye', 'Vision', 'Ear', 'Hearing'] },
-  { label: 'Нос · Лицо · Рот', chapters: ['Nose', 'Face', 'Mouth', 'Teeth'] },
-  { label: 'Горло · Грудь', chapters: ['Throat', 'External throat', 'Larynx and trachea', 'Respiration', 'Cough', 'Expectoration', 'Chest', 'Heart & Circulation'] },
-  { label: 'Желудок · Живот', chapters: ['Stomach', 'Appetite', 'Abdomen', 'Rectum', 'Stool', 'Bladder', 'Kidneys', 'Urethra', 'Prostate gland', 'Urine', 'Genitalia male', 'Genitalia female'] },
-  { label: 'Спина · Конечности', chapters: ['Back', 'Extremities'] },
-  { label: 'Сон · Жар', chapters: ['Sleep', 'Chill', 'Fever', 'Perspiration'] },
-  { label: 'Кожа · Общее', chapters: ['Skin', 'Generalities', 'Blood', 'Clinical'] },
+  { ru: 'Все разделы', en: 'All sections', chapters: [] as string[] },
+  { ru: 'Психика', en: 'Mind', chapters: ['Mind'] },
+  { ru: 'Голова', en: 'Head', chapters: ['Head', 'Vertigo'] },
+  { ru: 'Глаза · Уши', en: 'Eyes · Ears', chapters: ['Eye', 'Vision', 'Ear', 'Hearing'] },
+  { ru: 'Нос · Лицо · Рот', en: 'Nose · Face · Mouth', chapters: ['Nose', 'Face', 'Mouth', 'Teeth'] },
+  { ru: 'Горло · Грудь', en: 'Throat · Chest', chapters: ['Throat', 'External throat', 'Larynx and trachea', 'Respiration', 'Cough', 'Expectoration', 'Chest', 'Heart & Circulation'] },
+  { ru: 'Желудок · Живот', en: 'Stomach · Abdomen', chapters: ['Stomach', 'Appetite', 'Abdomen', 'Rectum', 'Stool', 'Bladder', 'Kidneys', 'Urethra', 'Prostate gland', 'Urine', 'Genitalia male', 'Genitalia female'] },
+  { ru: 'Спина · Конечности', en: 'Back · Limbs', chapters: ['Back', 'Extremities'] },
+  { ru: 'Сон · Жар', en: 'Sleep · Fever', chapters: ['Sleep', 'Chill', 'Fever', 'Perspiration'] },
+  { ru: 'Кожа · Общее', en: 'Skin · General', chapters: ['Skin', 'Generalities', 'Blood', 'Clinical'] },
 ]
 
 const RECENT_KEY = 'hc-recent-rubrics'
@@ -385,7 +385,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 fontWeight: groupIndex === idx ? 600 : 400,
               }}
             >
-              {group.label}
+              {group[lang]}
             </button>
           ))}
         </div>
@@ -455,7 +455,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               ) : (
                 <>
                   <span style={{ fontStyle: 'italic', color: C.text, fontFamily: 'Georgia, serif' }}>
-                    {SECTION_GROUPS[groupIndex].label}
+                    {SECTION_GROUPS[groupIndex][lang]}
                   </span>
                   &nbsp;·&nbsp;
                   <span style={{ color: C.link }}>{total.toLocaleString('ru-RU')}</span>

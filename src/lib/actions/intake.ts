@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { IntakeAnswers, IntakeType } from '@/types'
 import { randomUUID } from 'crypto'
+import { intakeAnswersSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 // Создать ссылку-анкету (для нового пациента — без patient_id)
 export async function createIntakeLink(type: IntakeType = 'primary'): Promise<string> {
@@ -29,6 +31,8 @@ export async function createIntakeLink(type: IntakeType = 'primary'): Promise<st
 
 // Пациент отправляет заполненную анкету — создаём нового пациента автоматически
 export async function submitIntake(token: string, answers: IntakeAnswers): Promise<void> {
+  z.string().min(1, 'Токен обязателен').parse(token)
+  intakeAnswersSchema.parse(answers)
   const supabase = await createClient()
 
   // Получаем анкету чтобы знать doctor_id

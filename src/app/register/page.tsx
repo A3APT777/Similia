@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { seedDemoData } from '@/lib/actions/seed'
+import { t } from '@/lib/i18n'
+import { useLanguage } from '@/hooks/useLanguage'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -31,6 +33,7 @@ const labelStyle: React.CSSProperties = {
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { lang } = useLanguage()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -124,21 +127,19 @@ export default function RegisterPage() {
             lineHeight: 1.25,
             marginBottom: '16px',
           }}>
-            Начните вести<br />пациентов правильно
+            {t(lang).auth.registerHero.split('\n').map((line, i, arr) => (
+              <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+            ))}
           </h2>
           <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'rgba(255,255,255,0.45)' }}>
-            Создайте аккаунт и уже сегодня откажитесь от бумажных блокнотов и таблиц.
+            {t(lang).auth.registerHeroDesc}
           </p>
         </div>
 
         {/* Галочки и цитата */}
         <div style={{ position: 'relative', zIndex: 10 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-            {[
-              'Бесплатно и без ограничений',
-              'Данные защищены и приватны',
-              'Работает с любого устройства',
-            ].map(f => (
+            {t(lang).auth.registerFeatures.map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
                   width: '20px', height: '20px', borderRadius: '50%',
@@ -201,15 +202,15 @@ export default function RegisterPage() {
             color: '#1a3020',
             marginBottom: '6px',
           }}>
-            Создать аккаунт
+            {t(lang).auth.createAccount}
           </h1>
           <p style={{ fontSize: '15px', color: '#9a8a6a', marginBottom: '32px' }}>
-            Займёт меньше минуты
+            {t(lang).auth.lessThanMinute}
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
-              <label style={labelStyle}>Ваше имя</label>
+              <label style={labelStyle}>{t(lang).auth.yourName}</label>
               <input
                 type="text"
                 value={name}
@@ -218,7 +219,7 @@ export default function RegisterPage() {
                 onBlur={() => setFocusedField(null)}
                 required
                 autoFocus
-                placeholder="Иван Иванов"
+                placeholder={t(lang).auth.namePlaceholder}
                 style={getInputStyle('name')}
               />
             </div>
@@ -238,7 +239,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label style={labelStyle}>Пароль</label>
+              <label style={labelStyle}>{t(lang).auth.password}</label>
               <input
                 type="password"
                 value={password}
@@ -247,7 +248,7 @@ export default function RegisterPage() {
                 onBlur={() => setFocusedField(null)}
                 required
                 minLength={6}
-                placeholder="Минимум 6 символов"
+                placeholder={t(lang).auth.passwordPlaceholder}
                 style={getInputStyle('password')}
               />
             </div>
@@ -277,19 +278,19 @@ export default function RegisterPage() {
               onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = '#2d6a4f' }}
               onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = '#1a3020' }}
             >
-              {loading ? 'Подготавливаем аккаунт...' : 'Зарегистрироваться'}
+              {loading ? t(lang).auth.creatingAccount : t(lang).auth.register}
             </button>
           </form>
 
           <p style={{ marginTop: '24px', fontSize: '14px', color: '#9a8a6a', textAlign: 'center' }}>
-            Уже есть аккаунт?{' '}
+            {t(lang).auth.hasAccount}{' '}
             <Link href="/login" style={{ color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
-              Войти
+              {t(lang).auth.signIn}
             </Link>
           </p>
 
           <p style={{ marginTop: '16px', fontSize: '12px', color: '#9a8a6a', textAlign: 'center' }}>
-            Регистрация бесплатна · Данные хранятся в России
+            {t(lang).auth.freeAndSecure}
           </p>
         </div>
       </div>

@@ -73,8 +73,8 @@ export default function SettingsToggle({ initialEnabled }: { initialEnabled: boo
 
       <p className="text-[12px] mt-4 pt-4" style={{ color: '#9a8a6a', borderTop: '1px solid #d4c9b8' }}>
         {enabled
-          ? '● Включено — изменение сохраняется автоматически'
-          : '○ Выключено — изменение сохраняется автоматически'}
+          ? `● ${t(lang).settings.paymentEnabled} — ${lang === 'ru' ? 'изменение сохраняется автоматически' : 'changes saved automatically'}`
+          : `○ ${t(lang).settings.paymentDisabled} — ${lang === 'ru' ? 'изменение сохраняется автоматически' : 'changes saved automatically'}`}
       </p>
     </div>
   )
