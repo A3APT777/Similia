@@ -424,6 +424,24 @@ export default function ConsultationEditor({ consultation, patient, previousCons
             {t(lang).consultation.repertory}
           </button>
 
+          <div className="w-px h-4 bg-gray-200" />
+
+          <a
+            href="/repertory"
+            target="_blank"
+            rel="noopener"
+            title={lang === 'ru' ? 'Открыть полный реперторий' : 'Open full repertory'}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-[#ede7dd] text-gray-500 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50 transition-all"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+            {lang === 'ru' ? 'Реперторий' : 'Repertory'}
+            <svg className="w-3 h-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            </svg>
+          </a>
+
           <span className="text-xs text-gray-300 ml-auto">
             {wordCount > 0 ? t(lang).consultation.words(wordCount) : t(lang).consultation.emptyNote}
           </span>

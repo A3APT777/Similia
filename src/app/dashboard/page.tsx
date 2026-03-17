@@ -133,34 +133,53 @@ export default async function DashboardPage() {
             />
             <div className="relative z-10 px-5 sm:px-7 py-5 sm:py-6">
               <h1
-                className="text-[26px] sm:text-[32px] font-light leading-tight mb-1"
-                style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.95)' }}
+                className="text-[20px] sm:text-[24px] font-light leading-tight mb-3"
+                style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.7)' }}
               >
                 {t(lang).dashboard.greeting}, {firstName}
               </h1>
-              <p className="text-[13px] mb-5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                {t(lang).dashboard.todayAppointments(todayCount)}
-              </p>
 
-              {/* Stat-карточки */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <p className="text-[22px] sm:text-[26px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.9)' }}>
-                    {totalPatients}
-                  </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{t(lang).dashboard.patients}</p>
-                </div>
-                <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <p className="text-[22px] sm:text-[26px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.9)' }}>
+              {/* Главный акцент — приёмы сегодня */}
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <p className="text-[40px] sm:text-[48px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.95)' }}>
                     {todayCount}
                   </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{t(lang).dashboard.today}</p>
+                  <p className="text-[13px] mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    {t(lang).dashboard.todayAppointments(todayCount)}
+                  </p>
+                </div>
+                <Link
+                  href="/patients"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+                  style={{ color: '#1a2e1a' }}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                  </svg>
+                  {lang === 'ru' ? 'Начать приём' : 'Start appointment'}
+                </Link>
+              </div>
+
+              {/* Stat-карточки: Today — главная, остальные — вторичные */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <p className="text-[18px] sm:text-[20px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.7)' }}>
+                    {totalPatients}
+                  </p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{t(lang).dashboard.patients}</p>
+                </div>
+                <div className="rounded-xl px-3 py-3" style={{ background: 'rgba(255,255,255,0.14)' }}>
+                  <p className="text-[24px] sm:text-[28px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.95)' }}>
+                    {todayCount}
+                  </p>
+                  <p className="text-[10px] mt-0.5 font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>{t(lang).dashboard.today}</p>
                 </div>
                 <div className="rounded-xl px-3 py-2.5" style={{ background: pendingCount > 0 ? 'rgba(200,160,53,0.2)' : 'rgba(255,255,255,0.08)' }}>
-                  <p className="text-[22px] sm:text-[26px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: pendingCount > 0 ? 'var(--color-amber)' : 'rgba(255,255,255,0.9)' }}>
+                  <p className="text-[18px] sm:text-[20px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: pendingCount > 0 ? 'var(--color-amber)' : 'rgba(255,255,255,0.7)' }}>
                     {pendingCount}
                   </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{t(lang).dashboard.noPrescription}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{t(lang).dashboard.noPrescription}</p>
                 </div>
               </div>
             </div>
@@ -171,26 +190,6 @@ export default async function DashboardPage() {
             hasSentIntake={hasSentIntake}
             hasScheduled={hasScheduled}
           />
-
-          {/* Быстрый доступ к репертою */}
-          <Link
-            href="/repertory"
-            className="flex items-center gap-4 px-5 py-4 rounded-2xl transition-all mb-5 group hover:bg-[#e8e0d4]"
-            style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-primary)' }}>
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ color: '#1a1a0a' }}>{t(lang).dashboard.repertoryTitle}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{t(lang).dashboard.repertoryDesc}</p>
-            </div>
-            <svg className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </Link>
 
           <AppointmentList appointments={(appointments || []) as any} />
 

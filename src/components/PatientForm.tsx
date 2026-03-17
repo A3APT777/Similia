@@ -65,63 +65,68 @@ export default function PatientForm({ patient, action, submitLabel }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div data-tour="patient-name">
-        <label className={labelClass}>{t(lang).patientForm.name}</label>
-        <input name="name" type="text" required defaultValue={patient?.name || ''} placeholder={t(lang).patientForm.namePlaceholder} className={inputClass} />
+        <label className={labelClass}>{t(lang).patientForm.name} <span className="text-red-400">*</span></label>
+        <input name="name" type="text" required autoFocus defaultValue={patient?.name || ''} placeholder={lang === 'ru' ? 'ФИО пациента' : 'Patient name'} className={inputClass} />
       </div>
-      <div data-tour="patient-birthdate">
-        <label className={labelClass}>{t(lang).patientForm.birthDate}</label>
-        <input name="birth_date" type="date" defaultValue={patient?.birth_date || ''} className={inputClass} />
+      <div className="grid grid-cols-2 gap-4">
+        <div data-tour="patient-birthdate">
+          <label className={labelClass}>{t(lang).patientForm.birthDate}</label>
+          <input name="birth_date" type="date" defaultValue={patient?.birth_date || ''} className={inputClass} />
+        </div>
+        <div data-tour="patient-phone">
+          <label className={labelClass}>{t(lang).patientForm.phone}</label>
+          <input name="phone" type="tel" defaultValue={patient?.phone || ''} placeholder="+7 (___) ___-__-__" className={inputClass} />
+        </div>
       </div>
-      <div data-tour="patient-phone">
-        <label className={labelClass}>{t(lang).patientForm.phone}</label>
-        <input name="phone" type="tel" defaultValue={patient?.phone || ''} placeholder="+7 999 000 00 00" className={inputClass} />
-      </div>
-      <div data-tour="patient-email">
-        <label className={labelClass}>{t(lang).patientForm.email}</label>
-        <input name="email" type="email" defaultValue={patient?.email || ''} placeholder="patient@example.com" className={inputClass} />
-      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div data-tour="patient-email">
+          <label className={labelClass}>{t(lang).patientForm.email}</label>
+          <input name="email" type="email" defaultValue={patient?.email || ''} placeholder="email@example.com" className={inputClass} />
+        </div>
 
-      {/* Конституциональный тип */}
-      <div data-tour="patient-constitution">
-        <label className={labelClass}>
-          {t(lang).patientForm.constitutionalType}
-          <span className="ml-1.5 text-[10px] font-normal text-gray-400">{t(lang).patientForm.constitutionalHint}</span>
-        </label>
-        <div className="relative">
-          <input
-            ref={constRef}
-            name="constitutional_type"
-            type="text"
-            value={constType}
-            onChange={e => handleConstChange(e.target.value)}
-            onFocus={() => { setSuggestions(CONSTITUTIONAL_TYPES.slice(0, 6)); setShowSuggestions(true) }}
-            placeholder="Sulphur, Calcarea carbonica..."
-            className={inputClass}
-            autoComplete="off"
-          />
-          {showSuggestions && suggestions.length > 0 && (
-            <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
-              {suggestions.map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onMouseDown={e => { e.preventDefault(); selectConst(t) }}
-                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Конституциональный тип */}
+        <div data-tour="patient-constitution">
+          <label className={labelClass}>
+            {t(lang).patientForm.constitutionalType}
+            <span className="ml-1.5 text-[10px] font-normal text-gray-400">{t(lang).patientForm.constitutionalHint}</span>
+          </label>
+          <div className="relative">
+            <input
+              ref={constRef}
+              name="constitutional_type"
+              type="text"
+              value={constType}
+              onChange={e => handleConstChange(e.target.value)}
+              onFocus={() => { setSuggestions(CONSTITUTIONAL_TYPES.slice(0, 6)); setShowSuggestions(true) }}
+              placeholder="Sulphur, Calcarea carbonica..."
+              className={inputClass}
+              autoComplete="off"
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                {suggestions.map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onMouseDown={e => { e.preventDefault(); selectConst(t) }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <div data-tour="patient-note">
         <label className={labelClass}>{t(lang).patientForm.notes}</label>
-        <textarea name="notes" rows={2} defaultValue={patient?.notes || ''} placeholder={t(lang).patientForm.notesPlaceholder} className={inputClass + ' resize-none'} />
+        <textarea name="notes" rows={2} defaultValue={patient?.notes || ''} placeholder={lang === 'ru' ? 'Заметки о пациенте...' : 'Patient notes...'} className={inputClass + ' resize-none'} />
       </div>
-      <div className="flex gap-3 pt-2" data-tour="patient-submit">
-        <button type="submit" disabled={pending} className="text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors" style={{ backgroundColor: 'var(--color-primary)' }}>
+      <div className="flex flex-col sm:flex-row gap-3 pt-2" data-tour="patient-submit">
+        <button type="submit" disabled={pending} className="w-full sm:w-auto flex items-center justify-center gap-2 text-white px-5 py-3 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors" style={{ backgroundColor: 'var(--color-primary)' }}>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           {pending ? t(lang).patientForm.saving : submitLabel}
         </button>
         <button type="button" onClick={() => router.back()} className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2">

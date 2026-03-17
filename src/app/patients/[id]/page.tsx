@@ -110,24 +110,29 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                 <h1 className="text-xl sm:text-2xl font-semibold leading-tight" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a1a0a' }}>
                   {patient.name}
                 </h1>
+                {lastComplaints && (
+                  <p className="text-sm text-gray-500 italic mt-0.5 truncate">
+                    {(lastComplaints.split('\n')[0].replace(/^ЖАЛОБЫ\n?—?\n?/i, '').trim() || lastComplaints).substring(0, 60)}{(lastComplaints.split('\n')[0].replace(/^ЖАЛОБЫ\n?—?\n?/i, '').trim() || lastComplaints).length > 60 ? '…' : ''}
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
                   {patient.birth_date && (
-                    <span className="text-sm" style={{ color: '#5a5040' }}>{getAge(patient.birth_date)}</span>
+                    <span className="text-xs" style={{ color: '#8a7a6a' }}>{getAge(patient.birth_date)}</span>
                   )}
                   {patient.phone && (
                     <>
                       <span className="text-gray-300">·</span>
-                      <a href={`tel:${patient.phone}`} className="text-sm hover:text-emerald-700 transition-colors" style={{ color: '#5a5040' }}>{patient.phone}</a>
+                      <a href={`tel:${patient.phone}`} className="text-xs hover:text-emerald-700 transition-colors" style={{ color: '#8a7a6a' }}>{patient.phone}</a>
                     </>
                   )}
                   {patient.email && (
                     <>
                       <span className="text-gray-300">·</span>
-                      <a href={`mailto:${patient.email}`} className="text-sm hover:text-emerald-700 transition-colors truncate" style={{ color: '#5a5040' }}>{patient.email}</a>
+                      <a href={`mailto:${patient.email}`} className="text-xs hover:text-emerald-700 transition-colors truncate" style={{ color: '#8a7a6a' }}>{patient.email}</a>
                     </>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-[12px]" style={{ color: '#9a8a6a' }}>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-[11px]" style={{ color: '#a89a7a' }}>
                   <span>{t(lang).patientCard.firstVisit} {formatDate(patient.first_visit_date)}</span>
                   {lastVisitDate && (
                     <>
@@ -150,50 +155,59 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* CTA: Начать приём */}
-            <div className="flex flex-wrap gap-2 mt-3 pt-3" style={{ borderTop: '1px solid #d4c9b8' }}>
+            {/* CTA: Начать приём — большая кнопка */}
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid #d4c9b8' }}>
               <form action={newChronicConsultation}>
-                <button type="submit" className="flex items-center gap-2 font-medium transition-opacity hover:opacity-90" style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '8px', fontSize: '14px', padding: '9px 18px' }}>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                <button type="submit" className="w-full flex items-center justify-center gap-2 py-3 text-base font-semibold transition-opacity hover:opacity-90" style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '10px' }}>
                   {lang === 'ru' ? 'Начать приём' : 'Start appointment'}
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </button>
               </form>
-              <form action={newAcuteConsultation}>
-                <button type="submit" className="flex items-center gap-2 font-medium transition-opacity hover:opacity-90" style={{ border: '1.5px solid #c8a035', color: '#c8a035', borderRadius: '8px', fontSize: '13px', padding: '8px 14px' }}>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
-                  {t(lang).patientCard.acute}
-                </button>
-              </form>
-              <ScheduleButton patientId={id} />
+              <div className="flex items-center justify-center gap-4 mt-2">
+                <form action={newAcuteConsultation}>
+                  <button type="submit" className="flex items-center gap-1.5 text-xs font-medium transition-colors hover:opacity-80" style={{ color: '#c8a035' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+                    {t(lang).patientCard.acute}
+                  </button>
+                </form>
+                <ScheduleButton patientId={id} />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ═══ 2. РЕЗЮМЕ СЛУЧАЯ ═══ */}
-        {(lastComplaints || currentPrescription || dynamicsLabel || patient.notes) && (
+        {/* ═══ 2. РЕЗЮМЕ СЛУЧАЯ — структурированная сетка ═══ */}
+        {(lastComplaints || patient.constitutional_type || dynamicsLabel) && (
           <div className="mb-4 rounded-2xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
-            <h2 className="text-[10px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: '#9a8a6a' }}>
-              {lang === 'ru' ? 'Резюме случая' : 'Case summary'}
-            </h2>
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {lastComplaints && (
-                <div className="flex items-start gap-2">
-                  <span className="text-[11px] shrink-0 mt-0.5" style={{ color: '#9a8a6a' }}>{lang === 'ru' ? 'Жалобы:' : 'Complaints:'}</span>
-                  <span className="text-sm text-gray-700 leading-snug">{lastComplaints.split('\n')[0].replace(/^ЖАЛОБЫ\n?—?\n?/i, '').trim() || lastComplaints.substring(0, 120)}</span>
-                </div>
-              )}
-              {dynamicsLabel && (
-                <div className="flex items-start gap-2">
-                  <span className="text-[11px] shrink-0 mt-0.5" style={{ color: '#9a8a6a' }}>{lang === 'ru' ? 'Динамика:' : 'Progress:'}</span>
-                  <span className={`text-sm font-medium ${lastFollowup?.status === 'better' ? 'text-emerald-600' : lastFollowup?.status === 'worse' ? 'text-red-500' : 'text-gray-500'}`}>
-                    {dynamicsLabel}{currentPrescription ? ` ${lang === 'ru' ? 'после' : 'after'} ${currentPrescription.remedy} ${currentPrescription.potency || ''}` : ''}
+                <div>
+                  <span className="block text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#9a8a6a' }}>
+                    {lang === 'ru' ? 'Диагноз' : 'Diagnosis'}
+                  </span>
+                  <span className="text-sm text-gray-700 leading-snug">
+                    {lastComplaints.split('\n')[0].replace(/^ЖАЛОБЫ\n?—?\n?/i, '').trim() || lastComplaints.substring(0, 80)}
                   </span>
                 </div>
               )}
-              {patient.notes && (
-                <div className="flex items-start gap-2">
-                  <span className="text-[11px] shrink-0 mt-0.5" style={{ color: '#9a8a6a' }}>{lang === 'ru' ? 'Заметка:' : 'Note:'}</span>
-                  <span className="text-sm text-gray-500 italic leading-snug">{patient.notes}</span>
+              {patient.constitutional_type && (
+                <div>
+                  <span className="block text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#9a8a6a' }}>
+                    {lang === 'ru' ? 'Конст. тип' : 'Type'}
+                  </span>
+                  <span className="text-sm font-medium" style={{ color: '#2d6a4f' }}>
+                    {patient.constitutional_type}
+                  </span>
+                </div>
+              )}
+              {dynamicsLabel && (
+                <div>
+                  <span className="block text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#9a8a6a' }}>
+                    {lang === 'ru' ? 'Динамика' : 'Progress'}
+                  </span>
+                  <span className={`text-sm font-medium ${lastFollowup?.status === 'better' ? 'text-emerald-600' : lastFollowup?.status === 'worse' ? 'text-red-500' : 'text-gray-500'}`}>
+                    {dynamicsLabel}
+                  </span>
                 </div>
               )}
             </div>
@@ -202,29 +216,29 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
 
         {/* ═══ 3. ТЕКУЩЕЕ НАЗНАЧЕНИЕ ═══ */}
         {currentPrescription && (
-          <div className="mb-4 rounded-2xl p-4" style={{ backgroundColor: '#e8f0e8', border: '1px solid rgba(45,106,79,0.2)' }}>
-            <div className="flex items-center justify-between mb-1">
+          <div className="mb-4 rounded-2xl p-4" style={{ backgroundColor: '#e8f0e8', border: '1px solid rgba(45,106,79,0.2)', borderLeft: '4px solid #2d6a4f' }}>
+            <div className="flex items-center justify-between mb-2">
               <h2 className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#2d6a4f' }}>
                 {lang === 'ru' ? 'Текущее назначение' : 'Current prescription'}
               </h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: '#2d6a4f' }}>
+              <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ backgroundColor: 'rgba(45,106,79,0.15)', color: '#1a5c3a' }}>
                 {lang === 'ru' ? '● активно' : '● active'}
               </span>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-semibold" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a3020' }}>
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-xl font-bold uppercase tracking-wide" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a3020' }}>
                 {currentPrescription.remedy}
               </span>
-              <span className="text-sm" style={{ color: '#2d6a4f' }}>{currentPrescription.potency}</span>
-              {currentPrescription.pellets && (
-                <span className="text-xs text-gray-400">· {currentPrescription.pellets} {t(lang).timeline.pellets}</span>
-              )}
+              <span className="text-sm font-medium" style={{ color: '#2d6a4f' }}>
+                {currentPrescription.potency}
+                {currentPrescription.pellets && <span className="text-gray-500 font-normal"> · {currentPrescription.pellets} {t(lang).timeline.pellets}</span>}
+              </span>
             </div>
             {currentPrescription.dosage && (
-              <p className="text-xs mt-1" style={{ color: '#5a5040' }}>{currentPrescription.dosage}</p>
+              <p className="text-sm mt-1.5" style={{ color: '#5a5040' }}>{currentPrescription.dosage}</p>
             )}
             {currentPrescription.recommendations && (
-              <p className="text-xs mt-1 italic" style={{ color: '#5a5040' }}>{currentPrescription.recommendations}</p>
+              <p className="text-sm mt-1 italic" style={{ color: '#6a604a' }}>{currentPrescription.recommendations}</p>
             )}
             <p className="text-[11px] mt-2" style={{ color: '#9a8a6a' }}>{formatDate(currentPrescription.date)}</p>
           </div>
@@ -308,6 +322,16 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               <h2 className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#9a8a6a' }}>{t(lang).patientCard.intakes}</h2>
               {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" />}
               {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" />}
+            </div>
+          )}
+
+          {/* Заметки */}
+          {patient.notes && (
+            <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
+              <h2 className="text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: '#9a8a6a' }}>
+                {lang === 'ru' ? 'Заметка' : 'Note'}
+              </h2>
+              <p className="text-sm text-gray-500 italic leading-snug">{patient.notes}</p>
             </div>
           )}
 
