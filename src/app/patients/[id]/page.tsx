@@ -130,15 +130,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
       <TourSuccessToast />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
 
-        {/* ═══ 1. HERO — статус + состояние + действие ═══ */}
+        {/* ═══ 1. HERO — мгновенное понимание ═══ */}
         <div className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid #d4c9b8' }}>
-          {/* Цветная полоса статуса */}
           <div style={{ height: '4px', backgroundColor: patientStatus.color }} />
           <div className="p-4 sm:p-5" style={{ backgroundColor: '#f0ebe3' }}>
 
-            {/* Строка 1: статус-badge + действия */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ color: patientStatus.color, backgroundColor: patientStatus.bg, letterSpacing: '0.08em' }}>
+            {/* Статус + мета */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ color: patientStatus.color, backgroundColor: patientStatus.bg }}>
                 {patientStatus.label}
               </span>
               <div className="flex items-center gap-1.5">
@@ -148,59 +147,71 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* Строка 2: ФИО + возраст */}
+            {/* ФИО — крупно */}
             <h1 className="text-xl sm:text-2xl font-semibold leading-tight" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a1a0a' }}>
               {patient.name}
               {patient.birth_date && <span className="text-sm font-normal ml-2" style={{ color: '#8a7a6a' }}>{getAge(patient.birth_date)}</span>}
             </h1>
 
-            {/* Строка 3: Ключевое состояние — самая важная строка */}
+            {/* Ключевое состояние — 1 строка крупно */}
             {keyCondition && (
-              <p className="text-sm font-medium mt-1 leading-snug" style={{ color: '#3a3020' }}>
+              <p className="text-[15px] font-semibold mt-1.5 leading-snug" style={{ color: '#1a3020' }}>
                 {keyCondition}
               </p>
             )}
 
-            {/* Строка 4: Динамика */}
+            {/* Факты — bullets */}
+            {symptomBullets.length > 1 && (
+              <ul className="mt-2 space-y-0.5">
+                {symptomBullets.slice(1, 4).map((s: string, i: number) => (
+                  <li key={i} className="flex items-start gap-1.5 text-[13px]" style={{ color: '#5a5040' }}>
+                    <span className="shrink-0 mt-[7px] w-1 h-1 rounded-full" style={{ backgroundColor: '#9a8a6a' }} />
+                    <span className="leading-snug">{s}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Динамика — 1 строка */}
             {dynamicsInfo && (
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-lg font-bold" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.arrow}</span>
-                <span className="text-sm font-medium" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.text}</span>
+              <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: dynamicsInfo.color + '10' }}>
+                <span className="text-base font-bold" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.arrow}</span>
+                <span className="text-[13px] font-semibold" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.text}</span>
                 {lastFollowup?.comment && (
-                  <span className="text-xs text-gray-400 truncate max-w-[200px]">— {lastFollowup.comment.substring(0, 50)}{lastFollowup.comment.length > 50 ? '…' : ''}</span>
+                  <span className="text-[12px] truncate" style={{ color: dynamicsInfo.color + 'aa' }}>— {lastFollowup.comment.substring(0, 60)}</span>
                 )}
               </div>
             )}
 
-            {/* Контакты — мелко */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-[11px]" style={{ color: '#a09080' }}>
-              {patient.phone && <a href={`tel:${patient.phone}`} className="hover:text-emerald-700 transition-colors">{patient.phone}</a>}
-              {patient.email && <><span>·</span><a href={`mailto:${patient.email}`} className="hover:text-emerald-700 transition-colors truncate">{patient.email}</a></>}
+            {/* Контакты — минимум */}
+            <div className="flex flex-wrap items-center gap-x-2 mt-2 text-[10px]" style={{ color: '#b0a090' }}>
+              {patient.phone && <a href={`tel:${patient.phone}`} className="hover:text-emerald-700">{patient.phone}</a>}
               {patient.constitutional_type && <><span>·</span><span style={{ color: '#2d6a4f' }}>{patient.constitutional_type}</span></>}
-              <span>·</span>
-              <span>{t(lang).patientCard.firstVisit} {formatDate(patient.first_visit_date)}</span>
-              {lastVisitDate && <><span>·</span><span>{lang === 'ru' ? 'Посл.' : 'Last'}: {formatDate(lastVisitDate)}</span></>}
+              {lastVisitDate && <><span>·</span><span>{lang === 'ru' ? 'Посл.' : 'Last'} {formatDate(lastVisitDate)}</span></>}
             </div>
 
-            {/* CTA: единственная главная кнопка */}
+            {/* CTA */}
             <div className="mt-4 pt-3" style={{ borderTop: '1px solid #d4c9b8' }}>
               <form action={newChronicConsultation}>
-                <button type="submit" className="w-full flex items-center justify-center gap-2 py-3.5 text-base font-bold tracking-wide transition-all hover:opacity-90 hover:shadow-md" style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '12px', fontSize: '16px' }}>
-                  {lang === 'ru' ? 'НАЧАТЬ ПРИЁМ' : 'START APPOINTMENT'}
+                <button type="submit" className="w-full flex items-center justify-center gap-2 py-3.5 font-bold tracking-wide transition-all hover:opacity-90 hover:shadow-md" style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '12px', fontSize: '15px' }}>
+                  {consultations && consultations.filter(c => c.status === 'completed').length > 0
+                    ? (lang === 'ru' ? 'Начать повторный приём' : 'Start follow-up')
+                    : (lang === 'ru' ? 'Начать первый приём' : 'Start first appointment')
+                  }
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </button>
               </form>
-              <div className="flex items-center justify-center gap-6 mt-2">
+              <div className="flex items-center justify-center mt-1.5">
                 <ScheduleButton patientId={id} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* ═══ 2. ТЕКУЩЕЕ ЛЕЧЕНИЕ — главный блок ═══ */}
+        {/* ═══ 2. ТЕКУЩЕЕ ЛЕЧЕНИЕ — визуально доминирует ═══ */}
         {currentPrescription && (
-          <div className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(45,106,79,0.25)' }}>
-            <div className="flex items-center justify-between px-4 py-2" style={{ backgroundColor: '#2d6a4f' }}>
+          <div className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(45,106,79,0.3)' }}>
+            <div className="flex items-center justify-between px-4 py-2.5" style={{ backgroundColor: '#2d6a4f' }}>
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-white">
                 {lang === 'ru' ? 'Текущее лечение' : 'Current treatment'}
               </h2>
@@ -208,52 +219,35 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                 {lang === 'ru' ? '● активно' : '● active'}
               </span>
             </div>
-            <div className="p-4" style={{ backgroundColor: '#f0f7f0' }}>
-              {/* Препарат — крупно */}
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-2xl font-bold" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a3020' }}>
+            <div className="p-4 sm:p-5" style={{ backgroundColor: '#f0f7f0' }}>
+              {/* Препарат — максимально крупно */}
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className="text-3xl font-bold" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a3020', letterSpacing: '-0.01em' }}>
                   {currentPrescription.remedy}
                 </span>
-                <span className="text-lg font-semibold" style={{ color: '#2d6a4f' }}>
+                <span className="text-xl font-bold" style={{ color: '#2d6a4f' }}>
                   {currentPrescription.potency}
                 </span>
-                {currentPrescription.pellets && (
-                  <span className="text-sm text-gray-500">{currentPrescription.pellets} {t(lang).timeline.pellets}</span>
+              </div>
+
+              {/* Схема — компактно */}
+              <div className="mt-3 space-y-1.5">
+                {currentPrescription.dosage && (
+                  <div className="flex items-start gap-2 text-[13px]" style={{ color: '#3a3020' }}>
+                    <span className="shrink-0 mt-0.5 font-semibold" style={{ color: '#2d6a4f' }}>Rx</span>
+                    <span>{currentPrescription.dosage}</span>
+                  </div>
+                )}
+                {currentPrescription.recommendations && (
+                  <div className="flex items-start gap-2 text-[13px]" style={{ color: '#6a604a' }}>
+                    <span className="shrink-0 mt-0.5 font-semibold" style={{ color: '#9a8a6a' }}>!</span>
+                    <span>{currentPrescription.recommendations}</span>
+                  </div>
                 )}
               </div>
-              {/* Схема приёма */}
-              {currentPrescription.dosage && (
-                <div className="mt-2 flex items-start gap-2">
-                  <svg className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#2d6a4f' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <p className="text-sm" style={{ color: '#3a3020' }}>{currentPrescription.dosage}</p>
-                </div>
-              )}
-              {/* Рекомендации */}
-              {currentPrescription.recommendations && (
-                <div className="mt-1.5 flex items-start gap-2">
-                  <svg className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#9a8a6a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
-                  <p className="text-sm italic" style={{ color: '#6a604a' }}>{currentPrescription.recommendations}</p>
-                </div>
-              )}
-              <p className="text-[10px] mt-3" style={{ color: '#9a8a6a' }}>{lang === 'ru' ? 'Назначено' : 'Prescribed'}: {formatDate(currentPrescription.date)}</p>
-            </div>
-          </div>
-        )}
 
-        {/* ═══ 3. ДИАГНОЗ — пункты, не простыня ═══ */}
-        {symptomBullets.length > 0 && (
-          <div className="mb-4 rounded-2xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
-            <h2 className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#9a8a6a' }}>
-              {lang === 'ru' ? 'Ключевые жалобы' : 'Key complaints'}
-            </h2>
-            <ul className="space-y-1">
-              {symptomBullets.map((s: string, i: number) => (
-                <li key={i} className="flex items-start gap-2 text-sm" style={{ color: '#3a3020' }}>
-                  <span className="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#2d6a4f' }} />
-                  <span className="leading-snug">{s}</span>
-                </li>
-              ))}
-            </ul>
+              <p className="text-[10px] mt-3" style={{ color: '#9a8a6a' }}>{formatDate(currentPrescription.date)}</p>
+            </div>
           </div>
         )}
 
@@ -335,16 +329,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               <h2 className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#9a8a6a' }}>{t(lang).patientCard.intakes}</h2>
               {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" />}
               {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" />}
-            </div>
-          )}
-
-          {/* Заметки */}
-          {patient.notes && (
-            <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
-              <h2 className="text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: '#9a8a6a' }}>
-                {lang === 'ru' ? 'Заметка' : 'Note'}
-              </h2>
-              <p className="text-sm text-gray-500 italic leading-snug">{patient.notes}</p>
             </div>
           )}
 

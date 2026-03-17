@@ -217,41 +217,34 @@ function ConsultationCard({
             {title}
           </p>
 
-          {isScheduled ? (
-            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.scheduledAppointment}</p>
-          ) : isCompleted && consultation.notes ? (
-            <p style={{ fontSize: '14px', color: '#5a5040', lineHeight: '1.6' }}>
-              {preview(consultation.notes, 140)}
-            </p>
-          ) : isCompleted && !consultation.notes ? (
-            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.noNotes}</p>
-          ) : isInProgress ? (
-            <p style={{ fontSize: '14px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.appointmentInProgress}</p>
-          ) : null}
-
-          {/* Назначение */}
+          {/* Назначение — всегда первое, bold, акцент */}
           {isCompleted && consultation.remedy ? (
-            <div className="mt-2 inline-flex items-center gap-1.5" style={{ background: '#e8f0e8', border: '1px solid #2d6a4f', borderRadius: '6px', padding: '8px 12px' }}>
-              <svg className="w-3.5 h-3.5 shrink-0" style={{ color: '#2d6a4f' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span style={{ fontSize: '14px', fontWeight: 500, color: '#1a3020' }}>
-                {consultation.remedy}{consultation.potency ? ` ${consultation.potency}` : ''}
+            <div className="mb-1.5 flex items-baseline gap-2 flex-wrap">
+              <span style={{ fontSize: '16px', fontWeight: 700, color: '#1a3020', fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
+                {consultation.remedy}
+              </span>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#2d6a4f' }}>
+                {consultation.potency}
               </span>
               {consultation.pellets && (
-                <span style={{ fontSize: '13px', color: '#2d6a4f' }}>· {consultation.pellets} {t(lang).timeline.pellets}</span>
-              )}
-              {consultation.dosage && (
-                <span style={{ fontSize: '13px', color: '#2d6a4f', opacity: 0.7 }}>· {consultation.dosage}</span>
+                <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{consultation.pellets} {t(lang).timeline.pellets}</span>
               )}
             </div>
           ) : isCompleted && !consultation.remedy ? (
-            <div className="mt-2 inline-flex items-center gap-1.5" style={{ background: 'rgba(200,160,53,0.08)', border: '1px solid #c8a035', borderRadius: '6px', padding: '8px 12px' }}>
-              <svg className="w-3.5 h-3.5 shrink-0" style={{ color: '#c8a035' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
-              </svg>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#c8a035' }}>{t(lang).timeline.noPrescription}</span>
+            <div className="mb-1.5">
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#c8a035' }}>{t(lang).timeline.noPrescription}</span>
             </div>
+          ) : null}
+
+          {/* Краткое содержание — вторичный текст */}
+          {isScheduled ? (
+            <p style={{ fontSize: '13px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.scheduledAppointment}</p>
+          ) : isCompleted && (consultation.complaints || consultation.notes) ? (
+            <p style={{ fontSize: '13px', color: '#7a7060', lineHeight: '1.5' }}>
+              {preview(consultation.complaints || consultation.notes || '', 100)}
+            </p>
+          ) : isInProgress ? (
+            <p style={{ fontSize: '13px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.appointmentInProgress}</p>
           ) : null}
         </Link>
       </div>
