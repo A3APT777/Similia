@@ -89,28 +89,45 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const lastComplaints = lastCompleted?.complaints || ''
   const lastFollowup = lastCompleted ? followupByConsultation[lastCompleted.id] : null
 
-  // Статус пациента — badge
+  // Статус пациента — из case_state или fallback
+  const caseState = lastCompleted?.case_state
+  const assessment = lastCompleted?.clinical_assessment as { summary?: string } | null
   const hasAcute = consultations?.some(c => c.type === 'acute' && c.status !== 'completed')
+
+  const STATE_CONFIG: Record<string, { label: { ru: string; en: string }; color: string; bg: string }> = {
+    improving: { label: { ru: 'УЛУЧШЕНИЕ', en: 'IMPROVING' }, color: '#059669', bg: '#ecfdf5' },
+    aggravation: { label: { ru: 'ОБОСТРЕНИЕ', en: 'AGGRAVATION' }, color: '#d97706', bg: '#fffbeb' },
+    no_effect: { label: { ru: 'НЕТ ЭФФЕКТА', en: 'NO EFFECT' }, color: '#6b7280', bg: '#f9fafb' },
+    deterioration: { label: { ru: 'УХУДШЕНИЕ', en: 'WORSENING' }, color: '#dc2626', bg: '#fef2f2' },
+    relapse: { label: { ru: 'РЕЦИДИВ', en: 'RELAPSE' }, color: '#ea580c', bg: '#fff7ed' },
+    unclear: { label: { ru: 'НА НАБЛЮДЕНИИ', en: 'MONITORING' }, color: '#6b7280', bg: '#f3f4f6' },
+  }
+
   const patientStatus = hasAcute
     ? { label: lang === 'ru' ? 'ОСТРЫЙ СЛУЧАЙ' : 'ACUTE', color: '#dc2626', bg: '#fef2f2' }
-    : lastFollowup?.status === 'better'
-      ? { label: lang === 'ru' ? 'УЛУЧШЕНИЕ' : 'IMPROVING', color: '#16a34a', bg: '#f0fdf4' }
-      : lastFollowup?.status === 'worse'
-        ? { label: lang === 'ru' ? 'УХУДШЕНИЕ' : 'WORSENING', color: '#dc2626', bg: '#fef2f2' }
-        : lastFollowup?.status === 'same'
-          ? { label: lang === 'ru' ? 'СТАБИЛЬНО' : 'STABLE', color: '#ca8a04', bg: '#fefce8' }
+    : caseState && STATE_CONFIG[caseState]
+      ? { label: STATE_CONFIG[caseState].label[lang], color: STATE_CONFIG[caseState].color, bg: STATE_CONFIG[caseState].bg }
+      : lastFollowup?.status === 'better'
+        ? { label: lang === 'ru' ? 'УЛУЧШЕНИЕ' : 'IMPROVING', color: '#059669', bg: '#ecfdf5' }
+        : lastFollowup?.status === 'worse'
+          ? { label: lang === 'ru' ? 'УХУДШЕНИЕ' : 'WORSENING', color: '#dc2626', bg: '#fef2f2' }
           : consultations && consultations.length > 0
             ? { label: lang === 'ru' ? 'НА НАБЛЮДЕНИИ' : 'MONITORING', color: '#6b7280', bg: '#f3f4f6' }
             : { label: lang === 'ru' ? 'НОВЫЙ' : 'NEW', color: '#2563eb', bg: '#eff6ff' }
 
-  // Динамика — стрелка + текст
-  const dynamicsInfo = lastFollowup?.status === 'better'
-    ? { arrow: '↑', text: lang === 'ru' ? 'Улучшение' : 'Improvement', color: '#16a34a' }
-    : lastFollowup?.status === 'worse'
+  // Динамика
+  const dynamicsInfo = caseState === 'improving' || lastFollowup?.status === 'better'
+    ? { arrow: '↑', text: lang === 'ru' ? 'Улучшение' : 'Improvement', color: '#059669' }
+    : caseState === 'deterioration' || lastFollowup?.status === 'worse'
       ? { arrow: '↓', text: lang === 'ru' ? 'Ухудшение' : 'Worsening', color: '#dc2626' }
-      : lastFollowup?.status === 'same'
+      : caseState === 'no_effect' || lastFollowup?.status === 'same'
         ? { arrow: '→', text: lang === 'ru' ? 'Без изменений' : 'No change', color: '#ca8a04' }
-        : null
+        : caseState === 'aggravation'
+          ? { arrow: '~', text: lang === 'ru' ? 'Обострение' : 'Aggravation', color: '#d97706' }
+          : null
+
+  // Clinical summary — из assessment или собираем из текста
+  const assessmentSummary = assessment?.summary || null
 
   // Клиническая формулировка состояния (не сырые симптомы)
   const lastType = lastCompleted?.type
@@ -200,7 +217,10 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: dynamicsInfo.color + '10' }}>
                 <span className="text-base font-bold" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.arrow}</span>
                 <span className="text-[13px] font-semibold" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.text}</span>
-                {lastFollowup?.comment && (
+                {assessmentSummary && (
+                  <span className="text-[12px] truncate" style={{ color: dynamicsInfo.color + 'aa' }}>— {assessmentSummary}</span>
+                )}
+                {!assessmentSummary && lastFollowup?.comment && (
                   <span className="text-[12px] truncate" style={{ color: dynamicsInfo.color + 'aa' }}>— {lastFollowup.comment.substring(0, 60)}</span>
                 )}
               </div>
