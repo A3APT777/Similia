@@ -59,6 +59,16 @@ export default function ConsultationEditor({ consultation, patient, previousCons
   const fieldsTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Авто-растягивание textarea по содержимому
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }
+  useEffect(() => {
+    // При первом рендере и при изменении данных — подогнать высоту всех textarea
+    document.querySelectorAll<HTMLTextAreaElement>('[data-autoresize]').forEach(autoResize)
+  }, [complaints, observations, notes, recommendations])
+
   // Автосохранение заметок (основное поле)
   function handleChange(value: string) {
     setNotes(value)
@@ -496,12 +506,15 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               {lang === 'ru' ? 'Жалобы' : 'Complaints'}
             </label>
             <textarea
+              data-autoresize
               value={complaints}
               onChange={e => handleFieldChange('complaints', e.target.value)}
+              onInput={e => autoResize(e.currentTarget)}
               autoFocus
               placeholder={lang === 'ru' ? 'Что беспокоит пациента...' : 'Patient complaints...'}
-              rows={3}
+              rows={2}
               className="w-full text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3 py-2 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+              style={{ minHeight: '56px', overflow: 'hidden' }}
             />
           </div>
 
@@ -511,11 +524,14 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               {lang === 'ru' ? 'Наблюдения' : 'Observations'}
             </label>
             <textarea
+              data-autoresize
               value={observations}
               onChange={e => handleFieldChange('observations', e.target.value)}
+              onInput={e => autoResize(e.currentTarget)}
               placeholder={lang === 'ru' ? 'Ощущения, модальности, общие симптомы...' : 'Sensations, modalities, general symptoms...'}
-              rows={3}
+              rows={2}
               className="w-full text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3 py-2 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+              style={{ minHeight: '56px', overflow: 'hidden' }}
             />
           </div>
 
@@ -525,16 +541,19 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               {lang === 'ru' ? 'Заметки' : 'Notes'}
             </label>
             <textarea
+              data-autoresize
               ref={textareaRef}
               value={notes}
               onChange={e => handleChange(e.target.value)}
+              onInput={e => autoResize(e.currentTarget)}
               placeholder={
                 type === 'acute'
                   ? t(lang).consultation.acutePlaceholder
                   : t(lang).consultation.chronicPlaceholder
               }
-              rows={6}
+              rows={3}
               className="w-full text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3 py-2 placeholder-gray-300 font-mono focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+              style={{ minHeight: '80px', overflow: 'hidden' }}
             />
           </div>
 
@@ -544,11 +563,14 @@ export default function ConsultationEditor({ consultation, patient, previousCons
               {lang === 'ru' ? 'Рекомендации' : 'Recommendations'}
             </label>
             <textarea
+              data-autoresize
               value={recommendations}
               onChange={e => handleFieldChange('recommendations', e.target.value)}
+              onInput={e => autoResize(e.currentTarget)}
               placeholder={lang === 'ru' ? 'Диета, режим, повторный приём...' : 'Diet, regimen, follow-up...'}
               rows={2}
               className="w-full text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3 py-2 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+              style={{ minHeight: '56px', overflow: 'hidden' }}
             />
           </div>
 
