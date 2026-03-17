@@ -12,6 +12,7 @@ import EditorHeader from './components/EditorHeader'
 import EditorToolbar from './components/EditorToolbar'
 import SymptomInput from './components/SymptomInput'
 import CaseFormulation from './components/CaseFormulation'
+import InlineRx from './components/InlineRx'
 import PrescriptionModal from './PrescriptionModal'
 import MiniRepertory from './MiniRepertory'
 import RightPanel from './right-panel/RightPanel'
@@ -210,22 +211,27 @@ function EditorInner({ paidSessionsEnabled }: { paidSessionsEnabled: boolean }) 
                 />
               </section>
 
-              {/* Анализ */}
-              <section>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#1a3020' }}>
-                  {lang === 'ru' ? 'Анализ' : 'Analysis'}
-                </label>
-                <textarea
-                  data-autoresize
-                  value={state.notes}
-                  onChange={e => updateField('notes', e.target.value)}
-                  onInput={e => autoResize(e.currentTarget)}
-                  placeholder={lang === 'ru' ? 'DD, обоснование выбора...' : 'DD, rationale...'}
-                  rows={2}
-                  className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
-                  style={{ minHeight: '56px', overflow: 'hidden' }}
-                />
-              </section>
+              {/* InlineRx — только в Quick Mode */}
+              {state.mode === 'quick' && <InlineRx consultationId={consultation.id} />}
+
+              {/* Анализ — только в Deep Mode */}
+              {state.mode === 'deep' && (
+                <section>
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#1a3020' }}>
+                    {lang === 'ru' ? 'Анализ' : 'Analysis'}
+                  </label>
+                  <textarea
+                    data-autoresize
+                    value={state.notes}
+                    onChange={e => updateField('notes', e.target.value)}
+                    onInput={e => autoResize(e.currentTarget)}
+                    placeholder={lang === 'ru' ? 'DD, обоснование выбора...' : 'DD, rationale...'}
+                    rows={2}
+                    className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                    style={{ minHeight: '56px', overflow: 'hidden' }}
+                  />
+                </section>
+              )}
 
               {/* План */}
               <section>
@@ -237,10 +243,12 @@ function EditorInner({ paidSessionsEnabled }: { paidSessionsEnabled: boolean }) 
                   value={state.recommendations}
                   onChange={e => updateField('recommendations', e.target.value)}
                   onInput={e => autoResize(e.currentTarget)}
-                  placeholder={lang === 'ru' ? 'Цель, контроль через...' : 'Goal, follow-up in...'}
-                  rows={2}
+                  placeholder={state.mode === 'quick'
+                    ? (lang === 'ru' ? 'Контроль через...' : 'Follow-up in...')
+                    : (lang === 'ru' ? 'Цель, контроль через...' : 'Goal, follow-up in...')}
+                  rows={state.mode === 'quick' ? 1 : 3}
                   className="w-full text-[14px] text-gray-800 leading-[1.8] resize-none focus:outline-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
-                  style={{ minHeight: '56px', overflow: 'hidden' }}
+                  style={{ minHeight: state.mode === 'quick' ? '40px' : '56px', overflow: 'hidden' }}
                 />
               </section>
 

@@ -93,6 +93,9 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
   // Ref для доступа к актуальному состоянию внутри таймера
   const stateRef = useRef<State>(null!)
 
+  // Ref для доступа к актуальному assessment внутри таймера автосохранения
+  const assessmentRef = useRef<ClinicalAssessment>(null!)
+
   const initialState: State = {
     notes: consultation.notes || '',
     complaints: consultation.complaints || '',
@@ -125,6 +128,7 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
 
       try {
         // Батч-сохранение всех полей одновременно
+        const currentAssessment = assessmentRef.current
         await Promise.all([
           updateConsultationNotes(consultation.id, s.notes),
           updateConsultationFields(consultation.id, {
@@ -132,6 +136,9 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
             observations: s.observations,
             recommendations: s.recommendations,
             structured_symptoms: s.symptoms,
+            mode: s.mode,
+            case_state: currentAssessment?.caseState ?? null,
+            clinical_assessment: currentAssessment ?? null,
           }),
           updateConsultationExtra(consultation.id, s.rubrics, s.reactionToPrev),
         ])
@@ -186,6 +193,7 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
     dispatch({ type: 'SET_SAVE_STATE', state: 'saving' })
 
     try {
+      const currentAssessment = assessmentRef.current
       await Promise.all([
         updateConsultationNotes(consultation.id, s.notes),
         updateConsultationFields(consultation.id, {
@@ -193,6 +201,8 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
           observations: s.observations,
           recommendations: s.recommendations,
           structured_symptoms: s.symptoms,
+          case_state: currentAssessment?.caseState ?? null,
+          clinical_assessment: currentAssessment ?? null,
         }),
         updateConsultationExtra(consultation.id, s.rubrics, s.reactionToPrev),
       ])
@@ -216,6 +226,9 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
       lang,
     )
   }, [state.symptoms, previousConsultation?.structured_symptoms, previousConsultation?.case_state, lang])
+
+  // Обновляем ref при каждом пересчёте assessment
+  assessmentRef.current = assessment
 
   // --- Значение контекста ---
 

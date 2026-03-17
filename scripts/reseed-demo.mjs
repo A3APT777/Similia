@@ -30,6 +30,35 @@ const scheduledAt = (daysOffset, hour) => {
 
 const tok = () => randomUUID().replace(/-/g, '')
 
+// Pre-generate symptom IDs for cross-consultation tracking (Иванова)
+const SYM = {
+  migraine: randomUUID(),
+  pulsating: randomUUID(),
+  nausea: randomUUID(),
+  worse_light: randomUUID(),
+  worse_noise: randomUUID(),
+  better_dark: randomUUID(),
+  better_sleep: randomUUID(),
+  anxiety: randomUUID(),
+  sleep_shallow: randomUUID(),
+  // Новые во 2-й консультации:
+  worse_consolation: randomUUID(),
+  salt_craving: randomUUID(),
+  grief: randomUUID(),
+}
+
+// Symptom IDs для Петрова
+const SYM_P = {
+  fever: randomUUID(),
+  cough: randomUUID(),
+  restless: randomUUID(),
+  worse_midnight: randomUUID(),
+  worse_cold: randomUUID(),
+  better_warm: randomUUID(),
+  better_hugs: randomUUID(),
+  thirst_sips: randomUUID(),
+}
+
 // ── Удаляем всё ──
 const { data: old } = await sb.from('patients').select('id').eq('doctor_id', doctorId)
 for (const p of (old || [])) {
@@ -90,6 +119,17 @@ if (p1) {
     recommendations: 'Bryonia 30C при приступе. Повтор через 2ч. Повторный приём через 4 недели.',
     remedy: 'Bryonia', potency: '30C', pellets: 5,
     dosage: '5 гранул под язык при приступе',
+    structured_symptoms: [
+      { id: SYM.migraine, label: "Мигрень с аурой 3-4/мес", category: "chief_complaint", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.pulsating, label: "Пульсирующая боль правой половины", category: "chief_complaint", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.nausea, label: "Тошнота при приступе", category: "concomitant", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.worse_light, label: "Хуже от яркого света", category: "modality_worse", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.worse_noise, label: "Хуже от шума", category: "modality_worse", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.better_dark, label: "Лучше в тёмной комнате", category: "modality_better", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.better_sleep, label: "Лучше от сна", category: "modality_better", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.anxiety, label: "Тревога за детей", category: "mental", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.sleep_shallow, label: "Сон поверхностный", category: "sleep", dynamics: "new", createdAt: "2026-01-15T10:00:00Z" },
+    ],
   }).select('id').single()
 
   if (c1) {
@@ -113,6 +153,28 @@ if (p1) {
     reaction_to_previous: 'Bryonia 30C — хорошо. Приступы короче и реже.',
     remedy: 'Natrum Muriaticum', potency: '200C', pellets: 1,
     dosage: '1 гранула однократно, вечером',
+    case_state: 'improving',
+    clinical_assessment: {
+      caseState: 'improving',
+      suggestedDecision: 'continue',
+      decisionStatus: 'confirmed',
+      confirmedDecision: 'continue',
+      summary: '10 симпт. 4↑ 0↓ 3+ 1✓ 2=',
+      reasoning: 'better: 4, worse: 0, same: 2, new: 3, resolved: 1',
+      computedAt: new Date().toISOString(),
+    },
+    structured_symptoms: [
+      { id: SYM.migraine, label: "Мигрень 2/мес (было 3-4)", category: "chief_complaint", dynamics: "better", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.pulsating, label: "Пульсирующая боль справа", category: "chief_complaint", dynamics: "same", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.worse_light, label: "Хуже от света", category: "modality_worse", dynamics: "same", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.better_dark, label: "Лучше в тёмной комнате", category: "modality_better", dynamics: "same", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.better_sleep, label: "Лучше от сна", category: "modality_better", dynamics: "better", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.anxiety, label: "Тревога за детей", category: "mental", dynamics: "better", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.sleep_shallow, label: "Сон улучшился", category: "sleep", dynamics: "better", createdAt: "2026-01-15T10:00:00Z" },
+      { id: SYM.worse_consolation, label: "Хуже от утешения", category: "modality_worse", dynamics: "new", createdAt: "2026-02-15T10:00:00Z" },
+      { id: SYM.salt_craving, label: "Тяга к соли", category: "appetite", dynamics: "new", createdAt: "2026-02-15T10:00:00Z" },
+      { id: SYM.grief, label: "Горе: смерть отца 5 лет назад", category: "mental", dynamics: "new", createdAt: "2026-02-15T10:00:00Z" },
+    ],
   }).select('id').single()
 
   if (c2) {
@@ -158,6 +220,16 @@ if (p2) {
     recommendations: 'Aconitum 30C каждые 2 часа при температуре. При улучшении реже. Обильное тёплое питьё. Контроль через 24ч.',
     remedy: 'Aconitum', potency: '30C', pellets: 3,
     dosage: '3 гранулы каждые 2 часа',
+    structured_symptoms: [
+      { id: SYM_P.fever, label: "Температура 39.2", category: "chief_complaint", dynamics: "new", createdAt: "2026-03-12T10:00:00Z" },
+      { id: SYM_P.cough, label: "Сухой лающий кашель", category: "chief_complaint", dynamics: "new", createdAt: "2026-03-12T10:00:00Z" },
+      { id: SYM_P.restless, label: "Беспокойство, пугливость", category: "mental", dynamics: "new", createdAt: "2026-03-12T10:00:00Z" },
+      { id: SYM_P.worse_midnight, label: "Хуже после полуночи", category: "modality_worse", dynamics: "new", createdAt: "2026-03-12T10:00:00Z" },
+      { id: SYM_P.worse_cold, label: "Хуже от холодного воздуха", category: "modality_worse", dynamics: "new", createdAt: "2026-03-12T10:00:00Z" },
+      { id: SYM_P.better_warm, label: "Лучше от тепла", category: "modality_better", dynamics: "new", createdAt: "2026-03-12T10:00:00Z" },
+      { id: SYM_P.better_hugs, label: "Лучше от маминых объятий", category: "modality_better", dynamics: "new", createdAt: "2026-03-12T10:00:00Z" },
+      { id: SYM_P.thirst_sips, label: "Пьёт маленькими глотками", category: "concomitant", dynamics: "new", createdAt: "2026-03-12T10:00:00Z" },
+    ],
   }).select('id').single()
 
   if (c3) {

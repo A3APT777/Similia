@@ -18,7 +18,7 @@ type Props = {
 }
 
 export default function EditorToolbar({ onOpenRepertory }: Props) {
-  const { state, toggleType } = useConsultation()
+  const { state, toggleType, dispatch } = useConsultation()
   const { lang } = useLanguage()
 
   const { type, complaints, observations, notes, recommendations } = state
@@ -45,6 +45,32 @@ export default function EditorToolbar({ onOpenRepertory }: Props) {
         )}
         {typeLabel}
       </button>
+
+      {/* Quick / Deep */}
+      <div className="inline-flex items-center rounded-lg border border-gray-200 overflow-hidden" style={{ backgroundColor: '#f5f0e8' }}>
+        <button
+          type="button"
+          onClick={() => dispatch({ type: 'SET_FIELD', field: 'mode', value: 'quick' })}
+          className="text-[11px] font-semibold px-2.5 py-1.5 transition-all"
+          style={{
+            backgroundColor: state.mode === 'quick' ? '#2d6a4f' : 'transparent',
+            color: state.mode === 'quick' ? '#fff' : '#9a8a6a',
+          }}
+        >
+          Quick {state.mode === 'quick' && '●'}
+        </button>
+        <button
+          type="button"
+          onClick={() => dispatch({ type: 'SET_FIELD', field: 'mode', value: 'deep' })}
+          className="text-[11px] font-semibold px-2.5 py-1.5 transition-all"
+          style={{
+            backgroundColor: state.mode === 'deep' ? '#2d6a4f' : 'transparent',
+            color: state.mode === 'deep' ? '#fff' : '#9a8a6a',
+          }}
+        >
+          Deep {state.mode === 'deep' && '●'}
+        </button>
+      </div>
 
       {/* Реперторий */}
       <button
