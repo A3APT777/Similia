@@ -40,6 +40,9 @@
 - Загрузка фото пациентов через публичный токен
 - Файл: `src/lib/actions/photoUpload.ts`
 - Используется service client (bypass RLS)
+- Bucket: `patient-photos`
+- Форматы: JPEG, PNG, WebP, HEIC
+- Путь: `{doctor_id}/{patient_id}/{timestamp}.{ext}`
 - Максимальный размер: 10MB (хардкод в `photos.ts`)
 
 ---
@@ -57,6 +60,13 @@
 
 - Опциональный: подключается если задан `NEXT_PUBLIC_METRIKA_ID`
 - Инициализируется в `src/app/layout.tsx`
+
+---
+
+## Кэширование
+
+- Поиск по реперторию: `unstable_cache` (Next.js) с TTL 24ч через service client
+- Статичные данные репертория не меняются → безопасно кэшировать
 
 ---
 

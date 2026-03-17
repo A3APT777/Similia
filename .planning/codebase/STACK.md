@@ -49,7 +49,7 @@
 
 ## Configuration
 - `tsconfig.json` — `strict: true`, path alias `@/*` → `src/*`
-- `next.config.ts` — стандартная конфигурация Next.js
+- `next.config.ts` — security headers: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
 - **Environment variables:**
   - `NEXT_PUBLIC_SUPABASE_URL` — URL Supabase проекта
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — публичный ключ
