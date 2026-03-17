@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateConsultationNotes, updateConsultationType, updateConsultationExtra } from '@/lib/actions/consultations'
+import { updateConsultationNotes, updateConsultationType, updateConsultationExtra, updateConsultationFields } from '@/lib/actions/consultations'
 import { decrementPaidSession } from '@/lib/actions/payments'
 import { Consultation, Patient, ConsultationType } from '@/types'
 import { useToast } from '@/components/ui/toast'
@@ -37,6 +37,9 @@ export default function ConsultationEditor({ consultation, patient, previousCons
   const { toast } = useToast()
   const { lang } = useLanguage()
   const [notes, setNotes] = useState(consultation.notes || '')
+  const [complaints, setComplaints] = useState(consultation.complaints || '')
+  const [observations, setObservations] = useState(consultation.observations || '')
+  const [recommendations, setRecommendations] = useState(consultation.recommendations || '')
   const [showZeroWarning, setShowZeroWarning] = useState(false)
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -53,8 +56,10 @@ export default function ConsultationEditor({ consultation, patient, previousCons
   const [pendingPrescription, setPendingPrescription] = useState<{ abbrev: string; potency: string; dosage: string } | null>(null)
   const [, startTypeTransition] = useTransition()
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const fieldsTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Автосохранение заметок (основное поле)
   function handleChange(value: string) {
     setNotes(value)
     setSaveState('unsaved')
@@ -72,10 +77,35 @@ export default function ConsultationEditor({ consultation, patient, previousCons
     }, 1500)
   }
 
+  // Автосохранение структурированных полей (жалобы, наблюдения, рекомендации)
+  function handleFieldChange(field: 'complaints' | 'observations' | 'recommendations', value: string) {
+    if (field === 'complaints') setComplaints(value)
+    else if (field === 'observations') setObservations(value)
+    else setRecommendations(value)
+
+    setSaveState('unsaved')
+    clearTimeout(fieldsTimerRef.current)
+    fieldsTimerRef.current = setTimeout(async () => {
+      setSaveState('saving')
+      try {
+        const fields: Record<string, string> = {}
+        fields[field] = value
+        await updateConsultationFields(consultation.id, fields)
+        setSaveState('saved')
+        setSavedAt(new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))
+      } catch {
+        setSaveState('unsaved')
+        toast(t(lang).consultation.saveError)
+      }
+    }, 1500)
+  }
+
   async function doFinish() {
     if (saveState !== 'saved') {
       clearTimeout(timerRef.current)
+      clearTimeout(fieldsTimerRef.current)
       await updateConsultationNotes(consultation.id, notes)
+      await updateConsultationFields(consultation.id, { complaints, observations, recommendations })
     }
     setShowPrescription(true)
   }
@@ -185,7 +215,8 @@ export default function ConsultationEditor({ consultation, patient, previousCons
     label: type === 'chronic' ? t(lang).consultation.chronic : t(lang).consultation.acute,
     short: type === 'chronic' ? t(lang).consultation.chronicShort : t(lang).consultation.acuteShort,
   }
-  const wordCount = notes.trim() ? notes.trim().split(/\s+/).length : 0
+  const allText = [complaints, observations, notes, recommendations].filter(Boolean).join(' ')
+  const wordCount = allText.trim() ? allText.trim().split(/\s+/).length : 0
 
   return (
     <>
@@ -425,19 +456,72 @@ export default function ConsultationEditor({ consultation, patient, previousCons
           )}
         </div>
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          value={notes}
-          onChange={e => handleChange(e.target.value)}
-          autoFocus
-          placeholder={
-            type === 'acute'
-              ? t(lang).consultation.acutePlaceholder
-              : t(lang).consultation.chronicPlaceholder
-          }
-          className="flex-1 w-full px-5 lg:px-7 py-5 lg:py-6 text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-[#faf7f2] placeholder-gray-300 font-mono min-h-[60vh] lg:min-h-0"
-        />
+        {/* Структурированные секции приёма */}
+        <div className="flex-1 overflow-y-auto bg-[#faf7f2] min-h-[60vh] lg:min-h-0">
+
+          {/* Жалобы */}
+          <div className="px-5 lg:px-7 pt-4 pb-2">
+            <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#9a8a6a' }}>
+              {lang === 'ru' ? 'Жалобы' : 'Complaints'}
+            </label>
+            <textarea
+              value={complaints}
+              onChange={e => handleFieldChange('complaints', e.target.value)}
+              autoFocus
+              placeholder={lang === 'ru' ? 'Что беспокоит пациента...' : 'Patient complaints...'}
+              rows={3}
+              className="w-full text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3 py-2 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+            />
+          </div>
+
+          {/* Наблюдения */}
+          <div className="px-5 lg:px-7 py-2">
+            <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#9a8a6a' }}>
+              {lang === 'ru' ? 'Наблюдения' : 'Observations'}
+            </label>
+            <textarea
+              value={observations}
+              onChange={e => handleFieldChange('observations', e.target.value)}
+              placeholder={lang === 'ru' ? 'Ощущения, модальности, общие симптомы...' : 'Sensations, modalities, general symptoms...'}
+              rows={3}
+              className="w-full text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3 py-2 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+            />
+          </div>
+
+          {/* Заметки (свободная форма — обратная совместимость) */}
+          <div className="px-5 lg:px-7 py-2">
+            <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#9a8a6a' }}>
+              {lang === 'ru' ? 'Заметки' : 'Notes'}
+            </label>
+            <textarea
+              ref={textareaRef}
+              value={notes}
+              onChange={e => handleChange(e.target.value)}
+              placeholder={
+                type === 'acute'
+                  ? t(lang).consultation.acutePlaceholder
+                  : t(lang).consultation.chronicPlaceholder
+              }
+              rows={6}
+              className="w-full text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3 py-2 placeholder-gray-300 font-mono focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+            />
+          </div>
+
+          {/* Рекомендации */}
+          <div className="px-5 lg:px-7 pt-2 pb-4">
+            <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#9a8a6a' }}>
+              {lang === 'ru' ? 'Рекомендации' : 'Recommendations'}
+            </label>
+            <textarea
+              value={recommendations}
+              onChange={e => handleFieldChange('recommendations', e.target.value)}
+              placeholder={lang === 'ru' ? 'Диета, режим, повторный приём...' : 'Diet, regimen, follow-up...'}
+              rows={2}
+              className="w-full text-[13.5px] text-gray-800 leading-[1.75] resize-none focus:outline-none bg-white border border-gray-200 rounded-lg px-3 py-2 placeholder-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 transition-all"
+            />
+          </div>
+
+        </div>
       </div>
 
       {/* ══════════ Правая колонка ══════════ */}

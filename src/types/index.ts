@@ -16,12 +16,22 @@ export type Patient = {
 export type ConsultationStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 export type ConsultationType = 'chronic' | 'acute'
 
+export type RepertoryEntry = {
+  rubricId: number
+  fullpath: string
+  weight: 1 | 2 | 3
+}
+
 export type Consultation = {
   id: string
   patient_id: string
   doctor_id: string
   date: string
   notes: string
+  complaints: string
+  observations: string
+  recommendations: string
+  repertory_data: RepertoryEntry[]
   scheduled_at: string | null
   status: ConsultationStatus
   type: ConsultationType

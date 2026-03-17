@@ -244,6 +244,34 @@ export async function updateConsultationExtra(
     .eq('doctor_id', user.id)
 }
 
+// Сохранить структурированные поля приёма
+export async function updateConsultationFields(
+  id: string,
+  fields: {
+    complaints?: string
+    observations?: string
+    recommendations?: string
+    repertory_data?: unknown[]
+  }
+): Promise<void> {
+  uuidSchema.parse(id)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (fields.complaints !== undefined) update.complaints = fields.complaints
+  if (fields.observations !== undefined) update.observations = fields.observations
+  if (fields.recommendations !== undefined) update.recommendations = fields.recommendations
+  if (fields.repertory_data !== undefined) update.repertory_data = fields.repertory_data
+
+  await supabase
+    .from('consultations')
+    .update(update)
+    .eq('id', id)
+    .eq('doctor_id', user.id)
+}
+
 export async function deleteConsultation(id: string, patientId: string) {
   uuidSchema.parse(id)
   uuidSchema.parse(patientId)

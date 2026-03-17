@@ -277,6 +277,32 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           <PhotoSection patientId={id} photos={photos || []} />
         </div>
 
+        {/* Приглашение начать первый приём */}
+        {(!consultations || consultations.length === 0) && (
+          <div className="mb-5 rounded-2xl p-6 text-center" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1.5px dashed var(--color-primary)' }}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
+              <svg className="w-6 h-6" style={{ color: 'var(--color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>
+              {lang === 'ru' ? 'Начните первый приём' : 'Start first appointment'}
+            </p>
+            <p className="text-xs text-gray-400 mb-4">
+              {lang === 'ru' ? 'Создайте консультацию — жалобы, наблюдения, назначение' : 'Create a consultation — complaints, observations, prescription'}
+            </p>
+            <form action={newChronicConsultation} className="inline-block">
+              <button
+                type="submit"
+                className="font-medium transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '8px', fontSize: '14px', padding: '10px 24px' }}
+              >
+                {lang === 'ru' ? '→ Начать приём' : '→ Start appointment'}
+              </button>
+            </form>
+          </div>
+        )}
+
         {/* Таймлайн лечения */}
         <div>
           <div className="flex items-center justify-between mb-5">
