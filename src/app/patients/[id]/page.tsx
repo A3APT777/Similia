@@ -112,18 +112,41 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         ? { arrow: '→', text: lang === 'ru' ? 'Без изменений' : 'No change', color: '#ca8a04' }
         : null
 
-  // Ключевое состояние — первая строка жалоб, чистая
-  const keyCondition = lastComplaints
-    ? lastComplaints.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !/^(ЖАЛОБЫ|COMPLAINTS|—)/i.test(l))[0]?.substring(0, 100) || ''
+  // Клиническая формулировка состояния (не сырые симптомы)
+  const lastType = lastCompleted?.type
+  const rawComplaint = lastComplaints
+    ? lastComplaints.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !/^(ЖАЛОБЫ|COMPLAINTS|—)/i.test(l))[0]?.substring(0, 80) || ''
     : ''
 
-  // Симптомы как список пунктов (для блока диагноз)
+  const clinicalSummary = (() => {
+    if (!lastCompleted) return ''
+    const isAcuteCase = lastType === 'acute'
+    const hasDynamics = lastFollowup?.status
+    if (isAcuteCase && rawComplaint) {
+      return lang === 'ru' ? `Острое состояние: ${rawComplaint.toLowerCase()}` : `Acute: ${rawComplaint.toLowerCase()}`
+    }
+    if (hasDynamics === 'better' && rawComplaint) {
+      return lang === 'ru' ? `${rawComplaint}. Положительная динамика` : `${rawComplaint}. Improving`
+    }
+    if (hasDynamics === 'worse' && rawComplaint) {
+      return lang === 'ru' ? `${rawComplaint}. Ухудшение` : `${rawComplaint}. Worsening`
+    }
+    if (hasDynamics === 'same' && rawComplaint) {
+      return lang === 'ru' ? `${rawComplaint}. Без динамики` : `${rawComplaint}. No change`
+    }
+    return rawComplaint
+  })()
+
+  // Доп. факты — только если >1 строки жалоб
   const symptomBullets = lastComplaints
     ? lastComplaints.split('\n')
         .map((l: string) => l.trim())
         .filter((l: string) => l && !/^(ЖАЛОБЫ|COMPLAINTS|—)/i.test(l))
-        .slice(0, 4)
+        .slice(1, 4)
     : []
+
+  // Цель лечения — из recommendations последнего назначения
+  const treatmentGoal = currentPrescription?.recommendations || ''
 
   return (
     <AppShell>
@@ -153,17 +176,17 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               {patient.birth_date && <span className="text-sm font-normal ml-2" style={{ color: '#8a7a6a' }}>{getAge(patient.birth_date)}</span>}
             </h1>
 
-            {/* Ключевое состояние — 1 строка крупно */}
-            {keyCondition && (
+            {/* Клиническая формулировка — суть, не симптомы */}
+            {clinicalSummary && (
               <p className="text-[15px] font-semibold mt-1.5 leading-snug" style={{ color: '#1a3020' }}>
-                {keyCondition}
+                {clinicalSummary}
               </p>
             )}
 
-            {/* Факты — bullets */}
-            {symptomBullets.length > 1 && (
-              <ul className="mt-2 space-y-0.5">
-                {symptomBullets.slice(1, 4).map((s: string, i: number) => (
+            {/* Доп. факты — коротко */}
+            {symptomBullets.length > 0 && (
+              <ul className="mt-1.5 space-y-0.5">
+                {symptomBullets.map((s: string, i: number) => (
                   <li key={i} className="flex items-start gap-1.5 text-[13px]" style={{ color: '#5a5040' }}>
                     <span className="shrink-0 mt-[7px] w-1 h-1 rounded-full" style={{ backgroundColor: '#9a8a6a' }} />
                     <span className="leading-snug">{s}</span>
@@ -183,11 +206,10 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               </div>
             )}
 
-            {/* Контакты — минимум */}
-            <div className="flex flex-wrap items-center gap-x-2 mt-2 text-[10px]" style={{ color: '#b0a090' }}>
-              {patient.phone && <a href={`tel:${patient.phone}`} className="hover:text-emerald-700">{patient.phone}</a>}
-              {patient.constitutional_type && <><span>·</span><span style={{ color: '#2d6a4f' }}>{patient.constitutional_type}</span></>}
-              {lastVisitDate && <><span>·</span><span>{lang === 'ru' ? 'Посл.' : 'Last'} {formatDate(lastVisitDate)}</span></>}
+            {/* Мета — почти невидимо, но кликабельно */}
+            <div className="flex flex-wrap items-center gap-x-2 mt-3 text-[10px]" style={{ color: '#c0b8a8' }}>
+              {patient.phone && <a href={`tel:${patient.phone}`} className="hover:text-emerald-700 transition-colors">{patient.phone}</a>}
+              {patient.constitutional_type && <><span>·</span><span>{patient.constitutional_type}</span></>}
             </div>
 
             {/* CTA */}
@@ -238,15 +260,19 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                     <span>{currentPrescription.dosage}</span>
                   </div>
                 )}
-                {currentPrescription.recommendations && (
-                  <div className="flex items-start gap-2 text-[13px]" style={{ color: '#6a604a' }}>
-                    <span className="shrink-0 mt-0.5 font-semibold" style={{ color: '#9a8a6a' }}>!</span>
-                    <span>{currentPrescription.recommendations}</span>
-                  </div>
-                )}
               </div>
 
-              <p className="text-[10px] mt-3" style={{ color: '#9a8a6a' }}>{formatDate(currentPrescription.date)}</p>
+              {/* Цель лечения */}
+              {treatmentGoal && (
+                <div className="mt-3 pt-2.5" style={{ borderTop: '1px solid rgba(45,106,79,0.15)' }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#2d6a4f' }}>
+                    {lang === 'ru' ? 'Цель' : 'Goal'}
+                  </p>
+                  <p className="text-[13px] leading-snug" style={{ color: '#3a3020' }}>{treatmentGoal}</p>
+                </div>
+              )}
+
+              <p className="text-[10px] mt-2.5" style={{ color: '#b0a090' }}>{formatDate(currentPrescription.date)}</p>
             </div>
           </div>
         )}
@@ -290,15 +316,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
 
         {/* ═══ 4. ИСТОРИЯ ПРИЁМОВ ═══ */}
         {(!consultations || consultations.length === 0) ? (
-          <div className="mb-5 rounded-2xl p-6 text-center" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1.5px dashed var(--color-primary)' }}>
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
-              <svg className="w-6 h-6" style={{ color: 'var(--color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            </div>
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-primary)' }}>{lang === 'ru' ? 'Начните первый приём' : 'Start first appointment'}</p>
-            <p className="text-xs text-gray-400 mb-4">{lang === 'ru' ? 'Создайте консультацию — жалобы, наблюдения, назначение' : 'Create a consultation — complaints, observations, prescription'}</p>
-            <form action={newChronicConsultation} className="inline-block">
-              <button type="submit" className="font-medium transition-opacity hover:opacity-90" style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '8px', fontSize: '14px', padding: '10px 24px' }}>{lang === 'ru' ? '→ Начать приём' : '→ Start appointment'}</button>
-            </form>
+          <div className="mb-5 rounded-2xl p-5 text-center" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1.5px dashed var(--color-border-light)' }}>
+            <p className="text-sm text-gray-400">{lang === 'ru' ? 'Нет приёмов. Нажмите «Начать первый приём» выше.' : 'No appointments yet. Click "Start first appointment" above.'}</p>
           </div>
         ) : (
           <div className="mb-5">
