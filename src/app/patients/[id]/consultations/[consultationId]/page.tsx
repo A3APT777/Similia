@@ -22,21 +22,29 @@ export default async function ConsultationPage({
 
   if (!consultation || !patient) notFound()
 
-  const { data: previousConsultation } = await supabase
-    .from('consultations')
-    .select('*')
-    .eq('patient_id', id)
-    .neq('id', consultationId)
-    .lt('created_at', consultation.created_at)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+  const [{ data: previousConsultation }, { count: visitCount }] = await Promise.all([
+    supabase
+      .from('consultations')
+      .select('*')
+      .eq('patient_id', id)
+      .neq('id', consultationId)
+      .lt('created_at', consultation.created_at)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from('consultations')
+      .select('*', { count: 'exact', head: true })
+      .eq('patient_id', id)
+      .eq('doctor_id', user.id)
+      .neq('status', 'cancelled'),
+  ])
 
   const name = user?.user_metadata?.name || user?.email || ''
   const { paid_sessions_enabled } = await getDoctorSettings()
 
   return (
-    <div className="min-h-screen bg-[#ede7dd] flex flex-col">
+    <div className="min-h-[100dvh] bg-[#ede7dd] flex flex-col">
       {/* Шапка */}
       <nav className="h-[54px] bg-[#ede7dd] border-b border-gray-100 px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
         <Link
@@ -46,7 +54,7 @@ export default async function ConsultationPage({
           <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="font-medium">{patient.name}</span>
+          <span className="font-medium truncate max-w-[140px] sm:max-w-none">{patient.name}</span>
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-300 hidden sm:block">{name.split(' ')[0]}</span>
@@ -59,6 +67,7 @@ export default async function ConsultationPage({
         patient={patient}
         previousConsultation={previousConsultation || null}
         paidSessionsEnabled={paid_sessions_enabled}
+        visitNumber={visitCount ?? 1}
       />
     </div>
   )

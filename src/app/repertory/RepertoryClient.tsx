@@ -2,9 +2,11 @@
 
 import { useState, useRef, useMemo, useEffect } from 'react'
 import { searchRepertory, getPatientsSimple, type RepertoryRubric } from '@/lib/actions/repertory'
+import { saveRepertoryData } from '@/lib/actions/consultations'
 import { translateRubric } from '@/lib/repertory-translations'
 import { useLanguage } from '@/hooks/useLanguage'
 import { t } from '@/lib/i18n'
+import TourRepertoryStarter from '@/components/TourRepertoryStarter'
 
 // ── Цветовая схема V3 ─────────────────────────────────────────────
 const C = {
@@ -33,10 +35,13 @@ const SECTION_GROUPS = [
   { ru: 'Кожа · Общее', en: 'Skin · General', chapters: ['Skin', 'Generalities', 'Blood', 'Clinical'] },
 ]
 
+// Цвета для coverage dots — по одному на каждую рубрику в анализе
+const COVERAGE_COLORS = ['#2d6a4f', '#c8a035', '#2563eb', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#6b7280']
+
 const RECENT_KEY = 'hc-recent-rubrics'
 const MAX_RECENT = 10
 
-type AnalysisEntry = { rubric: RepertoryRubric; weight: 1 | 2 | 3 }
+type AnalysisEntry = { rubric: RepertoryRubric; weight: 1 | 2 | 3; eliminate?: boolean }
 
 type PrescribeModal = {
   abbrev: string
@@ -67,6 +72,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   // Анализ
   const [analysisEntries, setAnalysisEntries] = useState<AnalysisEntry[]>([])
   const [showAnalysis, setShowAnalysis] = useState(true)
+  const [coverageOnly, setCoverageOnly] = useState(false)
 
   // Недавно использованные
   const [recentRubrics, setRecentRubrics] = useState<RepertoryRubric[]>([])
@@ -76,6 +82,9 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
   // Модал "Выписать"
   const [prescribeModal, setPrescribeModal] = useState<PrescribeModal>(null)
+
+  // Сохранение анализа в консультацию
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   // Контекст кнопки "В консультацию"
   const [lastConsultation, setLastConsultation] = useState<string | null>(null)
@@ -113,16 +122,41 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   }, [rubrics])
 
   // ── Рейтинг препаратов по добавленным рубрикам ───────────────────
+  // coverage[i] = грейд препарата в i-й рубрике (0 = отсутствует)
   const analysisScores = useMemo(() => {
-    const scores: Record<string, { name: string; total: number }> = {}
-    analysisEntries.forEach(ae => {
+    const n = analysisEntries.length
+    const scores: Record<string, { name: string; total: number; coverage: number[]; coveredCount: number }> = {}
+    analysisEntries.forEach((ae, idx) => {
       ae.rubric.remedies.forEach(r => {
-        if (!scores[r.abbrev]) scores[r.abbrev] = { name: r.name, total: 0 }
-        scores[r.abbrev].total += Number(r.grade) * ae.weight
+        if (!scores[r.abbrev]) {
+          scores[r.abbrev] = { name: r.name, total: 0, coverage: new Array(n).fill(0), coveredCount: 0 }
+        }
+        const g = Number(r.grade)
+        scores[r.abbrev].total += g * ae.weight
+        scores[r.abbrev].coverage[idx] = g
+        scores[r.abbrev].coveredCount++
       })
     })
-    return Object.entries(scores).sort((a, b) => b[1].total - a[1].total).slice(0, 20)
-  }, [analysisEntries])
+    let entries = Object.entries(scores).sort((a, b) => {
+      if (b[1].total !== a[1].total) return b[1].total - a[1].total
+      return b[1].coveredCount - a[1].coveredCount  // при равном score — кто в большем числе рубрик
+    })
+
+    // Элиминация: убираем все препараты, которых нет хотя бы в одной рубрике с eliminate=true
+    const eliminateEntries = analysisEntries.filter(ae => ae.eliminate)
+    if (eliminateEntries.length > 0) {
+      const eliminateIndices = eliminateEntries.map(ae => analysisEntries.indexOf(ae))
+      entries = entries.filter(([, d]) =>
+        eliminateIndices.every(idx => d.coverage[idx] > 0)
+      )
+    }
+
+    // Фильтр «только присутствующие во всех рубриках»
+    if (coverageOnly && n > 1) {
+      entries = entries.filter(([, d]) => d.coveredCount === n)
+    }
+    return entries.slice(0, 20)
+  }, [analysisEntries, coverageOnly])
 
   async function loadRubrics(q: string, gIdx: number, pg: number) {
     setLoading(true)
@@ -184,6 +218,36 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
     setAnalysisEntries(prev => prev.map(ae => ae.rubric.id === id ? { ...ae, weight } : ae))
   }
 
+  function toggleEliminate(id: number) {
+    setAnalysisEntries(prev => prev.map(ae => ae.rubric.id === id ? { ...ae, eliminate: !ae.eliminate } : ae))
+  }
+
+  async function handleSaveAnalysis() {
+    if (!lastConsultation || analysisEntries.length === 0) return
+    // Извлекаем consultationId из URL консультации: /patients/[id]/consultations/[consultationId]
+    const match = lastConsultation.match(/\/consultations\/([a-f0-9-]+)/)
+    if (!match) return
+    const consultationId = match[1]
+    setSaveStatus('saving')
+    try {
+      await saveRepertoryData(
+        consultationId,
+        analysisEntries.map(ae => ({
+          rubricId: ae.rubric.id,
+          fullpath: ae.rubric.fullpath,
+          fullpath_ru: ae.rubric.fullpath_ru,
+          weight: ae.weight,
+          eliminate: ae.eliminate,
+        }))
+      )
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2500)
+    } catch {
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus('idle'), 2500)
+    }
+  }
+
   function toggleExpand(id: number) {
     setExpandedIds(prev => {
       const next = new Set(prev)
@@ -222,17 +286,20 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
     if (!prescribeModal) return
     const { abbrev, potency, scheme, duration } = prescribeModal
     const dosage = [scheme, duration].filter(Boolean).join('. ')
-    localStorage.setItem('hc-pending-prescription', JSON.stringify({ abbrev, potency, dosage }))
+    const params = new URLSearchParams({ rx: abbrev, potency, dosage })
+    // Перейти обратно в консультацию с rx-параметрами в URL (надёжнее localStorage)
     const last = localStorage.getItem('hc-last-consultation')
-    window.location.href = last || '/patients'
+    const base = last || '/patients'
+    const sep = base.includes('?') ? '&' : '?'
+    window.location.href = `${base}${sep}${params}`
   }
 
   function goSelectPatient() {
     if (!prescribeModal) return
     const { abbrev, potency, scheme, duration } = prescribeModal
     const dosage = [scheme, duration].filter(Boolean).join('. ')
-    localStorage.setItem('hc-pending-prescription', JSON.stringify({ abbrev, potency, dosage }))
-    window.location.href = '/patients'
+    const params = new URLSearchParams({ rx: abbrev, potency, dosage })
+    window.location.href = `/patients?${params}`
   }
 
   const totalPages = Math.ceil(total / 30)
@@ -243,6 +310,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       className="flex flex-col h-full"
       style={{ fontFamily: 'Inter, sans-serif', backgroundColor: C.bg }}
     >
+      <TourRepertoryStarter />
       {/* ══════════════════════════════════════════
           ШАПКА
       ══════════════════════════════════════════ */}
@@ -259,6 +327,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
             <input
+              data-tour="rep-search"
               ref={searchRef}
               type="text"
               value={query}
@@ -520,6 +589,12 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     isFocused={focusedIndex === idx}
                     onToggleExpand={() => toggleExpand(rubric.id)}
                     onAddToAnalysis={() => addToAnalysis(rubric)}
+                    onNavigate={term => {
+                      setQuery(term)
+                      setGroupIndex(0) // переходим в «Все разделы»
+                      loadRubrics(term, 0, 0)
+                      searchRef.current?.focus()
+                    }}
                   />
                 ))}
 
@@ -557,6 +632,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
         {/* ─ Панель анализа (260px) ─────────────── */}
         <div
+          data-tour="rep-analysis"
           className={`shrink-0 flex-col border-l bg-white ${showAnalysis ? 'flex' : 'hidden'} lg:flex`}
           style={{ width: 260, borderColor: C.border }}
         >
@@ -615,8 +691,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     key={ae.rubric.id}
                     className="flex items-start gap-1.5 rounded-lg px-2 py-1.5"
                     style={{
-                      backgroundColor: 'rgba(45,106,79,0.05)',
-                      borderLeft: `3px solid ${C.link}`,
+                      backgroundColor: ae.eliminate ? 'rgba(220,38,38,0.06)' : 'rgba(45,106,79,0.05)',
+                      borderLeft: `3px solid ${ae.eliminate ? '#dc2626' : C.link}`,
                     }}
                   >
                     <span
@@ -626,6 +702,20 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                       {localize(ae.rubric).split(', ').slice(0, 3).join(', ')}
                     </span>
                     <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                      {/* Кнопка элиминации: E — только препараты с этой рубрикой проходят */}
+                      <button
+                        data-tour="rep-eliminate"
+                        onPointerDown={() => toggleEliminate(ae.rubric.id)}
+                        className="w-5 h-5 rounded text-[10px] font-bold transition-all flex items-center justify-center"
+                        style={{
+                          backgroundColor: ae.eliminate ? '#dc2626' : 'transparent',
+                          color: ae.eliminate ? 'white' : C.muted,
+                          border: `1px solid ${ae.eliminate ? '#dc2626' : C.border}`,
+                        }}
+                        title={lang === 'ru' ? 'Элиминация: оставить только препараты, присутствующие в этой рубрике' : 'Elimination: keep only remedies present in this rubric'}
+                      >
+                        E
+                      </button>
                       {([1, 2, 3] as const).map(w => (
                         <button
                           key={w}
@@ -656,71 +746,138 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
               {/* Топ препаратов */}
               {analysisScores.length > 0 && (
-                <div className="p-3 flex-1">
-                  <p
-                    className="text-[12px] font-semibold uppercase tracking-widest mb-3"
-                    style={{ color: C.muted }}
-                  >
-                    {t(lang).repertory.topRemedies}
-                  </p>
-                  <div className="space-y-1.5">
+                <div data-tour="rep-top-remedies" className="p-3 flex-1">
+                  {/* Баннер: элиминация активна */}
+                  {analysisEntries.some(ae => ae.eliminate) && (
+                    <div
+                      className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded text-[11px] font-medium"
+                      style={{ backgroundColor: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)' }}
+                    >
+                      <span>⊘</span>
+                      <span>{lang === 'ru' ? `Элиминация: ${analysisEntries.filter(ae => ae.eliminate).length} рубрик` : `Elimination: ${analysisEntries.filter(ae => ae.eliminate).length} rubrics`}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mb-2.5">
+                    <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: C.muted }}>
+                      {t(lang).repertory.topRemedies}
+                    </p>
+                    {/* Фильтр «только во всех рубриках» */}
+                    {analysisEntries.length > 1 && (
+                      <button
+                        onPointerDown={() => setCoverageOnly(v => !v)}
+                        className="text-[10px] px-1.5 py-0.5 rounded border transition-all"
+                        style={{
+                          borderColor: coverageOnly ? C.link : C.border,
+                          color: coverageOnly ? C.link : C.muted,
+                          backgroundColor: coverageOnly ? 'rgba(45,106,79,0.07)' : 'transparent',
+                          fontWeight: coverageOnly ? 600 : 400,
+                        }}
+                        title="Показывать только препараты, присутствующие во всех выбранных рубриках"
+                      >
+                        {lang === 'ru' ? 'Все рубрики' : 'All rubrics'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Легенда grade — всегда видна */}
+                  <div className="flex items-center gap-2.5 mb-2 flex-wrap">
+                    {[
+                      { label: lang === 'ru' ? 'Крупный' : 'Bold', opacity: '1', title: lang === 'ru' ? 'Грейд 3: препарат крупным шрифтом (Кент) — высокая степень соответствия' : 'Grade 3: bold type — highest confidence' },
+                      { label: lang === 'ru' ? 'Курсив' : 'Italic', opacity: 'aa', title: lang === 'ru' ? 'Грейд 2: препарат курсивом — средняя степень соответствия' : 'Grade 2: italic — moderate confidence' },
+                      { label: lang === 'ru' ? 'Обычный' : 'Plain', opacity: '55', title: lang === 'ru' ? 'Грейд 1: обычный шрифт — слабое соответствие' : 'Grade 1: plain — low confidence' },
+                    ].map(({ label, opacity, title }) => (
+                      <div key={label} className="flex items-center gap-0.5" title={title}>
+                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, backgroundColor: `${C.link}${opacity === '1' ? '' : opacity}`, flexShrink: 0 }} />
+                        <span className="text-[9px]" style={{ color: C.muted }}>{label}</span>
+                      </div>
+                    ))}
+                    {analysisEntries.length > 1 && (
+                      <span className="text-[9px]" style={{ color: C.muted }}>·</span>
+                    )}
+                    {analysisEntries.length > 1 && analysisEntries.map((ae, i) => (
+                      <div key={i} className="flex items-center gap-0.5" title={localize(ae.rubric)}>
+                        <span
+                          style={{
+                            display: 'inline-block', width: 8, height: 8, borderRadius: 2,
+                            backgroundColor: COVERAGE_COLORS[i % COVERAGE_COLORS.length],
+                            opacity: 0.85, flexShrink: 0,
+                          }}
+                        />
+                        <span className="text-[9px] truncate max-w-[50px]" style={{ color: C.muted }}>
+                          {localize(ae.rubric).split(', ').slice(-1)[0]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
                     {analysisScores.slice(0, 15).map(([abbrev, data], rank) => {
                       const maxScore = analysisScores[0]?.[1].total || 1
                       const pct = (data.total / maxScore) * 100
                       return (
-                        <div key={abbrev} className="group flex items-center gap-1.5">
-                          <span
-                            className="text-[13px] font-semibold shrink-0"
-                            style={{
-                              width: 50,
-                              color: rank === 0 ? C.link : C.text,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {abbrev}
-                          </span>
-                          <div
-                            className="flex-1 rounded-full overflow-hidden"
-                            style={{ height: 5, backgroundColor: '#e8e0d4' }}
-                          >
+                        <div key={abbrev} className="group">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="text-[13px] font-semibold shrink-0 truncate"
+                              style={{ width: 46, color: rank === 0 ? C.link : C.text }}
+                            >
+                              {abbrev}
+                            </span>
                             <div
-                              className="h-full rounded-full transition-all"
+                              className="flex-1 rounded-full overflow-hidden"
+                              style={{ height: 4, backgroundColor: '#e8e0d4' }}
+                            >
+                              <div
+                                className="h-full rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${pct}%`,
+                                  backgroundColor: rank === 0 ? C.link : rank < 3 ? '#6aad89' : '#9ca3af',
+                                }}
+                              />
+                            </div>
+                            <span
+                              className="text-[12px] font-bold shrink-0"
+                              style={{ width: 20, textAlign: 'right', color: C.secondary }}
+                            >
+                              {data.total}
+                            </span>
+                            <button
+                              type="button"
+                              onPointerDown={() => openPrescribeModal(abbrev, data.name)}
+                              className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] rounded"
                               style={{
-                                width: `${pct}%`,
-                                backgroundColor: rank === 0 ? C.link : '#9ca3af',
+                                border: `1px solid ${C.link}`, color: C.link,
+                                backgroundColor: 'transparent', padding: '1px 5px', lineHeight: 1.4,
                               }}
-                            />
+                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = C.link; e.currentTarget.style.color = 'white' }}
+                              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = C.link }}
+                            >
+                              Rx
+                            </button>
                           </div>
-                          <span
-                            className="text-[13px] font-bold shrink-0"
-                            style={{ width: 16, textAlign: 'right', color: C.secondary }}
-                          >
-                            {data.total}
-                          </span>
-                          <button
-                            type="button"
-                            onPointerDown={() => openPrescribeModal(abbrev, data.name)}
-                            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[13px] rounded"
-                            style={{
-                              border: `1px solid ${C.link}`,
-                              color: C.link,
-                              backgroundColor: 'transparent',
-                              padding: '2px 6px',
-                              lineHeight: 1.4,
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.backgroundColor = C.link
-                              e.currentTarget.style.color = 'white'
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.backgroundColor = 'transparent'
-                              e.currentTarget.style.color = C.link
-                            }}
-                          >
-                            Rx
-                          </button>
+
+                          {/* Coverage dots: один квадрат на каждую рубрику, цвет = грейд */}
+                          {analysisEntries.length > 0 && (
+                            <div className="flex items-center gap-0.5 mt-0.5" style={{ paddingLeft: 46 + 6 }}>
+                              {data.coverage.map((grade, i) => (
+                                <span
+                                  key={i}
+                                  title={`${localize(analysisEntries[i].rubric).split(', ').slice(-1)[0]}: ${grade > 0 ? `грейд ${grade}` : 'отсутствует'}`}
+                                  style={{
+                                    display: 'inline-block', width: 8, height: 8, borderRadius: 2,
+                                    backgroundColor: grade >= 3
+                                      ? COVERAGE_COLORS[i % COVERAGE_COLORS.length]
+                                      : grade === 2
+                                        ? COVERAGE_COLORS[i % COVERAGE_COLORS.length] + 'aa'
+                                        : grade === 1
+                                          ? COVERAGE_COLORS[i % COVERAGE_COLORS.length] + '55'
+                                          : '#e8e0d4',
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -732,7 +889,28 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
             {/* Кнопка "Очистить" внизу */}
             {analysisEntries.length > 0 && (
-              <div className="p-3 border-t shrink-0" style={{ borderColor: C.borderLight }}>
+              <div className="p-3 border-t shrink-0 space-y-1.5" style={{ borderColor: C.borderLight }}>
+                {/* Сохранить анализ в консультацию */}
+                {lastConsultation && lastConsultation.includes('/consultations/') && (
+                  <button
+                    className="w-full py-2 text-sm rounded-lg transition-colors font-medium"
+                    style={{
+                      backgroundColor: saveStatus === 'saved' ? '#16a34a' : saveStatus === 'error' ? '#dc2626' : C.link,
+                      color: 'white',
+                      opacity: saveStatus === 'saving' ? 0.7 : 1,
+                    }}
+                    onPointerDown={handleSaveAnalysis}
+                    disabled={saveStatus === 'saving'}
+                  >
+                    {saveStatus === 'saving'
+                      ? (lang === 'ru' ? 'Сохраняю...' : 'Saving...')
+                      : saveStatus === 'saved'
+                      ? (lang === 'ru' ? '✓ Сохранено' : '✓ Saved')
+                      : saveStatus === 'error'
+                      ? (lang === 'ru' ? 'Ошибка' : 'Error')
+                      : (lang === 'ru' ? 'Сохранить в консультацию' : 'Save to consultation')}
+                  </button>
+                )}
                 <button
                   className="w-full py-2 text-sm rounded-lg transition-colors border"
                   style={{ borderColor: C.border, color: C.secondary, backgroundColor: 'transparent' }}
@@ -845,7 +1023,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 // ── Строка рубрики ─────────────────────────────────────────────────
 function RubricRow({
   rubric, lang, localName, isExpanded, inAnalysis, isFocused,
-  onToggleExpand, onAddToAnalysis,
+  onToggleExpand, onAddToAnalysis, onNavigate,
 }: {
   rubric: RepertoryRubric
   lang: 'ru' | 'en'
@@ -855,6 +1033,7 @@ function RubricRow({
   isFocused: boolean
   onToggleExpand: () => void
   onAddToAnalysis: () => void
+  onNavigate?: (term: string) => void
 }) {
   const depth = Math.max(0, rubric.fullpath.split(',').length - 2)
   const indent = depth * 16
@@ -862,15 +1041,18 @@ function RubricRow({
   const segments = localName.split(', ')
   const firstWord = segments[0].toUpperCase()
   const rest = segments.length > 1 ? ', ' + segments.slice(1).join(', ') : ''
+  // Хлебные крошки: родительские сегменты — кликабельные
+  const parentSegments = segments.slice(0, -1)
 
   const grade3 = rubric.remedies.filter(r => r.grade >= 3)
   const grade2 = rubric.remedies.filter(r => r.grade === 2)
   const grade1 = rubric.remedies.filter(r => r.grade <= 1)
 
-  const showRemedies = isExpanded || inAnalysis
+  const showRemedies = isExpanded
 
   return (
     <div
+      data-tour="rep-rubric-row"
       className="group border-b"
       style={{
         borderColor: '#e8e4dc',
@@ -907,16 +1089,34 @@ function RubricRow({
         </div>
 
         {/* Название рубрики */}
-        <span
-          className="flex-1 text-[15px] leading-tight min-w-0 truncate"
-          style={{ fontFamily: 'Georgia, serif' }}
-        >
-          <span className="font-bold" style={{ color: '#1a3020' }}>{firstWord}</span>
-          {rest && <span style={{ color: '#3a3020' }}>{rest}</span>}
-        </span>
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* Хлебные крошки (только если есть родители и это не поиск, т.е. depth > 0) */}
+          {parentSegments.length > 0 && onNavigate && (
+            <div className="flex items-center gap-0.5 mb-0.5 flex-wrap">
+              {parentSegments.map((seg, i) => (
+                <span key={i} className="flex items-center gap-0.5">
+                  {i > 0 && <span style={{ color: '#c4b89a', fontSize: 9 }}>›</span>}
+                  <button
+                    type="button"
+                    onPointerDown={e => { e.stopPropagation(); onNavigate(seg) }}
+                    className="text-[9px] transition-colors hover:underline"
+                    style={{ color: '#9a8a6a' }}
+                    title={lang === 'ru' ? `Найти "${seg}"` : `Search "${seg}"`}
+                  >
+                    {seg}
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <span className="text-[15px] leading-tight truncate" style={{ fontFamily: 'Georgia, serif' }}>
+            <span className="font-bold" style={{ color: '#1a3020' }}>{segments[segments.length - 1].toUpperCase()}</span>
+          </span>
+        </div>
 
         {/* Кнопка [+] — добавить в анализ */}
         <button
+          data-tour="rep-add-rubric"
           type="button"
           onPointerDown={e => { e.stopPropagation(); onAddToAnalysis() }}
           className="shrink-0 flex items-center justify-center transition-all opacity-40 group-hover:opacity-100"

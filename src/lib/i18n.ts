@@ -138,7 +138,7 @@ const ru = {
     newLink: 'Ссылка для новой анкеты:',
     copied: 'Скопировано',
     copy: 'Копировать',
-    linkValid: 'Действительна 24 часа · Пациент заполнит анкету до приёма',
+    linkValid: 'Действительна 7 дней · Пациент заполнит анкету до приёма',
   },
 
   // ── Форма пациента ─────────────────────────────────────────
@@ -629,6 +629,36 @@ const ru = {
     formNoteDesc: 'Аллергии, важные детали, что угодно.',
     formSubmit: '✅ Готово!',
     formSubmitDesc: 'Нажмите «Создать» — и карточка пациента готова.',
+    // Тур карточки пациента
+    cardTitle: '🏥 Карточка пациента',
+    cardDesc: 'Здесь всё о пациенте: статус, история приёмов, текущее назначение. Обновляется после каждого приёма.',
+    intakeLinkTitle: '📋 Анкета до приёма',
+    intakeLinkDesc: 'Нажмите «Отправить анкету» — пациент получит ссылку и заполнит дома. Экономит 15–20 минут на первичке.',
+    scheduleTitle: '📅 Запланировать',
+    scheduleDesc: 'Запланируйте следующую встречу — она появится в расписании на главной странице.',
+    newConsultTitle: '▶ Начать первый приём',
+    newConsultDesc: 'Нажмите сюда, чтобы открыть редактор консультации. Продолжим обучение там!',
+    cardDoneBtn: '▶ Начать приём →',
+    // Тур редактора консультации
+    complaintsTitle: '📝 Жалобы пациента',
+    complaintsDesc: 'Опишите жалобы, историю болезни, ключевые наблюдения. Это самое важное для подбора препарата.',
+    rxTitle: '💊 Назначение',
+    rxDesc: 'Введите препарат (с автодополнением), выберите потенцию, укажите количество гранул и схему приёма.',
+    openRepTitle: '📖 Мини-реперторий',
+    openRepDesc: 'Открывает реперторий прямо здесь — ищите симптомы и назначайте препарат, не уходя из консультации.',
+    finishTitle: '✅ Завершить консультацию',
+    finishDesc: 'Когда всё заполнено — нажмите «Завершить». Карточка пациента обновится, динамика будет отслежена.',
+    consultDoneBtn: '✅ Понятно!',
+    // Тур полного репертория
+    repSearchTitle: '🔍 Поиск рубрик',
+    repSearchDesc: 'Введите симптом на русском или английском — 74 000 рубрик находятся мгновенно.',
+    repRubricTitle: '📗 Строка рубрики',
+    repRubricDesc: 'Нажмите на строку — раскроются препараты. Жирные — 3-й степени (самые важные). Кнопка [+] добавляет рубрику в анализ.',
+    repAddTitle: '➕ Добавить в анализ',
+    repAddDesc: 'Эта зелёная кнопка добавляет рубрику в панель анализа справа. Накопите 5–10 ключевых рубрик.',
+    repAnalysisTitle: '📊 Панель анализа',
+    repAnalysisDesc: 'Здесь накапливаются рубрики. [E] = элиминация: оставить только препараты из этой рубрики. 1/2/3 — вес рубрики. Справа — топ препаратов.',
+    repDoneBtn: '🎉 Готов к работе!',
   },
 
   // ── Общее ─────────────────────────────────────────────────
@@ -768,7 +798,7 @@ const en: Translations = {
     newLink: 'New intake link:',
     copied: 'Copied',
     copy: 'Copy',
-    linkValid: 'Valid 24 hours · Patient fills out the form before visit',
+    linkValid: 'Valid 7 days · Patient fills out the form before visit',
   },
 
   patientForm: {
@@ -1235,6 +1265,36 @@ const en: Translations = {
     formNoteDesc: 'Allergies, important details, anything.',
     formSubmit: '✅ Done!',
     formSubmitDesc: 'Click "Create" — and the patient card is ready.',
+    // Patient card tour
+    cardTitle: '🏥 Patient card',
+    cardDesc: 'Everything about the patient is here: status, consultation history, current prescription. Updates after each visit.',
+    intakeLinkTitle: '📋 Pre-visit intake',
+    intakeLinkDesc: 'Click "Send intake" — the patient gets a link to fill out at home. Saves 15–20 minutes on the first visit.',
+    scheduleTitle: '📅 Schedule',
+    scheduleDesc: 'Schedule the next appointment — it will appear in the schedule on the main page.',
+    newConsultTitle: '▶ Start first appointment',
+    newConsultDesc: 'Click here to open the consultation editor. We will continue the tour there!',
+    cardDoneBtn: '▶ Start appointment →',
+    // Consultation editor tour
+    complaintsTitle: '📝 Patient complaints',
+    complaintsDesc: 'Describe complaints, history, key observations. This is the most important part for remedy selection.',
+    rxTitle: '💊 Prescription',
+    rxDesc: 'Enter remedy (with autocomplete), select potency, specify pellets count and dosage schedule.',
+    openRepTitle: '📖 Mini repertory',
+    openRepDesc: 'Opens the repertory right here — search symptoms and prescribe without leaving the consultation.',
+    finishTitle: '✅ Finish consultation',
+    finishDesc: 'When everything is filled in — click "Finish". Patient card will update, dynamics will be tracked.',
+    consultDoneBtn: '✅ Got it!',
+    // Full repertory tour
+    repSearchTitle: '🔍 Search rubrics',
+    repSearchDesc: 'Enter a symptom in Russian or English — 74,000 rubrics found instantly.',
+    repRubricTitle: '📗 Rubric row',
+    repRubricDesc: 'Click a row to expand remedies. Bold = grade 3 (most important). [+] adds the rubric to analysis.',
+    repAddTitle: '➕ Add to analysis',
+    repAddDesc: 'This green button adds the rubric to the analysis panel on the right. Collect 5–10 key rubrics.',
+    repAnalysisTitle: '📊 Analysis panel',
+    repAnalysisDesc: 'Rubrics accumulate here. [E] = elimination: keep only remedies in this rubric. 1/2/3 — rubric weight. Top remedies shown on the right.',
+    repDoneBtn: '🎉 Ready to work!',
   },
 
   common: {

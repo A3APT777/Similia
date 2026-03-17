@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
 import { savePrescription } from '@/lib/actions/consultations'
 import { searchRemediesDB, RemedyResult } from '@/lib/actions/remedies'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -14,9 +14,11 @@ const LABELS = {
 
 type Props = {
   consultationId: string
+  onSaved?: (remedy: string, potency: string, dosage: string) => void
+  assignedRemedy?: string  // передаётся из репертория при нажатии «Назначить»
 }
 
-export default function InlineRx({ consultationId }: Props) {
+export default function InlineRx({ consultationId, onSaved, assignedRemedy }: Props) {
   const { lang } = useLanguage()
   const L = LABELS[lang] || LABELS.en
 
@@ -34,6 +36,18 @@ export default function InlineRx({ consultationId }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  // Когда из репертория приходит abbrev — подставляем в поле препарата
+  useLayoutEffect(() => {
+    if (assignedRemedy) {
+      setRemedy(assignedRemedy)
+      setSuggestions([])
+      setShowSuggestions(false)
+      setSaveStatus('idle')
+      inputRef.current?.focus()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignedRemedy])
 
   // Автосохранение
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -105,10 +119,11 @@ export default function InlineRx({ consultationId }: Props) {
     try {
       await savePrescription(consultationId, remedy.trim(), finalPotency.trim(), pellets, dosage.trim())
       setSaveStatus('saved')
+      onSaved?.(remedy.trim(), finalPotency.trim(), dosage.trim())
     } catch {
       setSaveStatus('idle')
     }
-  }, [consultationId, remedy, finalPotency, pellets, dosage])
+  }, [consultationId, remedy, finalPotency, pellets, dosage, onSaved])
 
   useEffect(() => {
     if (!remedy.trim() || !finalPotency.trim()) return
@@ -120,16 +135,16 @@ export default function InlineRx({ consultationId }: Props) {
   }, [remedy, finalPotency, pellets, dosage, doAutoSave])
 
   return (
-    <div className="space-y-2.5">
-      <label className="block text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#1a3020' }}>
+    <div data-tour="inline-rx" className="space-y-2.5">
+      <label className="block text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-forest)' }}>
         {L.title}
         {saveStatus === 'saved' && (
-          <span className="ml-2 text-[10px] font-normal" style={{ color: '#2d6a4f' }}>
+          <span className="ml-2 text-[10px] font-normal" style={{ color: 'var(--sim-green)' }}>
             ✓ {L.saved}
           </span>
         )}
         {saveStatus === 'saving' && (
-          <span className="ml-2 text-[10px] font-normal" style={{ color: '#9a8a6a' }}>…</span>
+          <span className="ml-2 text-[10px] font-normal" style={{ color: 'var(--sim-text-hint)' }}>…</span>
         )}
       </label>
 
@@ -137,7 +152,7 @@ export default function InlineRx({ consultationId }: Props) {
       <div className="flex flex-wrap items-start gap-3">
         {/* Препарат */}
         <div className="relative flex-1 min-w-[160px]">
-          <label className="block text-[10px] font-medium mb-0.5" style={{ color: '#9a8a6a' }}>{L.remedy}</label>
+          <label className="block text-[10px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.remedy}</label>
           <input
             ref={inputRef}
             type="text"
@@ -145,7 +160,7 @@ export default function InlineRx({ consultationId }: Props) {
             onChange={e => handleRemedyChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Sulphur, Pulsatilla..."
-            className="w-full text-[13px] px-3 py-1.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-500/10 transition-all placeholder-gray-300"
+            className="input input-sm"
           />
           {searching && (
             <div className="absolute right-2.5 top-[26px]">
@@ -155,20 +170,22 @@ export default function InlineRx({ consultationId }: Props) {
           {showSuggestions && suggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden max-h-[200px] overflow-y-auto"
+              className="absolute top-full left-0 right-0 mt-1 rounded-xl z-10 overflow-hidden max-h-[200px] overflow-y-auto"
+              style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)', boxShadow: 'var(--sim-shadow-md)' }}
             >
               {suggestions.map((r, i) => (
                 <button
                   key={r.abbrev}
                   type="button"
                   onMouseDown={e => { e.preventDefault(); selectSuggestion(r) }}
-                  className={`w-full text-left px-3 py-2 transition-colors ${
-                    i === activeSuggestion ? 'bg-emerald-50' : 'hover:bg-gray-50'
-                  }`}
+                  className="w-full text-left px-3 py-2 transition-colors"
+                  style={{ backgroundColor: i === activeSuggestion ? 'var(--sim-green-light)' : undefined }}
+                  onMouseEnter={e => { if (i !== activeSuggestion) e.currentTarget.style.backgroundColor = 'var(--sim-bg-hover)' }}
+                  onMouseLeave={e => { if (i !== activeSuggestion) e.currentTarget.style.backgroundColor = '' }}
                 >
-                  <span className="text-[13px] text-gray-900 font-medium">{r.name_latin}</span>
-                  {r.name_ru && <span className="text-[11px] text-gray-400 ml-2">{r.name_ru}</span>}
-                  <span className="text-[10px] text-gray-300 ml-1.5">{r.abbrev}</span>
+                  <span className="text-[13px] font-medium" style={{ color: 'var(--sim-text)' }}>{r.name_latin}</span>
+                  {r.name_ru && <span className="text-[11px] ml-2" style={{ color: 'var(--sim-text-hint)' }}>{r.name_ru}</span>}
+                  <span className="text-[10px] ml-1.5" style={{ color: 'var(--sim-border)' }}>{r.abbrev}</span>
                 </button>
               ))}
             </div>
@@ -177,18 +194,17 @@ export default function InlineRx({ consultationId }: Props) {
 
         {/* Потенция chips */}
         <div>
-          <label className="block text-[10px] font-medium mb-0.5" style={{ color: '#9a8a6a' }}>{L.potency}</label>
+          <label className="block text-[10px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.potency}</label>
           <div className="flex flex-wrap gap-1">
             {POTENCY_CHIPS.map(p => (
               <button
                 key={p}
                 type="button"
                 onClick={() => { setPotency(potency === p ? '' : p); setCustomPotency('') }}
-                className={`text-[11px] px-2 py-1 rounded-md border font-medium transition-all ${
-                  potency === p
-                    ? 'bg-emerald-600 text-white border-emerald-600'
-                    : 'border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700'
-                }`}
+                className="text-[11px] px-2 py-1.5 rounded-md border font-medium transition-all"
+                style={potency === p
+                  ? { backgroundColor: 'var(--sim-green)', color: '#fff', borderColor: 'var(--sim-green)' }
+                  : { borderColor: 'var(--sim-border)', color: 'var(--sim-text-muted)' }}
               >
                 {p}
               </button>
@@ -198,34 +214,34 @@ export default function InlineRx({ consultationId }: Props) {
               value={customPotency}
               onChange={e => { setCustomPotency(e.target.value); setPotency('') }}
               placeholder="..."
-              className="w-12 text-[11px] px-1.5 py-1 border border-gray-200 rounded-md text-center focus:outline-none focus:border-emerald-400 transition-all placeholder-gray-300"
+              className="input input-sm w-12 text-center"
             />
           </div>
         </div>
 
         {/* Гранулы */}
         <div>
-          <label className="block text-[10px] font-medium mb-0.5" style={{ color: '#9a8a6a' }}>{L.pellets}</label>
+          <label className="block text-[10px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.pellets}</label>
           <input
             type="number"
             min={1}
             max={10}
             value={pellets}
             onChange={e => setPellets(Number(e.target.value) || 3)}
-            className="w-14 text-[13px] px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-center focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-500/10 transition-all"
+            className="input input-sm w-14 text-center"
           />
         </div>
       </div>
 
       {/* Строка 2: Дозировка */}
       <div>
-        <label className="block text-[10px] font-medium mb-0.5" style={{ color: '#9a8a6a' }}>{L.dosage}</label>
+        <label className="block text-[10px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.dosage}</label>
         <input
           type="text"
           value={dosage}
           onChange={e => setDosage(e.target.value)}
           placeholder={lang === 'ru' ? '1 гранула 1 раз в день' : '1 pellet once daily'}
-          className="w-full text-[13px] px-3 py-1.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-500/10 transition-all placeholder-gray-300"
+          className="input input-sm"
         />
       </div>
     </div>

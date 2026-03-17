@@ -1,15 +1,16 @@
 'use client'
 
+import Link from 'next/link'
 import { useConsultation } from '../context/ConsultationContext'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 const TYPE_STYLE = {
   chronic: {
-    badgeStyle: { backgroundColor: 'rgba(45,106,79,0.08)', color: 'var(--color-primary)', borderColor: 'rgba(45,106,79,0.2)' },
+    badgeStyle: { backgroundColor: 'rgba(45,106,79,0.08)', color: 'var(--sim-green)', borderColor: 'rgba(45,106,79,0.2)' },
   },
   acute: {
-    badgeStyle: { backgroundColor: 'rgba(200,160,53,0.08)', color: 'var(--color-amber)', borderColor: 'rgba(200,160,53,0.3)' },
+    badgeStyle: { backgroundColor: 'rgba(200,160,53,0.08)', color: 'var(--sim-amber)', borderColor: 'rgba(200,160,53,0.3)' },
   },
 }
 
@@ -21,21 +22,18 @@ export default function EditorToolbar({ onOpenRepertory }: Props) {
   const { state, toggleType, dispatch } = useConsultation()
   const { lang } = useLanguage()
 
-  const { type, complaints, observations, notes, recommendations } = state
+  const { type } = state
   const badgeStyle = TYPE_STYLE[type].badgeStyle
   const typeLabel = type === 'chronic' ? t(lang).consultation.chronicShort : t(lang).consultation.acuteShort
 
-  const allText = [complaints, observations, notes, recommendations].filter(Boolean).join(' ')
-  const wordCount = allText.trim() ? allText.trim().split(/\s+/).length : 0
-
   return (
-    <div className="px-5 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid var(--color-border-light)', backgroundColor: 'var(--color-card)' }}>
+    <div className="px-4 sm:px-5 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none" style={{ borderBottom: '1px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-card)' }}>
       {/* Тип */}
       <button
         type="button"
         onClick={toggleType}
         title={t(lang).consultation.changeTypeHint}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all shrink-0"
         style={badgeStyle}
       >
         {type === 'acute' ? (
@@ -47,45 +45,57 @@ export default function EditorToolbar({ onOpenRepertory }: Props) {
       </button>
 
       {/* Quick / Deep */}
-      <div className="inline-flex items-center rounded-lg border border-gray-200 overflow-hidden" style={{ backgroundColor: '#f5f0e8' }}>
+      <div className="inline-flex items-center rounded-lg overflow-hidden shrink-0" style={{ border: '1px solid var(--sim-border)', backgroundColor: 'var(--sim-bg-muted)' }}>
         <button
           type="button"
           onClick={() => dispatch({ type: 'SET_FIELD', field: 'mode', value: 'quick' })}
           className="text-[11px] font-semibold px-2.5 py-1.5 transition-all"
           style={{
-            backgroundColor: state.mode === 'quick' ? '#2d6a4f' : 'transparent',
-            color: state.mode === 'quick' ? '#fff' : '#9a8a6a',
+            backgroundColor: state.mode === 'quick' ? 'var(--sim-green)' : 'transparent',
+            color: state.mode === 'quick' ? '#fff' : 'var(--sim-text-hint)',
           }}
         >
-          Quick {state.mode === 'quick' && '●'}
+          Быстрый {state.mode === 'quick' && '●'}
         </button>
         <button
           type="button"
           onClick={() => dispatch({ type: 'SET_FIELD', field: 'mode', value: 'deep' })}
           className="text-[11px] font-semibold px-2.5 py-1.5 transition-all"
           style={{
-            backgroundColor: state.mode === 'deep' ? '#2d6a4f' : 'transparent',
-            color: state.mode === 'deep' ? '#fff' : '#9a8a6a',
+            backgroundColor: state.mode === 'deep' ? 'var(--sim-green)' : 'transparent',
+            color: state.mode === 'deep' ? '#fff' : 'var(--sim-text-hint)',
           }}
         >
-          Deep {state.mode === 'deep' && '●'}
+          Глубокий {state.mode === 'deep' && '●'}
         </button>
       </div>
 
-      {/* Реперторий */}
+      {/* Мини-реперторий (в правой панели) */}
       <button
+        data-tour="open-repertory"
         type="button"
         onClick={onOpenRepertory}
-        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-gray-200 bg-[#ede7dd] text-gray-400 hover:text-emerald-700 hover:border-emerald-200 transition-all"
+        className="btn btn-secondary btn-sm shrink-0"
+        title={lang === 'ru' ? 'Открыть мини-реперторий' : 'Open mini-repertory'}
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
         {t(lang).consultation.repertory}
       </button>
 
-      {/* Счётчик слов */}
-      <span className="text-[10px] text-gray-300 ml-auto tabular-nums">
-        {wordCount > 0 && t(lang).consultation.words(wordCount)}
-      </span>
+      {/* Полный реперторий — внешняя ссылка (скрыт на мобильном, чтобы тулбар не переполнялся) */}
+      <Link
+        href="/repertory"
+        target="_blank"
+        rel="noopener"
+        className="btn btn-ghost btn-sm hidden sm:inline-flex shrink-0"
+        title={lang === 'ru' ? 'Открыть полный реперторий в новой вкладке' : 'Open full repertory in new tab'}
+      >
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+        </svg>
+        {lang === 'ru' ? 'Полный' : 'Full'}
+      </Link>
+
     </div>
   )
 }

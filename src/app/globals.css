@@ -62,20 +62,20 @@
   --color-text-label:   #5a7060;
 
   --background: #f7f3ed;
-  --foreground: oklch(0.145 0 0);
-  --card: #f0ebe3;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: #f7f3ed;
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --foreground: #1a1a0a;
+  --card: #ffffff;
+  --card-foreground: #1a1a0a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a0a;
+  --primary: #2d6a4f;           /* зелёный — единый primary */
+  --primary-foreground: #ffffff;
   --secondary: #f2ece4;
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary-foreground: #1a1a0a;
   --muted: #f2ece4;
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: #e8e0d4;
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --muted-foreground: #6b5e45;
+  --accent: #e8f3ee;
+  --accent-foreground: #1a3020;
+  --destructive: #dc2626;
   --border: #d4c9b8;
   --input: #faf7f2;
   --ring: #2d6a4f;
@@ -84,15 +84,15 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.5rem;             /* 8px — единый базовый радиус */
+  --sidebar: #1a3020;           /* тёмно-зелёный сайдбар */
+  --sidebar-foreground: rgba(255,255,255,0.85);
+  --sidebar-primary: #2d6a4f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255,255,255,0.08);
+  --sidebar-accent-foreground: rgba(255,255,255,0.9);
+  --sidebar-border: rgba(255,255,255,0.07);
+  --sidebar-ring: rgba(255,255,255,0.3);
 }
 
 .dark {
@@ -132,10 +132,14 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Убираем задержку тапа 300ms на всех интерактивных элементах */
+    touch-action: manipulation;
   }
   html {
     @apply font-sans;
     font-size: 16px;
+    /* Плавный скролл на iOS */
+    -webkit-overflow-scrolling: touch;
   }
   body {
     @apply bg-background text-foreground;
@@ -149,6 +153,15 @@
   ::-webkit-scrollbar-thumb { background: #c4b89a; border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: #9a8a6a; }
   * { scrollbar-width: thin; scrollbar-color: #c4b89a #f0ebe3; }
+}
+
+/* Скрыть скроллбар, оставив скролл работающим */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* ─── Driver.js tour styles ─────────────────────────────────────────────── */

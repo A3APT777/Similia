@@ -12,6 +12,8 @@ import PhotoSection from './PhotoSection'
 import CancelAppointmentButton from './CancelAppointmentButton'
 import TreatmentProgress from './TreatmentProgress'
 import TourSuccessToast from '@/components/TourSuccessToast'
+import TourPatientCardStarter from '@/components/TourPatientCardStarter'
+import IntakeLinkButton from './IntakeLinkButton'
 import PaidSessionsBlock from './PaidSessionsBlock'
 import DeletePatientButton from './DeletePatientButton'
 import { getDoctorSettings } from '@/lib/actions/payments'
@@ -168,12 +170,13 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   return (
     <AppShell>
       <TourSuccessToast />
+      <TourPatientCardStarter />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
 
         {/* ═══ 1. HERO — мгновенное понимание ═══ */}
-        <div className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid #d4c9b8' }}>
+        <div data-tour="patient-hero" className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid var(--sim-border)' }}>
           <div style={{ height: '4px', backgroundColor: patientStatus.color }} />
-          <div className="p-4 sm:p-5" style={{ backgroundColor: '#f0ebe3' }}>
+          <div className="p-4 sm:p-5" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
 
             {/* Статус + мета */}
             <div className="flex items-center justify-between mb-3">
@@ -188,14 +191,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* ФИО — крупно */}
-            <h1 className="text-xl sm:text-2xl font-semibold leading-tight" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a1a0a' }}>
+            <h1 className="text-xl sm:text-2xl font-semibold leading-tight" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-text)' }}>
               {patient.name}
-              {patient.birth_date && <span className="text-sm font-normal ml-2" style={{ color: '#8a7a6a' }}>{getAge(patient.birth_date)}</span>}
+              {patient.birth_date && <span className="text-sm font-normal ml-2" style={{ color: 'var(--sim-text-hint)' }}>{getAge(patient.birth_date)}</span>}
             </h1>
 
             {/* Клиническая формулировка — суть, не симптомы */}
             {clinicalSummary && (
-              <p className="text-[15px] font-semibold mt-1.5 leading-snug" style={{ color: '#1a3020' }}>
+              <p className="text-[15px] font-semibold mt-1.5 leading-snug" style={{ color: 'var(--sim-forest)' }}>
                 {clinicalSummary}
               </p>
             )}
@@ -204,8 +207,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             {symptomBullets.length > 0 && (
               <ul className="mt-1.5 space-y-0.5">
                 {symptomBullets.map((s: string, i: number) => (
-                  <li key={i} className="flex items-start gap-1.5 text-[13px]" style={{ color: '#5a5040' }}>
-                    <span className="shrink-0 mt-[7px] w-1 h-1 rounded-full" style={{ backgroundColor: '#9a8a6a' }} />
+                  <li key={i} className="flex items-start gap-1.5 text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>
+                    <span className="shrink-0 mt-[7px] w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--sim-text-hint)' }} />
                     <span className="leading-snug">{s}</span>
                   </li>
                 ))}
@@ -227,15 +230,15 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             )}
 
             {/* Мета — почти невидимо, но кликабельно */}
-            <div className="flex flex-wrap items-center gap-x-2 mt-3 text-[10px]" style={{ color: '#c0b8a8' }}>
+            <div className="flex flex-wrap items-center gap-x-2 mt-3 text-[10px]" style={{ color: 'var(--sim-border)' }}>
               {patient.phone && <a href={`tel:${patient.phone}`} className="hover:text-emerald-700 transition-colors">{patient.phone}</a>}
               {patient.constitutional_type && <><span>·</span><span>{patient.constitutional_type}</span></>}
             </div>
 
             {/* CTA */}
-            <div className="mt-4 pt-3" style={{ borderTop: '1px solid #d4c9b8' }}>
+            <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--sim-border)' }}>
               <form action={newChronicConsultation}>
-                <button type="submit" className="w-full flex items-center justify-center gap-2 py-3.5 font-bold tracking-wide transition-all hover:opacity-90 hover:shadow-md" style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '12px', fontSize: '15px' }}>
+                <button data-tour="new-consultation" type="submit" className="btn btn-primary btn-lg w-full">
                   {consultations && consultations.filter(c => c.status === 'completed').length > 0
                     ? (lang === 'ru' ? 'Начать повторный приём' : 'Start follow-up')
                     : (lang === 'ru' ? 'Начать первый приём' : 'Start first appointment')
@@ -245,6 +248,9 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               </form>
               <div className="flex items-center justify-center mt-1.5">
                 <ScheduleButton patientId={id} />
+              </div>
+              <div className="mt-2" data-tour="intake-link">
+                <IntakeLinkButton patientId={id} patientName={patient.name} />
               </div>
             </div>
           </div>
@@ -261,13 +267,13 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                 {lang === 'ru' ? '● активно' : '● active'}
               </span>
             </div>
-            <div className="p-4 sm:p-5" style={{ backgroundColor: '#f0f7f0' }}>
+            <div className="p-4 sm:p-5" style={{ backgroundColor: 'var(--sim-green-light)' }}>
               {/* Препарат — максимально крупно */}
               <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-3xl font-bold" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a3020', letterSpacing: '-0.01em' }}>
+                <span className="text-3xl font-bold" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-forest)', letterSpacing: '-0.01em' }}>
                   {currentPrescription.remedy}
                 </span>
-                <span className="text-xl font-bold" style={{ color: '#2d6a4f' }}>
+                <span className="text-xl font-bold" style={{ color: 'var(--sim-green)' }}>
                   {currentPrescription.potency}
                 </span>
               </div>
@@ -275,8 +281,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               {/* Схема — компактно */}
               <div className="mt-3 space-y-1.5">
                 {currentPrescription.dosage && (
-                  <div className="flex items-start gap-2 text-[13px]" style={{ color: '#3a3020' }}>
-                    <span className="shrink-0 mt-0.5 font-semibold" style={{ color: '#2d6a4f' }}>Rx</span>
+                  <div className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--sim-text-sec)' }}>
+                    <span className="shrink-0 mt-0.5 font-semibold" style={{ color: 'var(--sim-green)' }}>Rx</span>
                     <span>{currentPrescription.dosage}</span>
                   </div>
                 )}
@@ -285,14 +291,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               {/* Цель лечения */}
               {treatmentGoal && (
                 <div className="mt-3 pt-2.5" style={{ borderTop: '1px solid rgba(45,106,79,0.15)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#2d6a4f' }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--sim-green)' }}>
                     {lang === 'ru' ? 'Цель' : 'Goal'}
                   </p>
-                  <p className="text-[13px] leading-snug" style={{ color: '#3a3020' }}>{treatmentGoal}</p>
+                  <p className="text-[13px] leading-snug" style={{ color: 'var(--sim-text-sec)' }}>{treatmentGoal}</p>
                 </div>
               )}
 
-              <p className="text-[10px] mt-2.5" style={{ color: '#b0a090' }}>{formatDate(currentPrescription.date)}</p>
+              <p className="text-[10px] mt-2.5" style={{ color: 'var(--sim-border)' }}>{formatDate(currentPrescription.date)}</p>
             </div>
           </div>
         )}
@@ -342,7 +348,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         ) : (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-light" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--color-primary)' }}>
+              <h2 className="text-base font-light" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-green)' }}>
                 {t(lang).patientCard.timeline}
               </h2>
               <span className="text-xs text-gray-300">{t(lang).patientCard.countConsultations(consultations.length)}</span>
@@ -365,14 +371,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           {/* Анкеты */}
           {(completedPrimaryIntake || completedAcuteIntake) && (
             <div className="space-y-3">
-              <h2 className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#9a8a6a' }}>{t(lang).patientCard.intakes}</h2>
+              <h2 className="sim-label">{t(lang).patientCard.intakes}</h2>
               {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" />}
               {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" />}
             </div>
           )}
 
           {/* Фото */}
-          <div className="rounded-2xl p-5" style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8' }}>
+          <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--sim-bg-muted)', border: '1px solid var(--sim-border)' }}>
             <PhotoSection patientId={id} photos={photos || []} />
           </div>
         </div>
