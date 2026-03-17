@@ -627,41 +627,26 @@ export default function ConsultationEditor({ consultation, patient, previousCons
         </div>
       </div>
 
-      {/* ══════════ Правая колонка ══════════ */}
+      {/* ══════════ Правая колонка — всё сразу ══════════ */}
       <div className={`${mobileTab === 'compare' ? 'flex' : 'hidden'} lg:flex flex-col bg-[#fafafa] min-h-0`}>
-        <div className="px-5 py-2.5 border-b border-gray-100 bg-[#ede7dd] flex items-center justify-between">
-          <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
-            {rightTab !== 'repertory' ? (
-              <>
-                <button
-                  onClick={() => setRightTab('compare')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    rightTab === 'compare' ? 'bg-[#ede7dd] text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {t(lang).consultation.comparison}
-                </button>
-                <button
-                  onClick={() => setRightTab('prev')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    rightTab === 'prev' ? 'bg-[#ede7dd] text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {t(lang).consultation.prevVisit}
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setRightTab('compare')}
-                className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 hover:text-gray-600 transition-all flex items-center gap-1"
-              >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-                {lang === 'ru' ? 'Назад' : 'Back'}
-              </button>
-            )}
-          </div>
+
+        {/* Заголовок */}
+        <div className="px-5 py-2 border-b border-gray-100 bg-[#ede7dd] flex items-center justify-between">
+          {rightTab === 'repertory' ? (
+            <button
+              onClick={() => setRightTab('compare')}
+              className="text-xs font-medium text-gray-400 hover:text-gray-600 transition-all flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+              {lang === 'ru' ? 'Назад' : 'Back'}
+            </button>
+          ) : (
+            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a' }}>
+              {lang === 'ru' ? 'Контекст случая' : 'Case context'}
+            </span>
+          )}
           {previousConsultation && rightTab !== 'repertory' && (
-            <p className="text-[10px] text-gray-400">{formatDate(previousConsultation.date)}</p>
+            <span className="text-[10px]" style={{ color: '#b0a090' }}>{formatDate(previousConsultation.date)}</span>
           )}
         </div>
 
@@ -673,56 +658,66 @@ export default function ConsultationEditor({ consultation, patient, previousCons
             />
           ) : !previousConsultation ? (
             <div className="flex flex-col items-center justify-center h-full py-16 text-center px-6">
-              <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
-                <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-              </div>
               <p className="text-sm text-gray-400">{t(lang).consultation.firstConsultation}</p>
               <p className="text-xs text-gray-300 mt-1">{t(lang).consultation.nothingToCompare}</p>
             </div>
-          ) : rightTab === 'compare' ? (
-            <ComparisonPanel
-              current={{ complaints, observations, notes, recommendations }}
-              previous={{
-                complaints: previousConsultation.complaints || '',
-                observations: previousConsultation.observations || '',
-                notes: previousConsultation.notes || '',
-                recommendations: previousConsultation.recommendations || '',
-              }}
-            />
           ) : (
-            /* Структурированный вид прошлого приёма */
-            <div className="px-5 py-4 space-y-4">
-              {/* Назначение — акцент */}
-              {previousConsultation.remedy && (
-                <div className="rounded-xl p-3" style={{ backgroundColor: '#e8f0e8', border: '1px solid rgba(45,106,79,0.2)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#2d6a4f' }}>
-                    {lang === 'ru' ? 'Назначение' : 'Prescription'}
-                  </p>
-                  <p className="text-base font-bold" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a3020' }}>
-                    {previousConsultation.remedy} <span style={{ color: '#2d6a4f' }}>{previousConsultation.potency}</span>
-                  </p>
-                  {previousConsultation.dosage && (
-                    <p className="text-[12px] mt-0.5" style={{ color: '#5a5040' }}>{previousConsultation.dosage}</p>
+            <div className="divide-y divide-gray-100">
+
+              {/* ─── Блок 1: Сравнение (было/стало) ─── */}
+              <div className="px-5 py-4">
+                <ComparisonPanel
+                  current={{ complaints, observations, notes, recommendations }}
+                  previous={{
+                    complaints: previousConsultation.complaints || '',
+                    observations: previousConsultation.observations || '',
+                    notes: previousConsultation.notes || '',
+                    recommendations: previousConsultation.recommendations || '',
+                  }}
+                />
+              </div>
+
+              {/* ─── Блок 2: Прошлый приём ─── */}
+              <div className="px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#9a8a6a' }}>
+                  {t(lang).consultation.prevVisit} — {formatDate(previousConsultation.date)}
+                </p>
+
+                <div className="space-y-3">
+                  {/* Назначение — акцент */}
+                  {previousConsultation.remedy && (
+                    <div className="rounded-lg p-2.5" style={{ backgroundColor: '#e8f0e8', border: '1px solid rgba(45,106,79,0.15)' }}>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[15px] font-bold" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a3020' }}>
+                          {previousConsultation.remedy}
+                        </span>
+                        <span className="text-[13px] font-semibold" style={{ color: '#2d6a4f' }}>{previousConsultation.potency}</span>
+                      </div>
+                      {previousConsultation.dosage && (
+                        <p className="text-[11px] mt-0.5" style={{ color: '#5a5040' }}>{previousConsultation.dosage}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Секции прошлого приёма — компактно */}
+                  {[
+                    { label: lang === 'ru' ? 'Жалобы' : 'Complaints', text: previousConsultation.complaints },
+                    { label: lang === 'ru' ? 'Наблюдения' : 'Observations', text: previousConsultation.observations },
+                    { label: lang === 'ru' ? 'Анализ' : 'Analysis', text: previousConsultation.notes },
+                    { label: lang === 'ru' ? 'План' : 'Plan', text: previousConsultation.recommendations },
+                  ].filter(s => s.text?.trim()).map((section, i) => (
+                    <div key={i}>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#b0a090' }}>{section.label}</p>
+                      <p className="text-[12px] leading-relaxed whitespace-pre-wrap" style={{ color: '#6a6050' }}>{section.text}</p>
+                    </div>
+                  ))}
+
+                  {!previousConsultation.complaints && !previousConsultation.notes && !previousConsultation.remedy && (
+                    <p className="text-[12px] text-gray-300 italic">{t(lang).consultation.noNotes}</p>
                   )}
                 </div>
-              )}
-              {/* Секции */}
-              {[
-                { label: lang === 'ru' ? 'Жалобы' : 'Complaints', text: previousConsultation.complaints },
-                { label: lang === 'ru' ? 'Наблюдения' : 'Observations', text: previousConsultation.observations },
-                { label: lang === 'ru' ? 'Анализ' : 'Analysis', text: previousConsultation.notes },
-                { label: lang === 'ru' ? 'План' : 'Plan', text: previousConsultation.recommendations },
-              ].filter(s => s.text?.trim()).map((section, i) => (
-                <div key={i}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9a8a6a' }}>{section.label}</p>
-                  <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: '#5a5040' }}>{section.text}</p>
-                </div>
-              ))}
-              {!previousConsultation.complaints && !previousConsultation.notes && (
-                <p className="text-sm text-gray-300 italic">{t(lang).consultation.noNotes}</p>
-              )}
+              </div>
+
             </div>
           )}
         </div>
