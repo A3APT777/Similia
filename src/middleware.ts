@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import crypto from 'crypto'
 
 // Публичные маршруты — доступны без авторизации
 const PUBLIC_PATHS = [
@@ -68,9 +69,27 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Генерируем nonce для CSP — заменяет unsafe-inline
+  const nonce = crypto.randomBytes(16).toString('base64')
+  const csp = [
+    `default-src 'self'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+    `font-src 'self' https://fonts.gstatic.com`,
+    `img-src 'self' data: blob: https://*.supabase.co`,
+    `connect-src 'self' https://*.supabase.co`,
+    `frame-ancestors 'none'`,
+  ].join('; ')
+
+  // Передаём nonce через заголовок — Next.js подхватит его автоматически
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+
   let response = NextResponse.next({
-    request,
+    request: { headers: requestHeaders },
   })
+
+  response.headers.set('Content-Security-Policy', csp)
 
   // Создаём Supabase клиент с возможностью обновлять cookies сессии
   const supabase = createServerClient(
