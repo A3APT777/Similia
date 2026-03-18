@@ -7,10 +7,11 @@ import { Consultation, Patient } from '@/types'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
-type AppointmentWithPatient = Consultation & { patients: Pick<Patient, 'id' | 'name' | 'phone'> }
+type AppointmentWithPatient = Consultation & { patients: Pick<Patient, 'id' | 'name' | 'phone'>; last_remedy?: string | null }
 
 type Props = {
   appointments: AppointmentWithPatient[]
+  compact?: boolean
 }
 
 function getTimeLabel(scheduledAt: string, lang: 'ru' | 'en'): { label: string; variant: 'urgent' | 'soon' | 'past' | null } {
@@ -98,9 +99,10 @@ function CopyReminderButton({ name, scheduledAt, lang }: { name: string; schedul
   )
 }
 
-export default function AppointmentList({ appointments }: Props) {
+export default function AppointmentList({ appointments, compact = false }: Props) {
   const { lang } = useLanguage()
   const [, setTick] = useState(0)
+  const [showPast, setShowPast] = useState(false)
   useEffect(() => {
     const iv = setInterval(() => setTick(n => n + 1), 60000)
     return () => clearInterval(iv)
@@ -109,101 +111,124 @@ export default function AppointmentList({ appointments }: Props) {
   const active = appointments.filter(a => a.status !== 'cancelled')
   if (!active.length) return null
 
+  // Компактный режим — для правой колонки
+  if (compact) {
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000)
+    const allRecent = active.filter(a => new Date(a.scheduled_at!) > cutoff).slice(0, 10)
+    const upcoming = allRecent.filter(a => a.status !== 'completed')
+    const past = allRecent.filter(a => a.status === 'completed')
+    const visible = showPast ? allRecent : upcoming
+
+    if (!allRecent.length) return null
+
+    return (
+      <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: '#f5f0e8', border: '1px solid #d4c9b8' }}>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] px-4 pt-3.5 pb-2">
+          {t(lang).appointments.schedule}
+        </p>
+        <div className="divide-y divide-[#e0d8cc]">
+          {groupByDay(visible).map(([day, dayAppts]) => (
+            <div key={day}>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-4 py-1.5 capitalize" style={{ backgroundColor: '#ede8e0' }}>
+                {formatDayHeader(day, lang)}
+              </p>
+              {dayAppts.map(appt => {
+                const { variant } = getTimeLabel(appt.scheduled_at!, lang)
+                const isUrgent = variant === 'urgent'
+                const live = appt.status === 'in_progress'
+                const done = appt.status === 'completed'
+                return (
+                  <div key={appt.id} className={`flex items-center gap-2.5 px-4 py-2.5 ${isUrgent ? 'bg-amber-50/60' : done ? 'opacity-50' : ''}`}>
+                    <span className={`text-[12px] font-mono font-semibold tabular-nums shrink-0 w-9 ${isUrgent ? 'text-amber-600' : 'text-gray-600'}`}>
+                      {formatTime(appt.scheduled_at!)}
+                    </span>
+                    <Link
+                      href={`/patients/${appt.patients.id}`}
+                      className="flex-1 min-w-0 min-h-0 transition-colors"
+                    >
+                      <p className={`text-[12px] font-medium truncate ${done ? 'text-gray-500' : 'text-gray-800 hover:text-emerald-700'}`}>
+                        {appt.patients.name}
+                      </p>
+                      {appt.last_remedy && (
+                        <p className="text-[10px] text-gray-400 truncate leading-tight">{appt.last_remedy}</p>
+                      )}
+                    </Link>
+                    {done ? (
+                      <Link href={`/patients/${appt.patients.id}/consultations/${appt.id}`} className="text-[10px] text-gray-400 hover:text-gray-600 shrink-0 transition-colors">
+                        →
+                      </Link>
+                    ) : live ? (
+                      <Link href={`/patients/${appt.patients.id}/consultations/${appt.id}`} className="text-[10px] bg-emerald-600 text-white px-2 py-1 rounded-md font-semibold shrink-0">
+                        →
+                      </Link>
+                    ) : (
+                      <form action={startConsultation.bind(null, appt.id, appt.patients.id)}>
+                        <button type="submit" className={`text-[10px] px-2 py-1 rounded-md font-medium shrink-0 transition-colors ${isUrgent ? 'bg-amber-500 text-white' : 'border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700'}`}>
+                          →
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+        {past.length > 0 && (
+          <button
+            onClick={() => setShowPast(v => !v)}
+            className="w-full text-[10px] text-gray-400 hover:text-gray-600 transition-colors px-4 py-2.5 text-left"
+            style={{ borderTop: '0.5px solid #e0d8cc' }}
+          >
+            {showPast
+              ? (lang === 'ru' ? '↑ Скрыть завершённые' : '↑ Hide completed')
+              : (lang === 'ru' ? `+ Завершённые (${past.length})` : `+ Completed (${past.length})`)}
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // Полный режим — для основной колонки (не используется, но оставляем)
   return (
     <div className="mb-7">
       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
         {t(lang).appointments.schedule}
       </p>
-
       <div className="space-y-4">
         {groupByDay(active).map(([day, dayAppts]) => (
           <div key={day}>
             <p className="text-[11px] font-medium text-gray-500 mb-1.5 capitalize">{formatDayHeader(day, lang)}</p>
-
             <div className="rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-[#d4c9b8]" style={{ backgroundColor: '#f0ebe3', border: '0.5px solid #d4c9b8' }}>
               {dayAppts.map(appt => {
                 const { label, variant } = getTimeLabel(appt.scheduled_at!, lang)
                 const done = appt.status === 'completed'
                 const live = appt.status === 'in_progress'
                 const isUrgent = variant === 'urgent'
-
                 return (
-                  <div
-                    key={appt.id}
-                    className={`flex items-center gap-3.5 px-4 py-3 transition-colors ${
-                      isUrgent ? 'bg-amber-50/70' : done ? 'opacity-50' : 'hover:bg-[#e8e0d4]/60'
-                    }`}
-                  >
-                    {/* Полоска статуса */}
-                    <div className={`w-[3px] h-8 rounded-full shrink-0 ${
-                      isUrgent ? 'bg-amber-400' :
-                      live     ? 'bg-emerald-500' :
-                      done     ? 'bg-gray-100' :
-                                 'bg-emerald-200'
-                    }`} />
-
-                    {/* Время */}
+                  <div key={appt.id} className={`flex items-center gap-3.5 px-4 py-3 transition-colors ${isUrgent ? 'bg-amber-50/70' : done ? 'opacity-50' : 'hover:bg-[#e8e0d4]/60'}`}>
+                    <div className={`w-[3px] h-8 rounded-full shrink-0 ${isUrgent ? 'bg-amber-400' : live ? 'bg-emerald-500' : done ? 'bg-gray-100' : 'bg-emerald-200'}`} />
                     <div className="w-10 shrink-0">
-                      <p className={`text-[13px] font-semibold tabular-nums leading-tight ${
-                        isUrgent ? 'text-amber-600' : done ? 'text-gray-400' : 'text-gray-800'
-                      }`}>
+                      <p className={`text-[13px] font-semibold tabular-nums leading-tight ${isUrgent ? 'text-amber-600' : done ? 'text-gray-400' : 'text-gray-800'}`}>
                         {formatTime(appt.scheduled_at!)}
                       </p>
-                      {label && (
-                        <p className={`text-[10px] mt-0.5 leading-none ${
-                          variant === 'urgent' ? 'text-amber-500' :
-                          variant === 'past'   ? 'text-red-400' :
-                          'text-gray-400'
-                        }`}>
-                          {label}
-                        </p>
-                      )}
+                      {label && <p className={`text-[10px] mt-0.5 leading-none ${variant === 'urgent' ? 'text-amber-500' : variant === 'past' ? 'text-red-400' : 'text-gray-400'}`}>{label}</p>}
                     </div>
-
-                    {/* Пациент */}
                     <div className="flex-1 min-w-0">
-                      <Link
-                        href={`/patients/${appt.patients.id}`}
-                        className={`text-[13px] font-medium hover:text-emerald-700 transition-colors truncate block ${done ? 'text-gray-500' : 'text-gray-900'}`}
-                      >
+                      <Link href={`/patients/${appt.patients.id}`} className={`text-[13px] font-medium hover:text-emerald-700 transition-colors truncate block ${done ? 'text-gray-500' : 'text-gray-900'}`}>
                         {appt.patients.name}
                       </Link>
-                      {appt.patients.phone && (
-                        <p className="text-[11px] text-gray-400 mt-0.5">{appt.patients.phone}</p>
-                      )}
+                      {appt.patients.phone && <p className="text-[11px] text-gray-400 mt-0.5">{appt.patients.phone}</p>}
                     </div>
-
-                    {/* Напоминание */}
-                    {!done && (
-                      <CopyReminderButton name={appt.patients.name} scheduledAt={appt.scheduled_at!} lang={lang} />
-                    )}
-
-                    {/* Действие */}
+                    {!done && <CopyReminderButton name={appt.patients.name} scheduledAt={appt.scheduled_at!} lang={lang} />}
                     <div className="shrink-0">
                       {done ? (
-                        <Link
-                          href={`/patients/${appt.patients.id}/consultations/${appt.id}`}
-                          className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          {t(lang).appointments.open} →
-                        </Link>
+                        <Link href={`/patients/${appt.patients.id}/consultations/${appt.id}`} className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors">{t(lang).appointments.open} →</Link>
                       ) : live ? (
-                        <Link
-                          href={`/patients/${appt.patients.id}/consultations/${appt.id}`}
-                          className="text-[11px] bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors font-semibold shadow-sm"
-                        >
-                          {t(lang).appointments.continue} →
-                        </Link>
+                        <Link href={`/patients/${appt.patients.id}/consultations/${appt.id}`} className="text-[11px] bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors font-semibold shadow-sm">{t(lang).appointments.continue} →</Link>
                       ) : (
                         <form action={startConsultation.bind(null, appt.id, appt.patients.id)}>
-                          <button
-                            type="submit"
-                            className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                              isUrgent
-                                ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm'
-                                : 'border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700'
-                            }`}
-                          >
+                          <button type="submit" className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${isUrgent ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm' : 'border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700'}`}>
                             {t(lang).appointments.start} →
                           </button>
                         </form>

@@ -11,12 +11,14 @@ type Props = {
   lang: 'ru' | 'en'
 }
 
-const DYNAMICS_CONFIG: Record<DynType, { icon: string; color: string }> = {
-  better:   { icon: '↑', color: '#059669' },
-  worse:    { icon: '↓', color: '#dc2626' },
-  new:      { icon: '+', color: '#2563eb' },
-  resolved: { icon: '✓', color: '#0d9488' },
-  same:     { icon: '=', color: '#9ca3af' },
+type DynamicsCfg = { icon: string; color: string; bgColor: string }
+
+const DYNAMICS_CONFIG: Record<DynType, DynamicsCfg> = {
+  better:   { icon: '↑', color: '#059669', bgColor: 'rgba(5,150,105,0.09)' },
+  worse:    { icon: '↓', color: '#dc2626', bgColor: 'rgba(220,38,38,0.09)' },
+  new:      { icon: '+', color: '#2563eb', bgColor: 'rgba(37,99,235,0.09)' },
+  resolved: { icon: '✓', color: '#0d9488', bgColor: 'rgba(13,148,136,0.09)' },
+  same:     { icon: '=', color: '#9ca3af', bgColor: 'rgba(156,163,175,0.09)' },
 }
 
 const ORDER: DynType[] = ['worse', 'new', 'same', 'better', 'resolved']
@@ -30,10 +32,8 @@ export default function SymptomDynamicsPanel({ symptoms, previousSymptoms, asses
 
     const current: EnrichedSymptom[] = symptoms.map(s => {
       if (s.dynamics) return s as EnrichedSymptom
-      const dyn: DynType = prevIds.has(s.id) ? 'same' : 'new'
-      return { ...s, dynamics: dyn }
+      return { ...s, dynamics: (prevIds.has(s.id) ? 'same' : 'new') as DynType }
     })
-
     const resolved: EnrichedSymptom[] = previousSymptoms
       .filter(s => !currIds.has(s.id))
       .map(s => ({ ...s, dynamics: 'resolved' as DynType }))
@@ -57,86 +57,47 @@ export default function SymptomDynamicsPanel({ symptoms, previousSymptoms, asses
   const stateLabel = assessment ? CASE_STATE_LABELS[lang][assessment.caseState] : null
 
   return (
-    <div style={{ marginBottom: '12px' }}>
-      {/* Строка статуса: "Динамика · N симпт. · Улучшение" */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        marginBottom: enriched.length > 0 ? '8px' : '0',
-        flexWrap: 'wrap',
-      }}>
-        <span style={{
-          fontSize: '11px',
-          fontWeight: 600,
-          color: '#9ca3af',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-        }}>
+    <div className="mb-3">
+      <div className="flex items-center gap-1.5 flex-wrap mb-2">
+        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.5px]">
           {lang === 'ru' ? 'Динамика' : 'Dynamics'}
         </span>
         {enriched.length > 0 && (
-          <span style={{ fontSize: '11px', color: '#9ca3af' }}>·</span>
-        )}
-        {enriched.length > 0 && (
-          <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-            {enriched.length} {lang === 'ru' ? 'симпт.' : 'sympt.'}
-          </span>
+          <>
+            <span className="text-[11px] text-gray-400">·</span>
+            <span className="text-[11px] text-gray-400">
+              {enriched.length} {lang === 'ru' ? 'симпт.' : 'sympt.'}
+            </span>
+          </>
         )}
         {stateLabel && stateColors && (
           <>
-            <span style={{ fontSize: '11px', color: '#9ca3af' }}>·</span>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 500,
-              color: stateColors.color,
-              backgroundColor: stateColors.bg,
-              border: `1px solid ${stateColors.border}`,
-              borderRadius: '10px',
-              padding: '1px 8px',
-            }}>
+            <span className="text-[11px] text-gray-400">·</span>
+            <span
+              className="text-[11px] font-medium px-2 py-px rounded-[10px]"
+              style={{ color: stateColors.color, backgroundColor: stateColors.bg, border: `1px solid ${stateColors.border}` }}
+            >
               {stateLabel}
             </span>
           </>
         )}
       </div>
 
-      {/* Список симптомов */}
       {enriched.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div className="flex flex-col gap-0.5">
           {ORDER.map(dynType => {
             const items = grouped.get(dynType)
-            if (!items || items.length === 0) return null
+            if (!items?.length) return null
             const cfg = DYNAMICS_CONFIG[dynType]
-
             return items.map(s => (
-              <div
-                key={s.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '2px 0',
-                  fontSize: '13px',
-                  lineHeight: 1.3,
-                }}
-              >
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '50%',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  color: cfg.color,
-                  backgroundColor: cfg.color + '18',
-                  flexShrink: 0,
-                }}>
+              <div key={s.id} className="flex items-center gap-1.5 py-0.5 text-[13px] leading-tight">
+                <span
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold shrink-0"
+                  style={{ color: cfg.color, backgroundColor: cfg.bgColor }}
+                >
                   {cfg.icon}
                 </span>
-                <span style={{ color: '#1a3020', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span className="flex-1 min-w-0 truncate" style={{ color: 'var(--color-forest)' }}>
                   {s.label}
                 </span>
               </div>

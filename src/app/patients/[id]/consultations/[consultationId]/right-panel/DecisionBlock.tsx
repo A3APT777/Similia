@@ -15,7 +15,7 @@ const ALL_DECISIONS: ClinicalDecision[] = [
   'continue', 'wait', 'increase', 'change', 'antidote', 'refer',
 ]
 
-export default function DecisionBlock({ assessment, onConfirm, onOpenRepertory, lang }: Props) {
+export default function DecisionBlock({ assessment, onConfirm, lang }: Props) {
   const [selected, setSelected] = useState<ClinicalDecision>(
     assessment.confirmedDecision || assessment.suggestedDecision
   )
@@ -26,41 +26,24 @@ export default function DecisionBlock({ assessment, onConfirm, onOpenRepertory, 
   }
 
   return (
-    <div style={{ marginBottom: '12px' }}>
-      <div style={{
-        fontSize: '11px',
-        fontWeight: 600,
-        color: '#9ca3af',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-        marginBottom: '6px',
-      }}>
+    <div className="mb-3">
+      <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.5px] mb-1.5">
         {lang === 'ru' ? 'Решение' : 'Decision'}
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+      <div className="flex flex-wrap gap-1">
         {ALL_DECISIONS.map(d => {
           const isSelected = d === selected
           const isSuggested = d === assessment.suggestedDecision
-
           return (
             <button
               key={d}
               onClick={() => handleSelect(d)}
+              className="px-2.5 py-1 rounded-[20px] text-xs leading-snug transition-all duration-[120ms] cursor-pointer"
               style={{
-                padding: '4px 10px',
-                borderRadius: '20px',
-                border: isSelected
-                  ? '1.5px solid #2d6a4f'
-                  : isSuggested
-                    ? '1.5px dashed #b0c4b0'
-                    : '1px solid #e5e0d8',
-                backgroundColor: isSelected ? '#2d6a4f' : isSuggested ? '#f0f7f0' : 'transparent',
+                border: isSelected ? '1.5px solid var(--color-garden)' : isSuggested ? '1.5px dashed #b0c4b0' : '1px solid #e5e0d8',
+                backgroundColor: isSelected ? 'var(--color-garden)' : isSuggested ? '#f0f7f0' : 'transparent',
                 color: isSelected ? '#fff' : '#374151',
-                fontSize: '12px',
                 fontWeight: isSelected ? 600 : 400,
-                cursor: 'pointer',
-                transition: 'all 0.12s ease',
-                lineHeight: 1.4,
               }}
             >
               {DECISION_LABELS[lang][d]}

@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import IntakeForm from './IntakeForm'
+import type { ScheduleConfig } from '@/lib/slots'
 
 export default async function IntakePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -47,5 +49,41 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
     )
   }
 
-  return <IntakeForm token={token} patientName={intake.patient_name || ''} type={intake.type ?? 'primary'} />
+  // Предзаполнение данных если анкета привязана к существующему пациенту
+  let prefilled: { name?: string; phone?: string; birth_date?: string; email?: string } | undefined
+  if (intake.patient_id) {
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('name, phone, birth_date, email')
+      .eq('id', intake.patient_id)
+      .single()
+    if (patient) {
+      prefilled = {
+        name: patient.name || undefined,
+        phone: patient.phone || undefined,
+        birth_date: patient.birth_date || undefined,
+        email: patient.email || undefined,
+      }
+    }
+  }
+
+  // Расписание врача — для блока записи на приём в конце анкеты
+  const serviceSupabase = createServiceClient()
+  const { data: scheduleData } = await serviceSupabase
+    .from('doctor_schedules')
+    .select('*')
+    .eq('doctor_id', intake.doctor_id)
+    .single()
+  const schedule: ScheduleConfig | null = scheduleData ?? null
+
+  return (
+    <IntakeForm
+      token={token}
+      patientName={intake.patient_name || ''}
+      type={intake.type ?? 'primary'}
+      prefilled={prefilled}
+      schedule={schedule}
+      doctorId={intake.doctor_id}
+    />
+  )
 }

@@ -45,9 +45,12 @@ export type Consultation = {
   dosage: string | null
   rubrics: string | null
   reaction_to_previous: string | null
+  doctor_dynamics: DoctorDynamics | null
   created_at: string
   updated_at: string
 }
+
+export type DoctorDynamics = 'improving' | 'no_change' | 'worsening' | 'aggravation' | 'deterioration'
 
 // === Structured Symptoms ===
 

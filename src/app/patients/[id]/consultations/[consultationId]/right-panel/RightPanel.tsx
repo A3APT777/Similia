@@ -29,11 +29,9 @@ export default function RightPanel({
   onAssignRemedy,
   lang,
 }: Props) {
-
-  // Первая консультация — показываем карточку пациента
   if (!previousConsultation) {
     return (
-      <div style={{ padding: '12px' }}>
+      <div className="p-3">
         <FirstVisitContext patient={patient} lang={lang} />
         {symptoms.length === 0 && <EmptySymptomHint lang={lang} />}
         {symptoms.length > 0 && assessment && (
@@ -52,34 +50,23 @@ export default function RightPanel({
   const hasDynamics = symptoms.length > 0 || previousSymptoms.length > 0
 
   return (
-    <div style={{ padding: '12px' }}>
-
-      {/* 1. Активный препарат — всегда первым если есть */}
+    <div className="p-3">
       {previousConsultation.remedy && (
         <ActiveRemedy previousConsultation={previousConsultation} lang={lang} />
       )}
 
-      {/* Если нет симптомов — подсказка */}
       {symptoms.length === 0 && !previousConsultation.remedy && (
         <EmptySymptomHint lang={lang} />
       )}
 
-      {/* Если нет симптомов но есть препарат — краткая подсказка */}
       {symptoms.length === 0 && previousConsultation.remedy && (
-        <div style={{
-          fontSize: '12px', color: '#b0a090', lineHeight: 1.5,
-          padding: '10px 12px',
-          backgroundColor: '#faf7f2',
-          borderRadius: '8px',
-          marginBottom: '12px',
-        }}>
+        <div className="text-xs leading-relaxed px-3 py-2.5 rounded-lg mb-3" style={{ color: '#7a6a5a', backgroundColor: '#faf7f2', borderLeft: '3px solid #d4c9b8' }}>
           {lang === 'ru'
-            ? 'Добавьте симптомы слева — здесь появится анализ динамики'
-            : 'Add symptoms on the left — dynamics will appear here'}
+            ? 'Добавьте ключевые симптомы слева — правая панель покажет как изменилась динамика по сравнению с прошлым приёмом'
+            : 'Add key symptoms on the left — panel will show how dynamics changed since last visit'}
         </div>
       )}
 
-      {/* 2. Динамика симптомов + статус */}
       {hasDynamics && (
         <SymptomDynamicsPanel
           symptoms={symptoms}
@@ -89,58 +76,45 @@ export default function RightPanel({
         />
       )}
 
-      {/* 3. Топ препаратов из репертория */}
       <TopRemediesPanel lang={lang} onAssignRemedy={onAssignRemedy} />
 
-      {/* 4. Решение */}
       {assessment && (
         <DecisionBlock
           assessment={assessment}
-          onConfirm={(_decision: ClinicalDecision) => {/* сохранение при необходимости */}}
+          onConfirm={(_decision: ClinicalDecision) => {}}
           onOpenRepertory={onOpenRepertory}
           lang={lang}
         />
       )}
 
-      {/* 4. Прошлый приём */}
       <PreviousVisitSummary previousConsultation={previousConsultation} lang={lang} />
     </div>
   )
 }
 
-// Карточка контекста для первого визита
 function FirstVisitContext({ patient, lang }: { patient: Patient; lang: 'ru' | 'en' }) {
   const hasContext = patient.constitutional_type || patient.birth_date || patient.notes
 
   return (
-    <div style={{
-      backgroundColor: '#f0f7f0',
-      borderLeft: '3px solid #2d6a4f',
-      borderRadius: '6px',
-      padding: '10px 12px',
-      marginBottom: '12px',
-    }}>
-      <div style={{ fontSize: '10px', fontWeight: 600, color: '#2d6a4f', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+    <div className="rounded-md px-3 py-2.5 mb-3" style={{ backgroundColor: '#f0f7f0', borderLeft: '3px solid var(--color-garden)' }}>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.5px] mb-1.5" style={{ color: 'var(--color-garden)' }}>
         {lang === 'ru' ? 'Первый приём' : 'First visit'}
       </div>
-
       {patient.constitutional_type && (
-        <div style={{ fontFamily: 'var(--font-cormorant)', fontSize: '16px', fontWeight: 600, color: '#1a3020', marginBottom: '4px' }}>
+        <div className="text-base font-semibold mb-1" style={{ fontFamily: 'var(--font-cormorant)', color: 'var(--color-forest)' }}>
           {patient.constitutional_type}
         </div>
       )}
-
-      <div style={{ fontSize: '11px', color: '#6b7280', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+      <div className="flex flex-wrap gap-1.5 text-[11px] text-gray-500">
         {patient.birth_date && <span>{getAge(patient.birth_date)}</span>}
         {!hasContext && (
-          <span style={{ color: '#b0a090' }}>
+          <span className="text-[#b0a090]">
             {lang === 'ru' ? 'Данные не заполнены' : 'No data yet'}
           </span>
         )}
       </div>
-
       {patient.notes && (
-        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px', lineHeight: 1.5, borderTop: '1px solid rgba(45,106,79,0.1)', paddingTop: '6px' }}>
+        <div className="text-[11px] text-gray-500 mt-1.5 leading-relaxed pt-1.5" style={{ borderTop: '1px solid rgba(45,106,79,0.1)' }}>
           {patient.notes.length > 120 ? patient.notes.slice(0, 120) + '…' : patient.notes}
         </div>
       )}
@@ -148,21 +122,27 @@ function FirstVisitContext({ patient, lang }: { patient: Patient; lang: 'ru' | '
   )
 }
 
-// Подсказка когда симптомов нет
 function EmptySymptomHint({ lang }: { lang: 'ru' | 'en' }) {
   return (
-    <div style={{
-      fontSize: '12px',
-      color: '#b0a090',
-      lineHeight: 1.6,
-      padding: '10px 12px',
-      backgroundColor: '#faf7f2',
-      borderRadius: '8px',
-      marginBottom: '12px',
-    }}>
-      {lang === 'ru'
-        ? 'Добавьте симптомы слева — здесь появится анализ динамики'
-        : 'Add symptoms on the left — dynamics will appear here'}
+    <div className="text-xs leading-relaxed px-3.5 py-3 rounded-lg mb-3" style={{ color: '#7a6a5a', backgroundColor: '#faf7f2', borderLeft: '3px solid #d4c9b8' }}>
+      <div className="font-semibold mb-1.5 text-[#5a4a3a]">
+        {lang === 'ru' ? 'Заполните приём слева:' : 'Fill in the visit on the left:'}
+      </div>
+      <ol className="list-decimal pl-3.5 m-0 space-y-0.5">
+        {lang === 'ru' ? (
+          <>
+            <li>Запишите жалобы пациента</li>
+            <li>Добавьте ключевые симптомы</li>
+            <li>Назначьте препарат в блоке «Назначение»</li>
+          </>
+        ) : (
+          <>
+            <li>Write down patient complaints</li>
+            <li>Add key symptoms</li>
+            <li>Prescribe a remedy in the &quot;Prescription&quot; block</li>
+          </>
+        )}
+      </ol>
     </div>
   )
 }

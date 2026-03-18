@@ -23,6 +23,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://simillia.ru"),
   title: "Similia — картотека для гомеопата",
   description: "Цифровой кабинет гомеопата: карточки пациентов, анкеты, опрос самочувствия, фото-динамика.",
   manifest: "/manifest.json",
@@ -37,6 +38,19 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
+  },
+  openGraph: {
+    title: "Similia — картотека для гомеопата",
+    description: "Цифровой кабинет гомеопата: карточки пациентов, реперторий Кента, динамика состояния.",
+    url: "https://simillia.ru",
+    siteName: "Similia",
+    type: "website",
+    locale: "ru_RU",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Similia — картотека для гомеопата",
+    description: "Цифровой кабинет гомеопата: карточки пациентов, реперторий Кента, динамика состояния.",
   },
 };
 

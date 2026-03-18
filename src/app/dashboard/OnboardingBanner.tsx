@@ -9,9 +9,11 @@ type Props = {
   hasRealPatients: boolean
   hasSentIntake: boolean
   hasScheduled: boolean
+  lastPatientId?: string
 }
 
-function getSteps(lang: 'ru' | 'en') {
+function getSteps(lang: 'ru' | 'en', lastPatientId?: string) {
+  const patientUrl = lastPatientId ? `/patients/${lastPatientId}` : null
   return [
     {
       key: 'patient',
@@ -25,17 +27,17 @@ function getSteps(lang: 'ru' | 'en') {
       key: 'intake',
       done: (p: Props) => p.hasSentIntake,
       title: t(lang).onboarding.sendIntake,
-      desc: t(lang).onboarding.sendIntakeDesc,
-      href: null,
-      label: null,
+      desc: lang === 'ru' ? 'Откройте карточку пациента → «Анкета до приёма»' : 'Open patient card → "Intake form"',
+      href: patientUrl,
+      label: lang === 'ru' ? 'Открыть карточку' : 'Open patient',
     },
     {
       key: 'schedule',
       done: (p: Props) => p.hasScheduled,
       title: t(lang).onboarding.scheduleFirst,
-      desc: t(lang).onboarding.scheduleFirstDesc,
-      href: null,
-      label: null,
+      desc: lang === 'ru' ? 'Откройте карточку пациента → «Запланировать»' : 'Open patient card → "Schedule"',
+      href: patientUrl,
+      label: lang === 'ru' ? 'Открыть карточку' : 'Open patient',
     },
   ]
 }
@@ -55,7 +57,7 @@ export default function OnboardingBanner(props: Props) {
   // Не рендерим пока не прочитали localStorage — убирает мелькание
   if (!ready || dismissed) return null
 
-  const STEPS = getSteps(lang)
+  const STEPS = getSteps(lang, props.lastPatientId)
   const completedCount = STEPS.filter(s => s.done(props)).length
   if (completedCount === STEPS.length) return null
 

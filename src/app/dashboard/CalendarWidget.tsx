@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAppointmentsByMonth, scheduleConsultation } from '@/lib/actions/consultations'
+import Link from 'next/link'
+import { getAppointmentsByMonth, scheduleConsultation, startConsultation } from '@/lib/actions/consultations'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
@@ -39,7 +40,14 @@ function nowMsk() {
   return { year: d[0], month: d[1] }
 }
 
-export default function CalendarWidget({ patients }: { patients: Patient[] }) {
+function getUrgency(scheduledAt: string): 'urgent' | 'soon' | null {
+  const diffMin = Math.round((new Date(scheduledAt).getTime() - Date.now()) / 60000)
+  if (diffMin >= -30 && diffMin <= 10) return 'urgent'
+  if (diffMin > 10 && diffMin <= 45) return 'soon'
+  return null
+}
+
+export default function CalendarWidget({ patients, lastRemedyMap }: { patients: Patient[]; lastRemedyMap?: Record<string, string> }) {
   const { lang } = useLanguage()
   const router = useRouter()
   const today = todayMsk()
@@ -49,6 +57,8 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
   const [month, setMonth] = useState(initial.month)
   const [appointments, setAppointments] = useState<CalendarAppt[]>([])
   const [selectedDay, setSelectedDay] = useState<string>(today)
+  const initializedRef = useRef(false)
+  const [showCompleted, setShowCompleted] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [patientSearch, setPatientSearch] = useState('')
   const [addPatientId, setAddPatientId] = useState('')
@@ -59,6 +69,22 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
   useEffect(() => {
     getAppointmentsByMonth(year, month).then(setAppointments)
   }, [year, month])
+
+  // При первой загрузке — переходим к ближайшему будущему приёму
+  useEffect(() => {
+    if (appointments.length === 0 || initializedRef.current) return
+    initializedRef.current = true
+    const now = new Date()
+    const next = appointments
+      .filter(a => a.status !== 'cancelled' && new Date(a.scheduled_at) > now)
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0]
+    if (next) {
+      const nextDate = toMskDateStr(next.scheduled_at)
+      setSelectedDay(nextDate)
+      const [y, m] = nextDate.split('-').map(Number)
+      if (y !== initial.year || m !== initial.month) { setYear(y); setMonth(m) }
+    }
+  }, [appointments])
 
   function prevMonth() {
     if (month === 1) { setYear(y => y - 1); setMonth(12) }
@@ -81,7 +107,20 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
     apptsByDay[d].push(appt)
   }
 
-  const selectedAppts = apptsByDay[selectedDay] || []
+  const now = new Date()
+  const allDayAppts = (apptsByDay[selectedDay] || [])
+    .filter(a => a.status !== 'cancelled')
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+
+  const completedDayAppts = allDayAppts.filter(a => a.status === 'completed')
+  const activeDayAppts = allDayAppts.filter(a => a.status !== 'completed')
+  const visibleDayAppts = showCompleted ? allDayAppts : activeDayAppts
+
+  // для формы записи — исключаем завершённые и приёмы > 1ч назад
+  const selectedAppts = allDayAppts.filter(a =>
+    a.status !== 'completed' &&
+    new Date(a.scheduled_at) > new Date(now.getTime() - 60 * 60 * 1000)
+  )
 
   const busyMins = selectedAppts.map(a => {
     const t = toMskTime(a.scheduled_at)
@@ -107,6 +146,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
   function handleDayClick(dateStr: string) {
     setSelectedDay(dateStr)
     setShowAdd(false)
+    setShowCompleted(false)
     setPatientSearch('')
     setAddPatientId('')
     setAddError('')
@@ -141,7 +181,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
   return (
     <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: '#f5f0e8', border: '1px solid #d4c9b8' }}>
       {/* Шапка: навигация по месяцам */}
-      <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: '0.5px solid #d4c9b8' }}>
+      <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '0.5px solid #d4c9b8' }}>
         <button
           onClick={prevMonth}
           className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-base leading-none"
@@ -179,7 +219,7 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
             <button
               key={dateStr}
               onClick={() => handleDayClick(dateStr)}
-              className={`flex flex-col items-center py-1.5 rounded-xl transition-all ${
+              className={`flex flex-col items-center py-1 rounded-xl transition-all ${
                 isSelected
                   ? 'bg-emerald-600 text-white'
                   : isToday
@@ -201,36 +241,80 @@ export default function CalendarWidget({ patients }: { patients: Patient[] }) {
       </div>
 
       {/* Панель выбранного дня */}
-      <div className="px-4 py-3" style={{ borderTop: '0.5px solid #d4c9b8' }}>
-        <div className="flex items-center justify-between mb-2.5">
-          <p className="text-xs font-semibold text-gray-500 capitalize">
-            {formatSelectedDay(selectedDay)}
-          </p>
-          {!showAdd && (
-            <button
-              onClick={() => setShowAdd(true)}
-              className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
-            >
-              {t(lang).calendar.addAppointment}
-            </button>
-          )}
-        </div>
+      <div className="px-3 py-2" style={{ borderTop: '0.5px solid #d4c9b8' }}>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide capitalize mb-2">
+          {formatSelectedDay(selectedDay)}
+        </p>
 
-        {selectedAppts.length === 0 && !showAdd && (
-          <p className="text-xs text-gray-300 italic">{t(lang).calendar.noAppointments}</p>
+        {visibleDayAppts.length === 0 && !showAdd && (
+          <p className="text-[11px] text-gray-300 italic mb-2">{t(lang).calendar.noAppointments}</p>
         )}
 
-        <div className="space-y-1 mb-2">
-          {selectedAppts.map(appt => (
-            <div key={appt.id} className="flex items-center gap-2.5">
-              <span className="text-xs font-mono font-medium text-gray-500 w-10 shrink-0 tabular-nums">
-                {toMskTime(appt.scheduled_at)}
-              </span>
-              <div className="w-1 h-1 rounded-full bg-emerald-400 shrink-0" />
-              <span className="text-xs text-gray-700 truncate">{appt.patients?.name}</span>
-            </div>
-          ))}
+        <div className="space-y-0.5 mb-1.5">
+          {visibleDayAppts.map(appt => {
+            const urgency = getUrgency(appt.scheduled_at)
+            const isUrgent = urgency === 'urgent'
+            const done = appt.status === 'completed'
+            const live = appt.status === 'in_progress'
+            const remedy = lastRemedyMap?.[appt.patient_id]
+            return (
+              <div
+                key={appt.id}
+                className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${isUrgent ? 'bg-amber-50' : ''} ${done ? 'opacity-50' : ''}`}
+              >
+                <span className={`text-[11px] font-mono font-semibold w-9 shrink-0 tabular-nums ${isUrgent ? 'text-amber-600' : 'text-gray-500'}`}>
+                  {toMskTime(appt.scheduled_at)}
+                </span>
+                <Link href={`/patients/${appt.patient_id}`} className="flex-1 min-w-0">
+                  <p className={`text-[11px] font-medium truncate transition-colors ${done ? 'text-gray-500' : 'text-gray-800 hover:text-emerald-700'}`}>
+                    {appt.patients?.name}
+                  </p>
+                  {remedy && (
+                    <p className="text-[10px] text-gray-400 truncate leading-tight">{remedy}</p>
+                  )}
+                </Link>
+                {done ? (
+                  <Link
+                    href={`/patients/${appt.patient_id}`}
+                    className="text-[10px] text-gray-400 hover:text-gray-600 shrink-0 transition-colors"
+                  >→</Link>
+                ) : live ? (
+                  <Link
+                    href={`/patients/${appt.patient_id}`}
+                    className="text-[10px] bg-emerald-600 text-white px-2 py-1 rounded-md font-semibold shrink-0"
+                  >→</Link>
+                ) : (
+                  <form action={startConsultation.bind(null, appt.id, appt.patient_id)}>
+                    <button
+                      type="submit"
+                      className={`text-[10px] px-2 py-1 rounded-md font-medium shrink-0 transition-colors ${isUrgent ? 'bg-amber-500 text-white' : 'border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700'}`}
+                    >→</button>
+                  </form>
+                )}
+              </div>
+            )
+          })}
         </div>
+
+        {completedDayAppts.length > 0 && (
+          <button
+            onClick={() => setShowCompleted(v => !v)}
+            className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors mb-1.5 block"
+          >
+            {showCompleted
+              ? (lang === 'ru' ? '↑ Скрыть завершённые' : '↑ Hide completed')
+              : (lang === 'ru' ? `+ Завершённые (${completedDayAppts.length})` : `+ Completed (${completedDayAppts.length})`)}
+          </button>
+        )}
+
+        {!showAdd && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="text-[11px] text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+          >
+            {t(lang).calendar.addAppointment}
+          </button>
+        )}
 
         {showAdd && (
           <div className="mt-3 space-y-2.5 border-t border-gray-50 pt-3">

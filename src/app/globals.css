@@ -221,3 +221,14 @@
   font-size: 18px !important;
   padding: 4px 8px !important;
 }
+
+@keyframes highlightFlash {
+  0%   { box-shadow: 0 0 0 3px rgba(45,106,79,0.8); }
+  60%  { box-shadow: 0 0 0 3px rgba(45,106,79,0.4); }
+  100% { box-shadow: 0 0 0 3px rgba(45,106,79,0); }
+}
+
+.highlight-flash {
+  animation: highlightFlash 1.2s ease-out forwards;
+  border-radius: 1rem;
+}

@@ -96,6 +96,9 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
   // Ref для доступа к актуальному assessment внутри таймера автосохранения
   const assessmentRef = useRef<ClinicalAssessment>(null!)
 
+  // Ref для вызова saveAll из toast action (избегает проблем с замыканиями)
+  const saveAllRef = useRef<() => Promise<void>>(async () => {})
+
   const initialState: State = {
     notes: consultation.notes || '',
     complaints: consultation.complaints || '',
@@ -147,7 +150,10 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
         dispatch({ type: 'SET_SAVE_STATE', state: 'saved', savedAt: now })
       } catch {
         dispatch({ type: 'SET_SAVE_STATE', state: 'unsaved' })
-        toast(t(lang).consultation.saveError)
+        toast(t(lang).consultation.saveError, 'error', {
+          label: lang === 'ru' ? 'Повторить' : 'Retry',
+          onClick: () => saveAllRef.current(),
+        })
       }
     }, 1500)
 
@@ -211,9 +217,15 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
       dispatch({ type: 'SET_SAVE_STATE', state: 'saved', savedAt: now })
     } catch {
       dispatch({ type: 'SET_SAVE_STATE', state: 'unsaved' })
-      toast(t(lang).consultation.saveError)
+      toast(t(lang).consultation.saveError, 'error', {
+        label: lang === 'ru' ? 'Повторить' : 'Retry',
+        onClick: () => saveAllRef.current(),
+      })
     }
   }, [consultation.id, lang, toast])
+
+  // Обновляем ref после определения saveAll
+  saveAllRef.current = saveAll
 
   // --- Вычисляемое: клиническая оценка ---
 

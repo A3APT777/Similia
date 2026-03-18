@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// ─── Константы валидации загружаемых изображений ────────────────────────────
+// Используются в photos.ts и photoUpload.ts — один источник истины
+export const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] as const
+export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] as const
+export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024 // 10 МБ
+
 export function getAge(birthDate: string): string {
   const birth = new Date(birthDate)
   const today = new Date()

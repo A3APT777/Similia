@@ -66,8 +66,14 @@ export default function PhotoSection({ patientId, photos }: Props) {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
-    const formData = new FormData(form)
+    const files = fileRef.current?.files
+    if (!files || files.length === 0) return
+
+    const formData = new FormData()
+    formData.set('file', files[0])
     formData.set('patientId', patientId)
+    formData.set('note', (form.querySelector('[name=note]') as HTMLInputElement)?.value || '')
+    formData.set('takenAt', (form.querySelector('[name=takenAt]') as HTMLInputElement)?.value || '')
 
     startUpload(async () => {
       try {
@@ -140,6 +146,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
         <input
           ref={fileRef}
           type="file"
+          name="file"
           accept="image/*"
           className="hidden"
           onChange={handleFileChange}
@@ -205,7 +212,6 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
                 />
               </div>
-              <input type="file" name="file" className="hidden" ref={fileRef} />
             </div>
           </div>
 

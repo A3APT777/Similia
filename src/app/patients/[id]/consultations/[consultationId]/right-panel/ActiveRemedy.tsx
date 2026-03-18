@@ -12,49 +12,28 @@ export default function ActiveRemedy({ previousConsultation, lang }: Props) {
 
   if (!remedy) return null
 
-  // Дней с момента назначения
   const daysSince = Math.floor(
     (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
   )
-
   const daysLabel = lang === 'ru'
     ? `${daysSince} ${daysSince === 1 ? 'день' : daysSince < 5 ? 'дня' : 'дней'} назад`
     : `${daysSince} day${daysSince === 1 ? '' : 's'} ago`
 
   return (
-    <div style={{
-      backgroundColor: '#e8f0e8',
-      borderLeft: '3px solid #2d6a4f',
-      borderRadius: '6px',
-      padding: '10px 12px',
-      marginBottom: '12px',
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-cormorant)',
-        fontSize: '18px',
-        fontWeight: 600,
-        color: '#1a3020',
-        lineHeight: 1.2,
-      }}>
+    <div className="rounded-md px-3 py-2.5 mb-3" style={{ backgroundColor: '#e8f0e8', borderLeft: '3px solid var(--color-garden)' }}>
+      <div className="text-lg font-semibold leading-tight" style={{ fontFamily: 'var(--font-cormorant)', color: 'var(--color-forest)' }}>
         {remedy}
         {potency && (
-          <span style={{ fontSize: '14px', fontWeight: 400, marginLeft: '6px', color: '#2d6a4f' }}>
+          <span className="text-sm font-normal ml-1.5" style={{ color: 'var(--color-garden)' }}>
             {potency}
           </span>
         )}
       </div>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        marginTop: '4px',
-        fontSize: '11px',
-        color: '#6b7280',
-      }}>
+      <div className="flex items-center gap-2.5 mt-1 text-[11px] text-gray-500">
         <span>{daysLabel}</span>
         {dosage && (
           <>
-            <span style={{ color: '#d1d5db' }}>|</span>
+            <span className="text-gray-300">|</span>
             <span>{dosage}</span>
           </>
         )}

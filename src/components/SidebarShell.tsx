@@ -7,6 +7,7 @@ import LogoutButton from './LogoutButton'
 import { useLanguage } from '@/hooks/useLanguage'
 import { t } from '@/lib/i18n'
 import TourModal, { useTourAutoShow } from './TourModal'
+import FeedbackModal from './FeedbackModal'
 
 type Props = {
   firstName: string
@@ -16,6 +17,7 @@ type Props = {
 
 export default function SidebarShell({ firstName, initials, children }: Props) {
   const [open, setOpen] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
   const pathname = usePathname()
   const { lang, toggle } = useLanguage()
   const { show: showTour, setShow: setShowTour } = useTourAutoShow()
@@ -71,7 +73,7 @@ export default function SidebarShell({ firstName, initials, children }: Props) {
             fontFamily: "'Cormorant Garamond', Georgia, serif",
             fontSize: '20px',
             fontWeight: '400',
-            color: '#f7f3ed',
+            color: 'var(--color-parchment)',
             letterSpacing: '0.02em'
           }}>Similia</span>
         </Link>
@@ -115,22 +117,38 @@ export default function SidebarShell({ firstName, initials, children }: Props) {
         </div>
       </nav>
 
-      {/* Настройки */}
+      {/* Цитата */}
+      <div className="px-4 py-3 mx-2 my-2 rounded-xl bg-white/[0.06] border border-white/[0.08]">
+        <p className="text-[17px] italic leading-relaxed" style={{ color: 'rgba(255,255,255,0.88)', fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
+          «Similia similibus curantur»
+        </p>
+        <p className="text-[12px] mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>Ганеман, 1796</p>
+      </div>
+
+      {/* Обратная связь */}
       <div className="px-2 pb-1 border-t border-white/[0.07] pt-1">
+        <button
+          onClick={() => setShowFeedback(true)}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-all"
+          style={{ color: 'rgba(255,255,255,0.45)' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+          </svg>
+          {lang === 'ru' ? 'Обратная связь' : 'Feedback'}
+        </button>
+      </div>
+
+      {/* Настройки */}
+      <div className="px-2 pb-1">
         {navLink('/settings', t(lang).nav.settings,
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         )}
-      </div>
-
-      {/* Цитата */}
-      <div className="px-4 py-3 mx-2 mb-1 rounded-xl bg-white/[0.06] border border-white/[0.08]">
-        <p className="text-[17px] italic leading-relaxed" style={{ color: 'rgba(255,255,255,0.88)', fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
-          «Similia similibus curantur»
-        </p>
-        <p className="text-[12px] mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>Ганеман, 1796</p>
       </div>
 
       {/* Повторить обучение + правовые ссылки */}
@@ -145,7 +163,7 @@ export default function SidebarShell({ firstName, initials, children }: Props) {
             setShowTour(true)
           }}
           className="w-full text-left text-[12px] transition-colors hover:opacity-80"
-          style={{ color: '#9a8a6a' }}
+          style={{ color: 'var(--color-text-muted)' }}
         >
           {t(lang).nav.retakeTour}
         </button>
@@ -176,7 +194,7 @@ export default function SidebarShell({ firstName, initials, children }: Props) {
         </div>
 
         <div className="flex items-center gap-2.5 px-2.5 py-3 lg:py-2 rounded-lg hover:bg-white/[0.05] transition-colors">
-          <div className="w-7 h-7 lg:w-6 lg:h-6 flex items-center justify-center text-[11px] font-semibold shrink-0" style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '6px' }}>
+          <div className="w-7 h-7 lg:w-6 lg:h-6 flex items-center justify-center text-[11px] font-semibold shrink-0" style={{ backgroundColor: 'var(--color-forest)', color: 'var(--color-parchment)', borderRadius: '6px' }}>
             {initials}
           </div>
           <p className="text-[13px] font-medium text-white/60 truncate flex-1">{firstName}</p>
@@ -189,6 +207,7 @@ export default function SidebarShell({ firstName, initials, children }: Props) {
   return (
     <div className="flex min-h-[100dvh] lg:h-screen lg:overflow-hidden bg-[#ede7dd]">
       <TourModal show={showTour} onClose={() => setShowTour(false)} />
+      <FeedbackModal open={showFeedback} onClose={() => setShowFeedback(false)} />
 
       {/* Затемнение фона (мобильный) */}
       <div
@@ -235,11 +254,11 @@ export default function SidebarShell({ firstName, initials, children }: Props) {
                 stroke="#1a3020" strokeWidth="0.8"
                 strokeLinecap="round"/>
             </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: '400', color: '#f7f3ed', letterSpacing: '0.02em' }}>Similia</span>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: '400', color: 'var(--color-parchment)', letterSpacing: '0.02em' }}>Similia</span>
           </Link>
 
           {/* Аватар */}
-          <div className="w-8 h-8 flex items-center justify-center text-[11px] font-semibold" style={{ backgroundColor: '#1a3020', color: '#f7f3ed', borderRadius: '8px' }}>
+          <div className="w-8 h-8 flex items-center justify-center text-[11px] font-semibold" style={{ backgroundColor: 'var(--color-forest)', color: 'var(--color-parchment)', borderRadius: '8px' }}>
             {initials}
           </div>
         </header>

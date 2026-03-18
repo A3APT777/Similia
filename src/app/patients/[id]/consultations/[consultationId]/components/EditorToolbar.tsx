@@ -27,7 +27,7 @@ export default function EditorToolbar({ onOpenRepertory }: Props) {
   const typeLabel = type === 'chronic' ? t(lang).consultation.chronicShort : t(lang).consultation.acuteShort
 
   return (
-    <div className="px-4 sm:px-5 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none" style={{ borderBottom: '1px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-card)' }}>
+    <div data-tour="editor-toolbar" className="px-4 sm:px-5 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none" style={{ borderBottom: '1px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-card)' }}>
       {/* Тип */}
       <button
         type="button"
@@ -49,6 +49,7 @@ export default function EditorToolbar({ onOpenRepertory }: Props) {
         <button
           type="button"
           onClick={() => dispatch({ type: 'SET_FIELD', field: 'mode', value: 'quick' })}
+          title="Быстрый режим — жалобы, назначение и план. Для повторных приёмов и коротких консультаций."
           className="text-[11px] font-semibold px-2.5 py-1.5 transition-all"
           style={{
             backgroundColor: state.mode === 'quick' ? 'var(--sim-green)' : 'transparent',
@@ -60,6 +61,7 @@ export default function EditorToolbar({ onOpenRepertory }: Props) {
         <button
           type="button"
           onClick={() => dispatch({ type: 'SET_FIELD', field: 'mode', value: 'deep' })}
+          title="Глубокий режим — структурированный опрос: модальности, психика, конституция. Для первичных приёмов."
           className="text-[11px] font-semibold px-2.5 py-1.5 transition-all"
           style={{
             backgroundColor: state.mode === 'deep' ? 'var(--sim-green)' : 'transparent',

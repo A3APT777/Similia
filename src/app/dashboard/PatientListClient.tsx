@@ -61,6 +61,8 @@ type PatientWithLastConsultation = Patient & {
   last_consultation_date?: string | null
   last_consultation_preview?: string | null
   pending_prescription?: boolean
+  overdue?: boolean
+  pending_followup_days?: number | null
 }
 
 function getInitials(name: string): string {
@@ -86,20 +88,51 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[h]
 }
 
-export default function PatientListClient({ patients }: { patients: PatientWithLastConsultation[] }) {
+export default function PatientListClient({ patients, filterPending = false }: { patients: PatientWithLastConsultation[]; filterPending?: boolean }) {
   const { lang } = useLanguage()
   const [search, setSearch] = useState('')
+  const [pendingOnly, setPendingOnly] = useState(filterPending)
+  const [followupOnly, setFollowupOnly] = useState(false)
 
-  const filtered = patients.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.phone || '').includes(search) ||
-    (p.email || '').toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = patients
+    .filter(p => !pendingOnly || p.pending_prescription)
+    .filter(p => !followupOnly || !!p.pending_followup_days)
+    .filter(p =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.phone || '').includes(search) ||
+      (p.email || '').toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Пациенты с ожидающим опросником — вверх
+      if (followupOnly) return (b.pending_followup_days ?? 0) - (a.pending_followup_days ?? 0)
+      return 0
+    })
 
   return (
     <div>
-      {/* Поиск */}
-      <div className="relative mb-3">
+      {/* Чипы активных фильтров */}
+      {(pendingOnly || followupOnly) && (
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {pendingOnly && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(200,160,53,0.15)', color: '#8a6010', border: '1px solid rgba(200,160,53,0.3)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#c8a035' }} />
+              {lang === 'ru' ? 'Без назначения' : 'No prescription'}
+              <button onClick={() => setPendingOnly(false)} className="ml-0.5 hover:opacity-70 transition-opacity">×</button>
+            </span>
+          )}
+          {followupOnly && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(234,179,8,0.12)', color: '#854d0e', border: '1px solid rgba(234,179,8,0.3)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#eab308' }} />
+              {lang === 'ru' ? 'Ждут опросника' : 'Pending followup'}
+              <button onClick={() => setFollowupOnly(false)} className="ml-0.5 hover:opacity-70 transition-opacity">×</button>
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Поиск + фильтр опросников */}
+      <div className="flex gap-2 mb-3">
+      <div className="relative flex-1">
         <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
@@ -109,10 +142,24 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
           onChange={e => setSearch(e.target.value)}
           placeholder={t(lang).patientList.search}
           className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none transition-all"
-          style={{ backgroundColor: '#faf7f2', border: '1px solid #d4c9b8', outline: 'none' }}
-          onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
-          onBlur={e => (e.currentTarget.style.borderColor = '#d4c9b8')}
+          style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', outline: 'none' }}
+          onFocus={e => (e.currentTarget.style.borderColor = 'var(--sim-green)')}
+          onBlur={e => (e.currentTarget.style.borderColor = 'var(--sim-border)')}
         />
+      </div>
+      {patients.some(p => p.pending_followup_days) && (
+        <button
+          onClick={() => setFollowupOnly(v => !v)}
+          className="shrink-0 text-xs px-3 py-2.5 rounded-xl border transition-all font-medium"
+          style={{
+            backgroundColor: followupOnly ? '#eab308' : 'transparent',
+            color: followupOnly ? '#fff' : '#854d0e',
+            borderColor: followupOnly ? '#eab308' : 'rgba(234,179,8,0.4)',
+          }}
+        >
+          ⏳ <span className="hidden sm:inline">{lang === 'ru' ? 'Ждут ответа' : 'Awaiting'}</span>
+        </button>
+      )}
       </div>
 
       {/* Пустое состояние */}
@@ -122,10 +169,10 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
 
       {/* Таблица пациентов */}
       {filtered.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-card)', border: '1px solid #d4c9b8' }}>
+        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--sim-border)' }}>
 
           {/* Шапка */}
-          <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: '0.5px solid #e0d8cc', backgroundColor: '#ede7dd' }}>
+          <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: '0.5px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-hover)' }}>
             <div className="w-7 shrink-0" />
             <div className="flex-1 min-w-0">
               <span className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#9a8a6a' }}>{t(lang).patientList.patient}</span>
@@ -151,15 +198,15 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
                   key={patient.id}
                   href={`/patients/${patient.id}`}
                   className="flex items-center gap-3 px-4 transition-colors group"
-                  style={{ borderBottom: '1px solid #e0d8cc', minHeight: '64px', paddingTop: '10px', paddingBottom: '10px' }}
-                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#e8f0e8'; e.currentTarget.style.boxShadow = 'inset 3px 0 0 #2d6a4f' }}
+                  style={{ borderBottom: '1px solid var(--sim-border-light)', minHeight: '64px', paddingTop: '10px', paddingBottom: '10px' }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--sim-green-light)'; e.currentTarget.style.boxShadow = 'inset 3px 0 0 var(--sim-green)' }}
                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
                 >
                   {/* Аватар */}
                   <div className="relative shrink-0">
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-white"
-                      style={{ backgroundColor: '#1a3020', fontSize: '14px' }}
+                      style={{ backgroundColor: 'var(--sim-forest)', fontSize: '14px' }}
                     >
                       {getInitials(patient.name)}
                     </div>
@@ -177,6 +224,11 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
                       <p className="font-semibold truncate leading-snug" style={{ fontSize: '15px', color: '#1a1a0a' }}>
                         {patient.name}
                       </p>
+                      {patient.pending_followup_days && (
+                        <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md" style={{ backgroundColor: 'rgba(234,179,8,0.15)', color: '#854d0e', border: '1px solid rgba(234,179,8,0.3)' }}>
+                          ⏳ {patient.pending_followup_days} {lang === 'ru' ? 'дн.' : 'd.'}
+                        </span>
+                      )}
                       {meta && (
                         <p className="shrink-0 hidden sm:block" style={{ fontSize: '13px', color: '#5a5040' }}>{meta}</p>
                       )}
@@ -190,11 +242,16 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
 
                   {/* Дата + стрелка */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="tabular-nums w-16 text-right font-medium" style={{ fontSize: '13px', color: '#2d6a4f' }}>
-                      {patient.last_consultation_date
-                        ? formatDateShort(patient.last_consultation_date)
-                        : formatDateShort(patient.first_visit_date)}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {patient.overdue && (
+                        <span title={lang === 'ru' ? 'Нет повторного приёма 60+ дней' : 'No visit in 60+ days'} className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f97316' }} />
+                      )}
+                      <span className="tabular-nums w-16 text-right font-medium" style={{ fontSize: '13px', color: patient.overdue ? '#f97316' : '#2d6a4f' }}>
+                        {patient.last_consultation_date
+                          ? formatDateShort(patient.last_consultation_date)
+                          : formatDateShort(patient.first_visit_date)}
+                      </span>
+                    </div>
                     <svg className="w-3.5 h-3.5 -mr-1 transition-colors" style={{ color: '#c4b89a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                     </svg>
@@ -205,7 +262,7 @@ export default function PatientListClient({ patients }: { patients: PatientWithL
           </div>
 
           {/* Итог */}
-          <div className="px-4 py-2.5" style={{ borderTop: '0.5px solid #e0d8cc', backgroundColor: '#ede7dd' }}>
+          <div className="px-4 py-2.5" style={{ borderTop: '0.5px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-hover)' }}>
             <p className="text-[13px]" style={{ color: '#9a8a6a' }}>
               {t(lang).patientList.countPatients(filtered.length)}
               {search && ` · ${t(lang).patientList.foundByQuery}`}

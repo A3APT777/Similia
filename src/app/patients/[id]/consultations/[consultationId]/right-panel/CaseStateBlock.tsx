@@ -13,18 +13,11 @@ export default function CaseStateBlock({ caseState, lang }: Props) {
   const colors = CASE_STATE_COLORS[caseState]
 
   return (
-    <div style={{ marginBottom: '12px' }}>
-      <span style={{
-        display: 'inline-block',
-        padding: '4px 12px',
-        borderRadius: '12px',
-        fontSize: '13px',
-        fontWeight: 500,
-        color: colors.color,
-        backgroundColor: colors.bg,
-        border: `1px solid ${colors.border}`,
-        lineHeight: 1.4,
-      }}>
+    <div className="mb-3">
+      <span
+        className="inline-block px-3 py-1 rounded-xl text-[13px] font-medium leading-snug"
+        style={{ color: colors.color, backgroundColor: colors.bg, border: `1px solid ${colors.border}` }}
+      >
         {label}
       </span>
     </div>

@@ -136,8 +136,16 @@ const getConsultationSteps = (lang: Lang) => [
     popover: { title: t(lang).tourSteps.complaintsTitle, description: t(lang).tourSteps.complaintsDesc, side: 'bottom' as const },
   },
   {
+    element: '[data-tour="editor-toolbar"]',
+    popover: { title: t(lang).tourSteps.toolbarTitle, description: t(lang).tourSteps.toolbarDesc, side: 'bottom' as const },
+  },
+  {
     element: '[data-tour="open-repertory"]',
     popover: { title: t(lang).tourSteps.openRepTitle, description: t(lang).tourSteps.openRepDesc, side: 'bottom' as const },
+  },
+  {
+    element: '[data-tour="right-panel"]',
+    popover: { title: t(lang).tourSteps.rightPanelTitle, description: t(lang).tourSteps.rightPanelDesc, side: 'left' as const },
   },
   {
     element: '[data-tour="inline-rx"]',
@@ -347,12 +355,12 @@ export const startConsultationTour = async (lang: Lang) => {
   const { driver } = await import('driver.js')
   const ts = t(lang).tourSteps
 
-  // 0=complaints (textarea), 1=open-repertory (кнопка), 2=inline-rx (div с полями), 3=finish-btn (кнопка+навигация)
+  // 0=complaints (textarea), 1=editor-toolbar (инфо), 2=open-repertory (кнопка), 3=right-panel (инфо), 4=inline-rx (div с полями), 5=finish-btn (кнопка+навигация)
   const autoAdvanceMap: Record<number, 'input' | 'click' | 'child-input' | 'click-destroy'> = {
     0: 'input',
-    1: 'click',
-    2: 'child-input',
-    3: 'click-destroy',
+    2: 'click',
+    4: 'child-input',
+    5: 'click-destroy',
   }
   let currentStep = 0
   let cleanupAutoAdvance: (() => void) | null = null

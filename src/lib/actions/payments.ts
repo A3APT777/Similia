@@ -4,18 +4,34 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { uuidSchema, addPaidSessionsSchema } from '@/lib/validation'
 
-export async function getDoctorSettings(): Promise<{ paid_sessions_enabled: boolean }> {
+export async function getDoctorSettings(): Promise<{ paid_sessions_enabled: boolean; followup_reminder_days: number }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { paid_sessions_enabled: true }
+  if (!user) return { paid_sessions_enabled: true, followup_reminder_days: 30 }
 
   const { data } = await supabase
     .from('doctor_settings')
-    .select('paid_sessions_enabled')
+    .select('paid_sessions_enabled, followup_reminder_days')
     .eq('doctor_id', user.id)
     .single()
 
-  return { paid_sessions_enabled: data?.paid_sessions_enabled ?? false }
+  return {
+    paid_sessions_enabled: data?.paid_sessions_enabled ?? false,
+    followup_reminder_days: data?.followup_reminder_days ?? 30,
+  }
+}
+
+export async function updateFollowupReminderDays(days: number): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase
+    .from('doctor_settings')
+    .upsert(
+      { doctor_id: user.id, followup_reminder_days: days, updated_at: new Date().toISOString() },
+      { onConflict: 'doctor_id' }
+    )
 }
 
 export async function updatePaidSessionsEnabled(enabled: boolean): Promise<void> {

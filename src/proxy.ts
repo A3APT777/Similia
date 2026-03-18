@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // Публичные маршруты — доступны без авторизации
 const PUBLIC_PATHS = [
+  '/',
   '/login',
   '/register',
   '/forgot-password',
@@ -13,6 +14,7 @@ const PUBLIC_PATHS = [
   '/new',
   '/privacy',
   '/terms',
+  '/opengraph-image',
 ]
 
 // Публичные маршруты с rate limiting (защита от спама)
@@ -43,11 +45,12 @@ function checkRateLimit(ip: string, path: string): boolean {
   return true
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Проверяем, является ли путь публичным
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+  // '/' проверяется точным совпадением, остальные — по startsWith
+  const isPublic = pathname === '/' || PUBLIC_PATHS.filter(p => p !== '/').some(p => pathname.startsWith(p))
 
   // Rate limiting для публичных форм
   const isRateLimited = RATE_LIMITED_PATHS.some(p => pathname.startsWith(p))

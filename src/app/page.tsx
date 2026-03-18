@@ -7,8 +7,8 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
       </svg>
     ),
-    title: 'Реперторий (8 500 рубрик)',
-    desc: 'Полный Repertorium Publicum прямо в браузере. Поиск по рубрикам, анализ препаратов с весами, выписка одним кликом.',
+    title: 'Реперторий — 8 500 рубрик',
+    desc: 'Repertorium Publicum прямо в браузере. Поиск за секунду, анализ препаратов по весу, назначение одним кликом.',
   },
   {
     icon: (
@@ -17,7 +17,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Карточки пациентов',
-    desc: 'Полная история лечения: жалобы, назначения, динамика. Поиск по имени или препарату за секунду.',
+    desc: 'Полная история: жалобы, назначения, динамика по каждому приёму. Открываете карточку — сразу видите всё.',
   },
   {
     icon: (
@@ -25,8 +25,8 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
       </svg>
     ),
-    title: 'Анкеты до приёма',
-    desc: 'Пациент заполняет анкету дома по ссылке — вы получаете структурированные данные ещё до того, как он зашёл.',
+    title: 'Анкета до приёма',
+    desc: 'Пациент заполняет анкету дома — приходит уже описанным. Экономит 20 минут на каждой первичной консультации.',
   },
   {
     icon: (
@@ -35,7 +35,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Опрос самочувствия',
-    desc: 'Отправьте пациенту ссылку после приёма. Он отвечает за 30 секунд — вы видите динамику в карточке.',
+    desc: 'Ссылка после приёма — пациент отвечает за 30 секунд. Динамика видна в карточке: лучше, хуже, без изменений.',
   },
   {
     icon: (
@@ -45,7 +45,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Фото-динамика',
-    desc: 'Загружайте фото кожи, языка, глаз до и после лечения. Убедительный аргумент для скептичного пациента.',
+    desc: 'Фото кожи, языка или глаз — до и после. Пациент видит прогресс, которого не замечал сам.',
   },
   {
     icon: (
@@ -54,7 +54,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Расписание приёмов',
-    desc: 'Планируйте записи прямо из карточки пациента. Все приёмы на один экран — без бумажного ежедневника.',
+    desc: 'Все записи на одном экране. Планируйте прямо из карточки пациента — без отдельных таблиц и бумажного ежедневника.',
   },
   {
     icon: (
@@ -63,7 +63,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Конституциональный тип',
-    desc: 'Фиксируйте конституциональный тип, рубрики реперториума и реакцию на предыдущий препарат прямо в консультации.',
+    desc: 'Тип, рубрики реперториума, реакция на предыдущий препарат — всё в одной консультации, всё под рукой.',
   },
 ]
 
@@ -89,13 +89,13 @@ const TESTIMONIALS = [
 ]
 
 const VS_ROWS = [
-  { label: 'Поиск по пациенту', excel: '❌ Ctrl+F по строкам', hc: '✓ Мгновенный поиск' },
-  { label: 'Анкета до приёма', excel: '❌ Ручной ввод на приёме', hc: '✓ Пациент заполняет сам' },
-  { label: 'Опрос самочувствия', excel: '❌ Звонок / сообщение вручную', hc: '✓ Ссылка — 30 секунд' },
-  { label: 'Доступ с телефона', excel: '❌ Только с компьютера', hc: '✓ Любое устройство' },
-  { label: 'Фото динамики', excel: '❌ Папка в галерее', hc: '✓ В карточке пациента' },
-  { label: 'Расписание', excel: '❌ Бумажный ежедневник', hc: '✓ Встроенный календарь' },
-  { label: 'Безопасность данных', excel: '❌ Файл на компьютере', hc: '✓ Шифрование, бэкап' },
+  { label: 'Поиск по пациенту', excel: 'Ctrl+F по строкам', hc: 'Мгновенный поиск' },
+  { label: 'Анкета до приёма', excel: 'Ручной ввод на приёме', hc: 'Пациент заполняет сам' },
+  { label: 'Опрос самочувствия', excel: 'Звонок или сообщение вручную', hc: 'Ссылка — 30 секунд' },
+  { label: 'Доступ с телефона', excel: 'Только с компьютера', hc: 'Любое устройство' },
+  { label: 'Фото динамики', excel: 'Папка в галерее', hc: 'В карточке пациента' },
+  { label: 'Расписание', excel: 'Бумажный ежедневник', hc: 'Встроенный календарь' },
+  { label: 'Безопасность данных', excel: 'Файл на компьютере', hc: 'Шифрование, бэкап в РФ' },
 ]
 
 export default function LandingPage() {
@@ -134,14 +134,14 @@ export default function LandingPage() {
       <section className="relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-10 sm:pt-24 sm:pb-14">
           <div className="max-w-2xl relative z-10">
-            <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border mb-6" style={{ backgroundColor: 'rgba(45,106,79,0.08)', borderColor: 'rgba(45,106,79,0.2)', color: 'var(--color-primary)' }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Бета-версия · Данные в РФ
+            <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-6" style={{ backgroundColor: 'rgba(45,106,79,0.1)', borderColor: 'rgba(45,106,79,0.2)', color: 'var(--color-primary)', border: '1px solid rgba(45,106,79,0.2)' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Сейчас полностью бесплатно
             </div>
 
             <h1 className="text-[40px] sm:text-[56px] font-light leading-[1.1] text-gray-900 mb-6" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
-              Замените тетрадь и Excel<br />
-              <span style={{ color: 'var(--color-primary)' }}>умной картотекой</span>
+              Вся история пациента —<br />
+              <span style={{ color: 'var(--color-primary)' }}>за один взгляд</span>
             </h1>
             <p style={{
               fontFamily: 'Georgia, serif',
@@ -154,7 +154,7 @@ export default function LandingPage() {
               Similia similibus curantur
             </p>
             <p className="text-[17px] text-gray-500 leading-relaxed mb-8 max-w-lg">
-              Карточки пациентов, анкеты до приёма, опрос самочувствия, фото-динамика и расписание — всё в одном месте. Специально для гомеопатов.
+              Журнал пациентов, анкеты до приёма, опрос самочувствия, фото-динамика, реперторий — всё в одном месте. Создан для практикующего гомеопата.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Link
@@ -171,7 +171,10 @@ export default function LandingPage() {
                 Уже есть аккаунт
               </Link>
             </div>
-            <p className="text-xs text-gray-400 mt-4">Регистрация за 1 минуту · Демо-данные включены</p>
+            <p className="text-xs text-gray-400 mt-4">Бесплатно во время бета · Без карты · Демо-данные включены</p>
+            <p className="text-xs mt-2" style={{ color: 'var(--color-primary)', opacity: 0.7 }}>
+              Первые пользователи получат льготные условия при переходе на платную версию
+            </p>
           </div>
 
           <div
@@ -187,7 +190,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-3 gap-8 text-center">
             {[
               { num: '20 мин', label: 'Экономия на каждой первичке' },
-              { num: 'Бета', label: 'Открытое тестирование' },
+              { num: 'Бесплатно', label: 'На весь период бета-теста' },
               { num: '152-ФЗ', label: 'Данные хранятся в России' },
             ].map(s => (
               <div key={s.label}>
@@ -207,7 +210,8 @@ export default function LandingPage() {
           </h2>
           <p className="text-center text-sm text-gray-400 mb-10">Сравните, как изменится ваша работа</p>
 
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto rounded-2xl shadow-sm">
+          <div className="bg-white border border-gray-100 overflow-hidden min-w-[480px]">
             {/* Заголовок таблицы */}
             <div className="grid grid-cols-3 border-b border-gray-100">
               <div className="px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider"></div>
@@ -220,10 +224,25 @@ export default function LandingPage() {
                 className={`grid grid-cols-3 border-b border-gray-50 last:border-b-0 ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}
               >
                 <div className="px-5 py-3.5 text-sm font-medium text-gray-700">{row.label}</div>
-                <div className="px-5 py-3.5 text-sm text-gray-400 border-l border-gray-100 text-center">{row.excel}</div>
-                <div className="px-5 py-3.5 text-sm border-l border-gray-100 text-center font-medium" style={{ color: 'var(--color-primary)' }}>{row.hc}</div>
+                <div className="px-5 py-3.5 text-sm text-gray-400 border-l border-gray-100">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5 shrink-0 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    {row.excel}
+                  </span>
+                </div>
+                <div className="px-5 py-3.5 text-sm border-l border-gray-100 font-medium" style={{ color: 'var(--color-primary)' }}>
+                  <span className="flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ color: 'var(--color-primary)' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    {row.hc}
+                  </span>
+                </div>
               </div>
             ))}
+          </div>
           </div>
         </div>
       </section>
@@ -274,9 +293,9 @@ export default function LandingPage() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 relative">
             {[
-              { step: '01', title: 'Создайте пациента', desc: 'Введите имя и контакты. Отправьте ссылку на анкету — пациент заполнит дома сам, в спокойной обстановке.' },
-              { step: '02', title: 'Ведите консультации', desc: 'Записывайте заметки, рубрики реперториума, выписывайте препарат с потенцией и схемой приёма.' },
-              { step: '03', title: 'Отслеживайте динамику', desc: 'Отправьте ссылку на опрос через 2–3 недели. Смотрите цепочку: препарат → реакция → следующая консультация.' },
+              { step: '01', title: 'Добавьте пациента', desc: 'Введите имя и контакты. Отправьте ссылку на анкету — пациент заполнит дома сам, вы получите подробные данные ещё до приёма.' },
+              { step: '02', title: 'Проведите консультацию', desc: 'Записывайте симптомы, ищите рубрики в реперториуме, назначайте препарат с потенцией и схемой прямо в карточке.' },
+              { step: '03', title: 'Следите за результатом', desc: 'Через 2–3 недели — ссылка на опрос. Пациент отвечает за 30 секунд. Цепочка: назначение → реакция → следующий шаг.' },
             ].map((s, i) => (
               <div key={i} className="relative">
                 <div className="text-5xl font-light mb-4 leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(45,106,79,0.15)' }}>{s.step}</div>
@@ -288,32 +307,61 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Бета-тест CTA ─── */}
+      {/* ─── Прозрачность о цене ─── */}
       <section className="py-16 sm:py-20 border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border mb-6" style={{ backgroundColor: 'rgba(45,106,79,0.08)', borderColor: 'rgba(45,106,79,0.2)', color: 'var(--color-primary)' }}>
-              Открытое бета-тестирование
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-light text-gray-900 mb-4" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
-              Станьте первым пользователем
-            </h2>
-            <p className="text-base text-gray-500 leading-relaxed mb-8">
-              Similia сейчас в бета-версии. Мы ищем гомеопатов, которые готовы пробовать новое и делиться обратной связью. Бесплатный доступ на весь период тестирования.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90"
-                style={{ backgroundColor: 'var(--color-primary)' }}
-              >
-                Попробовать бесплатно
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl sm:text-4xl font-light text-gray-900 mb-3 text-center" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
+            Сколько это стоит?
+          </h2>
+          <p className="text-center text-sm text-gray-400 mb-10">Честно и прозрачно</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Сейчас */}
+            <div className="rounded-2xl p-6 border-2" style={{ backgroundColor: 'rgba(45,106,79,0.04)', borderColor: 'rgba(45,106,79,0.3)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(45,106,79,0.12)', color: 'var(--color-primary)' }}>Сейчас</span>
+                <span className="text-3xl font-light" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--color-primary)' }}>0 ₽</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Полный доступ бесплатно</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">Всё работает в полном объёме. Мы в открытой бете и собираем обратную связь от практикующих врачей.</p>
+              <ul className="space-y-2 mb-5">
+                {['Неограниченное число пациентов', 'Реперторий — 8 500 рубрик', 'Анкеты, опросы, фото-динамика', 'Данные в России (152-ФЗ)'].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ color: 'var(--color-primary)' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register" className="w-full inline-flex items-center justify-center gap-2 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-all" style={{ backgroundColor: 'var(--color-primary)' }}>
+                Зарегистрироваться бесплатно
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
             </div>
-            <p className="text-xs text-gray-400 mt-4">Без кредитной карты · Мгновенный доступ</p>
+
+            {/* Потом */}
+            <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'white', borderColor: '#e5e7eb' }}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-gray-100 text-gray-400">После бета</span>
+                <span className="text-3xl font-light text-gray-300" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>≈ 690 ₽/мес</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-400 mb-2">Платная версия</h3>
+              <p className="text-sm text-gray-400 leading-relaxed mb-4">Появится позже. Те, кто зарегистрировался в бета — получат постоянную скидку или будут grandfathered на льготных условиях.</p>
+              <ul className="space-y-2 mb-5">
+                {['Всё из бесплатной версии', 'Приоритетная поддержка', 'Ранний доступ к новым функциям', 'Льготная цена навсегда'].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-gray-400">
+                    <svg className="w-4 h-4 shrink-0 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="w-full inline-flex items-center justify-center px-5 py-3 rounded-xl text-sm text-gray-300 border border-gray-100">
+                Скоро
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -331,7 +379,7 @@ export default function LandingPage() {
                 Начните прямо сейчас
               </h2>
               <p className="text-sm mb-8 max-w-sm mx-auto" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                Регистрация займёт минуту. Демо-пациенты уже ждут внутри.
+                Бесплатно · Регистрация займёт минуту · Демо-пациенты уже ждут внутри
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Link href="/register" className="inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-xl text-sm transition-all" style={{ backgroundColor: 'var(--color-amber)', color: 'var(--color-sidebar)' }}>
@@ -350,21 +398,45 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="border-t py-8" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <svg width="20" height="20" viewBox="0 0 36 36" fill="none">
-              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9"/>
-              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65"/>
-              <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
-            </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '17px', fontWeight: 500, color: '#1a3020' }}>Similia</span>
+      <footer className="border-t py-10" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <svg width="20" height="20" viewBox="0 0 36 36" fill="none">
+                  <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9"/>
+                  <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65"/>
+                  <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
+                </svg>
+                <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '17px', fontWeight: 500, color: '#1a3020' }}>Similia</span>
+              </div>
+              <p className="text-xs text-gray-400">Цифровой кабинет гомеопата · Данные в РФ</p>
+              <p className="text-xs text-gray-300 mt-1">© 2026 Similia</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-300 mb-2">Документы</p>
+                <div className="flex flex-col gap-1.5">
+                  <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-700 transition-colors">Политика конфиденциальности</Link>
+                  <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-700 transition-colors">Публичная оферта</Link>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-300 mb-2">Аккаунт</p>
+                <div className="flex flex-col gap-1.5">
+                  <Link href="/login" className="text-xs text-gray-400 hover:text-gray-700 transition-colors">Войти</Link>
+                  <Link href="/register" className="text-xs text-gray-400 hover:text-gray-700 transition-colors">Зарегистрироваться</Link>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-300 mb-2">Поддержка</p>
+                <div className="flex flex-col gap-1.5">
+                  <a href="mailto:simillia@mail.ru" className="text-xs text-gray-400 hover:text-gray-700 transition-colors">simillia@mail.ru</a>
+                  <span className="text-xs text-gray-300">Версия 1.0 бета</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-5 text-xs text-gray-400">
-            <Link href="/privacy" className="hover:text-gray-700 transition-colors">Политика конфиденциальности</Link>
-            <Link href="/login" className="hover:text-gray-700 transition-colors">Войти</Link>
-          </div>
-          <p className="text-xs text-gray-300">© 2026 Similia</p>
         </div>
       </footer>
 

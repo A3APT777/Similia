@@ -114,7 +114,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
       <button
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 font-medium transition-colors hover:opacity-90"
-        style={{ border: '1.5px solid #2d6a4f', color: '#2d6a4f', backgroundColor: 'transparent', borderRadius: '8px', fontSize: '15px', padding: '10px 16px' }}
+        style={{ border: '1.5px solid var(--color-garden)', color: 'var(--color-garden)', backgroundColor: 'transparent', borderRadius: '8px', fontSize: '15px', padding: '10px 16px' }}
       >
         {t(lang).scheduleBtn.schedule}
       </button>

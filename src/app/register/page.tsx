@@ -41,6 +41,26 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
+  function translateAuthError(msg: string): string {
+    const m = msg.toLowerCase()
+    if (m.includes('already registered') || m.includes('already exists') || m.includes('email_exists')) {
+      return 'Этот email уже зарегистрирован — попробуйте войти'
+    }
+    if (m.includes('password') && (m.includes('6') || m.includes('characters') || m.includes('short'))) {
+      return 'Пароль должен быть не менее 6 символов'
+    }
+    if (m.includes('invalid email') || m.includes('email address')) {
+      return 'Введите корректный email-адрес'
+    }
+    if (m.includes('rate limit') || m.includes('too many')) {
+      return 'Слишком много попыток — подождите минуту и попробуйте снова'
+    }
+    if (m.includes('network') || m.includes('fetch')) {
+      return 'Ошибка сети — проверьте подключение к интернету'
+    }
+    return 'Что-то пошло не так — попробуйте ещё раз'
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -52,7 +72,7 @@ export default function RegisterPage() {
       options: { data: { name } },
     })
     if (error) {
-      setError(error.message)
+      setError(translateAuthError(error.message))
       setLoading(false)
       return
     }

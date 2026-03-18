@@ -4,14 +4,17 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 
 type ToastType = 'success' | 'error' | 'info'
 
+type ToastAction = { label: string; onClick: () => void }
+
 type Toast = {
   id: string
   message: string
   type: ToastType
+  action?: ToastAction
 }
 
 type ToastContextValue = {
-  toast: (message: string, type?: ToastType) => void
+  toast: (message: string, type?: ToastType, action?: ToastAction) => void
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null)
@@ -19,12 +22,12 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const toast = useCallback((message: string, type: ToastType = 'success') => {
+  const toast = useCallback((message: string, type: ToastType = 'success', action?: ToastAction) => {
     const id = Math.random().toString(36).slice(2)
-    setToasts(prev => [...prev, { id, message, type }])
+    setToasts(prev => [...prev, { id, message, type, action }])
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
-    }, 3500)
+    }, action ? 6000 : 3500) // с кнопкой живёт дольше
   }, [])
 
   return (
@@ -61,7 +64,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   return (
     <div
       ref={ref}
-      className="pointer-events-auto flex items-center gap-3 px-4 py-3 shadow-lg min-w-[240px] max-w-[340px] cursor-pointer"
+      className="pointer-events-auto flex items-center gap-3 px-4 py-3 shadow-lg min-w-[240px] max-w-[340px]"
       style={{
         backgroundColor: c.bg,
         border: c.border,
@@ -69,13 +72,35 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
         opacity: 0,
         transform: 'translateY(8px)',
         transition: 'opacity 0.2s ease, transform 0.2s ease',
+        cursor: toast.action ? 'default' : 'pointer',
       }}
-      onClick={onClose}
+      onClick={toast.action ? undefined : onClose}
     >
       <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0" style={{ backgroundColor: c.iconBg, color: c.iconColor }}>
         {c.icon}
       </span>
       <p className="text-[13px] flex-1" style={{ color: c.textColor }}>{toast.message}</p>
+      {toast.action ? (
+        <button
+          type="button"
+          onClick={() => { toast.action!.onClick(); onClose() }}
+          className="text-[11px] font-medium px-2 py-1 rounded shrink-0 transition-opacity hover:opacity-70"
+          style={{ color: c.iconColor, backgroundColor: c.iconBg }}
+        >
+          {toast.action.label}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-4 h-4 flex items-center justify-center opacity-40 hover:opacity-100 shrink-0"
+          style={{ color: c.textColor }}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+      )}
     </div>
   )
 }

@@ -47,7 +47,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold mb-3" style={{ color: '#1a1a0a' }}>2. Исполнитель</h2>
             <div className="rounded-xl p-4" style={{ backgroundColor: '#e8e0d4', border: '1px solid #d4c9b8' }}>
               <p>Сервис предоставляется на условиях самозанятости.</p>
-              <p className="mt-1">По вопросам обращайтесь: <a href="mailto:hello@simillia.ru" style={{ color: '#2d6a4f' }}>hello@simillia.ru</a></p>
+              <p className="mt-1">По вопросам обращайтесь: <a href="mailto:simillia@mail.ru" style={{ color: '#2d6a4f' }}>simillia@mail.ru</a></p>
             </div>
           </section>
 
@@ -79,7 +79,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold mb-3" style={{ color: '#1a1a0a' }}>5. Порядок возврата</h2>
             <p>
-              В случае оплаты подписки Пользователь вправе запросить возврат средств в течение 3 (трёх) рабочих дней с момента оплаты, если услуги фактически не были использованы. Для возврата необходимо направить запрос на <a href="mailto:hello@simillia.ru" style={{ color: '#2d6a4f' }}>hello@simillia.ru</a> с указанием причины.
+              В случае оплаты подписки Пользователь вправе запросить возврат средств в течение 3 (трёх) рабочих дней с момента оплаты, если услуги фактически не были использованы. Для возврата необходимо направить запрос на <a href="mailto:simillia@mail.ru" style={{ color: '#2d6a4f' }}>simillia@mail.ru</a> с указанием причины.
             </p>
           </section>
 
@@ -124,7 +124,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold mb-3" style={{ color: '#1a1a0a' }}>10. Контакты</h2>
             <p>
               По всем вопросам, связанным с Офертой и использованием Сервиса:{' '}
-              <a href="mailto:hello@simillia.ru" style={{ color: '#2d6a4f' }}>hello@simillia.ru</a>
+              <a href="mailto:simillia@mail.ru" style={{ color: '#2d6a4f' }}>simillia@mail.ru</a>
             </p>
           </section>
 

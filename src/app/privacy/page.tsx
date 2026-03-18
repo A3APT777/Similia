@@ -42,7 +42,7 @@ export default function PrivacyPage() {
             <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm space-y-1.5">
               <p><span className="text-gray-400">Сервис:</span> Similia</p>
               <p><span className="text-gray-400">Сайт:</span> similia.vercel.app</p>
-              <p><span className="text-gray-400">Контакт:</span> support@similia.ru</p>
+              <p><span className="text-gray-400">Контакт:</span> simillia@mail.ru</p>
               <p className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">
                 Для целей обработки персональных данных оператором является физическое лицо, зарегистрированное в качестве самозанятого или ИП, использующее данный сервис для ведения частной практики.
               </p>
@@ -114,7 +114,7 @@ export default function PrivacyPage() {
               <li>Отозвать согласие на обработку персональных данных</li>
             </ul>
             <p className="leading-relaxed mt-3">
-              Для реализации перечисленных прав обратитесь к врачу, ведущему вашу карточку, или направьте запрос по адресу: <span className="text-emerald-700">support@similia.ru</span>
+              Для реализации перечисленных прав обратитесь к врачу, ведущему вашу карточку, или направьте запрос по адресу: <span className="text-emerald-700">simillia@mail.ru</span>
             </p>
           </section>
 

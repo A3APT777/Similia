@@ -13,105 +13,41 @@ export default function PreviousVisitSummary({ previousConsultation, lang }: Pro
   const [expanded, setExpanded] = useState(false)
   const { remedy, potency, date, complaints, observations, notes, recommendations } = previousConsultation
 
-  const dateStr = formatDate(date)
-  const headerText = lang === 'ru'
-    ? `${dateStr}${remedy ? ` \u00B7 ${remedy}${potency ? ` ${potency}` : ''}` : ''}`
-    : `${dateStr}${remedy ? ` \u00B7 ${remedy}${potency ? ` ${potency}` : ''}` : ''}`
+  const headerText = `${formatDate(date)}${remedy ? ` · ${remedy}${potency ? ` ${potency}` : ''}` : ''}`
 
   return (
-    <div style={{
-      borderRadius: '6px',
-      border: '1px solid #e5e0d8',
-      overflow: 'hidden',
-      marginBottom: '12px',
-    }}>
-      {/* Header */}
+    <div className="rounded-md border border-[#e5e0d8] overflow-hidden mb-3">
       <button
         onClick={() => setExpanded(!expanded)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: '100%',
-          padding: '8px 12px',
-          border: 'none',
-          backgroundColor: expanded ? '#f0ebe3' : '#faf7f2',
-          cursor: 'pointer',
-          textAlign: 'left',
-          transition: 'background-color 0.15s ease',
-        }}
+        className="flex items-center justify-between w-full px-3 py-2 border-none text-left transition-colors duration-150"
+        style={{ backgroundColor: expanded ? '#f0ebe3' : '#faf7f2' }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[11px] font-semibold text-gray-400 shrink-0">
             {lang === 'ru' ? 'Прошлый приём' : 'Previous visit'}
           </span>
-          <span style={{
-            fontSize: '12px',
-            color: '#6b7280',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {headerText}
-          </span>
+          <span className="text-xs text-gray-500 truncate">{headerText}</span>
         </div>
-        {/* Chevron */}
         <svg
-          width="14"
-          height="14"
-          viewBox="0 0 14 14"
-          fill="none"
-          style={{
-            flexShrink: 0,
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.15s ease',
-          }}
+          width="14" height="14" viewBox="0 0 14 14" fill="none"
+          className="shrink-0 transition-transform duration-150"
+          style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
         >
           <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="#9ca3af" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
-      {/* Expanded content */}
       {expanded && (
-        <div style={{ padding: '10px 12px', backgroundColor: '#faf7f2' }}>
-          {/* Remedy block */}
+        <div className="px-3 py-2.5" style={{ backgroundColor: '#faf7f2' }}>
           {remedy && (
-            <div style={{
-              fontFamily: 'var(--font-cormorant)',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: '#1a3020',
-              marginBottom: '8px',
-            }}>
-              {remedy} {potency && <span style={{ fontSize: '13px', fontWeight: 400, color: '#2d6a4f' }}>{potency}</span>}
+            <div className="text-base font-semibold mb-2" style={{ fontFamily: 'var(--font-cormorant)', color: 'var(--color-forest)' }}>
+              {remedy}{potency && <span className="text-[13px] font-normal ml-1" style={{ color: 'var(--color-garden)' }}>{potency}</span>}
             </div>
           )}
-
-          {/* Sections */}
-          {complaints && (
-            <Section
-              title={lang === 'ru' ? 'Жалобы' : 'Complaints'}
-              text={complaints}
-            />
-          )}
-          {observations && (
-            <Section
-              title={lang === 'ru' ? 'Наблюдения' : 'Observations'}
-              text={observations}
-            />
-          )}
-          {notes && (
-            <Section
-              title={lang === 'ru' ? 'Заметки' : 'Notes'}
-              text={notes}
-            />
-          )}
-          {recommendations && (
-            <Section
-              title={lang === 'ru' ? 'Рекомендации' : 'Recommendations'}
-              text={recommendations}
-            />
-          )}
+          {complaints && <Section title={lang === 'ru' ? 'Жалобы' : 'Complaints'} text={complaints} />}
+          {observations && <Section title={lang === 'ru' ? 'Наблюдения' : 'Observations'} text={observations} />}
+          {notes && <Section title={lang === 'ru' ? 'Заметки' : 'Notes'} text={notes} />}
+          {recommendations && <Section title={lang === 'ru' ? 'Рекомендации' : 'Recommendations'} text={recommendations} />}
         </div>
       )}
     </div>
@@ -120,23 +56,11 @@ export default function PreviousVisitSummary({ previousConsultation, lang }: Pro
 
 function Section({ title, text }: { title: string; text: string }) {
   return (
-    <div style={{ marginBottom: '8px' }}>
-      <div style={{
-        fontSize: '10px',
-        fontWeight: 600,
-        color: '#9ca3af',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-        marginBottom: '2px',
-      }}>
+    <div className="mb-2">
+      <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.5px] mb-0.5">
         {title}
       </div>
-      <div style={{
-        fontSize: '12px',
-        color: '#374151',
-        lineHeight: 1.5,
-        whiteSpace: 'pre-wrap',
-      }}>
+      <div className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">
         {text}
       </div>
     </div>

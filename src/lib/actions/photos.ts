@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { uuidSchema } from '@/lib/validation'
+import { ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES, MAX_PHOTO_SIZE_BYTES } from '@/lib/utils'
 
 export async function uploadPhoto(formData: FormData): Promise<void> {
   const supabase = await createClient()
@@ -18,12 +19,9 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
 
   uuidSchema.parse(patientId)
   const ext = file.name.split('.').pop()?.toLowerCase() || ''
-  const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']
-  if (!allowedExtensions.includes(ext)) throw new Error('Недопустимое расширение файла. Разрешены: jpg, jpeg, png, webp, heic, heif')
-
-  if (file.size > 10 * 1024 * 1024) throw new Error('Файл слишком большой. Максимум 10 МБ.')
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
-  if (!allowedTypes.includes(file.type.toLowerCase())) throw new Error('Разрешены только фотографии (JPEG, PNG, WebP, HEIC).')
+  if (!(ALLOWED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) throw new Error('Недопустимое расширение файла. Разрешены: jpg, jpeg, png, webp, heic, heif')
+  if (file.size > MAX_PHOTO_SIZE_BYTES) throw new Error('Файл слишком большой. Максимум 10 МБ.')
+  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type.toLowerCase())) throw new Error('Разрешены только фотографии (JPEG, PNG, WebP, HEIC).')
 
   const path = `${user.id}/${patientId}/${Date.now()}.${ext || 'jpg'}`
 
@@ -40,7 +38,7 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
     .from('patient-photos')
     .getPublicUrl(path)
 
-  await supabase.from('patient_photos').insert({
+  const { error: insertError } = await supabase.from('patient_photos').insert({
     patient_id: patientId,
     doctor_id: user.id,
     storage_path: path,
@@ -48,6 +46,8 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
     note: note?.trim() || null,
     taken_at: takenAt || new Date().toISOString().split('T')[0],
   })
+
+  if (insertError) throw new Error(insertError.message)
 }
 
 export async function deletePhoto(id: string): Promise<void> {

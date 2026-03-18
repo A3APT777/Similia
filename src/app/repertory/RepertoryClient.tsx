@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useMemo, useEffect } from 'react'
-import { searchRepertory, getPatientsSimple, type RepertoryRubric } from '@/lib/actions/repertory'
+import { searchRepertory, getPatientsSimple, getPatientConsultationsSimple, type RepertoryRubric } from '@/lib/actions/repertory'
 import { saveRepertoryData } from '@/lib/actions/consultations'
 import { translateRubric } from '@/lib/repertory-translations'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -92,6 +92,16 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   const [patientSearch, setPatientSearch] = useState('')
   const [patients, setPatients] = useState<{ id: string; name: string; lastVisit: string | null }[]>([])
   const [patientsLoading, setPatientsLoading] = useState(false)
+
+  // Save-модал: выбор пациента → консультации
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [savePatientSearch, setSavePatientSearch] = useState('')
+  const [savePatients, setSavePatients] = useState<{ id: string; name: string; lastVisit: string | null }[]>([])
+  const [savePatientsLoading, setSavePatientsLoading] = useState(false)
+  const [saveStep, setSaveStep] = useState<'patient' | 'consultation'>('patient')
+  const [saveSelectedPatient, setSaveSelectedPatient] = useState<{ id: string; name: string } | null>(null)
+  const [saveConsultations, setSaveConsultations] = useState<{ id: string; date: string; status: string }[]>([])
+  const [saveConsLoading, setSaveConsLoading] = useState(false)
 
   const { lang } = useLanguage()
   const searchRef = useRef<HTMLInputElement>(null)
@@ -265,6 +275,52 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
     // Если есть предварительный перевод из БД — используем его (быстрее и полнее)
     if (r.fullpath_ru) return r.fullpath_ru
     return translateRubric(r.fullpath, r.chapter)
+  }
+
+  async function openSaveModal() {
+    setShowSaveModal(true)
+    setSaveStep('patient')
+    setSavePatientSearch('')
+    setSaveSelectedPatient(null)
+    setSaveConsultations([])
+    if (savePatients.length === 0) {
+      setSavePatientsLoading(true)
+      const list = await getPatientsSimple()
+      setSavePatients(list)
+      setSavePatientsLoading(false)
+    }
+  }
+
+  async function selectPatientForSave(patient: { id: string; name: string }) {
+    setSaveSelectedPatient(patient)
+    setSaveStep('consultation')
+    setSaveConsLoading(true)
+    const list = await getPatientConsultationsSimple(patient.id)
+    setSaveConsultations(list)
+    setSaveConsLoading(false)
+  }
+
+  async function saveToConsultation(consultationId: string) {
+    if (analysisEntries.length === 0) return
+    setSaveStatus('saving')
+    try {
+      await saveRepertoryData(
+        consultationId,
+        analysisEntries.map(ae => ({
+          rubricId: ae.rubric.id,
+          fullpath: ae.rubric.fullpath,
+          fullpath_ru: ae.rubric.fullpath_ru,
+          weight: ae.weight,
+          eliminate: ae.eliminate,
+        }))
+      )
+      setSaveStatus('saved')
+      setShowSaveModal(false)
+      setTimeout(() => setSaveStatus('idle'), 2500)
+    } catch {
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus('idle'), 2500)
+    }
   }
 
   async function openPatientModal() {
@@ -890,27 +946,25 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             {/* Кнопка "Очистить" внизу */}
             {analysisEntries.length > 0 && (
               <div className="p-3 border-t shrink-0 space-y-1.5" style={{ borderColor: C.borderLight }}>
-                {/* Сохранить анализ в консультацию */}
-                {lastConsultation && lastConsultation.includes('/consultations/') && (
-                  <button
-                    className="w-full py-2 text-sm rounded-lg transition-colors font-medium"
-                    style={{
-                      backgroundColor: saveStatus === 'saved' ? '#16a34a' : saveStatus === 'error' ? '#dc2626' : C.link,
-                      color: 'white',
-                      opacity: saveStatus === 'saving' ? 0.7 : 1,
-                    }}
-                    onPointerDown={handleSaveAnalysis}
-                    disabled={saveStatus === 'saving'}
-                  >
-                    {saveStatus === 'saving'
-                      ? (lang === 'ru' ? 'Сохраняю...' : 'Saving...')
-                      : saveStatus === 'saved'
-                      ? (lang === 'ru' ? '✓ Сохранено' : '✓ Saved')
-                      : saveStatus === 'error'
-                      ? (lang === 'ru' ? 'Ошибка' : 'Error')
-                      : (lang === 'ru' ? 'Сохранить в консультацию' : 'Save to consultation')}
-                  </button>
-                )}
+                {/* Сохранить анализ в консультацию — всегда через выбор пациента */}
+                <button
+                  className="w-full py-2 text-sm rounded-lg transition-colors font-medium"
+                  style={{
+                    backgroundColor: saveStatus === 'saved' ? '#16a34a' : saveStatus === 'error' ? '#dc2626' : C.link,
+                    color: 'white',
+                    opacity: saveStatus === 'saving' ? 0.7 : 1,
+                  }}
+                  onPointerDown={openSaveModal}
+                  disabled={saveStatus === 'saving'}
+                >
+                  {saveStatus === 'saving'
+                    ? (lang === 'ru' ? 'Сохраняю...' : 'Saving...')
+                    : saveStatus === 'saved'
+                    ? (lang === 'ru' ? '✓ Сохранено' : '✓ Saved')
+                    : saveStatus === 'error'
+                    ? (lang === 'ru' ? 'Ошибка' : 'Error')
+                    : (lang === 'ru' ? 'Сохранить в консультацию' : 'Save to consultation')}
+                </button>
                 <button
                   className="w-full py-2 text-sm rounded-lg transition-colors border"
                   style={{ borderColor: C.border, color: C.secondary, backgroundColor: 'transparent' }}
@@ -924,6 +978,121 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           )}
         </div>
       </div>
+
+      {/* ══════════════════════════════════════════
+          МОДАЛ СОХРАНИТЬ В КОНСУЛЬТАЦИЮ
+      ══════════════════════════════════════════ */}
+      {showSaveModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          onPointerDown={e => { if (e.target === e.currentTarget) setShowSaveModal(false) }}
+        >
+          <div className="w-full flex flex-col" style={{ maxWidth: 400, backgroundColor: 'white', borderRadius: 12, overflow: 'hidden', maxHeight: '80vh', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            {/* Заголовок */}
+            <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <h2 className="text-base font-semibold text-gray-900">
+                {saveStep === 'patient'
+                  ? (lang === 'ru' ? 'Выберите пациента' : 'Select patient')
+                  : (lang === 'ru' ? `Консультации — ${saveSelectedPatient?.name}` : `Consultations — ${saveSelectedPatient?.name}`)}
+              </h2>
+              <div className="flex items-center gap-2">
+                {saveStep === 'consultation' && (
+                  <button onPointerDown={() => setSaveStep('patient')} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded border border-gray-200">
+                    ← {lang === 'ru' ? 'Назад' : 'Back'}
+                  </button>
+                )}
+                <button onPointerDown={() => setShowSaveModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">✕</button>
+              </div>
+            </div>
+
+            {/* Шаг 1: выбор пациента */}
+            {saveStep === 'patient' && (
+              <>
+                <div className="px-4 py-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
+                  <input
+                    type="text"
+                    value={savePatientSearch}
+                    onChange={e => setSavePatientSearch(e.target.value)}
+                    placeholder={lang === 'ru' ? 'Поиск по имени...' : 'Search by name...'}
+                    autoFocus
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {savePatientsLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : savePatients.filter(p => p.name.toLowerCase().includes(savePatientSearch.toLowerCase())).length === 0 ? (
+                    <div className="text-center py-10 text-sm text-gray-400">{lang === 'ru' ? 'Нет пациентов' : 'No patients found'}</div>
+                  ) : (
+                    savePatients
+                      .filter(p => p.name.toLowerCase().includes(savePatientSearch.toLowerCase()))
+                      .map(p => (
+                        <button
+                          key={p.id}
+                          onPointerDown={() => selectPatientForSave({ id: p.id, name: p.name })}
+                          className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition-colors"
+                          style={{ borderBottom: '1px solid #f7f7f7' }}
+                        >
+                          <span className="text-sm font-medium text-gray-900">{p.name}</span>
+                          {p.lastVisit && (
+                            <span className="text-xs text-gray-400 shrink-0 ml-3">
+                              {new Date(p.lastVisit).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                            </span>
+                          )}
+                        </button>
+                      ))
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Шаг 2: выбор консультации */}
+            {saveStep === 'consultation' && (
+              <div className="flex-1 overflow-y-auto">
+                {saveConsLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : saveConsultations.length === 0 ? (
+                  <div className="text-center py-10 text-sm text-gray-400">
+                    {lang === 'ru' ? 'Нет консультаций' : 'No consultations'}
+                  </div>
+                ) : (
+                  saveConsultations.map(c => (
+                    <button
+                      key={c.id}
+                      onPointerDown={() => saveToConsultation(c.id)}
+                      className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition-colors"
+                      style={{ borderBottom: '1px solid #f7f7f7' }}
+                    >
+                      <span className="text-sm font-medium text-gray-900">
+                        {c.date ? new Date(c.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : (lang === 'ru' ? 'Без даты' : 'No date')}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full shrink-0 ml-3"
+                        style={{
+                          backgroundColor: c.status === 'in_progress' ? '#ecfdf5' : '#f9fafb',
+                          color: c.status === 'in_progress' ? '#059669' : '#6b7280',
+                        }}
+                      >
+                        {c.status === 'in_progress' ? (lang === 'ru' ? 'Открыта' : 'Open') : (lang === 'ru' ? 'Завершена' : 'Done')}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            <div className="px-4 py-3" style={{ borderTop: '1px solid #f0f0f0' }}>
+              <button onPointerDown={() => setShowSaveModal(false)} className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                {lang === 'ru' ? 'Отмена' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════
           МОДАЛ ВЫБОРА ПАЦИЕНТА

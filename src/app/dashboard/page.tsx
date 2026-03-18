@@ -5,15 +5,15 @@ import AppShell from '@/components/AppShell'
 import { t } from '@/lib/i18n'
 import { getLang } from '@/lib/i18n-server'
 import PatientListClient from './PatientListClient'
-import AppointmentList from './AppointmentList'
-import MoscowClock from '@/components/MoscowClock'
+import HeroStatCards from './HeroStatCards'
 import CalendarWidget from './CalendarWidget'
-import NewPatientButton from './NewPatientButton'
+import LunarPhaseWidget from './LunarPhaseWidget'
+import AddPatientWidget from './AddPatientWidget'
 import OnboardingBanner from './OnboardingBanner'
 import UnpaidWidget from './UnpaidWidget'
-import { getUnpaidPatients } from '@/lib/actions/payments'
+import { getUnpaidPatients, getDoctorSettings } from '@/lib/actions/payments'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -21,6 +21,7 @@ export default async function DashboardPage() {
   const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
   const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const ninetyDaysAgoIso = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+  const threeDaysAgoIso = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
 
   // Параллельные запросы — не зависят друг от друга
   const [
@@ -29,6 +30,8 @@ export default async function DashboardPage() {
     { data: recentConsultations },
     { data: recentFollowups },
     unpaidPatients,
+    { data: activeConsultations },
+    { data: pendingFollowups },
   ] = await Promise.all([
     supabase
       .from('consultations')
@@ -53,6 +56,17 @@ export default async function DashboardPage() {
       .not('responded_at', 'is', null)
       .gte('created_at', ninetyDaysAgoIso),
     getUnpaidPatients(),
+    supabase
+      .from('consultations')
+      .select('id, patient_id, patients(id, name)')
+      .eq('status', 'in_progress')
+      .order('updated_at', { ascending: false })
+      .limit(1),
+    supabase
+      .from('followups')
+      .select('id, patient_id, created_at')
+      .is('responded_at', null)
+      .lte('created_at', threeDaysAgoIso),
   ])
 
   // Один запрос для всех последних консультаций вместо N+1
@@ -60,7 +74,7 @@ export default async function DashboardPage() {
   const { data: allLastConsultations } = patientIds.length > 0
     ? await supabase
         .from('consultations')
-        .select('patient_id, date, notes, remedy')
+        .select('patient_id, date, notes, remedy, status')
         .in('patient_id', patientIds)
         .eq('status', 'completed')
         .order('date', { ascending: false })
@@ -73,18 +87,39 @@ export default async function DashboardPage() {
     }
   }
 
+  // Карта patient_id → дней ожидания опросника
+  const pendingFollowupMap = new Map<string, number>()
+  for (const f of (pendingFollowups || [])) {
+    if (!f.patient_id) continue
+    const days = Math.floor((Date.now() - new Date(f.created_at).getTime()) / (1000 * 60 * 60 * 24))
+    if (!pendingFollowupMap.has(f.patient_id) || days > (pendingFollowupMap.get(f.patient_id) ?? 0)) {
+      pendingFollowupMap.set(f.patient_id, days)
+    }
+  }
+
+  const patientsList = (patients || []).map(p => ({ id: p.id, name: p.name }))
+  const lang = await getLang()
+  const { followup_reminder_days } = await getDoctorSettings()
+
+  // Пациенты без повторного приёма X+ дней и без записи
+  const sixtyDaysAgo = new Date(Date.now() - followup_reminder_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const scheduledPatientIds = new Set((appointments || []).map((a: any) => a.patients?.id).filter(Boolean))
+
   const patientsWithConsultations = (patients || []).map(patient => {
     const last = lastConsultationMap.get(patient.id) || null
     return {
       ...patient,
       last_consultation_date: last?.date || null,
       last_consultation_preview: last?.notes || null,
-      pending_prescription: last ? !last.remedy : false,
+      pending_prescription: last ? (!last.remedy && (last.notes?.trim() || '').length > 0) : false,
+      overdue: !!(last?.date && last.date < sixtyDaysAgo && !scheduledPatientIds.has(patient.id)),
+      pending_followup_days: pendingFollowupMap.get(patient.id) ?? null,
     }
   })
-
-  const patientsList = (patients || []).map(p => ({ id: p.id, name: p.name }))
-  const lang = await getLang()
+  const overdueCount = patientsWithConsultations.filter(p =>
+    p.last_consultation_date && p.last_consultation_date < sixtyDaysAgo && !scheduledPatientIds.has(p.id)
+  ).length
+  const pendingFollowupCount = (pendingFollowups || []).length
   const name = user?.user_metadata?.name || user?.email || ''
   const firstName = name.split(' ')[0] || name
 
@@ -113,9 +148,30 @@ export default async function DashboardPage() {
   const hasScheduled = (appointments || []).length > 0
 
   const totalPatients = (patients || []).length
+  const newPatientsCount = (patients || []).filter(p =>
+    p.created_at && new Date(p.created_at) >= new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+  ).length
   const pendingCount = patientsWithConsultations.filter(p => p.pending_prescription).length
   const todayCount = todayAppointments.length
   const totalConsultations90d = (recentConsultations || []).length
+  const params = await searchParams
+  const filterPending = params?.filter === 'pending'
+
+  // Продающая строка в баннере — по приоритету
+  let insightLine: string | null = null
+  if (betterPct !== null && betterPct >= 60 && followups.length >= 3) {
+    insightLine = lang === 'ru'
+      ? `${betterPct}% ваших пациентов чувствуют себя лучше`
+      : `${betterPct}% of your patients are feeling better`
+  } else if (totalPatients >= 5) {
+    insightLine = lang === 'ru'
+      ? `${totalPatients} ${totalPatients < 5 ? 'пациента доверяют' : 'пациентов доверяют'} вам своё здоровье`
+      : `${totalPatients} patients trust you with their health`
+  } else if (totalPatients > 0) {
+    insightLine = lang === 'ru'
+      ? 'Хорошее начало — продолжайте вести практику'
+      : 'Great start — keep building your practice'
+  }
 
   return (
     <AppShell>
@@ -125,7 +181,7 @@ export default async function DashboardPage() {
         <div className="flex-1 min-w-0 w-full">
 
           {/* Hero-баннер */}
-          <div data-tour="stats" className="relative overflow-hidden rounded-2xl mb-5 lg:mb-7" style={{ background: 'linear-gradient(135deg, var(--color-sidebar) 0%, #2d5a40 100%)' }}>
+          <div data-tour="stats" className="relative overflow-hidden rounded-2xl mb-5 lg:mb-7" style={{ background: 'linear-gradient(135deg, var(--sim-forest) 0%, var(--sim-green) 100%)' }}>
             {/* Иллюстрация арники */}
             <div
               className="absolute right-0 top-0 h-full w-48 sm:w-64 opacity-20 bg-no-repeat bg-right bg-contain pointer-events-none"
@@ -133,50 +189,55 @@ export default async function DashboardPage() {
             />
             <div className="relative z-10 px-5 sm:px-7 py-5 sm:py-6">
               <h1
-                className="text-[20px] sm:text-[24px] font-light leading-tight mb-3"
+                className="text-[20px] sm:text-[24px] font-light leading-tight mb-5"
                 style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.7)' }}
               >
                 {t(lang).dashboard.greeting}, {firstName}
               </h1>
 
-              {/* Главный акцент — приёмы сегодня */}
-              <div className="flex items-end justify-between mb-5">
-                <div>
-                  <p className="text-[40px] sm:text-[48px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.95)' }}>
-                    {todayCount}
-                  </p>
-                  <p className="text-[13px] mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    {t(lang).dashboard.todayAppointments(todayCount)}
-                  </p>
-                </div>
-                {todayCount > 0 && (
-                  <p className="text-[11px] mt-1 opacity-60" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                    {lang === 'ru' ? '↓ см. ниже' : '↓ see below'}
-                  </p>
-                )}
-              </div>
+              {/* Три равноценных стат-карточки */}
+              <HeroStatCards
+                todayCount={todayCount}
+                totalPatients={totalPatients}
+                pendingCount={pendingCount}
+                filterPending={filterPending}
+                todayLabel={t(lang).dashboard.todayAppointments(todayCount)}
+                patientsLabel={t(lang).dashboard.patients}
+                noPrescriptionLabel={t(lang).dashboard.noPrescription}
+              />
 
-              {/* Stat-карточки: Today — главная, остальные — вторичные */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <p className="text-[18px] sm:text-[20px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.7)' }}>
-                    {totalPatients}
-                  </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{t(lang).dashboard.patients}</p>
+              {/* Продающая строка */}
+              {insightLine && (
+                <p className="mt-3 text-[13px] font-light italic" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.65)' }}>
+                  {insightLine}
+                </p>
+              )}
+
+              {/* Строка внимания — показывается только если есть проблемы */}
+              {(overdueCount > 0 || pendingFollowupCount > 0) && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  {overdueCount > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f97316' }} />
+                      <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                        {lang === 'ru'
+                          ? `${overdueCount} ${overdueCount === 1 ? 'пациент' : overdueCount < 5 ? 'пациента' : 'пациентов'} без повторного приёма`
+                          : `${overdueCount} patient${overdueCount > 1 ? 's' : ''} overdue`}
+                      </span>
+                    </div>
+                  )}
+                  {pendingFollowupCount > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#facc15' }} />
+                      <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                        {lang === 'ru'
+                          ? `${pendingFollowupCount} ${pendingFollowupCount === 1 ? 'ожидает' : 'ожидают'} ответа на опросник`
+                          : `${pendingFollowupCount} follow-up${pendingFollowupCount > 1 ? 's' : ''} pending`}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="rounded-xl px-3 py-3" style={{ background: 'rgba(255,255,255,0.14)' }}>
-                  <p className="text-[24px] sm:text-[28px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.95)' }}>
-                    {todayCount}
-                  </p>
-                  <p className="text-[10px] mt-0.5 font-medium" style={{ color: 'rgba(255,255,255,0.55)' }}>{t(lang).dashboard.today}</p>
-                </div>
-                <div className="rounded-xl px-3 py-2.5" style={{ background: pendingCount > 0 ? 'rgba(200,160,53,0.2)' : 'rgba(255,255,255,0.08)' }}>
-                  <p className="text-[18px] sm:text-[20px] font-light leading-none" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: pendingCount > 0 ? 'var(--color-amber)' : 'rgba(255,255,255,0.7)' }}>
-                    {pendingCount}
-                  </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{t(lang).dashboard.noPrescription}</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -184,38 +245,68 @@ export default async function DashboardPage() {
             hasRealPatients={hasRealPatients}
             hasSentIntake={hasSentIntake}
             hasScheduled={hasScheduled}
+            lastPatientId={patients?.[0]?.id}
           />
 
-          <AppointmentList appointments={(appointments || []) as any} />
+          {/* Активный приём — идёт прямо сейчас */}
+          {activeConsultations && activeConsultations.length > 0 && (() => {
+            const active = activeConsultations[0] as unknown as { id: string; patient_id: string; patients: { id: string; name: string } | null }
+            const patientName = active.patients?.name || ''
+            return (
+              <Link
+                href={`/patients/${active.patient_id}/consultations/${active.id}`}
+                className="flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-5 transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#1a3020', color: '#f7f3ed' }}
+              >
+                <span className="relative flex h-3 w-3 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: '#4ade80' }} />
+                  <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: '#22c55e' }} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold leading-none" style={{ color: '#f7f3ed' }}>
+                    Идёт приём
+                  </p>
+                  <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(247,243,237,0.6)' }}>
+                    {patientName}
+                  </p>
+                </div>
+                <span className="text-xs font-medium shrink-0" style={{ color: 'rgba(247,243,237,0.7)' }}>
+                  Продолжить →
+                </span>
+              </Link>
+            )
+          })()}
+
+          {/* Добавить / записать пациента */}
+          <div data-tour="questionnaire-btn" className="mb-5">
+            <AddPatientWidget patients={patientsList} />
+          </div>
 
           {/* Заголовок списка пациентов */}
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
             {t(lang).dashboard.patientsSection}
           </p>
 
-          {/* Запись нового пациента */}
-          <div data-tour="questionnaire-btn" className="mb-3">
-            <NewPatientButton />
-          </div>
-
-          <div data-tour="patient-list">
-            <PatientListClient patients={patientsWithConsultations} />
+          <div id="patients-section" data-tour="patient-list" className="scroll-mt-6">
+            <PatientListClient patients={patientsWithConsultations} filterPending={filterPending} />
           </div>
         </div>
 
         {/* ─── Правая колонка ─── */}
-        <div className="w-full lg:w-[260px] lg:shrink-0 lg:sticky lg:top-7 space-y-4">
-          <div className="hidden lg:block">
-            <MoscowClock />
+        <div className="w-full lg:w-[280px] lg:shrink-0 lg:sticky lg:top-7 space-y-4">
+          <LunarPhaseWidget lang={lang} />
+          <div id="appointments-section" className="scroll-mt-6">
+            <CalendarWidget
+              patients={patientsList}
+              lastRemedyMap={Object.fromEntries(
+                [...lastConsultationMap.entries()].map(([pid, c]) => [pid, c.remedy]).filter(([, r]) => r) as [string, string][]
+              )}
+            />
           </div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3 lg:hidden">
-            {t(lang).dashboard.calendar}
-          </p>
-          <CalendarWidget patients={patientsList} />
 
           {/* Аналитика за 90 дней */}
-          {(totalConsultations90d > 0 || betterPct !== null || topRemedy) && (
-            <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
+          {(totalConsultations90d > 0 || betterPct !== null || topRemedy || newPatientsCount > 0) && (
+            <div className="rounded-2xl p-3" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
                 {t(lang).dashboard.last90days}
               </p>
@@ -225,6 +316,14 @@ export default async function DashboardPage() {
                     <span className="text-xs text-gray-500">{t(lang).dashboard.consultations}</span>
                     <span className="text-sm font-semibold text-gray-900" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
                       {totalConsultations90d}
+                    </span>
+                  </div>
+                )}
+                {newPatientsCount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">{lang === 'ru' ? 'Новых пациентов' : 'New patients'}</span>
+                    <span className="text-sm font-semibold text-emerald-700" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
+                      +{newPatientsCount}
                     </span>
                   </div>
                 )}
@@ -242,6 +341,32 @@ export default async function DashboardPage() {
                     <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-lg">
                       {topRemedy}
                     </span>
+                  </div>
+                )}
+                {overdueCount > 0 && (
+                  <div className="pt-2 border-t" style={{ borderColor: '#e0d8cc' }}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-gray-500">
+                        {lang === 'ru' ? `Не было более ${followup_reminder_days} дн.` : `No visit ${followup_reminder_days}+ days`}
+                      </span>
+                      <span className="text-xs font-semibold" style={{ color: '#f97316' }}>{overdueCount}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {patientsWithConsultations
+                        .filter(p => p.overdue)
+                        .slice(0, 3)
+                        .map(p => (
+                          <Link key={p.id} href={`/patients/${p.id}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-emerald-700 transition-colors truncate">
+                            <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: '#f97316' }} />
+                            {p.name}
+                          </Link>
+                        ))}
+                      {overdueCount > 3 && (
+                        <Link href="?filter=overdue#patients-section" className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors">
+                          {lang === 'ru' ? `+ ещё ${overdueCount - 3}` : `+ ${overdueCount - 3} more`}
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 )}
                 {unpaidPatients.length > 0 && (

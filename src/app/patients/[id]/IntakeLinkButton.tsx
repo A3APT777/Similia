@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createIntakeLink } from '@/lib/actions/intake'
+import { createIntakeLinkForPatient } from '@/lib/actions/intake'
 import { IntakeType } from '@/types'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -21,16 +21,23 @@ export default function IntakeLinkButton({
 }: Props) {
   const { lang } = useLanguage()
   const [link, setLink] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loadingLink, setLoadingLink] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const isAcute = type === 'acute'
 
-  async function handleCreate() {
-    setLoading(true)
-    const token = await createIntakeLink(type)
-    setLink(`${window.location.origin}/intake/${token}`)
-    setLoading(false)
+  async function getToken() {
+    return await createIntakeLinkForPatient(patientId, type)
+  }
+
+  async function handleSendLink() {
+    setLoadingLink(true)
+    try {
+      const token = await getToken()
+      setLink(`${window.location.origin}/intake/${token}`)
+    } finally {
+      setLoadingLink(false)
+    }
   }
 
   async function handleCopy() {
@@ -40,22 +47,31 @@ export default function IntakeLinkButton({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const borderColor = isAcute ? 'var(--color-amber)' : 'var(--color-primary)'
+  const textColor = isAcute ? 'var(--color-amber)' : 'var(--color-primary)'
+  const hoverBg = isAcute ? 'rgba(200,160,53,0.08)' : 'rgba(45,106,79,0.06)'
+
   if (!link) {
     return (
-      <button
-        onClick={handleCreate}
-        disabled={loading}
-        className="text-sm border px-4 py-2.5 rounded-lg transition-all disabled:opacity-50"
-        style={{
-          borderColor: isAcute ? 'var(--color-amber)' : 'var(--color-primary)',
-          color: isAcute ? 'var(--color-amber)' : 'var(--color-primary)',
-          backgroundColor: 'transparent',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.backgroundColor = isAcute ? 'rgba(200,160,53,0.08)' : 'rgba(45,106,79,0.06)')}
-        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-      >
-        {loading ? t(lang).intake.creating : isAcute ? `⚡ ${t(lang).intake.acuteIntake}` : hasCompleted ? t(lang).intake.newIntake : `📋 ${t(lang).intake.sendBtn}`}
-      </button>
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Отправить пациенту — ссылка */}
+        <button
+          onClick={handleSendLink}
+          disabled={loadingLink}
+          className="text-sm border px-3 py-2 rounded-lg transition-all disabled:opacity-50"
+          style={{ borderColor, color: textColor, backgroundColor: 'transparent' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = hoverBg)}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          {loadingLink
+            ? t(lang).intake.creating
+            : isAcute
+              ? `⚡ ${t(lang).intake.acuteIntake}`
+              : hasCompleted
+                ? t(lang).intake.newIntake
+                : `📋 ${t(lang).intake.sendBtn}`}
+        </button>
+      </div>
     )
   }
 

@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useActionState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
+import { loginAction } from './actions'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -31,28 +30,14 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const { lang } = useLanguage()
+  const [serverError, formAction, isPending] = useActionState(loginAction, null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(t(lang).auth.invalidCredentials)
-      setLoading(false)
-      return
-    }
-    router.push('/dashboard')
-    router.refresh()
-  }
+
+  const error = serverError ? t(lang).auth.invalidCredentials : ''
 
   const getInputStyle = (field: string): React.CSSProperties => ({
     ...inputStyle,
@@ -201,7 +186,7 @@ export default function LoginPage() {
             {t(lang).auth.signInPrompt}
           </p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
               <label style={labelStyle}>Email</label>
               <input
@@ -212,6 +197,7 @@ export default function LoginPage() {
                 onBlur={() => setFocusedField(null)}
                 required
                 autoFocus
+                name="email"
                 placeholder="doctor@example.com"
                 style={getInputStyle('email')}
               />
@@ -230,6 +216,7 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 onFocus={() => setFocusedField('password')}
                 onBlur={() => setFocusedField(null)}
+                name="password"
                 required
                 placeholder="••••••••"
                 style={getInputStyle('password')}
@@ -244,24 +231,24 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isPending}
               style={{
                 width: '100%',
-                backgroundColor: loading ? '#5a7060' : '#1a3020',
+                backgroundColor: isPending ? '#5a7060' : '#1a3020',
                 color: '#f7f3ed',
                 border: 'none',
                 borderRadius: '8px',
                 padding: '13px 20px',
                 fontSize: '15px',
                 fontWeight: 500,
-                cursor: loading ? 'default' : 'pointer',
+                cursor: isPending ? 'default' : 'pointer',
                 transition: 'background-color 0.15s',
-                opacity: loading ? 0.7 : 1,
+                opacity: isPending ? 0.7 : 1,
               }}
-              onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = '#2d6a4f' }}
-              onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = '#1a3020' }}
+              onMouseEnter={e => { if (!isPending) e.currentTarget.style.backgroundColor = '#2d6a4f' }}
+              onMouseLeave={e => { if (!isPending) e.currentTarget.style.backgroundColor = '#1a3020' }}
             >
-              {loading ? t(lang).auth.signingIn : t(lang).auth.signIn}
+              {isPending ? t(lang).auth.signingIn : t(lang).auth.signIn}
             </button>
           </form>
 

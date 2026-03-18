@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { decrementPaidSession } from '@/lib/actions/payments'
+import { completeConsultation } from '@/lib/actions/consultations'
 import { Consultation, Patient } from '@/types'
 import { useToast } from '@/components/ui/toast'
 import { t } from '@/lib/i18n'
@@ -17,6 +18,7 @@ import PrescriptionModal from './PrescriptionModal'
 import MiniRepertory from './MiniRepertory'
 import RightPanel from './right-panel/RightPanel'
 import TourConsultStarter from '@/components/TourConsultStarter'
+import DynamicsBlock from './components/DynamicsBlock'
 
 type Props = {
   consultation: Consultation
@@ -92,6 +94,16 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
   }
 
   async function doFinish() {
+    // Проверяем что консультация не пустая
+    const hasContent = state.complaints.trim() || state.observations.trim() ||
+      state.notes.trim() || state.recommendations.trim() || state.symptoms.length > 0
+    if (!hasContent) {
+      toast(lang === 'ru'
+        ? 'Заполните хотя бы одно поле перед завершением'
+        : 'Fill in at least one field before finishing', 'error')
+      return
+    }
+
     await saveAll()
 
     // Quick mode + препарат уже назначен во время приёма → сразу завершаем без модала
@@ -117,10 +129,14 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
 
   async function handleConsultationDone() {
     setPendingPrescription(null)
+    await completeConsultation(consultation.id)
     if (paidSessionsEnabled) {
       const { prevCount, newCount } = await decrementPaidSession(patient.id)
       if (prevCount === 1) toast(t(lang).consultation.savedPaymentDone)
       else if (prevCount > 1) toast(t(lang).consultation.savedRemaining(newCount))
+      else toast(lang === 'ru' ? 'Консультация завершена' : 'Consultation completed', 'success')
+    } else {
+      toast(lang === 'ru' ? 'Консультация завершена' : 'Consultation completed', 'success')
     }
     router.push(`/patients/${consultation.patient_id}`)
   }
@@ -192,6 +208,15 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
           <div className="flex-1 overflow-y-auto min-h-[60vh] lg:min-h-0" style={{ backgroundColor: 'var(--sim-bg-input)' }}>
             <div className="px-5 lg:px-7 py-4 space-y-4">
 
+              {/* Динамика с прошлого приёма — только для повторных */}
+              {previousConsultation && (
+                <DynamicsBlock
+                  consultationId={consultation.id}
+                  initial={consultation.doctor_dynamics ?? null}
+                  lang={lang}
+                />
+              )}
+
               {state.mode === 'quick' ? (
                 /* ── БЫСТРЫЙ РЕЖИМ: единый поток ── */
                 <>
@@ -245,7 +270,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
                   {/* Контроль — одна строка */}
                   <section>
                     <label className="block text-[11px] font-semibold mb-1.5" style={{ color: 'var(--sim-text-hint)' }}>
-                      {lang === 'ru' ? 'Следующий приём' : 'Follow-up'}
+                      {lang === 'ru' ? 'Рекомендации и план' : 'Plan & follow-up'}
                     </label>
                     <input
                       type="text"
@@ -443,7 +468,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto" data-tour="right-panel">
               <RightPanel
                 previousConsultation={previousConsultation}
                 patient={patient}

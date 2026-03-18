@@ -6,13 +6,14 @@ import { getDoctorScheduleAuth } from '@/lib/actions/schedule'
 import { t } from '@/lib/i18n'
 import { getLang } from '@/lib/i18n-server'
 import ScheduleSettings from './ScheduleSettings'
+import FollowupReminderSetting from './FollowupReminderSetting'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { paid_sessions_enabled } = await getDoctorSettings()
+  const { paid_sessions_enabled, followup_reminder_days } = await getDoctorSettings()
   const scheduleData = await getDoctorScheduleAuth()
   const lang = await getLang()
 
@@ -36,6 +37,14 @@ export default async function SettingsPage() {
             </p>
             <SettingsToggle initialEnabled={paid_sessions_enabled} />
           </div>
+
+          {/* Напоминания */}
+          <section>
+            <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#9a8a6a' }}>
+              Напоминания
+            </h2>
+            <FollowupReminderSetting initial={followup_reminder_days} />
+          </section>
 
           {/* Расписание */}
           <section>

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import { randomUUID } from 'crypto'
+import { ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES, MAX_PHOTO_SIZE_BYTES } from '@/lib/utils'
 
 // Врач создаёт токен для загрузки фото пациентом
 export async function createPhotoUploadToken(patientId: string): Promise<string> {
@@ -54,20 +55,16 @@ export async function submitPhotoUpload(
     return { success: false, error: 'Файл не выбран' }
   }
 
-  // Максимум 10 МБ
-  if (file.size > 10 * 1024 * 1024) {
+  if (file.size > MAX_PHOTO_SIZE_BYTES) {
     return { success: false, error: 'Файл слишком большой. Максимум 10 МБ.' }
   }
 
-  // Только изображения
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
-  if (!allowedTypes.includes(file.type.toLowerCase())) {
+  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type.toLowerCase())) {
     return { success: false, error: 'Разрешены только фотографии (JPEG, PNG, WebP, HEIC)' }
   }
 
-  const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-  if (!allowedExtensions.includes(ext)) {
+  if (!(ALLOWED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
     return { success: false, error: 'Неподдерживаемый формат файла' }
   }
   const path = `${uploadToken.doctor_id}/${uploadToken.patient_id}/${Date.now()}.${ext}`
@@ -80,14 +77,14 @@ export async function submitPhotoUpload(
     .upload(path, buffer, { contentType: file.type })
 
   if (storageError) {
-    return { success: false, error: 'Ошибка загрузки файла' }
+    return { success: false, error: `Ошибка загрузки файла: ${storageError.message}` }
   }
 
   const { data: { publicUrl } } = supabase.storage
     .from('patient-photos')
     .getPublicUrl(path)
 
-  await supabase.from('patient_photos').insert({
+  const { error: insertError } = await supabase.from('patient_photos').insert({
     patient_id: uploadToken.patient_id,
     doctor_id: uploadToken.doctor_id,
     storage_path: path,
@@ -95,6 +92,10 @@ export async function submitPhotoUpload(
     note: note?.trim() || null,
     taken_at: takenAt || new Date().toISOString().split('T')[0],
   })
+
+  if (insertError) {
+    return { success: false, error: `Ошибка сохранения: ${insertError.message}` }
+  }
 
   return { success: true }
 }

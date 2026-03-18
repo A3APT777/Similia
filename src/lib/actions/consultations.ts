@@ -6,16 +6,15 @@ import { ConsultationType } from '@/types'
 import { uuidSchema, consultationTypeSchema, isoDateTimeSchema } from '@/lib/validation'
 import { z } from 'zod'
 
-// Закрыть все открытые консультации пациента (перед началом новой)
+// Закрыть все открытые консультации врача (перед началом новой)
+// Правило: у врача одновременно может быть активным только один приём
 async function closeOpenConsultations(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  patientId: string,
   doctorId: string
 ) {
   await supabase
     .from('consultations')
     .update({ status: 'completed' })
-    .eq('patient_id', patientId)
     .eq('doctor_id', doctorId)
     .eq('status', 'in_progress')
 }
@@ -28,8 +27,8 @@ export async function createConsultation(patientId: string, type: ConsultationTy
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Закрываем любую другую открытую консультацию этого пациента
-  await closeOpenConsultations(supabase, patientId, user.id)
+  // Закрываем любые открытые консультации врача (один приём за раз)
+  await closeOpenConsultations(supabase, user.id)
 
   const { data, error } = await supabase
     .from('consultations')
@@ -118,8 +117,8 @@ export async function startConsultation(consultationId: string, patientId: strin
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Закрываем любую другую открытую консультацию этого пациента
-  await closeOpenConsultations(supabase, patientId, user.id)
+  // Закрываем любые открытые консультации врача (один приём за раз)
+  await closeOpenConsultations(supabase, user.id)
 
   await supabase
     .from('consultations')
@@ -276,6 +275,33 @@ export async function updateConsultationFields(
   await supabase
     .from('consultations')
     .update(update)
+    .eq('id', id)
+    .eq('doctor_id', user.id)
+}
+
+// Явно завершить консультацию (независимо от заполненности notes)
+export async function saveDoctorDynamics(id: string, dynamics: string): Promise<void> {
+  uuidSchema.parse(id)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase
+    .from('consultations')
+    .update({ doctor_dynamics: dynamics, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('doctor_id', user.id)
+}
+
+export async function completeConsultation(id: string): Promise<void> {
+  uuidSchema.parse(id)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase
+    .from('consultations')
+    .update({ status: 'completed', updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('doctor_id', user.id)
 }

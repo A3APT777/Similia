@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { submitIntake } from '@/lib/actions/intake'
+import { useRouter } from 'next/navigation'
+import { submitIntake, bookIntakeAppointment, submitDoctorIntake } from '@/lib/actions/intake'
+import { getBookedSlots } from '@/lib/actions/newPatient'
+import { generateSlots, ScheduleConfig } from '@/lib/slots'
 import { IntakeAnswers, IntakeType } from '@/types'
 
 // ─── Типы полей ───────────────────────────────────────────────────────────────
 
-type FieldType = 'textarea' | 'text' | 'date' | 'tel' | 'chips' | 'scale'
+type FieldType = 'textarea' | 'text' | 'date' | 'tel' | 'chips' | 'chips-multi' | 'scale'
 
 type Field = {
   key: string
@@ -15,6 +18,7 @@ type Field = {
   type: FieldType
   options?: string[]
   required?: boolean
+  hint?: string
 }
 
 type Step = {
@@ -23,7 +27,7 @@ type Step = {
   fields: Field[]
 }
 
-// ─── Шаг с личными данными (общий для обоих типов) ───────────────────────────
+// ─── Шаг с личными данными ────────────────────────────────────────────────────
 
 const PERSONAL_STEP: Step = {
   title: 'Ваши данные',
@@ -82,7 +86,34 @@ const PRIMARY_STEPS: Step[] = [
         key: 'cause',
         label: 'Как вы думаете, что могло стать причиной?',
         type: 'textarea',
-        placeholder: 'Стресс, переохлаждение, переезд, потеря близкого, болезнь...',
+        placeholder: 'Стресс, переохлаждение, переезд, потеря близкого, болезнь, прививка, операция...',
+        hint: 'Это называется «never well since» — момент, после которого всё изменилось',
+      },
+    ],
+  },
+  {
+    title: 'Характерное',
+    subtitle: 'Эти детали помогают выбрать именно ваш препарат',
+    fields: [
+      {
+        key: 'consolation',
+        label: 'Утешение — как вы реагируете, когда вам плохо и кто-то вас жалеет?',
+        type: 'chips',
+        options: ['Становится легче, хочется внимания', 'Нейтрально', 'Раздражает, хочется побыть одному'],
+        hint: 'Реакция на утешение — один из ключевых симптомов в гомеопатии',
+      },
+      {
+        key: 'concomitants',
+        label: 'Есть ли симптомы, которые появляются одновременно с основной жалобой?',
+        type: 'textarea',
+        placeholder: 'Например: во время головной боли тошнит; при боли в животе хочется лежать согнувшись; при тревоге потеют ладони...',
+      },
+      {
+        key: 'peculiar',
+        label: 'Есть ли что-то странное или необычное в ваших симптомах?',
+        type: 'textarea',
+        placeholder: 'Например: тепло улучшает, хотя при воспалении обычно наоборот; боль исчезает при еде; хуже от покоя, лучше от движения...',
+        hint: 'Peculiar symptoms — нетипичные, странные особенности, которые вас самих удивляют',
       },
     ],
   },
@@ -94,13 +125,13 @@ const PRIMARY_STEPS: Step[] = [
         key: 'sensation',
         label: 'Как можно описать само ощущение?',
         type: 'textarea',
-        placeholder: 'Жгучее, давящее, колющее, тянущее, пульсирующее, сжимающее...',
+        placeholder: 'Жгучее, давящее, колющее, тянущее, пульсирующее, сжимающее, сверлящее...',
       },
       {
         key: 'location',
         label: 'Где именно?',
         type: 'text',
-        placeholder: 'Голова, живот, спина, справа, слева...',
+        placeholder: 'Голова, живот, спина, справа, слева, снаружи, глубоко внутри...',
       },
       {
         key: 'radiation',
@@ -123,19 +154,19 @@ const PRIMARY_STEPS: Step[] = [
         key: 'worse_from',
         label: 'Что ухудшает самочувствие?',
         type: 'textarea',
-        placeholder: 'Холод, тепло, движение, покой, одиночество, шум, определённая еда, вечер, ночь...',
+        placeholder: 'Холод, тепло, движение, покой, одиночество, шум, определённая еда, вечер, ночь, перед грозой...',
       },
       {
         key: 'better_from',
         label: 'Что улучшает?',
         type: 'textarea',
-        placeholder: 'Тепло, свежий воздух, движение, отдых, общение, горячий душ...',
+        placeholder: 'Тепло, свежий воздух, движение, отдых, общение, горячий душ, давление на больное место...',
       },
       {
         key: 'time_worse',
         label: 'В какое время суток хуже всего?',
         type: 'text',
-        placeholder: 'Утром после пробуждения, в полночь, после обеда...',
+        placeholder: 'Утром после пробуждения, в 3 ночи, после обеда, на закате...',
       },
     ],
   },
@@ -156,10 +187,28 @@ const PRIMARY_STEPS: Step[] = [
         options: ['Почти не пью', 'Пью умеренно', 'Пью много', 'Постоянно хочу пить'],
       },
       {
+        key: 'thirst_temp',
+        label: 'Какое питьё предпочитаете?',
+        type: 'chips',
+        options: ['Только холодное', 'Прохладное', 'Комнатной температуры', 'Тёплое', 'Только горячее'],
+      },
+      {
         key: 'perspiration',
         label: 'Потливость',
         type: 'chips',
         options: ['Почти не потею', 'Нормальная', 'Повышенная', 'Очень сильная'],
+      },
+      {
+        key: 'perspiration_where',
+        label: 'Где потеете больше всего? (необязательно)',
+        type: 'text',
+        placeholder: 'Голова, подмышки, ладони, стопы, всё тело, грудь...',
+      },
+      {
+        key: 'perspiration_when',
+        label: 'Когда больше потеете?',
+        type: 'chips',
+        options: ['Ночью во сне', 'При малейшем усилии', 'От волнения', 'Во время еды', 'Нет особого паттерна'],
       },
       {
         key: 'energy',
@@ -177,7 +226,7 @@ const PRIMARY_STEPS: Step[] = [
         key: 'sleep',
         label: 'Как вы спите?',
         type: 'textarea',
-        placeholder: 'Легко засыпаете? Просыпаетесь ночью? В какое время? Качество сна...',
+        placeholder: 'Легко засыпаете? Просыпаетесь ночью? В какое время? Любимая поза? Качество сна...',
       },
       {
         key: 'dreams',
@@ -189,13 +238,13 @@ const PRIMARY_STEPS: Step[] = [
         key: 'food_desires',
         label: 'Что вы очень любите есть?',
         type: 'text',
-        placeholder: 'Солёное, сладкое, острое, кислое, молочное, мясо...',
+        placeholder: 'Солёное, сладкое, острое, кислое, молочное, мясо, яйца, жирное...',
       },
       {
         key: 'food_aversions',
         label: 'Что не переносите или вызывает реакцию?',
         type: 'text',
-        placeholder: 'Жирное, молоко, яйца, определённые фрукты...',
+        placeholder: 'Жирное, молоко, яйца, определённые фрукты, мясо...',
       },
     ],
   },
@@ -207,7 +256,7 @@ const PRIMARY_STEPS: Step[] = [
         key: 'emotional',
         label: 'Как вы себя чувствуете эмоционально последнее время?',
         type: 'textarea',
-        placeholder: 'Подавленность, тревога, раздражительность, апатия, спокойствие...',
+        placeholder: 'Подавленность, тревога, раздражительность, апатия, спокойствие, беспокойство...',
       },
       {
         key: 'stress',
@@ -216,10 +265,53 @@ const PRIMARY_STEPS: Step[] = [
         placeholder: 'Уходите в себя, плачете, злитесь, становитесь активнее, заболеваете...',
       },
       {
+        key: 'weeping',
+        label: 'Слёзы — как у вас с этим?',
+        type: 'chips',
+        options: ['Плачу легко, часто', 'Плачу, но только наедине', 'Редко, с трудом', 'Почти никогда не плачу'],
+        hint: 'Это важный психический симптом',
+      },
+      {
+        key: 'company',
+        label: 'Когда вам плохо — вы предпочитаете?',
+        type: 'chips',
+        options: ['Быть рядом с людьми, не оставаться одному', 'Нейтрально', 'Побыть в тишине и одиночестве'],
+      },
+      {
         key: 'fears',
         label: 'Есть ли страхи или постоянные тревоги?',
         type: 'textarea',
-        placeholder: 'Темноты, одиночества, болезни, смерти, будущего, осуждения...',
+        placeholder: 'Темноты, одиночества, болезни, смерти, высоты, будущего, осуждения, потери близких...',
+      },
+    ],
+  },
+  {
+    title: 'Физиология',
+    subtitle: 'Несколько конкретных вопросов о работе организма',
+    fields: [
+      {
+        key: 'digestion',
+        label: 'Как работает пищеварение?',
+        type: 'textarea',
+        placeholder: 'Вздутие, изжога, тяжесть после еды, тошнота, отрыжка, какие продукты провоцируют...',
+      },
+      {
+        key: 'stool',
+        label: 'Стул',
+        type: 'chips',
+        options: ['Регулярный, без проблем', 'Склонность к запорам', 'Склонность к послаблению', 'Чередуется'],
+      },
+      {
+        key: 'menstrual',
+        label: 'Для женщин: менструальный цикл (необязательно)',
+        type: 'textarea',
+        placeholder: 'Регулярность, болезненность, обильность, что меняется в самочувствии до/после/во время цикла...',
+      },
+      {
+        key: 'skin',
+        label: 'Кожа, ногти, волосы — есть ли особенности?',
+        type: 'text',
+        placeholder: 'Сухость, жирность, экзема, сыпи, ломкость ногтей, выпадение волос...',
       },
     ],
   },
@@ -231,7 +323,7 @@ const PRIMARY_STEPS: Step[] = [
         key: 'past_illnesses',
         label: 'Перенесённые болезни, операции, травмы',
         type: 'textarea',
-        placeholder: 'Что важного было в истории вашего здоровья?',
+        placeholder: 'Что важного было в истории вашего здоровья? Частые ангины, операции, переломы, тяжёлые инфекции...',
       },
       {
         key: 'medications',
@@ -249,13 +341,13 @@ const PRIMARY_STEPS: Step[] = [
         key: 'family_history',
         label: 'Болезни у родителей, бабушек, дедушек',
         type: 'text',
-        placeholder: 'Диабет, онкология, гипертония, туберкулёз...',
+        placeholder: 'Диабет, онкология, гипертония, туберкулёз, психические расстройства...',
       },
     ],
   },
 ]
 
-// ─── Шаги анкеты острого случая ───────────────────────────────────────────────
+// ─── Шаги острого случая ──────────────────────────────────────────────────────
 
 const ACUTE_STEPS: Step[] = [
   {
@@ -340,6 +432,12 @@ const ACUTE_STEPS: Step[] = [
         type: 'chips',
         options: ['Лежать', 'Сидеть', 'Стоять', 'Двигаться', 'Скрючиться', 'Без разницы'],
       },
+      {
+        key: 'consolation',
+        label: 'Когда вам плохо — хочется чтобы кто-то был рядом?',
+        type: 'chips',
+        options: ['Да, присутствие успокаивает', 'Безразлично', 'Нет, хочу побыть одному'],
+      },
     ],
   },
   {
@@ -404,13 +502,13 @@ const ACUTE_STEPS: Step[] = [
   },
 ]
 
-// ─── Конфигурация по типу ─────────────────────────────────────────────────────
+// ─── Конфигурация ─────────────────────────────────────────────────────────────
 
 const CONFIG = {
   primary: {
     steps: [PERSONAL_STEP, ...PRIMARY_STEPS],
     welcomeTitle: 'Анкета первичного приёма',
-    welcomeText: 'Врач приглашает вас заполнить анкету. Ваши ответы помогут провести консультацию максимально точно — уделите 10–15 минут.',
+    welcomeText: 'Врач приглашает вас заполнить анкету. Ваши ответы помогут провести консультацию максимально точно — уделите 15–20 минут.',
     icon: '📋',
   },
   acute: {
@@ -421,17 +519,174 @@ const CONFIG = {
   },
 }
 
-// ─── Компонент ────────────────────────────────────────────────────────────────
+// ─── Вспомогательная функция для дат бронирования ────────────────────────────
+
+function getSelectableDates(schedule: ScheduleConfig, count = 21): string[] {
+  const DAY_MAP: Record<number, string> = { 0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat' }
+  const dates: string[] = []
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  let d = new Date(today)
+  d.setDate(d.getDate() + 1) // начинаем с завтра
+  while (dates.length < count) {
+    const key = DAY_MAP[d.getDay()]
+    if (schedule.working_days.includes(key)) {
+      dates.push(d.toISOString().split('T')[0])
+    }
+    d.setDate(d.getDate() + 1)
+    if (d.getTime() - today.getTime() > 60 * 24 * 60 * 60 * 1000) break
+  }
+  return dates
+}
+
+function formatDateRu(dateStr: string): string {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })
+}
+
+// ─── Блок бронирования ────────────────────────────────────────────────────────
+
+type BookingState = 'idle' | 'loading' | 'ready' | 'booking' | 'booked' | 'skipped' | 'error'
+
+function BookingSection({ token, schedule, doctorId }: { token: string; schedule: ScheduleConfig; doctorId: string }) {
+  const selectableDates = getSelectableDates(schedule)
+  const [selectedDate, setSelectedDate] = useState('')
+  const [slots, setSlots] = useState<string[]>([])
+  const [selectedTime, setSelectedTime] = useState('')
+  const [bookingState, setBookingState] = useState<BookingState>('idle')
+  const [bookedDate, setBookedDate] = useState('')
+  const [skipped, setSkipped] = useState(false)
+
+  useEffect(() => {
+    if (!selectedDate) return
+    setBookingState('loading')
+    setSelectedTime('')
+    getBookedSlots(doctorId, selectedDate).then(booked => {
+      const available = generateSlots(schedule, selectedDate, booked)
+      setSlots(available)
+      setBookingState('ready')
+    })
+  }, [selectedDate, doctorId, schedule])
+
+  async function handleBook() {
+    if (!selectedDate || !selectedTime) return
+    setBookingState('booking')
+    const result = await bookIntakeAppointment(token, selectedDate, selectedTime)
+    if (result.success) {
+      setBookedDate(result.appointmentDate || '')
+      setBookingState('booked')
+    } else {
+      setBookingState('error')
+    }
+  }
+
+  if (skipped) return null
+
+  if (bookingState === 'booked') {
+    return (
+      <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
+        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+          <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <p className="text-sm font-semibold text-emerald-800">Вы записаны!</p>
+        <p className="text-sm text-emerald-600 mt-1">{bookedDate}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+      <p className="text-sm font-semibold text-gray-900 mb-1">Записаться на первичную консультацию</p>
+      <p className="text-xs text-gray-400 mb-4">Необязательно — можно пропустить и договориться отдельно</p>
+
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Выберите дату</p>
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1">
+        {selectableDates.slice(0, 14).map(d => (
+          <button
+            key={d}
+            onClick={() => setSelectedDate(d)}
+            className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+              selectedDate === d
+                ? 'bg-emerald-600 text-white border-emerald-600'
+                : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
+            }`}
+          >
+            {formatDateRu(d)}
+          </button>
+        ))}
+      </div>
+
+      {bookingState === 'loading' && (
+        <p className="text-xs text-gray-400 text-center py-3">Загружаю доступные слоты...</p>
+      )}
+
+      {bookingState === 'ready' && slots.length === 0 && (
+        <p className="text-xs text-gray-400 text-center py-3">На эту дату нет свободных мест</p>
+      )}
+
+      {bookingState === 'ready' && slots.length > 0 && (
+        <>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Выберите время</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {slots.map(t => (
+              <button
+                key={t}
+                onClick={() => setSelectedTime(t)}
+                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                  selectedTime === t
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {bookingState === 'error' && (
+        <p className="text-xs text-red-500 mb-3">Не удалось записаться. Попробуйте другое время или свяжитесь с врачом.</p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          onClick={handleBook}
+          disabled={!selectedDate || !selectedTime || bookingState === 'booking'}
+          className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-xl transition-colors"
+        >
+          {bookingState === 'booking' ? 'Записываю...' : 'Записаться'}
+        </button>
+        <button
+          onClick={() => setSkipped(true)}
+          className="px-4 py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          Пропустить
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Основной компонент ───────────────────────────────────────────────────────
 
 type Props = {
   token: string
   patientName: string
   type: IntakeType
+  prefilled?: { name?: string; phone?: string; birth_date?: string; email?: string }
+  schedule?: ScheduleConfig | null
+  doctorId?: string
+  doctorPatientId?: string
+  initialAnswers?: IntakeAnswers
 }
 
-export default function IntakeForm({ token, patientName, type }: Props) {
+export default function IntakeForm({ token, patientName, type, prefilled, schedule, doctorId, doctorPatientId, initialAnswers }: Props) {
+  const router = useRouter()
+  const isDoctorMode = !!doctorPatientId
   const cfg = CONFIG[type]
-  const STEPS = cfg.steps
+  const STEPS = (prefilled || isDoctorMode) ? cfg.steps.filter(s => s !== PERSONAL_STEP) : cfg.steps
   const isAcute = type === 'acute'
 
   const btnClass = isAcute
@@ -443,20 +698,30 @@ export default function IntakeForm({ token, patientName, type }: Props) {
     : 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
 
   const progressClass = isAcute ? 'bg-orange-500' : 'bg-emerald-500'
-  const focusRingClass = isAcute ? 'focus:border-orange-400 focus:ring-orange-500/10' : 'focus:border-emerald-400 focus:ring-emerald-500/10'
+  const focusRingClass = isAcute
+    ? 'focus:border-orange-400 focus:ring-orange-500/10'
+    : 'focus:border-emerald-400 focus:ring-emerald-500/10'
 
-  const DRAFT_KEY = `intake_draft_${token}`
+  const DRAFT_KEY = isDoctorMode ? `intake_doctor_draft_${doctorPatientId}_${type}` : `intake_draft_${token}`
   const restoredRef = useRef(false)
 
-  const [step, setStep] = useState(-1)
-  const [answers, setAnswers] = useState<IntakeAnswers>({})
+  const [step, setStep] = useState(() => isDoctorMode ? 0 : -1)
+  const [answers, setAnswers] = useState<IntakeAnswers>(() => {
+    if (initialAnswers && Object.keys(initialAnswers).length > 0) return initialAnswers
+    if (!prefilled) return {}
+    const init: IntakeAnswers = {}
+    if (prefilled.name) init.patient_name = prefilled.name
+    if (prefilled.phone) init.patient_phone = prefilled.phone
+    if (prefilled.birth_date) init.patient_birth_date = prefilled.birth_date
+    if (prefilled.email) init.patient_email = prefilled.email
+    return init
+  })
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const [consentGiven, setConsentGiven] = useState(false)
+  const [consentGiven, setConsentGiven] = useState(isDoctorMode)
   const [draftRestored, setDraftRestored] = useState(false)
 
-  // Восстанавливаем черновик из localStorage при первом рендере
   useEffect(() => {
     if (restoredRef.current) return
     restoredRef.current = true
@@ -471,21 +736,16 @@ export default function IntakeForm({ token, patientName, type }: Props) {
           setDraftRestored(true)
         }
       }
-    } catch {
-      // localStorage недоступен или данные повреждены — игнорируем
-    }
+    } catch { /* игнорируем */ }
   }, [DRAFT_KEY])
 
-  // Сохраняем черновик при каждом изменении ответов или шага
   useEffect(() => {
     if (done) return
     try {
       if (Object.keys(answers).length > 0) {
         localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, answers }))
       }
-    } catch {
-      // localStorage недоступен — игнорируем
-    }
+    } catch { /* игнорируем */ }
   }, [answers, step, done, DRAFT_KEY])
 
   const totalSteps = STEPS.length
@@ -493,6 +753,12 @@ export default function IntakeForm({ token, patientName, type }: Props) {
 
   function setField(key: string, value: string) {
     setAnswers(prev => ({ ...prev, [key]: value }))
+  }
+
+  function toggleMultiChip(key: string, opt: string) {
+    const current = answers[key] ? answers[key].split(',').map(s => s.trim()).filter(Boolean) : []
+    const next = current.includes(opt) ? current.filter(s => s !== opt) : [...current, opt]
+    setAnswers(prev => ({ ...prev, [key]: next.join(', ') }))
   }
 
   function canProceed(): boolean {
@@ -508,11 +774,17 @@ export default function IntakeForm({ token, patientName, type }: Props) {
       setSubmitting(true)
       setSubmitError('')
       try {
-        await submitIntake(token, answers)
-        try { localStorage.removeItem(DRAFT_KEY) } catch { /* игнорируем */ }
-        setDone(true)
+        if (isDoctorMode) {
+          await submitDoctorIntake(doctorPatientId!, type, answers)
+          try { localStorage.removeItem(DRAFT_KEY) } catch { /* игнорируем */ }
+          router.push(`/patients/${doctorPatientId}`)
+        } else {
+          await submitIntake(token, answers)
+          try { localStorage.removeItem(DRAFT_KEY) } catch { /* игнорируем */ }
+          setDone(true)
+        }
       } catch {
-        setSubmitError('Не удалось отправить анкету. Проверьте соединение и попробуйте ещё раз.')
+        setSubmitError('Не удалось сохранить анкету. Проверьте соединение и попробуйте ещё раз.')
       } finally {
         setSubmitting(false)
       }
@@ -526,18 +798,25 @@ export default function IntakeForm({ token, patientName, type }: Props) {
 
   // ── Готово ──
   if (done) {
+    const showBooking = schedule && doctorId
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-            <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
+              <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900 mb-2">Анкета отправлена!</h1>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Спасибо за подробные ответы. Врач ознакомится с ними до консультации.
+            </p>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Анкета отправлена!</h1>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            Спасибо за подробные ответы. Врач ознакомится с ними до консультации.
-          </p>
+
+          {showBooking && (
+            <BookingSection token={token} schedule={schedule} doctorId={doctorId} />
+          )}
         </div>
       </div>
     )
@@ -546,61 +825,79 @@ export default function IntakeForm({ token, patientName, type }: Props) {
   // ── Приветствие ──
   if (step === -1) {
     return (
-      <div className={`min-h-screen flex items-center justify-center px-4 py-12 ${isAcute ? 'bg-gradient-to-br from-orange-50 via-white to-white' : 'bg-gradient-to-br from-emerald-50 via-white to-white'}`}>
-        <div className="max-w-md w-full">
-          <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-[#0d1f14] flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl leading-none">{cfg.icon}</span>
+      <div className={`min-h-screen flex items-center justify-center px-4 py-8 ${isAcute ? 'bg-gradient-to-br from-orange-50 via-white to-white' : 'bg-gradient-to-br from-emerald-50 via-white to-white'}`}>
+        <div className="max-w-sm w-full">
+          {/* Шапка */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-[#0d1f14] flex items-center justify-center shrink-0">
+              <span className="text-lg leading-none">{cfg.icon}</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {patientName ? `${patientName.split(' ')[0]}, здравствуйте!` : 'Здравствуйте!'}
-            </h1>
-            <p className="text-gray-500 text-sm leading-relaxed">{cfg.welcomeText}</p>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 leading-tight">
+                {patientName ? `${patientName.split(' ')[0]}, здравствуйте!` : 'Здравствуйте!'}
+              </h1>
+              <p className="text-xs text-gray-400 mt-0.5">{cfg.welcomeTitle}</p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5 space-y-3">
-            {[
-              { icon: isAcute ? '⚡' : '📋', text: `${totalSteps} разделов — займёт около ${isAcute ? '5–7' : '10–15'} минут` },
-              { icon: '🔒', text: 'Ответы видит только ваш врач' },
-              { icon: '✏️', text: 'Пишите своими словами, как умеете' },
-              { icon: '💚', text: 'Чем подробнее — тем точнее назначение' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-lg leading-none">{item.icon}</span>
-                <p className="text-sm text-gray-600">{item.text}</p>
-              </div>
-            ))}
+          <p className="text-sm text-gray-500 leading-relaxed mb-4">{cfg.welcomeText}</p>
+
+          {prefilled && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs border bg-emerald-50 border-emerald-200 text-emerald-700">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Личные данные уже заполнены — только медицинская часть.</span>
+            </div>
+          )}
+
+          {/* Инфо-блок */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { icon: isAcute ? '⚡' : '📋', text: `${totalSteps} разделов · ${isAcute ? '5–7' : '15–20'} мин` },
+                { icon: '🔒', text: 'Только ваш врач' },
+                { icon: '✏️', text: 'Своими словами' },
+                { icon: '💚', text: 'Подробнее = точнее' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-base leading-none">{item.icon}</span>
+                  <p className="text-xs text-gray-500">{item.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Согласие на обработку персональных данных (152-ФЗ) */}
-          <label className="flex items-start gap-3 cursor-pointer mb-4">
-            <input
-              type="checkbox"
-              checked={consentGiven}
-              onChange={e => setConsentGiven(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-emerald-600 shrink-0"
-            />
-            <span className="text-xs text-gray-500 leading-relaxed">
-              Я согласен(а) на обработку моих персональных данных (ФИО, дата рождения, контактная информация, сведения о здоровье) в соответствии с Федеральным законом №152-ФЗ «О персональных данных». Данные используются исключительно для оказания медицинской помощи и не передаются третьим лицам.
-            </span>
-          </label>
+          {/* Согласие */}
+          {!isDoctorMode && (
+            <label className="flex items-start gap-2.5 cursor-pointer mb-4">
+              <input
+                type="checkbox"
+                checked={consentGiven}
+                onChange={e => setConsentGiven(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-emerald-600 shrink-0"
+              />
+              <span className="text-[11px] text-gray-400 leading-relaxed">
+                Согласен(а) на обработку персональных данных в соответствии с ФЗ-152. Данные используются только для оказания медицинской помощи и не передаются третьим лицам.
+              </span>
+            </label>
+          )}
 
-          {/* Баннер восстановленного черновика */}
           {draftRestored && (
-            <div className={`mb-3 flex items-start gap-2.5 rounded-xl px-4 py-3 text-sm border ${isAcute ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
-              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs border ${isAcute ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
-              <span>Найден незавершённый черновик — продолжите с того места, где остановились.</span>
+              <span>Найден незавершённый черновик — продолжите с места остановки.</span>
             </div>
           )}
 
           <button
             onClick={() => draftRestored ? setStep(step) : setStep(0)}
             disabled={!consentGiven}
-            className={`w-full font-semibold text-sm py-3.5 rounded-xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
+            className={`w-full font-semibold text-sm py-3 rounded-xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
           >
-            {draftRestored ? 'Продолжить заполнение →' : 'Начать заполнение →'}
+            {draftRestored ? 'Продолжить →' : 'Начать заполнение →'}
           </button>
 
           {draftRestored && (
@@ -624,13 +921,12 @@ export default function IntakeForm({ token, patientName, type }: Props) {
   // ── Шаги ──
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Прогресс-бар */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
         <div
-          className={`h-1 transition-all duration-500 ${progressClass}`}
+          className={`h-0.5 transition-all duration-500 ${progressClass}`}
           style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
         />
-        <div className="px-4 py-3 flex items-center justify-between">
+        <div className="px-4 py-2 flex items-center justify-between">
           <button
             onClick={handleBack}
             className="text-sm text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors"
@@ -644,21 +940,28 @@ export default function IntakeForm({ token, patientName, type }: Props) {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-6 pb-32">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">{currentStep.title}</h2>
+      <div className="max-w-lg mx-auto px-4 py-4 pb-24">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-gray-900">{currentStep.title}</h2>
           {currentStep.subtitle && (
-            <p className="text-sm text-gray-400 mt-1">{currentStep.subtitle}</p>
+            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{currentStep.subtitle}</p>
           )}
         </div>
 
-        <div className="space-y-5">
-          {currentStep.fields.map(field => (
-            <div key={field.key} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <label className="block text-sm font-medium text-gray-800 mb-3 leading-snug">
+        {/* Все поля шага — одна карточка с разделителями */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+          {currentStep.fields.map((field, fieldIdx) => (
+            <div
+              key={field.key}
+              className={`px-4 py-3.5 ${fieldIdx < currentStep.fields.length - 1 ? 'border-b border-gray-100' : ''}`}
+            >
+              <label className="block text-[13px] font-semibold text-gray-700 mb-1 leading-snug">
                 {field.label}
                 {field.required && <span className="text-emerald-500 ml-1">*</span>}
               </label>
+              {field.hint && (
+                <p className="text-[11px] text-gray-400 mb-2 leading-relaxed">{field.hint}</p>
+              )}
 
               {field.type === 'textarea' && (
                 <textarea
@@ -666,7 +969,7 @@ export default function IntakeForm({ token, patientName, type }: Props) {
                   onChange={e => setField(field.key, e.target.value)}
                   rows={3}
                   placeholder={field.placeholder}
-                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3.5 py-2.5 resize-none focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
@@ -676,7 +979,7 @@ export default function IntakeForm({ token, patientName, type }: Props) {
                   value={answers[field.key] || ''}
                   onChange={e => setField(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
@@ -685,21 +988,21 @@ export default function IntakeForm({ token, patientName, type }: Props) {
                   type="date"
                   value={answers[field.key] || ''}
                   onChange={e => setField(field.key, e.target.value)}
-                  className={`w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
               {field.type === 'chips' && field.options && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {field.options.map(opt => (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => setField(field.key, answers[field.key] === opt ? '' : opt)}
-                      className={`text-sm px-4 py-2 rounded-xl border font-medium transition-all ${
+                      className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
                         answers[field.key] === opt
                           ? chipActiveClass
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-gray-50'
                       }`}
                     >
                       {opt}
@@ -708,15 +1011,37 @@ export default function IntakeForm({ token, patientName, type }: Props) {
                 </div>
               )}
 
+              {field.type === 'chips-multi' && field.options && (
+                <div className="flex flex-wrap gap-1.5">
+                  {field.options.map(opt => {
+                    const selected = (answers[field.key] || '').split(',').map(s => s.trim()).includes(opt)
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleMultiChip(field.key, opt)}
+                        className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
+                          selected
+                            ? chipActiveClass
+                            : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-gray-50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
               {field.type === 'scale' && (
                 <div>
-                  <div className="flex gap-1.5 mb-2">
+                  <div className="flex gap-1 mb-1">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                       <button
                         key={n}
                         type="button"
                         onClick={() => setField(field.key, String(n))}
-                        className={`flex-1 h-10 rounded-lg border text-sm font-semibold transition-all ${
+                        className={`flex-1 h-8 rounded-lg border text-xs font-semibold transition-all ${
                           answers[field.key] === String(n)
                             ? n <= 3 ? 'bg-emerald-500 text-white border-emerald-500'
                               : n <= 6 ? 'bg-amber-400 text-white border-amber-400'
@@ -728,7 +1053,7 @@ export default function IntakeForm({ token, patientName, type }: Props) {
                       </button>
                     ))}
                   </div>
-                  <div className="flex justify-between text-[10px] text-gray-300 px-0.5">
+                  <div className="flex justify-between text-[10px] text-gray-300">
                     <span>Почти не мешает</span>
                     <span>Невыносимо</span>
                   </div>
@@ -739,8 +1064,7 @@ export default function IntakeForm({ token, patientName, type }: Props) {
         </div>
       </div>
 
-      {/* Кнопка внизу */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3">
         <div className="max-w-lg mx-auto space-y-3">
           {submitError && (
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
