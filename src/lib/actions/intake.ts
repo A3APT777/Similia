@@ -19,13 +19,18 @@ export async function createIntakeLink(type: IntakeType = 'primary'): Promise<st
   // Ссылка действительна 24 часа
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
-  await supabase.from('intake_forms').insert({
+  const { error } = await supabase.from('intake_forms').insert({
     token,
     doctor_id: user.id,
     type,
     status: 'pending',
     expires_at: expiresAt,
   })
+
+  if (error) {
+    console.error('[createIntakeLink]', error)
+    throw new Error('Не удалось создать ссылку на анкету')
+  }
 
   return token
 }
@@ -48,7 +53,7 @@ export async function createIntakeLinkForPatient(patientId: string, type: Intake
   const token = randomUUID().replace(/-/g, '')
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
-  await supabase.from('intake_forms').insert({
+  const { error } = await supabase.from('intake_forms').insert({
     token,
     doctor_id: user.id,
     patient_id: patientId,
@@ -57,6 +62,11 @@ export async function createIntakeLinkForPatient(patientId: string, type: Intake
     status: 'pending',
     expires_at: expiresAt,
   })
+
+  if (error) {
+    console.error('[createIntakeLinkForPatient]', error)
+    throw new Error('Не удалось создать ссылку на анкету')
+  }
 
   return token
 }
@@ -67,14 +77,16 @@ export async function submitIntake(token: string, answers: IntakeAnswers): Promi
   intakeAnswersSchema.parse(answers)
   const supabase = await createClient()
 
-  // Получаем анкету чтобы знать doctor_id
+  // Получаем анкету с проверкой срока и статуса
   const { data: intake } = await supabase
     .from('intake_forms')
-    .select('doctor_id, patient_id')
+    .select('doctor_id, patient_id, status, expires_at')
     .eq('token', token)
     .single()
 
   if (!intake) return
+  if (intake.status !== 'pending') return
+  if (intake.expires_at && new Date(intake.expires_at) < new Date()) return
 
   let patientId = intake.patient_id
 
@@ -157,22 +169,31 @@ export async function submitDoctorIntake(patientId: string, type: IntakeType, an
 }
 
 // Пациент записывается на приём после заполнения анкеты (без авторизации)
+const bookingSchema = z.object({
+  token: z.string().min(10).max(100),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  time: z.string().regex(/^\d{2}:\d{2}$/),
+})
+
 export async function bookIntakeAppointment(
   token: string,
   date: string,
   time: string,
 ): Promise<{ success: boolean; error?: string; appointmentDate?: string }> {
+  const parsed = bookingSchema.safeParse({ token, date, time })
+  if (!parsed.success) return { success: false, error: 'Некорректные данные' }
+
   const supabase = createServiceClient()
 
   const { data: intake } = await supabase
     .from('intake_forms')
     .select('doctor_id, patient_id')
-    .eq('token', token)
+    .eq('token', parsed.data.token)
     .single()
 
   if (!intake?.patient_id) return { success: false, error: 'Анкета не найдена' }
 
-  const scheduledAt = new Date(`${date}T${time}:00`)
+  const scheduledAt = new Date(`${parsed.data.date}T${parsed.data.time}:00`)
 
   const { error } = await supabase.from('consultations').insert({
     doctor_id: intake.doctor_id,
