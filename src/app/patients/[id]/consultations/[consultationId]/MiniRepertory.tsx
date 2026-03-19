@@ -299,7 +299,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
         <div className="flex items-center gap-2 min-w-0">
           <h3 className="text-sm font-semibold shrink-0" style={{ color: '#1a3020' }}>
             {t(lang).miniRepertory.title}
-            <span className="ml-1.5 text-[10px] font-normal" style={{ color: '#9a8a6a' }}>{lang === 'ru' ? 'Кент' : 'Kent'}</span>
+            <span className="ml-1.5 text-[10px] font-normal" style={{ color: '#9a8a6a' }}>{repoLang === 'ru' ? 'Кент' : 'Kent'}</span>
           </h3>
           {analysisEntries.length > 0 && (
             <button
@@ -459,8 +459,8 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                       }}
                     >
                       {v === 'visual'
-                        ? (lang === 'ru' ? 'Визуальный' : 'Visual')
-                        : (lang === 'ru' ? 'Классический' : 'Classic')
+                        ? (repoLang === 'ru' ? 'Визуальный' : 'Visual')
+                        : (repoLang === 'ru' ? 'Классический' : 'Classic')
                       }
                     </button>
                   ))}
@@ -511,12 +511,12 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                     <thead>
                       <tr style={{ borderBottom: '1px solid #d4c9b8' }}>
                         <th className="text-left py-1 pr-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>
-                          {lang === 'ru' ? 'Преп.' : 'Remedy'}
+                          {repoLang === 'ru' ? 'Преп.' : 'Remedy'}
                         </th>
-                        <th className="text-center py-1 px-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>∑{lang === 'ru' ? 'Сим' : 'Sym'}</th>
-                        <th className="text-center py-1 px-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>∑{lang === 'ru' ? 'Степ' : 'Deg'}</th>
+                        <th className="text-center py-1 px-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>∑{repoLang === 'ru' ? 'Сим' : 'Sym'}</th>
+                        <th className="text-center py-1 px-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>∑{repoLang === 'ru' ? 'Степ' : 'Deg'}</th>
                         <th className="text-left py-1 pl-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>
-                          {lang === 'ru' ? 'Симпт.' : 'Sympt.'}
+                          {repoLang === 'ru' ? 'Симпт.' : 'Sympt.'}
                         </th>
                         <th className="w-8"></th>
                       </tr>
