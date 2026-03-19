@@ -87,7 +87,7 @@ const PRIMARY_STEPS: Step[] = [
         label: 'Как вы думаете, что могло стать причиной?',
         type: 'textarea',
         placeholder: 'Стресс, переохлаждение, переезд, потеря близкого, болезнь, прививка, операция...',
-        hint: 'Это называется «never well since» — момент, после которого всё изменилось',
+        hint: 'Момент, после которого всё изменилось — это очень важно для подбора лечения',
       },
     ],
   },
@@ -113,7 +113,7 @@ const PRIMARY_STEPS: Step[] = [
         label: 'Есть ли что-то странное или необычное в ваших симптомах?',
         type: 'textarea',
         placeholder: 'Например: тепло улучшает, хотя при воспалении обычно наоборот; боль исчезает при еде; хуже от покоя, лучше от движения...',
-        hint: 'Peculiar symptoms — нетипичные, странные особенности, которые вас самих удивляют',
+        hint: 'Нетипичные, странные особенности, которые вас самих удивляют — они особенно ценны',
       },
     ],
   },
@@ -877,8 +877,8 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
                 onChange={e => setConsentGiven(e.target.checked)}
                 className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-emerald-600 shrink-0"
               />
-              <span className="text-[11px] text-gray-400 leading-relaxed">
-                Согласен(а) на обработку персональных данных в соответствии с ФЗ-152. Данные используются только для оказания медицинской помощи и не передаются третьим лицам.
+              <span className="text-[12px] text-gray-400 leading-relaxed">
+                Согласен(а) на обработку персональных данных, включая трансграничную передачу (ст. 12 ФЗ-152), в соответствии с <a href="/privacy" target="_blank" className="text-emerald-600 underline">политикой конфиденциальности</a>. Данные используются только для оказания медицинской помощи и не передаются третьим лицам.
               </span>
             </label>
           )}
@@ -957,10 +957,10 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
             >
               <label className="block text-[13px] font-semibold text-gray-700 mb-1 leading-snug">
                 {field.label}
-                {field.required && <span className="text-emerald-500 ml-1">*</span>}
+                {field.required && <span className="text-red-400 ml-1">*</span>}
               </label>
               {field.hint && (
-                <p className="text-[11px] text-gray-400 mb-2 leading-relaxed">{field.hint}</p>
+                <p className="text-[12px] text-gray-400 mb-2 leading-relaxed">{field.hint}</p>
               )}
 
               {field.type === 'textarea' && (
@@ -1053,7 +1053,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
                       </button>
                     ))}
                   </div>
-                  <div className="flex justify-between text-[10px] text-gray-300">
+                  <div className="flex justify-between text-[12px] text-gray-300">
                     <span>Почти не мешает</span>
                     <span>Невыносимо</span>
                   </div>

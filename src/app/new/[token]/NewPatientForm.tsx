@@ -229,7 +229,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
                 style={{ width: 18, height: 18, marginTop: '2px', accentColor: '#1a3020', flexShrink: 0 }}
               />
               <span style={{ fontSize: '13px', color: '#9a8a6a', lineHeight: 1.5 }}>
-                Я согласен(на) на обработку моих персональных данных в соответствии с{' '}
+                Я согласен(на) на обработку моих персональных данных, включая трансграничную передачу (ст. 12 ФЗ-152), в соответствии с{' '}
                 <a href="/privacy" target="_blank" style={{ color: '#2d6a4f', textDecoration: 'underline' }}>
                   политикой конфиденциальности
                 </a>
