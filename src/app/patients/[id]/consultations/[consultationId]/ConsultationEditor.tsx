@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { decrementPaidSession } from '@/lib/actions/payments'
 import { completeConsultation } from '@/lib/actions/consultations'
@@ -11,14 +12,15 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { ConsultationProvider, useConsultation } from './context/ConsultationContext'
 import EditorHeader from './components/EditorHeader'
 import EditorToolbar from './components/EditorToolbar'
-import SymptomInput from './components/SymptomInput'
-import CaseFormulation from './components/CaseFormulation'
+import ComplaintsForm from './components/ComplaintsForm'
 import InlineRx from './components/InlineRx'
 import PrescriptionModal from './PrescriptionModal'
-import MiniRepertory from './MiniRepertory'
 import RightPanel from './right-panel/RightPanel'
 import TourConsultStarter from '@/components/TourConsultStarter'
 import DynamicsBlock from './components/DynamicsBlock'
+import FirstTimeHint from '@/components/FirstTimeHint'
+
+const MiniRepertory = dynamic(() => import('./MiniRepertory'), { ssr: false })
 
 type Props = {
   consultation: Consultation
@@ -36,34 +38,28 @@ export default function ConsultationEditor({ consultation, patient, previousCons
   )
 }
 
-// Внутренний компонент с доступом к контексту
 function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled: boolean; visitNumber: number }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { lang } = useLanguage()
-  const { state, updateField, saveAll, assessment, consultation, patient, previousConsultation, dispatch } = useConsultation()
+  const { state, updateField, saveAll, consultation, patient, previousConsultation, dispatch } = useConsultation()
 
   const [showPrescription, setShowPrescription] = useState(false)
   const [showZeroWarning, setShowZeroWarning] = useState(false)
   const [pendingPrescription, setPendingPrescription] = useState<{ abbrev: string; potency: string; dosage: string } | null>(null)
   const [mobileTab, setMobileTab] = useState<'editor' | 'context'>('editor')
-  // Препарат, назначенный из репертория → передаётся в InlineRx
+  const [repertoryData, setRepertoryData] = useState(consultation.repertory_data)
   const [repertoryAssignedRemedy, setRepertoryAssignedRemedy] = useState<string | undefined>()
-
-  // Отслеживаем сохранённое назначение из InlineRx:
-  // инициализируем из существующего consultation.remedy (если врач уже сохранял ранее)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [savedRx, setSavedRx] = useState<{ remedy: string; potency: string; dosage: string } | null>(
     consultation.remedy ? { remedy: consultation.remedy, potency: consultation.potency || '', dosage: consultation.dosage || '' } : null
   )
 
-  // localStorage: сохраняем URL консультации (без rx-параметров, чтобы не дублировать при возврате)
   useEffect(() => {
-    const cleanUrl = window.location.pathname
-    localStorage.setItem('hc-last-consultation', cleanUrl)
+    localStorage.setItem('hc-last-consultation', window.location.pathname)
   }, [])
 
-  // Читаем rx-параметры из URL (переданы из репертория) — надёжнее localStorage
   useEffect(() => {
     const rx = searchParams.get('rx')
     const potency = searchParams.get('potency') ?? ''
@@ -71,7 +67,6 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
     if (rx) {
       setPendingPrescription({ abbrev: rx, potency, dosage })
       setShowPrescription(true)
-      // Убираем параметры из URL без перезагрузки страницы
       const url = new URL(window.location.href)
       url.searchParams.delete('rx')
       url.searchParams.delete('potency')
@@ -80,23 +75,10 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
     }
   }, [searchParams])
 
-  // Авто-растягивание textarea
-  useEffect(() => {
-    document.querySelectorAll<HTMLTextAreaElement>('[data-autoresize]').forEach(el => {
-      el.style.height = 'auto'
-      el.style.height = el.scrollHeight + 'px'
-    })
-  }, [state.complaints, state.observations, state.notes, state.recommendations])
-
-  function autoResize(el: HTMLTextAreaElement) {
-    el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
-  }
-
   async function doFinish() {
-    // Проверяем что консультация не пустая
-    const hasContent = state.complaints.trim() || state.observations.trim() ||
-      state.notes.trim() || state.recommendations.trim() || state.symptoms.length > 0
+    const hasContent = state.complaints.trim() || state.modalityWorseText.trim() ||
+      state.modalityBetterText.trim() || state.mentalText.trim() || state.generalText.trim() ||
+      state.observations.trim() || state.notes.trim() || state.recommendations.trim()
     if (!hasContent) {
       toast(lang === 'ru'
         ? 'Заполните хотя бы одно поле перед завершением'
@@ -106,8 +88,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
 
     await saveAll()
 
-    // Quick mode + препарат уже назначен во время приёма → сразу завершаем без модала
-    if (state.mode === 'quick' && savedRx?.remedy) {
+    // Если препарат уже назначен — завершаем без модала
+    if (savedRx?.remedy) {
       toast(lang === 'ru'
         ? `Приём завершён · ${savedRx.remedy}${savedRx.potency ? ' ' + savedRx.potency : ''} назначен`
         : `Consultation done · ${savedRx.remedy}${savedRx.potency ? ' ' + savedRx.potency : ''} prescribed`)
@@ -115,16 +97,21 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
       return
     }
 
-    // Deep mode или препарат не заполнен → открываем модал
     setShowPrescription(true)
   }
 
   async function handleFinish() {
+    if (isSubmitting) return
     if (paidSessionsEnabled && (patient.paid_sessions ?? 0) === 0) {
       setShowZeroWarning(true)
       return
     }
-    await doFinish()
+    setIsSubmitting(true)
+    try {
+      await doFinish()
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   async function handleConsultationDone() {
@@ -146,16 +133,50 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
     setMobileTab('context')
   }
 
+  const [miniTutorialPending, setMiniTutorialPending] = useState(false)
+
+  function handleStartMiniTour() {
+    handleOpenRepertory()
+    setMiniTutorialPending(true)
+  }
+
   function handleCloseRepertory() {
     dispatch({ type: 'SET_FIELD', field: 'showRepertory', value: false })
   }
 
+  // Ctrl+Enter → finish
+  const handleFinishRef = useRef(handleFinish)
+  handleFinishRef.current = handleFinish
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleFinishRef.current()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  // Предупреждение при закрытии вкладки с несохранёнными данными
+  useEffect(() => {
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      if (state.saveState === 'unsaved') {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [state.saveState])
+
   return (
     <>
       <TourConsultStarter />
-      {/* Модалка: 0 оплаченных */}
+
+      {/* Zero sessions warning */}
       {showZeroWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true" aria-label={lang === 'ru' ? 'Предупреждение об оплате' : 'Payment warning'}>
           <div className="relative rounded-2xl p-6 w-[calc(100%-2rem)] max-w-[340px] shadow-2xl" style={{ backgroundColor: '#f7f3ed', border: '1px solid #c8a035' }}>
             <div className="flex items-start gap-3 mb-4">
               <svg className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#c8a035' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -174,7 +195,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
         </div>
       )}
 
-      {/* Модалка: назначение (только Deep mode или Quick без препарата) */}
+      {/* Prescription modal */}
       {showPrescription && (
         <PrescriptionModal
           consultationId={consultation.id}
@@ -186,29 +207,40 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
         />
       )}
 
-      {/* Мобильный таб-бар */}
+      {/* Mobile tab bar */}
       <div className="lg:hidden flex shrink-0" style={{ borderBottom: '1px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-muted)' }}>
         <button onClick={() => setMobileTab('editor')} className="flex-1 py-3 text-xs font-semibold transition-colors border-b-2" style={{ color: mobileTab === 'editor' ? 'var(--sim-text)' : 'var(--sim-text-hint)', borderColor: mobileTab === 'editor' ? 'var(--sim-green)' : 'transparent' }}>
           {t(lang).consultation.editor}
         </button>
         <button onClick={() => setMobileTab('context')} className="flex-1 py-3 text-xs font-semibold transition-colors border-b-2" style={{ color: mobileTab === 'context' ? 'var(--sim-text)' : 'var(--sim-text-hint)', borderColor: mobileTab === 'context' ? 'var(--sim-green)' : 'transparent' }}>
-          {lang === 'ru' ? 'Контекст' : 'Context'}
+          {state.showRepertory
+            ? (lang === 'ru' ? 'Реперторий' : 'Repertory')
+            : (lang === 'ru' ? 'Контекст' : 'Context')
+          }
         </button>
       </div>
 
       <div className="flex flex-col lg:grid lg:grid-cols-2 gap-0 flex-1 lg:h-[calc(100dvh-54px)]">
 
-        {/* ══════════ Левая колонка: редактор ══════════ */}
+        {/* ══ Left: editor ══ */}
         <div className={`${mobileTab === 'editor' ? 'flex' : 'hidden'} lg:flex flex-col min-h-0`} style={{ borderRight: '1px solid var(--sim-border-light)' }}>
 
           <EditorHeader visitNumber={visitNumber} />
-          <EditorToolbar onOpenRepertory={handleOpenRepertory} />
+          <EditorToolbar onOpenRepertory={handleOpenRepertory} onStartMiniTour={handleStartMiniTour} />
 
-          {/* Рабочая область */}
-          <div className="flex-1 overflow-y-auto min-h-[60vh] lg:min-h-0" style={{ backgroundColor: 'var(--sim-bg-input)' }}>
-            <div className="px-5 lg:px-7 py-4 space-y-4">
+          <div className="px-4">
+            <FirstTimeHint id="consultation">
+              {lang === 'ru'
+                ? 'Заполните жалобы, модальности и психику. Для острого случая — переключите тип вверху. Кнопка «Реперторий» откроет мини-реперторий Кента прямо здесь. Кнопка «📚 Обучение» — пошаговый тур.'
+                : 'Fill in complaints, modalities, mentals. For acute — switch type above. "Repertory" opens Kent\'s mini-repertory right here. "📚 Tutorial" — step-by-step tour.'}
+            </FirstTimeHint>
+          </div>
 
-              {/* Динамика с прошлого приёма — только для повторных */}
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto min-h-[60vh] lg:min-h-0" style={{ backgroundColor: '#f8f7f4' }}>
+            <div className="px-6 lg:px-8 py-6 space-y-6">
+
+              {/* Dynamics from previous visit */}
               {previousConsultation && (
                 <DynamicsBlock
                   consultationId={consultation.id}
@@ -217,207 +249,69 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
                 />
               )}
 
-              {state.mode === 'quick' ? (
-                /* ── БЫСТРЫЙ РЕЖИМ: единый поток ── */
-                <>
-                  {/* Один блок записи — без разделения жалобы/наблюдения */}
-                  <section>
-                    <textarea
-                      data-tour="complaints"
-                      data-autoresize
-                      value={state.complaints}
-                      onChange={e => updateField('complaints', e.target.value)}
-                      onInput={e => autoResize(e.currentTarget)}
-                      autoFocus
-                      placeholder={previousConsultation
-                        ? (lang === 'ru'
-                            ? 'Что изменилось с прошлого раза? Как реагирует на препарат? Что лучше, что хуже, что новое...'
-                            : 'What changed since last visit? How does the remedy work? Better, worse, new symptoms...')
-                        : (lang === 'ru'
-                            ? 'Что беспокоит пациента? С какого времени? Что ухудшает и улучшает? Общие и психические симптомы...'
-                            : 'Main complaints? Since when? What makes it worse or better? General and mental symptoms...')}
-                      rows={4}
-                      className="input"
-                      style={{ minHeight: '100px', overflow: 'hidden' }}
-                    />
+              {/* Жалобы — основная графа */}
+              <ComplaintsForm autoFocus />
 
-                    {/* Структурированные симптомы — необязательный слой */}
-                    <div className="mt-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-border)' }}>
-                          {lang === 'ru' ? 'Ключевые симптомы' : 'Key symptoms'}
-                        </span>
-                        <span className="text-[10px]" style={{ color: '#d0c8bc' }}>
-                          {lang === 'ru' ? '· для отслеживания динамики между приёмами' : '· for tracking dynamics between visits'}
-                        </span>
-                      </div>
-                      <SymptomInput
-                        symptoms={state.symptoms}
-                        onChange={syms => dispatch({ type: 'SET_SYMPTOMS', symptoms: syms })}
-                        previousSymptoms={previousConsultation?.structured_symptoms}
-                        defaultCategory="chief_complaint"
-                      />
-                    </div>
-                  </section>
+              {/* Prescription */}
+              <InlineRx
+                consultationId={consultation.id}
+                onSaved={(remedy, potency, dosage) => setSavedRx({ remedy, potency, dosage })}
+                assignedRemedy={repertoryAssignedRemedy}
+                initialRemedy={consultation.remedy}
+                initialPotency={consultation.potency}
+                initialDosage={consultation.dosage}
+                initialPellets={consultation.pellets}
+              />
 
-                  {/* Назначение */}
-                  <InlineRx
-                    consultationId={consultation.id}
-                    onSaved={(remedy, potency, dosage) => setSavedRx({ remedy, potency, dosage })}
-                    assignedRemedy={repertoryAssignedRemedy}
-                  />
+              {/* Plan */}
+              <section>
+                <label className="block mb-2" style={{ fontSize: '14px', fontWeight: 500, color: '#3d342b' }}>
+                  {lang === 'ru' ? 'Контроль и план' : 'Plan & follow-up'}
+                </label>
+                <input
+                  type="text"
+                  value={state.recommendations}
+                  onChange={e => updateField('recommendations', e.target.value)}
+                  placeholder={lang === 'ru' ? 'Контроль через 4 нед · Отправить опрос самочувствия' : 'Follow-up in 4 weeks · Send wellbeing survey'}
+                  className="w-full px-3 py-2.5 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300"
+                  style={{ fontSize: '15px', borderColor: '#e5e0d8' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#e5e0d8'; e.currentTarget.style.boxShadow = 'none' }}
+                />
+              </section>
 
-                  {/* Контроль — одна строка */}
-                  <section>
-                    <label className="block text-[11px] font-semibold mb-1.5" style={{ color: 'var(--sim-text-hint)' }}>
-                      {lang === 'ru' ? 'Рекомендации и план' : 'Plan & follow-up'}
-                    </label>
-                    <input
-                      type="text"
-                      value={state.recommendations}
-                      onChange={e => updateField('recommendations', e.target.value)}
-                      placeholder={lang === 'ru' ? 'Контроль через 4 нед · Отправить опрос самочувствия' : 'Follow-up in 4 weeks · Send wellbeing survey'}
-                      className="input"
-                    />
-                  </section>
-                </>
-              ) : (
-                /* ── ГЛУБОКИЙ РЕЖИМ: структурированный ── */
-                <>
-                  {/* Жалобы */}
-                  <section>
-                    <label className="block text-[11px] font-semibold mb-1.5" style={{ color: 'var(--sim-text-hint)' }}>
-                      {lang === 'ru' ? 'Жалобы — что привело, когда началось, как менялось' : 'Complaints — what brought, onset, course'}
-                    </label>
-                    <textarea
-                      data-tour="complaints"
-                      data-autoresize
-                      value={state.complaints}
-                      onChange={e => updateField('complaints', e.target.value)}
-                      onInput={e => autoResize(e.currentTarget)}
-                      autoFocus
-                      placeholder={lang === 'ru' ? 'Главные жалобы, хронология, интенсивность...' : 'Main complaints, timeline, intensity...'}
-                      rows={3}
-                      className="input"
-                      style={{ minHeight: '72px', overflow: 'hidden' }}
-                    />
-                  </section>
+              {/* Notes — optional free text */}
+              <section>
+                <label className="block mb-2" style={{ fontSize: '13px', color: '#a09080' }}>
+                  {lang === 'ru' ? 'Заметки (необязательно)' : 'Notes (optional)'}
+                </label>
+                <textarea
+                  value={state.notes}
+                  onChange={e => updateField('notes', e.target.value)}
+                  placeholder={lang === 'ru' ? 'DD: Sulphur vs Lycopodium · дополнительные наблюдения...' : 'DD: Sulphur vs Lycopodium · additional observations...'}
+                  rows={3}
+                  className="w-full px-3 py-2.5 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300 resize-none"
+                  style={{ fontSize: '14px', borderColor: '#e5e0d8', lineHeight: '1.6' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#e5e0d8'; e.currentTarget.style.boxShadow = 'none' }}
+                />
+              </section>
 
-                  {/* Наблюдения */}
-                  <section>
-                    <label className="block text-[11px] font-semibold mb-1.5" style={{ color: 'var(--sim-text-hint)' }}>
-                      {lang === 'ru' ? 'Наблюдения — модальности, ощущения, психика, общее' : 'Observations — modalities, sensations, mind, generals'}
-                    </label>
-                    <textarea
-                      data-autoresize
-                      value={state.observations}
-                      onChange={e => updateField('observations', e.target.value)}
-                      onInput={e => autoResize(e.currentTarget)}
-                      placeholder={lang === 'ru' ? 'Хуже от... Лучше от... Общие симптомы... Психика...' : 'Worse from... Better from... Generals... Mind...'}
-                      rows={3}
-                      className="input"
-                      style={{ minHeight: '72px', overflow: 'hidden' }}
-                    />
-                  </section>
-
-                  {/* Структурированные симптомы */}
-                  <section>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[11px] font-semibold" style={{ color: 'var(--sim-text-hint)' }}>
-                        {lang === 'ru' ? 'Ключевые симптомы' : 'Key symptoms'}
-                      </span>
-                      <span className="text-[10px]" style={{ color: '#d0c8bc' }}>
-                        {lang === 'ru' ? '· отслеживание динамики' : '· track dynamics'}
-                      </span>
-                    </div>
-                    <SymptomInput
-                      symptoms={state.symptoms}
-                      onChange={syms => dispatch({ type: 'SET_SYMPTOMS', symptoms: syms })}
-                      previousSymptoms={previousConsultation?.structured_symptoms}
-                      defaultCategory="chief_complaint"
-                    />
-                  </section>
-
-                  {/* Анализ */}
-                  <section>
-                    <label className="block text-[11px] font-semibold mb-1.5" style={{ color: 'var(--sim-text-hint)' }}>
-                      {lang === 'ru' ? 'Дифференциальный диагноз и обоснование' : 'Differential diagnosis & rationale'}
-                    </label>
-                    <textarea
-                      data-autoresize
-                      value={state.notes}
-                      onChange={e => updateField('notes', e.target.value)}
-                      onInput={e => autoResize(e.currentTarget)}
-                      placeholder={lang === 'ru' ? 'DD: Sulphur vs Lycopodium... Выбор обоснован...' : 'DD: Sulphur vs Lycopodium... Rationale...'}
-                      rows={3}
-                      className="input"
-                      style={{ minHeight: '72px', overflow: 'hidden' }}
-                    />
-                  </section>
-
-                  {/* Рубрики репертория (сохранены из Репертория) */}
-                  {consultation.repertory_data && consultation.repertory_data.length > 0 && (
-                    <section>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[11px] font-semibold" style={{ color: 'var(--sim-text-hint)' }}>
-                          {lang === 'ru' ? 'Рубрики репертория' : 'Repertory rubrics'}
-                        </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold text-white" style={{ backgroundColor: 'var(--sim-green)' }}>
-                          {consultation.repertory_data.length}
-                        </span>
-                      </div>
-                      <div className="space-y-0.5">
-                        {consultation.repertory_data.map((entry, i) => (
-                          <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded text-[12px]" style={{ backgroundColor: 'rgba(45,106,79,0.05)', borderLeft: `2px solid ${(entry as any).eliminate ? '#dc2626' : 'var(--sim-green)'}` }}>
-                            <span className="font-mono text-[10px] font-bold shrink-0 w-4 text-center" style={{ color: 'var(--sim-green)' }}>{(entry as any).weight ?? 1}</span>
-                            <span className="flex-1 truncate" style={{ color: 'var(--sim-text)' }}>
-                              {(entry as any).fullpath_ru || entry.fullpath}
-                            </span>
-                            {(entry as any).eliminate && (
-                              <span className="text-[9px] font-bold shrink-0" style={{ color: '#dc2626' }}>E</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Назначение */}
-                  <InlineRx
-                    consultationId={consultation.id}
-                    onSaved={(remedy, potency, dosage) => setSavedRx({ remedy, potency, dosage })}
-                    assignedRemedy={repertoryAssignedRemedy}
-                  />
-
-                  {/* План */}
-                  <section>
-                    <label className="block text-[11px] font-semibold mb-1.5" style={{ color: 'var(--sim-text-hint)' }}>
-                      {lang === 'ru' ? 'План и цель лечения' : 'Plan & treatment goal'}
-                    </label>
-                    <textarea
-                      data-autoresize
-                      value={state.recommendations}
-                      onChange={e => updateField('recommendations', e.target.value)}
-                      onInput={e => autoResize(e.currentTarget)}
-                      placeholder={lang === 'ru' ? 'Цель: снизить частоту до... Контроль через 4 нед...' : 'Goal: reduce frequency to... Follow-up in 4 weeks...'}
-                      rows={2}
-                      className="input"
-                      style={{ minHeight: '56px', overflow: 'hidden' }}
-                    />
-                  </section>
-                </>
-              )}
-
-              <div className="h-4" />
+              <div className="h-2" />
             </div>
           </div>
 
-          {/* Sticky footer: кнопка завершения внизу рабочей зоны */}
-          <div className="shrink-0 px-5 lg:px-7 py-3 flex items-center gap-3" style={{ borderTop: '1px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-input)' }}>
-            <button data-tour="finish-btn" onClick={handleFinish} className="btn btn-primary btn-lg flex-1">
-              {t(lang).consultation.finish}
+          {/* Footer: save status + finish button */}
+          <div className="shrink-0 px-6 lg:px-8 py-3 flex items-center gap-3" style={{ borderTop: '1px solid #ede8e0', backgroundColor: '#f8f7f4' }}>
+            <button
+              data-tour="finish-btn"
+              onClick={handleFinish}
+              disabled={isSubmitting}
+              className="btn btn-primary btn-lg flex-1 disabled:opacity-60"
+            >
+              {isSubmitting ? (lang === 'ru' ? 'Сохраняю...' : 'Saving...') : t(lang).consultation.finish}
+              {!isSubmitting && <span className="hidden sm:inline ml-2 opacity-50 text-xs font-normal">Ctrl+Enter</span>}
             </button>
-            {/* Save status — рядом с кнопкой */}
             <div className="text-xs shrink-0">
               {state.saveState === 'saved' && (
                 <span className="flex items-center gap-1" style={{ color: 'var(--sim-green)' }}>
@@ -438,7 +332,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
           </div>
         </div>
 
-        {/* ══════════ Правая колонка: контекст ══════════ */}
+        {/* ══ Right: context ══ */}
         <div className={`${mobileTab === 'context' ? 'flex' : 'hidden'} lg:flex flex-col min-h-0`} style={{ backgroundColor: 'var(--sim-bg)' }}>
           {state.showRepertory ? (
             <div className="flex flex-col h-full">
@@ -451,7 +345,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
               <div className="flex-1 overflow-y-auto">
                 <MiniRepertory
                   consultationId={consultation.id}
-                  initialRepertoryData={consultation.repertory_data}
+                  initialRepertoryData={repertoryData}
+                  onRepertoryDataChange={setRepertoryData}
                   initialQuery={patient.constitutional_type || ''}
                   onSelectRubric={(rubric: string) => {
                     const current = state.rubrics
@@ -464,6 +359,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
                     handleCloseRepertory()
                     setMobileTab('editor')
                   }}
+                  startTutorial={miniTutorialPending}
+                  onTutorialStarted={() => setMiniTutorialPending(false)}
                 />
               </div>
             </div>
@@ -472,14 +369,6 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
               <RightPanel
                 previousConsultation={previousConsultation}
                 patient={patient}
-                symptoms={state.symptoms}
-                previousSymptoms={previousConsultation?.structured_symptoms || []}
-                assessment={state.symptoms.length > 0 ? assessment : null}
-                onOpenRepertory={handleOpenRepertory}
-                onAssignRemedy={(abbrev) => {
-                  setRepertoryAssignedRemedy(abbrev)
-                  setMobileTab('editor')
-                }}
                 lang={lang}
               />
             </div>
