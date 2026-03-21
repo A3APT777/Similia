@@ -180,24 +180,20 @@ async function checkAIAccess(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
 ) {
-  // TODO: вернуть проверку после тестирования
-  // Временно пропускаем всех авторизованных
   const { data: settings } = await supabase
     .from('doctor_settings')
     .select('subscription_plan, ai_credits')
     .eq('doctor_id', userId)
     .single()
 
-  // Если нет настроек — пропускаем (тестирование)
-  if (!settings) return
+  if (!settings) throw new Error('NO_AI_ACCESS')
 
   const isAIPro = settings.subscription_plan === 'ai_pro'
   const hasCredits = (settings.ai_credits ?? 0) > 0
-
-  // TODO: вернуть после тестирования
   // if (!isAIPro && !hasCredits) {
-  //   throw new Error('NO_AI_ACCESS')
-  // }
+  if (!isAIPro && !hasCredits) {
+    throw new Error('NO_AI_ACCESS')
+  }
 }
 
 async function deductAICredit(
