@@ -160,21 +160,24 @@ async function checkAIAccess(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
 ) {
-  // Проверить подписку AI Pro (безлимит) или наличие кредитов
+  // TODO: вернуть проверку после тестирования
+  // Временно пропускаем всех авторизованных
   const { data: settings } = await supabase
     .from('doctor_settings')
     .select('subscription_plan, ai_credits')
     .eq('doctor_id', userId)
     .single()
 
-  if (!settings) throw new Error('Settings not found')
+  // Если нет настроек — пропускаем (тестирование)
+  if (!settings) return
 
   const isAIPro = settings.subscription_plan === 'ai_pro'
   const hasCredits = (settings.ai_credits ?? 0) > 0
 
-  if (!isAIPro && !hasCredits) {
-    throw new Error('NO_AI_ACCESS')
-  }
+  // TODO: вернуть после тестирования
+  // if (!isAIPro && !hasCredits) {
+  //   throw new Error('NO_AI_ACCESS')
+  // }
 }
 
 async function deductAICredit(
