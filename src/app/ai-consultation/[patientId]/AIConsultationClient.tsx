@@ -12,7 +12,7 @@ import {
 } from '@/lib/actions/ai-consultation'
 import type { AIQuestion } from '@/lib/actions/ai-consultation'
 // createAIConsultation убран — консультация создаётся при назначении
-import AIResultPanel from '@/app/patients/[id]/consultations/[consultationId]/right-panel/AIResultPanel'
+import AIResultPanel from '@/components/AIResultPanel'
 import AIOnboarding from '@/components/AIOnboarding'
 import type { Patient, Consultation, IntakeForm } from '@/types'
 import type { MDRIPatientProfile, ConsensusResult } from '@/lib/mdri/types'
