@@ -43,7 +43,7 @@ const analyzeSchema = z.object({
 })
 
 const analyzeTextSchema = z.object({
-  consultationId: z.string().uuid(),
+  consultationId: z.string().uuid().optional(),
   text: z.string().min(10).max(10000),
   profile: profileSchema.default(DEFAULT_PROFILE),
 })
@@ -116,17 +116,9 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
   const parsed = analyzeTextSchema.parse(input)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) throw new Error('Не авторизован')
 
   await checkAIAccess(supabase, user.id)
-
-  const { data: consultation } = await supabase
-    .from('consultations')
-    .select('id')
-    .eq('id', parsed.consultationId)
-    .eq('doctor_id', user.id)
-    .single()
-  if (!consultation) throw new Error('Consultation not found')
 
   // Весь анализ обёрнут в try-catch для понятных ошибок
   try {
@@ -147,13 +139,16 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     // Consensus
     const result = await buildConsensus(mdriResults, aiResult, parsed.text)
 
-    await supabase
-      .from('consultations')
-      .update({
-        ai_result: result as unknown as Record<string, unknown>,
-        source: 'ai',
-      })
-      .eq('id', parsed.consultationId)
+    // Сохранить результат если есть consultationId
+    if (parsed.consultationId) {
+      await supabase
+        .from('consultations')
+        .update({
+          ai_result: result as unknown as Record<string, unknown>,
+          source: 'ai',
+        })
+        .eq('id', parsed.consultationId)
+    }
 
     await deductAICredit(supabase, user.id)
 
