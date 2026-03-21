@@ -19,16 +19,8 @@ export default async function AIConsultationPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Проверка AI-доступа: нет подписки/кредитов → демо
-  const sub = await getSubscription()
-  const { data: aiSettings } = await supabase
-    .from('doctor_settings')
-    .select('ai_credits')
-    .eq('doctor_id', user.id)
-    .single()
-  if (!canUseAI(sub, aiSettings?.ai_credits ?? 0)) {
-    redirect('/demo')
-  }
+  // TODO: вернуть проверку подписки после тестирования
+  // Сейчас AI-кабинет доступен всем авторизованным пользователям
 
   const lang = await getLang()
   const s = t(lang)
