@@ -301,7 +301,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
           {/* AI Pro карточка */}
           <Link
-            href="/demo"
+            href="/ai-consultation"
             className="ai-card-dark block mb-5 px-5 py-4 transition-opacity hover:opacity-95"
           >
             <div className="flex items-center gap-3">
@@ -313,11 +313,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">{lang === 'ru' ? 'AI-анализ случая' : 'AI Case Analysis'}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'rgba(165,160,255,0.6)' }}>
-                  {lang === 'ru' ? 'Демо MDRI · Полный AI — из карточки пациента' : 'MDRI Demo · Full AI — from patient card'}
+                  {lang === 'ru' ? '8 линз MDRI · AI-гомеопат · Consensus' : '8 MDRI lenses · AI homeopath · Consensus'}
                 </p>
               </div>
               <div className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
-                {lang === 'ru' ? 'Демо' : 'Demo'}
+                {lang === 'ru' ? 'Начать' : 'Start'}
               </div>
             </div>
           </Link>
