@@ -4,6 +4,8 @@ import Link from 'next/link'
 import LogoutButton from '@/components/LogoutButton'
 import { getLang } from '@/lib/i18n-server'
 import { t } from '@/lib/i18n'
+import { getSubscription } from '@/lib/actions/subscription'
+import { canUseAI } from '@/lib/subscription'
 import AIConsultationClient from './AIConsultationClient'
 import type { Consultation, IntakeForm } from '@/types'
 
@@ -16,6 +18,17 @@ export default async function AIConsultationPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Проверка AI-доступа: нет подписки/кредитов → демо
+  const sub = await getSubscription()
+  const { data: aiSettings } = await supabase
+    .from('doctor_settings')
+    .select('ai_credits')
+    .eq('doctor_id', user.id)
+    .single()
+  if (!canUseAI(sub, aiSettings?.ai_credits ?? 0)) {
+    redirect('/demo')
+  }
 
   const lang = await getLang()
   const s = t(lang)
