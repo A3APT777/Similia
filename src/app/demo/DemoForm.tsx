@@ -153,6 +153,7 @@ export default function DemoForm() {
   const [remaining, setRemaining] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [customText, setCustomText] = useState<Record<string, string>>({}) // key → свободный текст
 
   // Переключить чип (всегда multi-select)
   function toggleChip(questionKey: string, rubric: string) {
@@ -164,7 +165,7 @@ export default function DemoForm() {
     })
   }
 
-  // Собрать симптомы из выбранных чипов
+  // Собрать симптомы из выбранных чипов + свободного текста
   function getSymptoms(): SymptomEntry[] {
     const seen = new Set<string>()
     const symptoms: SymptomEntry[] = []
@@ -178,10 +179,23 @@ export default function DemoForm() {
         }
       }
     }
+    // Свободный текст → симптомы (используем как рубрику напрямую)
+    for (const [, text] of Object.entries(customText)) {
+      if (!text?.trim()) continue
+      // Каждая фраза через запятую — отдельный симптом
+      for (const part of text.split(',')) {
+        const rubric = part.trim().toLowerCase()
+        if (rubric && !seen.has(rubric)) {
+          seen.add(rubric)
+          symptoms.push({ rubric, category: 'particular', present: true, weight: 2 })
+        }
+      }
+    }
     return symptoms
   }
 
   const totalSelected = Object.values(selected).reduce((sum, s) => sum + s.size, 0)
+    + Object.values(customText).filter(t => t?.trim()).length
 
   // Пресет — мгновенный результат
   function loadPreset(idx: number) {
@@ -229,6 +243,7 @@ export default function DemoForm() {
     setMode('choose')
     setStep(0)
     setSelected({})
+    setCustomText({})
     setResults(null)
     setError('')
   }
@@ -358,6 +373,17 @@ export default function DemoForm() {
                   </button>
                 )
               })}
+            </div>
+
+            {/* Свободный ввод "Другое" */}
+            <div className="mt-3">
+              <input
+                type="text"
+                value={customText[q.key] ?? ''}
+                onChange={e => setCustomText(prev => ({ ...prev, [q.key]: e.target.value }))}
+                placeholder="Другое (через запятую)..."
+                className="w-full text-sm bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2.5 text-white placeholder:text-white/25 focus:outline-none focus:border-indigo-500/50"
+              />
             </div>
           </div>
         </div>
