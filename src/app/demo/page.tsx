@@ -45,16 +45,19 @@ export default function DemoPage() {
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
-            Демо — 3 бесплатных анализа
+            Демо без AI — алгоритм MDRI
           </div>
           <h1
             className="text-3xl sm:text-4xl font-light mb-3 text-white"
             style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}
           >
-            Попробуйте AI-анализ
+            Демо MDRI Engine
           </h1>
           <p className="text-sm text-indigo-300">
-            Введите симптомы пациента — MDRI Engine найдёт similimum через 8 линз анализа
+            Упрощённый анализ без AI — только алгоритмический движок (8 линз)
+          </p>
+          <p className="text-xs mt-2" style={{ color: 'rgba(165,160,255,0.4)' }}>
+            В полной версии AI-гомеопат формирует персональные вопросы, анализирует ответы и дозадаёт уточнения
           </p>
         </div>
 
