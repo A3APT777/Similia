@@ -6,8 +6,10 @@ import { getLang } from '@/lib/i18n-server'
 import { t } from '@/lib/i18n'
 import { getSubscription } from '@/lib/actions/subscription'
 import { canUseAI } from '@/lib/subscription'
-import AIConsultationClient from './AIConsultationClient'
+import dynamic from 'next/dynamic'
 import type { Consultation, IntakeForm } from '@/types'
+
+const AIConsultationClient = dynamic(() => import('./AIConsultationClient'), { ssr: false })
 
 export default async function AIConsultationPage({
   params,
