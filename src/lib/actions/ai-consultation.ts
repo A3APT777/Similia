@@ -446,7 +446,11 @@ export async function generateQuestions(
     const questions = JSON.parse(jsonStr) as AIQuestion[]
 
     if (!Array.isArray(questions) || questions.length === 0) return getFallbackQuestions()
-    return questions
+    // Принудительно: chips с 3+ опциями → chips-multi (Sonnet иногда игнорирует инструкцию)
+    return questions.map(q => ({
+      ...q,
+      type: q.type === 'chips' && q.options && q.options.length > 2 ? 'chips-multi' as const : q.type,
+    }))
   } catch {
     return getFallbackQuestions()
   }
@@ -483,7 +487,10 @@ export async function generateClarifyingQuestions(
     const questions = JSON.parse(jsonStr) as AIQuestion[]
 
     if (!Array.isArray(questions) || questions.length === 0) return getFallbackClarifying()
-    return questions
+    return questions.map(q => ({
+      ...q,
+      type: q.type === 'chips' && q.options && q.options.length > 2 ? 'chips-multi' as const : q.type,
+    }))
   } catch {
     return getFallbackClarifying()
   }
