@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getAdminStats } from '@/lib/actions/admin'
+import { getAdminStats, getAdminDoctors } from '@/lib/actions/admin'
 import AdminDashboard from './AdminDashboard'
 
 export default async function AdminPage() {
@@ -17,7 +17,10 @@ export default async function AdminPage() {
 
   if (!admin) redirect('/dashboard')
 
-  const stats = await getAdminStats()
+  const [stats, doctors] = await Promise.all([
+    getAdminStats(),
+    getAdminDoctors(),
+  ])
 
-  return <AdminDashboard stats={stats} />
+  return <AdminDashboard stats={stats} doctors={doctors} />
 }

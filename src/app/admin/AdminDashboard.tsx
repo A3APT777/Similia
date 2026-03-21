@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { adminUpdateSubscription } from '@/lib/actions/admin'
+import { adminUpdateSubscription, adminToggleAIPro, adminAddAICredits } from '@/lib/actions/admin'
 
 type Stats = {
   totalUsers: number
@@ -14,7 +14,21 @@ type Stats = {
   referrals: Array<{ id: string; referrer_id: string; invitee_id: string; referrer_bonus_days: number; invitee_bonus_days: number; bonus_applied: boolean }>
 }
 
-export default function AdminDashboard({ stats }: { stats: Stats }) {
+type Doctor = {
+  id: string
+  email?: string
+  name: string
+  createdAt: string
+  lastSignIn?: string
+  patientCount: number
+  consultationCount: number
+  subscription: { plan_id: string; status: string; current_period_end: string; referral_bonus_days: number; subscription_plans: { name_ru: string } | null } | null
+  referralCode: string | null
+  aiPro: boolean
+  aiCredits: number
+}
+
+export default function AdminDashboard({ stats, doctors }: { stats: Stats; doctors: Doctor[] }) {
   const [tab, setTab] = useState<'overview' | 'doctors' | 'payments' | 'referrals'>('overview')
   const [editSub, setEditSub] = useState<string | null>(null)
   const [newPlan, setNewPlan] = useState('standard')
@@ -142,70 +156,106 @@ export default function AdminDashboard({ stats }: { stats: Stats }) {
           {tab === 'doctors' && (
             <div className="space-y-3">
               <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--sim-text)' }}>Все врачи</h2>
-              {stats.users
-                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .map(user => {
-                  const sub = getSubscription(user.id)
-                  return (
-                    <div key={user.id} className="p-4 rounded-xl" style={{ border: '1px solid var(--sim-border)' }}>
+              {doctors
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map(doc => (
+                    <div key={doc.id} className="p-4 rounded-xl" style={{ border: '1px solid var(--sim-border)' }}>
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="font-medium" style={{ color: 'var(--sim-text)' }}>
-                            {user.user_metadata?.name || user.user_metadata?.full_name || 'Без имени'}
+                            {doc.name || 'Без имени'}
                           </div>
-                          <div className="text-sm" style={{ color: 'var(--sim-text-muted)' }}>{user.email}</div>
+                          <div className="text-sm" style={{ color: 'var(--sim-text-muted)' }}>{doc.email}</div>
                           <div className="text-xs mt-1" style={{ color: 'var(--sim-text-hint)' }}>
-                            Регистрация: {new Date(user.created_at).toLocaleDateString('ru-RU')}
-                            {user.last_sign_in_at && ` · Последний вход: ${new Date(user.last_sign_in_at).toLocaleDateString('ru-RU')}`}
+                            Регистрация: {new Date(doc.createdAt).toLocaleDateString('ru-RU')}
+                            {doc.lastSignIn && ` · Последний вход: ${new Date(doc.lastSignIn).toLocaleDateString('ru-RU')}`}
+                          </div>
+                          <div className="text-xs mt-1" style={{ color: 'var(--sim-text-muted)' }}>
+                            {doc.patientCount} пациентов · {doc.consultationCount} консультаций
+                            {doc.referralCode && ` · Реф: ${doc.referralCode}`}
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{
-                            backgroundColor: sub?.plan_id === 'standard' ? 'var(--sim-green-light)' : '#fef3c7',
-                            color: sub?.plan_id === 'standard' ? 'var(--sim-green)' : '#92400e',
-                          }}>
-                            {sub?.subscription_plans?.name_ru || 'Free'}
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{
+                              backgroundColor: doc.subscription?.plan_id === 'standard' ? 'var(--sim-green-light)' : '#fef3c7',
+                              color: doc.subscription?.plan_id === 'standard' ? 'var(--sim-green)' : '#92400e',
+                            }}>
+                              {doc.subscription?.subscription_plans?.name_ru || 'Free'}
+                            </span>
+                            {doc.aiPro && (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>
+                                AI Pro
+                              </span>
+                            )}
                           </div>
-                          {sub?.current_period_end && (
+                          {doc.subscription?.current_period_end && (
                             <div className="text-xs mt-1" style={{ color: 'var(--sim-text-hint)' }}>
-                              до {new Date(sub.current_period_end).toLocaleDateString('ru-RU')}
+                              до {new Date(doc.subscription.current_period_end).toLocaleDateString('ru-RU')}
                             </div>
                           )}
-                          {sub?.referral_bonus_days ? (
+                          {doc.subscription?.referral_bonus_days ? (
                             <div className="text-xs mt-0.5" style={{ color: 'var(--sim-green)' }}>
-                              +{sub.referral_bonus_days} реф. дней
+                              +{doc.subscription.referral_bonus_days} реф. дней
                             </div>
                           ) : null}
+                          {doc.aiCredits > 0 && (
+                            <div className="text-xs mt-0.5" style={{ color: '#6366f1' }}>
+                              {doc.aiCredits} AI-кредитов
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Управление подпиской */}
-                      {editSub === user.id ? (
-                        <div className="mt-3 pt-3 flex items-center gap-3" style={{ borderTop: '1px solid var(--sim-border)' }}>
+                      {/* Управление */}
+                      {editSub === doc.id ? (
+                        <div className="mt-3 pt-3 flex items-center gap-3 flex-wrap" style={{ borderTop: '1px solid var(--sim-border)' }}>
                           <select value={newPlan} onChange={e => setNewPlan(e.target.value)} className="text-sm rounded-lg px-3 py-1.5" style={{ border: '1px solid var(--sim-border)' }}>
                             <option value="free">Free</option>
                             <option value="standard">Стандарт</option>
                           </select>
                           <input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} className="text-sm rounded-lg px-3 py-1.5" style={{ border: '1px solid var(--sim-border)' }} />
-                          <button onClick={() => handleUpdateSub(user.id)} disabled={saving} className="btn btn-primary btn-sm">
+                          <button onClick={() => handleUpdateSub(doc.id)} disabled={saving} className="btn btn-primary btn-sm">
                             {saving ? '...' : 'Сохранить'}
                           </button>
                           <button onClick={() => setEditSub(null)} className="btn btn-ghost btn-sm">Отмена</button>
                         </div>
                       ) : (
-                        <div className="mt-2">
+                        <div className="mt-2 flex items-center gap-4 flex-wrap">
                           <button
-                            onClick={() => { setEditSub(user.id); setNewPlan(sub?.plan_id || 'free'); setNewEnd(sub?.current_period_end?.split('T')[0] || '') }}
+                            onClick={() => { setEditSub(doc.id); setNewPlan(doc.subscription?.plan_id || 'free'); setNewEnd(doc.subscription?.current_period_end?.split('T')[0] || '') }}
                             className="text-xs font-medium transition-colors"
                             style={{ color: 'var(--sim-green)' }}
                           >
                             Изменить подписку
                           </button>
+                          <button
+                            onClick={async () => {
+                              await adminToggleAIPro(doc.id, !doc.aiPro)
+                              window.location.reload()
+                            }}
+                            className="text-xs font-medium transition-colors"
+                            style={{ color: doc.aiPro ? '#dc2626' : '#6366f1' }}
+                          >
+                            {doc.aiPro ? '✕ Выкл AI Pro' : '⚡ Вкл AI Pro'}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const amount = prompt('Сколько кредитов добавить?', '5')
+                              if (amount && !isNaN(Number(amount))) {
+                                await adminAddAICredits(doc.id, Number(amount))
+                                window.location.reload()
+                              }
+                            }}
+                            className="text-xs font-medium transition-colors"
+                            style={{ color: '#6366f1' }}
+                          >
+                            + Кредиты ({doc.aiCredits})
+                          </button>
                         </div>
                       )}
                     </div>
-                  )
-                })}
+                ))}
             </div>
           )}
 

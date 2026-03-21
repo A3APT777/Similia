@@ -6,10 +6,8 @@ import { getLang } from '@/lib/i18n-server'
 import { t } from '@/lib/i18n'
 import { getSubscription } from '@/lib/actions/subscription'
 import { canUseAI } from '@/lib/subscription'
-import dynamic from 'next/dynamic'
+import AIConsultationWrapper from './AIConsultationWrapper'
 import type { Consultation, IntakeForm } from '@/types'
-
-const AIConsultationClient = dynamic(() => import('./AIConsultationClient'), { ssr: false })
 
 export default async function AIConsultationPage({
   params,
@@ -81,7 +79,7 @@ export default async function AIConsultationPage({
         </div>
       </nav>
 
-      <AIConsultationClient
+      <AIConsultationWrapper
         patient={patient}
         consultations={(consultations ?? []) as Consultation[]}
         intakeForms={(intakeForms ?? []) as IntakeForm[]}

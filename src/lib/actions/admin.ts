@@ -79,11 +79,13 @@ export async function getAdminDoctors() {
         { count: consultationCount },
         { data: subscription },
         { data: referralCode },
+        { data: doctorSettings },
       ] = await Promise.all([
         service.from('patients').select('*', { count: 'exact', head: true }).eq('doctor_id', user.id).eq('is_demo', false),
         service.from('consultations').select('*', { count: 'exact', head: true }).eq('doctor_id', user.id),
         service.from('subscriptions').select('*, subscription_plans(*)').eq('doctor_id', user.id).single(),
         service.from('referral_codes').select('code').eq('doctor_id', user.id).single(),
+        service.from('doctor_settings').select('subscription_plan, ai_credits').eq('doctor_id', user.id).single(),
       ])
 
       return {
@@ -96,6 +98,8 @@ export async function getAdminDoctors() {
         consultationCount: consultationCount || 0,
         subscription: subscription,
         referralCode: referralCode?.code || null,
+        aiPro: doctorSettings?.subscription_plan === 'ai_pro',
+        aiCredits: doctorSettings?.ai_credits ?? 0,
       }
     })
   )
@@ -106,6 +110,13 @@ export async function getAdminDoctors() {
 // Управление подпиской врача
 export async function adminUpdateSubscription(doctorId: string, planId: string, periodEnd: string) {
   await requireAdmin()
+
+  // Валидация planId
+  const validPlans = ['free', 'standard', 'ai_pro']
+  if (!validPlans.includes(planId)) {
+    throw new Error(`Недопустимый тариф: ${planId}`)
+  }
+
   const service = createServiceClient()
 
   const { error } = await service
@@ -137,14 +148,68 @@ export async function getAdminPayments() {
   return payments || []
 }
 
+// Включить/выключить AI Pro для врача
+export async function adminToggleAIPro(doctorId: string, enable: boolean) {
+  await requireAdmin()
+  const service = createServiceClient()
+
+  const { error } = await service
+    .from('doctor_settings')
+    .upsert({
+      doctor_id: doctorId,
+      subscription_plan: enable ? 'ai_pro' : null,
+    }, { onConflict: 'doctor_id' })
+
+  if (error) {
+    console.error('[adminToggleAIPro]', error)
+    throw new Error('Не удалось обновить AI Pro')
+  }
+}
+
+// Добавить AI-кредиты врачу
+export async function adminAddAICredits(doctorId: string, credits: number) {
+  await requireAdmin()
+  const service = createServiceClient()
+
+  const { data: settings } = await service
+    .from('doctor_settings')
+    .select('ai_credits')
+    .eq('doctor_id', doctorId)
+    .single()
+
+  const currentCredits = settings?.ai_credits ?? 0
+
+  const { error } = await service
+    .from('doctor_settings')
+    .upsert({
+      doctor_id: doctorId,
+      ai_credits: currentCredits + credits,
+    }, { onConflict: 'doctor_id' })
+
+  if (error) {
+    console.error('[adminAddAICredits]', error)
+    throw new Error('Не удалось добавить кредиты')
+  }
+}
+
 // Смена пароля (для настроек, не админки)
-export async function changePassword(newPassword: string) {
+export async function changePassword(currentPassword: string, newPassword: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  if (newPassword.length < 6) {
-    throw new Error('Пароль должен содержать минимум 6 символов')
+  if (newPassword.length < 8) {
+    throw new Error('Пароль должен содержать минимум 8 символов')
+  }
+
+  // Проверяем текущий пароль
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: currentPassword,
+  })
+
+  if (signInError) {
+    throw new Error('Неверный текущий пароль')
   }
 
   const { error } = await supabase.auth.updateUser({ password: newPassword })

@@ -102,7 +102,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Платёжная система не настроена' }, { status: 500 })
     }
 
-    const idempotenceKey = crypto.randomUUID()
+    // Idempotence key на базе user + plan + минута — защита от двойного клика
+    const minute = Math.floor(Date.now() / 60000)
+    const idempotenceKey = `${user.id}-${plan}-${period || 'pack'}-${minute}`
     const origin = req.headers.get('origin') || 'https://simillia.ru'
 
     const response = await fetch('https://api.yookassa.ru/v3/payments', {

@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
       || req.headers.get('x-real-ip')
       || ''
 
-    if (process.env.NODE_ENV === 'production' && ip && !isYookassaIP(ip)) {
+    // IP-проверка ВСЕГДА включена (не только в production)
+    if (ip && !isYookassaIP(ip)) {
       console.warn('[webhook] rejected from IP:', ip)
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -139,35 +140,43 @@ export async function POST(req: NextRequest) {
         console.log(`[webhook] Payment succeeded: user=${userId}, plan=${planId}, period=${period}, ends=${periodEnd.toISOString()}`)
       }
 
-      // Начислить реферальный бонус (если пользователь пришёл по реф. ссылке)
+      // Начислить реферальный бонус ТОЛЬКО за подписку (не за паки кредитов)
+      const isSubscriptionPayment = !planId.startsWith('ai_pack_')
+      if (!isSubscriptionPayment) {
+        console.log(`[webhook] Skip referral bonus for pack purchase: plan=${planId}`)
+      }
+
       try {
-        await supabase.rpc('apply_referral_bonus', { p_invitee_id: userId })
+        if (isSubscriptionPayment) {
+          await supabase.rpc('apply_referral_bonus', { p_invitee_id: userId })
+        }
 
-        // +1 AI-кредит рефереру за оплатившего реферала
-        const { data: invitation } = await supabase
-          .from('referral_invitations')
-          .select('referrer_id')
-          .eq('invitee_id', userId)
-          .single()
-
-        if (invitation?.referrer_id) {
-          // Получаем текущие кредиты и добавляем +1
-          const { data: settings } = await supabase
-            .from('doctor_settings')
-            .select('ai_credits')
-            .eq('doctor_id', invitation.referrer_id)
+        // +1 AI-кредит рефереру за оплатившего реферала (только за подписки)
+        if (isSubscriptionPayment) {
+          const { data: invitation } = await supabase
+            .from('referral_invitations')
+            .select('referrer_id')
+            .eq('invitee_id', userId)
             .single()
 
-          const currentCredits = settings?.ai_credits ?? 0
-          const { error: creditErr } = await supabase
-            .from('doctor_settings')
-            .update({ ai_credits: currentCredits + 1 })
-            .eq('doctor_id', invitation.referrer_id)
+          if (invitation?.referrer_id) {
+            const { data: settings } = await supabase
+              .from('doctor_settings')
+              .select('ai_credits')
+              .eq('doctor_id', invitation.referrer_id)
+              .single()
 
-          if (creditErr) {
-            console.error('[webhook] ai credit increment error:', creditErr)
-          } else {
-            console.log(`[webhook] +1 AI credit for referrer ${invitation.referrer_id}`)
+            const currentCredits = settings?.ai_credits ?? 0
+            const { error: creditErr } = await supabase
+              .from('doctor_settings')
+              .update({ ai_credits: currentCredits + 1 })
+              .eq('doctor_id', invitation.referrer_id)
+
+            if (creditErr) {
+              console.error('[webhook] ai credit increment error:', creditErr)
+            } else {
+              console.log(`[webhook] +1 AI credit for referrer ${invitation.referrer_id}`)
+            }
           }
         }
       } catch (refErr) {

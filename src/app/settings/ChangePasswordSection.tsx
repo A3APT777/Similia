@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { changePassword } from '@/lib/actions/admin'
 
 export default function ChangePasswordSection() {
+  const [currentPwd, setCurrentPwd] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
@@ -11,8 +12,13 @@ export default function ChangePasswordSection() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (password.length < 6) {
-      setErrorMsg('Минимум 6 символов')
+    if (!currentPwd) {
+      setErrorMsg('Введите текущий пароль')
+      setStatus('error')
+      return
+    }
+    if (password.length < 8) {
+      setErrorMsg('Минимум 8 символов')
       setStatus('error')
       return
     }
@@ -24,8 +30,9 @@ export default function ChangePasswordSection() {
 
     setStatus('saving')
     try {
-      await changePassword(password)
+      await changePassword(currentPwd, password)
       setStatus('success')
+      setCurrentPwd('')
       setPassword('')
       setConfirm('')
       setTimeout(() => setStatus('idle'), 3000)
@@ -39,26 +46,39 @@ export default function ChangePasswordSection() {
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label className="block text-xs font-medium mb-1" style={{ color: 'var(--sim-text-sec)' }}>
-          Новый пароль
+          Текущий пароль
         </label>
         <input
           type="password"
-          value={password}
-          onChange={e => { setPassword(e.target.value); setStatus('idle') }}
-          placeholder="Минимум 6 символов"
+          value={currentPwd}
+          onChange={e => { setCurrentPwd(e.target.value); setStatus('idle') }}
+          placeholder="Введите текущий пароль"
           className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
           style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', color: 'var(--sim-text)' }}
         />
       </div>
       <div>
         <label className="block text-xs font-medium mb-1" style={{ color: 'var(--sim-text-sec)' }}>
-          Подтвердите пароль
+          Новый пароль
+        </label>
+        <input
+          type="password"
+          value={password}
+          onChange={e => { setPassword(e.target.value); setStatus('idle') }}
+          placeholder="Минимум 8 символов"
+          className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
+          style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', color: 'var(--sim-text)' }}
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--sim-text-sec)' }}>
+          Подтвердите новый пароль
         </label>
         <input
           type="password"
           value={confirm}
           onChange={e => { setConfirm(e.target.value); setStatus('idle') }}
-          placeholder="Повторите пароль"
+          placeholder="Повторите новый пароль"
           className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
           style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', color: 'var(--sim-text)' }}
         />
@@ -73,7 +93,7 @@ export default function ChangePasswordSection() {
 
       <button
         type="submit"
-        disabled={status === 'saving' || !password || !confirm}
+        disabled={status === 'saving' || !currentPwd || !password || !confirm}
         className="btn btn-primary btn-sm"
       >
         {status === 'saving' ? 'Сохраняю...' : 'Сменить пароль'}
