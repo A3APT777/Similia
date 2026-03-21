@@ -197,11 +197,16 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
       if (mode === 'K') setStepK('result')
       else setStepI('result')
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Unknown error'
+      console.error('[AI Analysis Error]', e)
+      const msg = e instanceof Error ? e.message : String(e)
       if (msg === 'NO_AI_ACCESS') {
         setError(t(lang).ai.noAccess)
+      } else if (msg.includes('NEXT_REDIRECT')) {
+        // Server action вызвал redirect — перезагружаем
+        window.location.reload()
+        return
       } else {
-        setError(msg)
+        setError(`Ошибка анализа: ${msg}`)
       }
       if (mode === 'K') setStepK('questions')
       else setStepI('questions')

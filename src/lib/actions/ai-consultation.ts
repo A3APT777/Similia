@@ -128,30 +128,40 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     .single()
   if (!consultation) throw new Error('Consultation not found')
 
-  // Sonnet парсит текст в структурированные симптомы
-  const { symptoms, modalities, familyHistory } = await parseTextWithSonnet(parsed.text)
+  // Весь анализ обёрнут в try-catch для понятных ошибок
+  try {
+    // Sonnet парсит текст в структурированные симптомы
+    const { symptoms, modalities, familyHistory } = await parseTextWithSonnet(parsed.text)
 
-  // MDRI-анализ
-  const data = await loadMDRIData()
-  const mdriResults = analyze(data, symptoms, modalities, familyHistory, parsed.profile as MDRIPatientProfile)
+    if (symptoms.length === 0) {
+      throw new Error('AI не смог извлечь симптомы из текста. Попробуйте описать подробнее.')
+    }
 
-  // Sonnet-гомеопат анализирует тот же текст
-  const aiResult = await callSonnetHomeopath(parsed.text)
+    // MDRI-анализ
+    const data = await loadMDRIData()
+    const mdriResults = analyze(data, symptoms, modalities, familyHistory, parsed.profile as MDRIPatientProfile)
 
-  // Consensus
-  const result = await buildConsensus(mdriResults, aiResult, parsed.text)
+    // Sonnet-гомеопат анализирует тот же текст
+    const aiResult = await callSonnetHomeopath(parsed.text)
 
-  await supabase
-    .from('consultations')
-    .update({
-      ai_result: result as unknown as Record<string, unknown>,
-      source: 'ai',
-    })
-    .eq('id', parsed.consultationId)
+    // Consensus
+    const result = await buildConsensus(mdriResults, aiResult, parsed.text)
 
-  await deductAICredit(supabase, user.id)
+    await supabase
+      .from('consultations')
+      .update({
+        ai_result: result as unknown as Record<string, unknown>,
+        source: 'ai',
+      })
+      .eq('id', parsed.consultationId)
 
-  return result
+    await deductAICredit(supabase, user.id)
+
+    return result
+  } catch (e) {
+    console.error('[analyzeText] Error:', e)
+    throw e
+  }
 }
 
 // --- Вспомогательные ---
