@@ -120,26 +120,38 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
 
   await checkAIAccess(supabase, user.id)
 
-  // Весь анализ обёрнут в try-catch для понятных ошибок
+  // Детальное логирование с таймингами
+  const t0 = Date.now()
+  const log = (step: string) => console.log(`[analyzeText] ${step}: ${Date.now() - t0}ms`)
+
   try {
-    // Sonnet парсит текст в структурированные симптомы
+    log('START')
+
+    // Шаг 1: Sonnet парсит текст
     const { symptoms, modalities, familyHistory } = await parseTextWithSonnet(parsed.text)
+    log(`parseTextWithSonnet done (${symptoms.length} symptoms)`)
 
     if (symptoms.length === 0) {
       throw new Error('AI не смог извлечь симптомы из текста. Попробуйте описать подробнее.')
     }
 
-    // MDRI-анализ
+    // Шаг 2: Загрузка данных MDRI
     const data = await loadMDRIData()
+    log(`loadMDRIData done (${data.repertory.length} rubrics)`)
+
+    // Шаг 3: MDRI-анализ
     const mdriResults = analyze(data, symptoms, modalities, familyHistory, parsed.profile as MDRIPatientProfile)
+    log(`MDRI analyze done (${mdriResults.length} results, top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
 
-    // Sonnet-гомеопат анализирует тот же текст
+    // Шаг 4: Sonnet-гомеопат
     const aiResult = await callSonnetHomeopath(parsed.text)
+    log(`callSonnetHomeopath done (${aiResult?.remedy ?? 'null'})`)
 
-    // Consensus
+    // Шаг 5: Consensus
     const result = await buildConsensus(mdriResults, aiResult, parsed.text)
+    log(`buildConsensus done (${result.method}, ${result.finalRemedy})`)
 
-    // Сохранить результат если есть consultationId
+    // Шаг 6: Сохранить
     if (parsed.consultationId) {
       await supabase
         .from('consultations')
@@ -148,13 +160,16 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
           source: 'ai',
         })
         .eq('id', parsed.consultationId)
+      log('saved to consultation')
     }
 
     await deductAICredit(supabase, user.id)
+    log('DONE')
 
     return result
   } catch (e) {
-    console.error('[analyzeText] Error:', e)
+    const elapsed = Date.now() - t0
+    console.error(`[analyzeText] FAILED at ${elapsed}ms:`, e instanceof Error ? e.message : e)
     throw e
   }
 }
