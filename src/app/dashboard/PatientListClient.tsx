@@ -88,14 +88,17 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[h]
 }
 
-export default function PatientListClient({ patients, filterPending = false }: { patients: PatientWithLastConsultation[]; filterPending?: boolean }) {
+export default function PatientListClient({ patients, filterPending = false, filterOverdue = false, lockedPatientIds = [] }: { patients: PatientWithLastConsultation[]; filterPending?: boolean; filterOverdue?: boolean; lockedPatientIds?: string[] }) {
+  const lockedSet = new Set(lockedPatientIds)
   const { lang } = useLanguage()
   const [search, setSearch] = useState('')
   const [pendingOnly, setPendingOnly] = useState(filterPending)
+  const [overdueOnly, setOverdueOnly] = useState(filterOverdue)
   const [followupOnly, setFollowupOnly] = useState(false)
 
   const filtered = patients
     .filter(p => !pendingOnly || p.pending_prescription)
+    .filter(p => !overdueOnly || p.overdue)
     .filter(p => !followupOnly || !!p.pending_followup_days)
     .filter(p =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -111,13 +114,20 @@ export default function PatientListClient({ patients, filterPending = false }: {
   return (
     <div>
       {/* Чипы активных фильтров */}
-      {(pendingOnly || followupOnly) && (
+      {(pendingOnly || overdueOnly || followupOnly) && (
         <div className="flex flex-wrap items-center gap-2 mb-2">
           {pendingOnly && (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(200,160,53,0.15)', color: '#8a6010', border: '1px solid rgba(200,160,53,0.3)' }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#c8a035' }} />
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--sim-amber)' }} />
               {lang === 'ru' ? 'Без назначения' : 'No prescription'}
               <button onClick={() => setPendingOnly(false)} className="ml-0.5 hover:opacity-70 transition-opacity">×</button>
+            </span>
+          )}
+          {overdueOnly && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(234,88,12,0.12)', color: '#9a3412', border: '1px solid rgba(234,88,12,0.3)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#ea580c' }} />
+              {lang === 'ru' ? 'Без повторного приёма' : 'Overdue'}
+              <button onClick={() => setOverdueOnly(false)} className="ml-0.5 hover:opacity-70 transition-opacity">×</button>
             </span>
           )}
           {followupOnly && (
@@ -140,6 +150,7 @@ export default function PatientListClient({ patients, filterPending = false }: {
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
+          aria-label={lang === 'ru' ? 'Поиск пациента' : 'Search patient'}
           placeholder={t(lang).patientList.search}
           className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none transition-all"
           style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', outline: 'none' }}
@@ -175,15 +186,17 @@ export default function PatientListClient({ patients, filterPending = false }: {
           <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: '0.5px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-hover)' }}>
             <div className="w-7 shrink-0" />
             <div className="flex-1 min-w-0">
-              <span className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#9a8a6a' }}>{t(lang).patientList.patient}</span>
+              <span className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--sim-text-hint)' }}>{t(lang).patientList.patient}</span>
             </div>
-            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] w-20 text-right shrink-0" style={{ color: '#9a8a6a' }}>{t(lang).patientList.visit}</span>
+            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] w-20 text-right shrink-0" style={{ color: 'var(--sim-text-hint)' }}>{t(lang).patientList.visit}</span>
           </div>
 
           {/* Строки */}
           <div style={{ borderColor: 'var(--color-border-light)' }}>
             {filtered.map(patient => {
               const color = getAvatarColor(patient.name)
+              const isDemo = patient.notes?.startsWith('⚠️ Демо-пациент') ?? false
+              const isLocked = lockedSet.has(patient.id)
               const meta = [
                 patient.birth_date ? getAge(patient.birth_date) : null,
                 patient.phone || null,
@@ -192,6 +205,30 @@ export default function PatientListClient({ patients, filterPending = false }: {
               const notePreview = patient.last_consultation_preview
                 ? preview(patient.last_consultation_preview, 48)
                 : null
+
+              if (isLocked) {
+                return (
+                  <Link
+                    key={patient.id}
+                    href="/pricing"
+                    className="flex items-center gap-3 px-4 transition-colors"
+                    style={{ borderBottom: '1px solid var(--sim-border-light)', minHeight: '64px', paddingTop: '10px', paddingBottom: '10px', opacity: 0.45 }}
+                    title={lang === 'ru' ? 'Доступно на тарифе Стандарт' : 'Available on Standard plan'}
+                  >
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}>
+                      <svg className="w-4 h-4" style={{ color: 'var(--sim-text-hint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate" style={{ fontSize: '15px', color: 'var(--sim-text-hint)' }}>{patient.name}</p>
+                    </div>
+                    <span className="text-xs shrink-0" style={{ color: 'var(--sim-text-hint)' }}>
+                      {lang === 'ru' ? '🔒 Стандарт' : '🔒 Standard'}
+                    </span>
+                  </Link>
+                )
+              }
 
               return (
                 <Link
@@ -220,21 +257,26 @@ export default function PatientListClient({ patients, filterPending = false }: {
 
                   {/* Основная информация */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-2 flex-wrap">
                       <p className="font-semibold truncate leading-snug" style={{ fontSize: '15px', color: '#1a1a0a' }}>
                         {patient.name}
                       </p>
+                      {isDemo && (
+                        <span className="shrink-0 text-[12px] font-medium px-1.5 py-0.5 rounded-md" style={{ backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b', border: '1px solid rgba(100,116,139,0.2)' }}>
+                          Демо
+                        </span>
+                      )}
                       {patient.pending_followup_days && (
-                        <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md" style={{ backgroundColor: 'rgba(234,179,8,0.15)', color: '#854d0e', border: '1px solid rgba(234,179,8,0.3)' }}>
+                        <span className="shrink-0 text-[12px] font-semibold px-1.5 py-0.5 rounded-md" style={{ backgroundColor: 'rgba(234,179,8,0.15)', color: '#854d0e', border: '1px solid rgba(234,179,8,0.3)' }}>
                           ⏳ {patient.pending_followup_days} {lang === 'ru' ? 'дн.' : 'd.'}
                         </span>
                       )}
                       {meta && (
-                        <p className="shrink-0 hidden sm:block" style={{ fontSize: '13px', color: '#5a5040' }}>{meta}</p>
+                        <p className="shrink-0 hidden sm:block" style={{ fontSize: '13px', color: 'var(--sim-text-sec)' }}>{meta}</p>
                       )}
                     </div>
                     {notePreview && (
-                      <p className="mt-0.5 truncate leading-snug italic" style={{ fontSize: '13px', color: '#9a8a6a' }}>
+                      <p className="mt-0.5 truncate leading-snug italic" style={{ fontSize: '13px', color: 'var(--sim-text-hint)' }}>
                         {notePreview}
                       </p>
                     )}
@@ -263,7 +305,7 @@ export default function PatientListClient({ patients, filterPending = false }: {
 
           {/* Итог */}
           <div className="px-4 py-2.5" style={{ borderTop: '0.5px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-hover)' }}>
-            <p className="text-[13px]" style={{ color: '#9a8a6a' }}>
+            <p className="text-[13px]" style={{ color: 'var(--sim-text-hint)' }}>
               {t(lang).patientList.countPatients(filtered.length)}
               {search && ` · ${t(lang).patientList.foundByQuery}`}
             </p>

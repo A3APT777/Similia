@@ -1,56 +1,200 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { StructuredSymptom, SymptomCategory, SymptomDynamics } from '@/types'
 import { useLanguage } from '@/hooks/useLanguage'
 
-const CATEGORY_OPTIONS: { value: SymptomCategory; ru: string; en: string; color: string }[] = [
-  { value: 'chief_complaint', ru: 'Жалоба',    en: 'Complaint',   color: '#dc2626' },
-  { value: 'mental',          ru: 'Психика',    en: 'Mental',      color: '#2563eb' },
-  { value: 'modality_worse',  ru: 'Хуже от',   en: 'Worse',       color: '#ea580c' },
-  { value: 'modality_better', ru: 'Лучше от',  en: 'Better',      color: '#059669' },
-  { value: 'general',         ru: 'Общее',      en: 'General',     color: '#6b7280' },
-  { value: 'concomitant',     ru: 'Сопутств.', en: 'Concomitant', color: '#9333ea' },
-  { value: 'other',           ru: 'Другое',     en: 'Other',       color: '#9ca3af' },
+const SECTIONS = [
+  {
+    id: 'symptoms',
+    ru: 'Симптомы',
+    en: 'Symptoms',
+    group: 'complaints' as const,
+    category: 'chief_complaint' as SymptomCategory,
+    placeholderRu: 'напр., мигрень, боль в спине',
+    placeholderEn: 'e.g., migraine, back pain',
+    filterCategories: ['chief_complaint', 'concomitant'] as SymptomCategory[],
+  },
+  {
+    id: 'mental',
+    ru: 'Психика',
+    en: 'Mind',
+    group: 'complaints' as const,
+    category: 'mental' as SymptomCategory,
+    placeholderRu: 'напр., тревога, раздражительность',
+    placeholderEn: 'e.g., anxiety, irritability',
+    filterCategories: ['mental'] as SymptomCategory[],
+  },
+  {
+    id: 'general',
+    ru: 'Общее',
+    en: 'Generals',
+    group: 'complaints' as const,
+    category: 'general' as SymptomCategory,
+    placeholderRu: 'напр., зябкость, жажда, сон',
+    placeholderEn: 'e.g., chilliness, thirst, sleep',
+    filterCategories: ['general', 'sleep', 'appetite'] as SymptomCategory[],
+  },
+  {
+    id: 'worse',
+    ru: 'Хуже от',
+    en: 'Worse from',
+    group: 'modalities' as const,
+    category: 'modality_worse' as SymptomCategory,
+    placeholderRu: 'напр., холод, ночью, движение',
+    placeholderEn: 'e.g., cold, at night, motion',
+    filterCategories: ['modality_worse'] as SymptomCategory[],
+  },
+  {
+    id: 'better',
+    ru: 'Лучше от',
+    en: 'Better from',
+    group: 'modalities' as const,
+    category: 'modality_better' as SymptomCategory,
+    placeholderRu: 'напр., тепло, покой, давление',
+    placeholderEn: 'e.g., heat, rest, pressure',
+    filterCategories: ['modality_better'] as SymptomCategory[],
+  },
+  {
+    id: 'observations',
+    ru: 'Наблюдения',
+    en: 'Observations',
+    group: null,
+    category: 'observation' as SymptomCategory,
+    placeholderRu: 'напр., бледность, беспокойство',
+    placeholderEn: 'e.g., pale complexion, restlessness',
+    filterCategories: ['observation', 'other'] as SymptomCategory[],
+  },
 ]
 
 const DYNAMICS_OPTIONS: { value: SymptomDynamics; icon: string; ru: string; en: string; color: string }[] = [
+  { value: 'better',   icon: '↑', ru: 'Лучше',    en: 'Better',   color: '#16a34a' },
+  { value: 'worse',    icon: '↓', ru: 'Хуже',     en: 'Worse',    color: '#dc2626' },
+  { value: 'same',     icon: '=', ru: 'Как было',  en: 'Same',     color: '#9ca3af' },
+  { value: 'resolved', icon: '✓', ru: 'Прошло',   en: 'Resolved', color: '#0d9488' },
   { value: 'new',      icon: '+', ru: 'Новое',    en: 'New',      color: '#2563eb' },
-  { value: 'better',   icon: '↑', ru: 'Лучше',   en: 'Better',   color: '#059669' },
-  { value: 'worse',    icon: '↓', ru: 'Хуже',    en: 'Worse',    color: '#dc2626' },
-  { value: 'same',     icon: '=', ru: 'Как было', en: 'Same',    color: '#9ca3af' },
-  { value: 'resolved', icon: '✓', ru: 'Прошло',  en: 'Resolved', color: '#0d9488' },
 ]
+
+const SHORTCUT_MAP: Record<string, SymptomDynamics> = {
+  '+': 'better',
+  '-': 'worse',
+  '=': 'same',
+}
 
 type Props = {
   symptoms: StructuredSymptom[]
   onChange: (symptoms: StructuredSymptom[]) => void
   previousSymptoms?: StructuredSymptom[]
   defaultCategory?: SymptomCategory
+  autoFocus?: boolean
 }
 
-export default function SymptomInput({ symptoms, onChange, previousSymptoms = [], defaultCategory = 'chief_complaint' }: Props) {
+export default function SymptomInput({ symptoms, onChange, autoFocus = false }: Props) {
   const { lang } = useLanguage()
-  const [input, setInput] = useState('')
-  const [category, setCategory] = useState<SymptomCategory>(defaultCategory)
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false)
+  const [inputs, setInputs] = useState<Record<string, string>>({})
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const prevIds = new Set(previousSymptoms.map(s => s.id))
+  const [lastCreatedId, setLastCreatedId] = useState<string | null>(null)
+  const lastCreatedSection = useRef<string | null>(null)
+  const lastCreatedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const [hintSection, setHintSection] = useState<string | null>(null)
+  const hintDismissed = useRef(
+    typeof window !== 'undefined' && localStorage.getItem('hc-dyn-hint') === '1'
+  )
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
-  function addSymptom() {
-    const label = input.trim()
-    if (!label) return
-    const id = crypto.randomUUID()
-    const dynamics: SymptomDynamics = prevIds.has(id) ? 'same' : 'new'
-    const newSym: StructuredSymptom = { id, label, category, dynamics, createdAt: new Date().toISOString() }
-    onChange([...symptoms, newSym])
-    setInput('')
-    inputRef.current?.focus()
+  useEffect(() => {
+    if (autoFocus) {
+      const timer = setTimeout(() => inputRefs.current['chief']?.focus(), 80)
+      return () => clearTimeout(timer)
+    }
+  }, [autoFocus])
+
+  useEffect(() => {
+    if (!expandedId) return
+    function close() { setExpandedId(null) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [expandedId])
+
+  function getSectionSymptoms(sectionId: string) {
+    const sec = SECTIONS.find(s => s.id === sectionId)
+    if (!sec) return []
+    return symptoms.filter(s => (sec.filterCategories as string[]).includes(s.category))
   }
 
-  function removeSymptom(id: string) {
-    onChange(symptoms.filter(s => s.id !== id))
+  function focusNext(sectionId: string) {
+    const idx = SECTIONS.findIndex(s => s.id === sectionId)
+    inputRefs.current[SECTIONS[(idx + 1) % SECTIONS.length].id]?.focus()
+  }
+
+  function addSymptom(sectionId: string) {
+    const sec = SECTIONS.find(s => s.id === sectionId)
+    if (!sec) return
+    const label = (inputs[sectionId] || '').trim()
+    if (!label) return
+
+    const id = crypto.randomUUID()
+    onChange([...symptoms, {
+      id,
+      label,
+      category: sec.category,
+      dynamics: undefined,
+      createdAt: new Date().toISOString(),
+    }])
+    setInputs(prev => ({ ...prev, [sectionId]: '' }))
+
+    clearTimeout(lastCreatedTimer.current)
+    setLastCreatedId(id)
+    lastCreatedSection.current = sectionId
+    lastCreatedTimer.current = setTimeout(() => {
+      setLastCreatedId(null)
+      lastCreatedSection.current = null
+    }, 3000)
+
+    if (!hintDismissed.current) setHintSection(sectionId)
+    inputRefs.current[sectionId]?.focus()
+  }
+
+  function applyShortcut(key: string) {
+    const dynamics = SHORTCUT_MAP[key]
+    if (!dynamics || !lastCreatedId) return
+    onChange(symptoms.map(s => s.id === lastCreatedId ? { ...s, dynamics } : s))
+    clearTimeout(lastCreatedTimer.current)
+    setLastCreatedId(null)
+    lastCreatedSection.current = null
+    if (hintSection) {
+      setHintSection(null)
+      hintDismissed.current = true
+      localStorage.setItem('hc-dyn-hint', '1')
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent, sectionId: string) {
+    const value = inputs[sectionId] || ''
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addSymptom(sectionId)
+      return
+    }
+
+    if (!value && lastCreatedId && lastCreatedSection.current === sectionId && SHORTCUT_MAP[e.key]) {
+      e.preventDefault()
+      applyShortcut(e.key)
+      return
+    }
+
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      if (value) addSymptom(sectionId)
+      focusNext(sectionId)
+      return
+    }
+
+    if (e.key === 'Backspace' && !value) {
+      const list = getSectionSymptoms(sectionId)
+      if (list.length > 0) onChange(symptoms.filter(s => s.id !== list[list.length - 1].id))
+    }
   }
 
   function updateDynamics(id: string, dynamics: SymptomDynamics) {
@@ -58,142 +202,302 @@ export default function SymptomInput({ symptoms, onChange, previousSymptoms = []
     setExpandedId(null)
   }
 
-  function updateCategory(id: string, cat: SymptomCategory) {
-    onChange(symptoms.map(s => s.id === id ? { ...s, category: cat } : s))
-  }
+  // Renders one input row (shared by all sections)
+  function renderRow(section: typeof SECTIONS[number], sIdx: number) {
+    const sectionSymptoms = getSectionSymptoms(section.id)
+    const placeholder = lang === 'ru' ? section.placeholderRu : section.placeholderEn
+    const isLastSection = sIdx === SECTIONS.length - 1
+    const nextSection = SECTIONS[sIdx + 1]
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') { e.preventDefault(); addSymptom() }
-    if (e.key === 'Backspace' && !input && symptoms.length > 0) {
-      removeSymptom(symptoms[symptoms.length - 1].id)
-    }
-  }
+    return (
+      <div key={section.id}>
+        {/* Row label + nav button */}
+        <div className="flex items-center justify-between mb-2">
+          <span style={{ fontSize: '13px', fontWeight: 500, color: '#5a4e44' }}>
+            {section[lang]}
+          </span>
+          {!isLastSection && (
+            <button
+              type="button"
+              onClick={() => {
+                const value = inputs[section.id] || ''
+                if (value) addSymptom(section.id)
+                focusNext(section.id)
+              }}
+              className="flex items-center gap-1 rounded-md px-2 py-0.5 transition-colors hover:bg-gray-100"
+              style={{ fontSize: '11px', color: '#b8afa4' }}
+            >
+              {nextSection?.[lang]}
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+        </div>
 
-  const catCfg = CATEGORY_OPTIONS.find(c => c.value === category) || CATEGORY_OPTIONS[0]
+        {/* Tags */}
+        {sectionSymptoms.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {sectionSymptoms.map(sym => {
+              const dynCfg = DYNAMICS_OPTIONS.find(d => d.value === sym.dynamics)
+              const isJustCreated = lastCreatedId === sym.id
+              const isExpanded = expandedId === sym.id
 
-  return (
-    <div className="mt-2">
-      {/* Теги симптомов */}
-      {symptoms.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {symptoms.map(sym => {
-            const dynCfg = DYNAMICS_OPTIONS.find(d => d.value === sym.dynamics)
-            const catLabel = CATEGORY_OPTIONS.find(c => c.value === sym.category)
-            const isExpanded = expandedId === sym.id
-
-            return (
-              <div key={sym.id} className="inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-1.5 rounded-lg border" style={{ backgroundColor: '#faf7f2', borderColor: '#e0dcd4' }}>
-                {/* Dynamics — всегда видны, клик переключает */}
-                <div className="flex items-center gap-0.5">
+              return (
+                <div
+                  key={sym.id}
+                  className="inline-flex items-center gap-1 pl-2 pr-1 py-1 rounded-lg border transition-all"
+                  style={{
+                    fontSize: '13px',
+                    backgroundColor: isJustCreated ? '#f0fdf4' : '#faf7f2',
+                    borderColor: isJustCreated ? '#86efac' : '#e0dcd4',
+                  }}
+                >
                   {isExpanded ? (
-                    DYNAMICS_OPTIONS.map(d => (
-                      <button
-                        key={d.value}
-                        type="button"
-                        onClick={() => updateDynamics(sym.id, d.value)}
-                        className="flex items-center gap-0.5 px-1.5 h-6 rounded text-[10px] font-bold transition-all"
-                        style={{
-                          color: sym.dynamics === d.value ? '#fff' : d.color,
-                          backgroundColor: sym.dynamics === d.value ? d.color : d.color + '18',
-                        }}
-                      >
-                        <span>{d.icon}</span>
-                        <span style={{ fontSize: '9px', fontWeight: 500 }}>{d[lang]}</span>
-                      </button>
-                    ))
-                  ) : (
+                    <div className="flex items-center gap-0.5 mr-0.5" onMouseDown={e => e.stopPropagation()}>
+                      {DYNAMICS_OPTIONS.map(d => (
+                        <button
+                          key={d.value}
+                          type="button"
+                          onClick={() => updateDynamics(sym.id, d.value)}
+                          className="flex items-center justify-center w-6 h-6 rounded font-bold transition-all hover:scale-110"
+                          style={{
+                            fontSize: '11px',
+                            color: sym.dynamics === d.value ? '#fff' : d.color,
+                            backgroundColor: sym.dynamics === d.value ? d.color : d.color + '20',
+                          }}
+                        >
+                          {d.icon}
+                        </button>
+                      ))}
+                    </div>
+                  ) : dynCfg ? (
                     <button
                       type="button"
-                      onClick={() => setExpandedId(sym.id)}
-                      className="w-6 h-6 sm:w-5 sm:h-5 flex items-center justify-center rounded text-[10px] font-bold transition-all hover:opacity-80"
-                      style={{ color: dynCfg?.color || '#9ca3af', backgroundColor: (dynCfg?.color || '#9ca3af') + '18' }}
-                      title={lang === 'ru' ? 'Изменить динамику' : 'Change dynamics'}
+                      onMouseDown={e => { e.stopPropagation(); setExpandedId(sym.id) }}
+                      className="w-5 h-5 flex items-center justify-center rounded font-bold transition-all hover:opacity-80"
+                      style={{ fontSize: '11px', color: dynCfg.color, backgroundColor: dynCfg.color + '20' }}
                     >
-                      {dynCfg?.icon || '?'}
+                      {dynCfg.icon}
                     </button>
-                  )}
+                  ) : null}
+
+                  <span style={{ color: '#374151' }}>{sym.label}</span>
+
+                  <button
+                    type="button"
+                    onClick={() => onChange(symptoms.filter(s => s.id !== sym.id))}
+                    className="w-5 h-5 flex items-center justify-center rounded transition-colors"
+                    style={{ opacity: 0.3 }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = '0.3')}
+                  >
+                    <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
+              )
+            })}
+          </div>
+        )}
 
-                {/* Метка */}
-                <span className="text-gray-700 mx-0.5">{sym.label}</span>
-
-                {/* Категория — кликабельный тег */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const idx = CATEGORY_OPTIONS.findIndex(c => c.value === sym.category)
-                    const next = CATEGORY_OPTIONS[(idx + 1) % CATEGORY_OPTIONS.length]
-                    updateCategory(sym.id, next.value)
-                  }}
-                  className="text-[8px] uppercase tracking-wider px-1 py-0.5 rounded transition-opacity hover:opacity-70"
-                  style={{ color: catLabel?.color || '#999', backgroundColor: (catLabel?.color || '#999') + '18' }}
-                  title={lang === 'ru' ? 'Сменить категорию' : 'Change category'}
-                >
-                  {catLabel?.[lang] || sym.category}
-                </button>
-
-                {/* Удалить */}
-                <button
-                  type="button"
-                  onClick={() => removeSymptom(sym.id)}
-                  className="w-5 h-5 sm:w-4 sm:h-4 flex items-center justify-center rounded hover:bg-gray-200 transition-colors opacity-40 hover:opacity-100"
-                >
-                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Строка ввода: поле в фокусе, категория вторична */}
-      <div className="flex gap-1.5 items-center">
+        {/* Input */}
         <input
-          ref={inputRef}
+          ref={el => { inputRefs.current[section.id] = el }}
           type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={lang === 'ru' ? 'Добавить симптом — Enter' : 'Add symptom — Enter'}
-          className="flex-1 text-[12px] px-2.5 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-500/10 transition-all placeholder-gray-300"
-          style={{ fontSize: '16px' }}
+          value={inputs[section.id] || ''}
+          onChange={e => setInputs(prev => ({ ...prev, [section.id]: e.target.value }))}
+          onKeyDown={e => handleKeyDown(e, section.id)}
+          placeholder={placeholder}
+          className="w-full px-3 py-2 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300"
+          style={{ fontSize: '15px', borderColor: '#e5e0d8' }}
+          onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
+          onBlur={e => { e.currentTarget.style.borderColor = '#e5e0d8'; e.currentTarget.style.boxShadow = 'none' }}
         />
 
-        {/* Категория — только при наличии текста, иначе почти не видна */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowCategoryPicker(v => !v)}
-            className="text-[10px] px-2 py-1.5 rounded-lg border transition-all"
-            style={{
-              color: input.trim() ? catCfg.color : '#c8bfb4',
-              borderColor: input.trim() ? catCfg.color + '40' : '#e5e0d8',
-              backgroundColor: input.trim() ? catCfg.color + '08' : 'transparent',
-            }}
-            title={lang === 'ru' ? 'Категория симптома' : 'Symptom category'}
-          >
-            {catCfg[lang]}
-          </button>
-          {showCategoryPicker && (
-            <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-xl shadow-lg border border-gray-200 py-1 min-w-[130px]">
-              {CATEGORY_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => { setCategory(opt.value); setShowCategoryPicker(false) }}
-                  className="w-full text-left px-3 py-1.5 text-[11px] transition-colors hover:bg-gray-50 flex items-center gap-2"
-                  style={{ color: opt.color, fontWeight: category === opt.value ? 600 : 400 }}
-                >
-                  {category === opt.value && <span className="text-[8px]">✓</span>}
-                  {opt[lang]}
-                </button>
-              ))}
+        {/* One-time shortcut hint */}
+        {hintSection === section.id && (
+          <div className="mt-1.5 px-0.5" style={{ fontSize: '12px', color: '#b8afa4' }}>
+            + лучше &nbsp;·&nbsp; − хуже &nbsp;·&nbsp; = без изменений
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const GROUP_LABELS: Record<string, { ru: string; en: string }> = {
+    complaints: { ru: 'Жалобы', en: 'Complaints' },
+    modalities: { ru: 'Модальности', en: 'Modalities' },
+  }
+
+  // Group rendering: сгруппированные секции рендерятся под общим заголовком
+  const rendered: React.ReactNode[] = []
+  let i = 0
+  while (i < SECTIONS.length) {
+    const sec = SECTIONS[i]
+
+    if (sec.group !== null) {
+      const groupName = sec.group
+      const groupRows: typeof SECTIONS[number][] = []
+      while (i < SECTIONS.length && SECTIONS[i].group === groupName) {
+        groupRows.push(SECTIONS[i])
+        i++
+      }
+      const isGroupLast = i >= SECTIONS.length
+      const groupLabel = GROUP_LABELS[groupName]
+      rendered.push(
+        <div
+          key={`${groupName}-group`}
+          className={isGroupLast ? '' : 'pb-6'}
+          style={isGroupLast ? {} : { borderBottom: '1px solid #f0ece6' }}
+        >
+          <div className="mb-3">
+            <span style={{ fontSize: '14px', fontWeight: 500, color: '#3d342b' }}>
+              {lang === 'ru' ? groupLabel.ru : groupLabel.en}
+            </span>
+          </div>
+          <div className="space-y-4">
+            {groupRows.map(s => renderRow(s, SECTIONS.findIndex(x => x.id === s.id)))}
+          </div>
+        </div>
+      )
+    } else {
+      const sIdx = i
+      const isBlockLast = sIdx === SECTIONS.length - 1 ||
+        (SECTIONS[sIdx + 1]?.group === 'modalities' ? false : sIdx === SECTIONS.length - 1)
+      // Is this the last rendered block?
+      const isActualLast = sIdx === SECTIONS.length - 1
+      rendered.push(
+        <div
+          key={sec.id}
+          data-tour={sec.id === 'chief' ? 'complaints' : undefined}
+          className={isActualLast ? '' : 'pb-6'}
+          style={isActualLast ? {} : { borderBottom: '1px solid #f0ece6' }}
+        >
+          {/* Top-level section header */}
+          {(() => {
+            const nextSec = SECTIONS[sIdx + 1]
+            const nextLabel = nextSec?.group
+              ? (lang === 'ru' ? GROUP_LABELS[nextSec.group]?.ru : GROUP_LABELS[nextSec.group]?.en)
+              : nextSec?.[lang]
+            return (
+              <div className="flex items-center justify-between mb-3">
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#3d342b' }}>
+                  {sec[lang]}
+                </span>
+                {!isActualLast && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const value = inputs[sec.id] || ''
+                      if (value) addSymptom(sec.id)
+                      focusNext(sec.id)
+                    }}
+                    className="flex items-center gap-1 rounded-md px-2 py-0.5 transition-colors hover:bg-gray-100"
+                    style={{ fontSize: '11px', color: '#b8afa4' }}
+                  >
+                    {nextLabel}
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            )
+          })()}
+
+          {/* Tags */}
+          {getSectionSymptoms(sec.id).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {getSectionSymptoms(sec.id).map(sym => {
+                const dynCfg = DYNAMICS_OPTIONS.find(d => d.value === sym.dynamics)
+                const isJustCreated = lastCreatedId === sym.id
+                const isExpanded = expandedId === sym.id
+
+                return (
+                  <div
+                    key={sym.id}
+                    className="inline-flex items-center gap-1 pl-2 pr-1 py-1 rounded-lg border transition-all"
+                    style={{
+                      fontSize: '13px',
+                      backgroundColor: isJustCreated ? '#f0fdf4' : '#faf7f2',
+                      borderColor: isJustCreated ? '#86efac' : '#e0dcd4',
+                    }}
+                  >
+                    {isExpanded ? (
+                      <div className="flex items-center gap-0.5 mr-0.5" onMouseDown={e => e.stopPropagation()}>
+                        {DYNAMICS_OPTIONS.map(d => (
+                          <button
+                            key={d.value}
+                            type="button"
+                            onClick={() => updateDynamics(sym.id, d.value)}
+                            className="flex items-center justify-center w-6 h-6 rounded font-bold transition-all hover:scale-110"
+                            style={{
+                              fontSize: '11px',
+                              color: sym.dynamics === d.value ? '#fff' : d.color,
+                              backgroundColor: sym.dynamics === d.value ? d.color : d.color + '20',
+                            }}
+                          >
+                            {d.icon}
+                          </button>
+                        ))}
+                      </div>
+                    ) : dynCfg ? (
+                      <button
+                        type="button"
+                        onMouseDown={e => { e.stopPropagation(); setExpandedId(sym.id) }}
+                        className="w-5 h-5 flex items-center justify-center rounded font-bold transition-all hover:opacity-80"
+                        style={{ fontSize: '11px', color: dynCfg.color, backgroundColor: dynCfg.color + '20' }}
+                      >
+                        {dynCfg.icon}
+                      </button>
+                    ) : null}
+
+                    <span style={{ color: '#374151' }}>{sym.label}</span>
+
+                    <button
+                      type="button"
+                      onClick={() => onChange(symptoms.filter(s => s.id !== sym.id))}
+                      className="w-5 h-5 flex items-center justify-center rounded transition-colors"
+                      style={{ opacity: 0.3 }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '0.3')}
+                    >
+                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Input */}
+          <input
+            ref={el => { inputRefs.current[sec.id] = el }}
+            type="text"
+            value={inputs[sec.id] || ''}
+            onChange={e => setInputs(prev => ({ ...prev, [sec.id]: e.target.value }))}
+            onKeyDown={e => handleKeyDown(e, sec.id)}
+            placeholder={lang === 'ru' ? sec.placeholderRu : sec.placeholderEn}
+            className="w-full px-3 py-2.5 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300"
+            style={{ fontSize: '15px', borderColor: '#e5e0d8' }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
+            onBlur={e => { e.currentTarget.style.borderColor = '#e5e0d8'; e.currentTarget.style.boxShadow = 'none' }}
+          />
+
+          {hintSection === sec.id && (
+            <div className="mt-2 px-0.5" style={{ fontSize: '12px', color: '#b8afa4' }}>
+              + лучше &nbsp;·&nbsp; − хуже &nbsp;·&nbsp; = без изменений
             </div>
           )}
         </div>
-      </div>
-    </div>
-  )
+      )
+      i++
+    }
+  }
+
+  return <div className="space-y-6">{rendered}</div>
 }

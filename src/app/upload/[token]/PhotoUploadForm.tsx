@@ -19,6 +19,11 @@ export default function PhotoUploadForm({ token }: Props) {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Файл слишком большой (максимум 10 МБ)')
+      e.target.value = ''
+      return
+    }
     setPreview(URL.createObjectURL(file))
     setError(null)
   }
@@ -119,7 +124,7 @@ export default function PhotoUploadForm({ token }: Props) {
           value={takenAt}
           onChange={e => setTakenAt(e.target.value)}
           required
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
         />
       </div>
 
@@ -134,7 +139,7 @@ export default function PhotoUploadForm({ token }: Props) {
           value={note}
           onChange={e => setNote(e.target.value)}
           placeholder="Состояние кожи, что изменилось..."
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
         />
       </div>
 
@@ -147,7 +152,7 @@ export default function PhotoUploadForm({ token }: Props) {
       <button
         type="submit"
         disabled={pending || !preview}
-        className="w-full bg-emerald-600 text-white font-medium py-3 rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm"
+        className="w-full bg-[#2d6a4f] text-white font-medium py-3 rounded-xl hover:bg-[#1a3020] disabled:opacity-50 transition-colors text-sm"
       >
         {pending ? 'Отправляю...' : 'Отправить фото'}
       </button>

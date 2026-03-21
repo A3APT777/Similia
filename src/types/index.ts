@@ -7,6 +7,7 @@ export type Patient = {
   email: string | null
   notes: string | null
   constitutional_type: string | null
+  gender: string | null
   first_visit_date: string
   paid_sessions: number
   created_at: string
@@ -45,7 +46,13 @@ export type Consultation = {
   dosage: string | null
   rubrics: string | null
   reaction_to_previous: string | null
+  source: string | null
+  ai_result: Record<string, unknown> | null
   doctor_dynamics: DoctorDynamics | null
+  modality_worse_text: string | null
+  modality_better_text: string | null
+  mental_text: string | null
+  general_text: string | null
   created_at: string
   updated_at: string
 }
@@ -111,6 +118,19 @@ export type IntakeForm = {
   type: IntakeType
   status: 'pending' | 'completed'
   answers: IntakeAnswers | null
+  created_at: string
+  completed_at: string | null
+  expires_at: string | null
+}
+
+export type PreVisitSurvey = {
+  id: string
+  consultation_id: string | null
+  patient_id: string
+  doctor_id: string
+  token: string
+  answers: Record<string, unknown> | null
+  status: 'pending' | 'completed'
   created_at: string
   completed_at: string | null
   expires_at: string | null

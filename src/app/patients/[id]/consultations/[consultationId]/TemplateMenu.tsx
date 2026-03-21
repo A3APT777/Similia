@@ -280,7 +280,7 @@ export default function TemplateMenu({ onInsertStructured, onInsertText, consult
         onClick={() => setOpen(v => !v)}
         className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
           open
-            ? 'bg-emerald-600 text-white border-emerald-600'
+            ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
             : 'border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
         }`}
       >
@@ -309,7 +309,7 @@ export default function TemplateMenu({ onInsertStructured, onInsertText, consult
                 </button>
                 <button
                   onClick={handleAppend}
-                  className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                  className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#2d6a4f] text-white hover:bg-[#2d6a4f] transition-colors"
                 >
                   {labels.append}
                 </button>
@@ -327,7 +327,7 @@ export default function TemplateMenu({ onInsertStructured, onInsertText, consult
           {!confirmTemplate && (
             <>
               <div className="px-3 pt-3 pb-2">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
                   {t(lang).templates.fullTemplates}
                 </p>
                 <div className="space-y-0.5">
@@ -353,7 +353,7 @@ export default function TemplateMenu({ onInsertStructured, onInsertText, consult
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-gray-400">{(t(lang).templates as Record<string, any>)[tpl.descKey]}</p>
+                          <p className="text-xs text-gray-400">{(t(lang).templates as Record<string, any>)[tpl.descKey]}</p>
                         </div>
                       </button>
                     )
@@ -366,7 +366,7 @@ export default function TemplateMenu({ onInsertStructured, onInsertText, consult
 
               {/* Быстрые секции */}
               <div className="px-3 pt-2 pb-3">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">
                   {t(lang).templates.addSection}
                 </p>
                 <div className="flex flex-wrap gap-1.5">

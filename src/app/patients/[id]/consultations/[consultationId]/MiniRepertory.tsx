@@ -113,9 +113,9 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
   useEffect(() => {
     inputRef.current?.focus()
 
-    // Автозапуск обучения при первом открытии мини-реперториума
+    // Автозапуск отключён — обучение через InteractiveTour в сайдбаре
     try {
-      if (!localStorage.getItem('mini_rep_tutorial_done') && tutStep === -1) {
+      if (/* disabled */ false && !localStorage.getItem('mini_rep_tutorial_done') && tutStep === -1) {
         const timer = setTimeout(() => {
           setTutStep(0)
           setTutAddedCount(0)
@@ -292,14 +292,14 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: '#f7f3ed' }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--sim-bg)' }}>
 
       {/* Шапка */}
-      <div className="px-4 py-2.5 border-b shrink-0 flex items-center justify-between gap-2" style={{ borderColor: '#d4c9b8', backgroundColor: '#ede7dd' }}>
+      <div className="px-4 py-2.5 border-b shrink-0 flex items-center justify-between gap-2" style={{ borderColor: 'var(--sim-border)', backgroundColor: '#ede7dd' }}>
         <div className="flex items-center gap-2 min-w-0">
-          <h3 className="text-sm font-semibold shrink-0" style={{ color: '#1a3020' }}>
+          <h3 className="text-sm font-semibold shrink-0" style={{ color: 'var(--sim-forest)' }}>
             {t(lang).miniRepertory.title}
-            <span className="ml-1.5 text-[10px] font-normal" style={{ color: '#9a8a6a' }}>{repoLang === 'ru' ? 'Кент' : 'Kent'}</span>
+            <span className="ml-1.5 text-xs font-normal" style={{ color: 'var(--sim-text-hint)' }}>{repoLang === 'ru' ? 'Кент' : 'Kent'}</span>
           </h3>
           {analysisEntries.length > 0 && (
             <button
@@ -336,7 +336,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
             onClick={onClose}
             aria-label={lang === 'ru' ? 'Закрыть реперторий' : 'Close repertory'}
             className="p-1 rounded transition-colors"
-            style={{ color: '#9a8a6a' }}
+            style={{ color: 'var(--sim-text-hint)' }}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -346,9 +346,9 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
       </div>
 
       {/* Поиск */}
-      <div className={`px-3 py-2 border-b shrink-0${tutStep === 1 ? ' mini-tut-glow' : ''}`} style={{ borderColor: '#d4c9b8', backgroundColor: '#ede7dd' }}>
+      <div className={`px-3 py-2 border-b shrink-0${tutStep === 1 ? ' mini-tut-glow' : ''}`} style={{ borderColor: 'var(--sim-border)', backgroundColor: '#ede7dd' }}>
         <div className="relative">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#9a8a6a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--sim-text-hint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 0z" />
           </svg>
           <input
@@ -360,7 +360,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
             onChange={e => setQuery(e.target.value)}
             placeholder={t(lang).miniRepertory.search}
             className="w-full pl-7 pr-3 py-1.5 text-xs border rounded-lg focus:outline-none transition-all"
-            style={{ backgroundColor: '#f7f3ed', borderColor: '#c8b89a', color: '#1a1a0a' }}
+            style={{ backgroundColor: 'var(--sim-bg)', borderColor: '#c8b89a', color: '#1a1a0a' }}
           />
         </div>
       </div>
@@ -378,19 +378,19 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
 
       {/* Панель анализа — если открыта */}
       {showAnalysis && analysisEntries.length > 0 && (
-        <div data-tour="mini-analysis" className={`shrink-0 border-b${tutStep >= 5 && tutStep <= 7 ? ' mini-tut-glow' : ''}`} style={{ borderColor: '#d4c9b8', backgroundColor: '#f0e8dc', maxHeight: '45%', overflowY: 'auto' }}>
+        <div data-tour="mini-analysis" className={`shrink-0 border-b${tutStep >= 5 && tutStep <= 7 ? ' mini-tut-glow' : ''}`} style={{ borderColor: 'var(--sim-border)', backgroundColor: '#f0e8dc', maxHeight: '45%', overflowY: 'auto' }}>
           {/* Рубрики с нумерацией */}
           <div className="px-3 pt-2 pb-1 space-y-1">
             {analysisEntries.map((ae, idx) => (
               <div
                 key={ae.rubric.id}
-                className="flex items-center gap-1 px-2 py-1 rounded text-[11px]"
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs"
                 style={{
                   backgroundColor: ae.eliminate ? 'rgba(220,38,38,0.08)' : 'rgba(45,106,79,0.07)',
                   borderLeft: `2px solid ${ae.eliminate ? '#dc2626' : '#2d6a4f'}`,
                 }}
               >
-                <span className="shrink-0 w-4 text-[11px] font-bold" style={{ color: '#2d6a4f' }}>{idx + 1}</span>
+                <span className="shrink-0 w-4 text-xs font-bold" style={{ color: 'var(--sim-green)' }}>{idx + 1}</span>
                 <span className="flex-1 truncate" style={{ color: '#1a1a0a' }}>
                   {repoLang === 'ru'
                     ? translateRubric(ae.rubric.fullpath, ae.rubric.chapter)
@@ -432,7 +432,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                     onClick={() => removeFromAnalysis(ae.rubric.id)}
                     aria-label={lang === 'ru' ? 'Удалить рубрику' : 'Remove rubric'}
                     className="w-6 h-6 flex items-center justify-center text-[12px]"
-                    style={{ color: '#9a8a6a' }}
+                    style={{ color: 'var(--sim-text-hint)' }}
                   >✕</button>
                 </div>
               </div>
@@ -444,7 +444,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
             <div data-tour="mini-top-remedies" className={`px-3 pb-2${tutStep >= 8 && tutStep <= 9 ? ' mini-tut-glow' : ''}`}>
               {/* Заголовок + переключатель вида */}
               <div className="flex items-center justify-between mb-1">
-                <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: '#9a8a6a' }}>
+                <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sim-text-hint)' }}>
                   {t(lang).repertory.topRemedies}
                 </p>
                 <div className="flex rounded-md overflow-hidden border" style={{ borderColor: '#c8b89a' }}>
@@ -452,7 +452,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                     <button
                       key={v}
                       onClick={() => { setAnalysisView(v); try { localStorage.setItem('hc-analysis-view', v) } catch {} }}
-                      className="px-2 py-0.5 text-[10px] font-semibold transition-colors"
+                      className="px-2 py-0.5 text-xs font-semibold transition-colors"
                       style={{
                         backgroundColor: analysisView === v ? '#2d6a4f' : 'transparent',
                         color: analysisView === v ? '#fff' : '#9a8a6a',
@@ -476,7 +476,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                     return (
                       <div key={abbrev} className="flex items-center gap-1.5">
                         <span
-                          className="text-[11px] font-bold shrink-0"
+                          className="text-xs font-bold shrink-0"
                           style={{ width: 44, color: rank === 0 ? '#2d6a4f' : '#5a5040' }}
                         >
                           {abbrev}
@@ -487,14 +487,14 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                             style={{ width: `${pct}%`, backgroundColor: rank === 0 ? '#2d6a4f' : rank < 3 ? '#6aad89' : '#b0a898' }}
                           />
                         </div>
-                        <span className="text-[12px] font-bold shrink-0" style={{ width: 18, textAlign: 'right', color: '#5a5040' }}>
+                        <span className="text-[12px] font-bold shrink-0" style={{ width: 18, textAlign: 'right', color: 'var(--sim-text-sec)' }}>
                           {data.total}
                         </span>
                         {onAssignRemedy && (
                           <button
                             data-tour="mini-assign"
                             onClick={() => { onAssignRemedy(abbrev); onClose() }}
-                            className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition-all hover:opacity-90 active:scale-95"
+                            className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
                             style={{ backgroundColor: rank === 0 ? '#2d6a4f' : 'rgba(45,106,79,0.08)', color: rank === 0 ? '#fff' : '#2d6a4f', border: '1px solid rgba(45,106,79,0.2)' }}
                           >
                             {repoLang === 'ru' ? 'Назначить' : 'Assign'}
@@ -507,15 +507,15 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
               ) : (
                 /* Классический вид — таблица по образцу Synthesis */
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[11px] sm:text-[12px]" style={{ borderCollapse: 'collapse' }}>
+                  <table className="w-full text-xs sm:text-[12px]" style={{ borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #d4c9b8' }}>
-                        <th className="text-left py-1 pr-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>
+                        <th className="text-left py-1 pr-1 font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-text-hint)', fontSize: '10px' }}>
                           {repoLang === 'ru' ? 'Преп.' : 'Remedy'}
                         </th>
-                        <th className="text-center py-1 px-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>∑{repoLang === 'ru' ? 'Сим' : 'Sym'}</th>
-                        <th className="text-center py-1 px-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>∑{repoLang === 'ru' ? 'Степ' : 'Deg'}</th>
-                        <th className="text-left py-1 pl-1 font-semibold uppercase tracking-wider" style={{ color: '#9a8a6a', fontSize: '10px' }}>
+                        <th className="text-center py-1 px-1 font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-text-hint)', fontSize: '10px' }}>∑{repoLang === 'ru' ? 'Сим' : 'Sym'}</th>
+                        <th className="text-center py-1 px-1 font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-text-hint)', fontSize: '10px' }}>∑{repoLang === 'ru' ? 'Степ' : 'Deg'}</th>
+                        <th className="text-left py-1 pl-1 font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-text-hint)', fontSize: '10px' }}>
                           {repoLang === 'ru' ? 'Симпт.' : 'Sympt.'}
                         </th>
                         <th className="w-8"></th>
@@ -532,13 +532,13 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                             <td className="py-1 pr-1 font-bold" style={{ color: rank === 0 ? '#2d6a4f' : '#5a5040' }}>
                               {abbrev}
                             </td>
-                            <td className="text-center py-1 px-1" style={{ color: '#5a5040' }}>
+                            <td className="text-center py-1 px-1" style={{ color: 'var(--sim-text-sec)' }}>
                               {data.coveredCount}
                             </td>
-                            <td className="text-center py-1 px-1 font-bold" style={{ color: '#5a5040' }}>
+                            <td className="text-center py-1 px-1 font-bold" style={{ color: 'var(--sim-text-sec)' }}>
                               {data.total}
                             </td>
-                            <td className="py-1 pl-1" style={{ color: '#9a8a6a' }}>
+                            <td className="py-1 pl-1" style={{ color: 'var(--sim-text-hint)' }}>
                               {symptoms}
                             </td>
                             <td className="py-1 text-right">
@@ -546,7 +546,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                                 <button
                                   data-tour="mini-assign"
                                   onClick={() => { onAssignRemedy(abbrev); onClose() }}
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-bold transition-all hover:opacity-90 active:scale-95"
+                                  className="px-1.5 py-0.5 rounded text-xs font-bold transition-all hover:opacity-90 active:scale-95"
                                   style={{ backgroundColor: rank === 0 ? '#2d6a4f' : 'rgba(45,106,79,0.08)', color: rank === 0 ? '#fff' : '#2d6a4f', border: '1px solid rgba(45,106,79,0.2)' }}
                                 >
                                   Rx
@@ -584,7 +584,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
               const inAnalysis = isInAnalysis(r.id)
               return (
                 <div key={r.id} style={{ borderBottom: '1px solid #ede7dd' }}>
-                  <div className="flex items-start gap-1 px-3 py-2 group transition-colors" style={{ backgroundColor: inAnalysis ? 'rgba(45,106,79,0.06)' : 'transparent' }}>
+                  <div className="flex items-start gap-1 px-3 py-2.5 group transition-colors hover:bg-[rgba(45,106,79,0.04)]" style={{ backgroundColor: inAnalysis ? 'rgba(45,106,79,0.06)' : 'transparent' }}>
                     {/* Кнопка добавить в анализ */}
                     <button
                       data-tour="mini-add-btn"
@@ -613,7 +613,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                     >
                       <div className="flex items-start justify-between gap-1">
                         <div className="flex items-start gap-1.5 min-w-0">
-                          <span className="shrink-0 mt-0.5 px-1 py-0 rounded text-[12px] font-semibold" style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: '#2d6a4f' }}>
+                          <span className="shrink-0 mt-0.5 px-1 py-0 rounded text-[12px] font-semibold" style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: 'var(--sim-green)' }}>
                             {repoLang === 'ru' ? (CHAPTER_NAMES[r.chapter] || r.chapter) : r.chapter}
                           </span>
                           <p className="text-[12px] leading-snug" style={{ color: '#1a1a0a' }}>
@@ -623,7 +623,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                             }
                           </p>
                         </div>
-                        <span className="text-[12px] shrink-0 mt-0.5" style={{ color: '#9a8a6a' }}>{r.remedy_count}</span>
+                        <span className="text-[12px] shrink-0 mt-0.5" style={{ color: 'var(--sim-text-hint)' }}>{r.remedy_count}</span>
                       </div>
                       {!isExpanded && (
                         <div className="flex items-center gap-1 mt-0.5 flex-wrap">
@@ -640,7 +640,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                               {rem.abbrev}
                             </span>
                           ))}
-                          {r.remedy_count > 7 && <span className="text-[12px]" style={{ color: '#9a8a6a' }}>+{r.remedy_count - 7}</span>}
+                          {r.remedy_count > 7 && <span className="text-[12px]" style={{ color: 'var(--sim-text-hint)' }}>+{r.remedy_count - 7}</span>}
                         </div>
                       )}
                     </button>
@@ -671,7 +671,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                       <button
                         onClick={() => { onSelectRubric(r.fullpath); setExpandedRubricId(null) }}
                         className="text-[12px] flex items-center gap-1 transition-colors"
-                        style={{ color: '#9a8a6a' }}
+                        style={{ color: 'var(--sim-text-hint)' }}
                       >
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                         {lang === 'ru' ? 'Добавить в запись' : 'Add to notes'}
@@ -698,21 +698,21 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
 
       {/* Пагинация */}
       {totalPages > 1 && (
-        <div className="px-4 py-1.5 border-t shrink-0 flex items-center justify-between" style={{ borderColor: '#d4c9b8', backgroundColor: '#ede7dd' }}>
+        <div className="px-4 py-1.5 border-t shrink-0 flex items-center justify-between" style={{ borderColor: 'var(--sim-border)', backgroundColor: '#ede7dd' }}>
           <button
             disabled={page === 0}
             onClick={() => setPage(p => p - 1)}
             className="text-[12px] disabled:opacity-30"
-            style={{ color: '#9a8a6a' }}
+            style={{ color: 'var(--sim-text-hint)' }}
           >
             ← {t(lang).miniRepertory.prev}
           </button>
-          <span className="text-[12px]" style={{ color: '#9a8a6a' }}>{page + 1} / {totalPages}</span>
+          <span className="text-[12px]" style={{ color: 'var(--sim-text-hint)' }}>{page + 1} / {totalPages}</span>
           <button
             disabled={page >= totalPages - 1}
             onClick={() => setPage(p => p + 1)}
             className="text-[12px] disabled:opacity-30"
-            style={{ color: '#9a8a6a' }}
+            style={{ color: 'var(--sim-text-hint)' }}
           >
             {t(lang).miniRepertory.next} →
           </button>

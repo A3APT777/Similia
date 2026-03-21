@@ -47,10 +47,14 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Подтверждение удаления пациента"
+            onClick={e => e.stopPropagation()}
             className="relative rounded-2xl p-6 w-[340px] mx-4 shadow-2xl"
-            style={{ backgroundColor: '#f7f3ed', border: '0.5px solid #d4c9b8' }}
+            style={{ backgroundColor: 'var(--sim-bg)', border: '0.5px solid #d4c9b8' }}
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#fef0f0' }}>
@@ -60,11 +64,11 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
               </div>
               <div>
                 <h2 className="text-base font-semibold" style={{ color: '#1a1a0a' }}>{t(lang).deletePatient.confirm}</h2>
-                <p className="text-sm" style={{ color: '#9a8a6a' }}>{patientName}</p>
+                <p className="text-sm" style={{ color: 'var(--sim-text-hint)' }}>{patientName}</p>
               </div>
             </div>
 
-            <p className="text-sm leading-relaxed mb-5" style={{ color: '#5a5040' }}>
+            <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--sim-text-sec)' }}>
               {t(lang).deletePatient.warning}
             </p>
 
@@ -81,7 +85,7 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
                 onClick={() => setShowModal(false)}
                 disabled={isPending}
                 className="px-5 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
-                style={{ color: '#9a8a6a' }}
+                style={{ color: 'var(--sim-text-hint)' }}
               >
                 {t(lang).deletePatient.cancel}
               </button>

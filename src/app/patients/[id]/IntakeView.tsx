@@ -17,7 +17,7 @@ const PRIMARY_SECTIONS: Section[] = [
     fields: [
       { key: 'chief_complaint', label: 'Жалобы', multiline: true },
       { key: 'duration', label: 'Как давно' },
-      { key: 'cause', label: 'Причина / Never Well Since' },
+      { key: 'cause', label: 'С чего началось' },
     ],
   },
   {
@@ -231,13 +231,13 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
           <span className="font-semibold truncate" style={{ fontSize: '15px', color: '#1a1a0a' }}>
             {isAcute ? t(lang).intake.acuteIntakeTitle : t(lang).intake.primaryIntake}
           </span>
-          {dateStr && <span className="shrink-0" style={{ fontSize: '13px', color: '#9a8a6a' }}>{dateStr}</span>}
-          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ backgroundColor: accentColor + '20', color: accentColor }}>
+          {dateStr && <span className="shrink-0" style={{ fontSize: '13px', color: 'var(--sim-text-hint)' }}>{dateStr}</span>}
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0" style={{ backgroundColor: accentColor + '20', color: accentColor }}>
             {totalFilled} полей
           </span>
           <svg
             className={`w-4 h-4 transition-transform shrink-0 ml-auto ${expanded ? 'rotate-180' : ''}`}
-            style={{ color: '#2d6a4f' }}
+            style={{ color: 'var(--sim-green)' }}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -253,7 +253,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
                   onClick={handleSave}
                   disabled={saving}
                   className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-60"
-                  style={{ backgroundColor: '#2d6a4f', color: '#fff' }}
+                  style={{ backgroundColor: 'var(--sim-green)', color: '#fff' }}
                 >
                   {saving ? 'Сохраняю...' : 'Сохранить'}
                 </button>
@@ -261,7 +261,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
                   onClick={handleCancel}
                   disabled={saving}
                   className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: '#5a5040' }}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--sim-text-sec)' }}
                 >
                   Отмена
                 </button>
@@ -270,7 +270,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
               <button
                 onClick={() => { setExpanded(true); setEditMode(true) }}
                 className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
-                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: '#5a5040' }}
+                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--sim-text-sec)' }}
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
@@ -291,13 +291,13 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
             if (fieldsToShow.length === 0) return null
             return (
               <div key={section.title}>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: accentColor }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: accentColor }}>
                   {section.title}
                 </p>
                 <div className={editMode ? 'space-y-3' : 'grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3'}>
                   {fieldsToShow.map(field => (
                     <div key={field.key} className="min-w-0">
-                      <p className="font-semibold mb-0.5" style={{ fontSize: '11px', color: '#9a8a6a' }}>
+                      <p className="font-semibold mb-0.5" style={{ fontSize: '11px', color: 'var(--sim-text-hint)' }}>
                         {field.label}
                       </p>
                       {editMode ? (
@@ -307,7 +307,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
                           rows={field.multiline ? 3 : 1}
                           className="w-full rounded-lg px-3 py-2 text-sm resize-none"
                           style={{
-                            border: '1px solid #d4c9b8',
+                            border: '1px solid var(--sim-border)',
                             backgroundColor: '#fff',
                             color: '#1a1a0a',
                             minHeight: field.multiline ? '72px' : '36px',
@@ -332,7 +332,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
                 onClick={handleSave}
                 disabled={saving}
                 className="text-sm font-semibold px-4 py-2 rounded-xl transition-all disabled:opacity-60"
-                style={{ backgroundColor: '#2d6a4f', color: '#fff' }}
+                style={{ backgroundColor: 'var(--sim-green)', color: '#fff' }}
               >
                 {saving ? 'Сохраняю...' : 'Сохранить изменения'}
               </button>
@@ -340,7 +340,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
                 onClick={handleCancel}
                 disabled={saving}
                 className="text-sm font-medium px-3 py-2 rounded-xl"
-                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: '#5a5040' }}
+                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--sim-text-sec)' }}
               >
                 Отмена
               </button>

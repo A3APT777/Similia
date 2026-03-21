@@ -4,181 +4,220 @@
 
 ```
 src/
-├── app/                          # Next.js App Router pages
-│   ├── layout.tsx               # Root layout — шрифты, providers
-│   ├── page.tsx                 # Landing page (public, ~689 строк)
+├── app/                          # Next.js 16 App Router
+│   ├── layout.tsx               # Root layout: шрифты, providers, InteractiveTour, Метрика
+│   ├── page.tsx                 # Landing page (public, RefCookieSetter)
 │   ├── globals.css              # Global styles + Tailwind
 │   ├── error.tsx                # Error boundary
 │   ├── global-error.tsx         # Global error handler
 │   │
 │   ├── auth/callback/route.ts   # OAuth callback (Supabase)
-│   ├── login/page.tsx           # Login form (public)
-│   ├── register/page.tsx        # Registration (public)
-│   ├── forgot-password/page.tsx # Password reset (public)
+│   ├── login/page.tsx           # Login form
+│   ├── register/page.tsx        # Registration (+ ref_code из cookie)
+│   ├── forgot-password/page.tsx # Password reset
+│   ├── auth/reset-password/     # Сброс пароля
 │   ├── privacy/page.tsx         # Политика конфиденциальности
 │   ├── terms/page.tsx           # Условия использования
 │   │
 │   ├── dashboard/               # Authenticated hub
-│   │   ├── page.tsx             # Главная панель
-│   │   ├── AppointmentList.tsx  # Виджет приёмов
+│   │   ├── page.tsx             # Главная панель (Promise.all)
+│   │   ├── HeroStatCards.tsx    # Статистика
+│   │   ├── AppointmentList.tsx  # Список приёмов
+│   │   ├── CalendarWidget.tsx   # Мини-календарь
 │   │   ├── PatientListClient.tsx# Список пациентов (client)
-│   │   ├── CalendarWidget.tsx   # Календарь
+│   │   ├── AddPatientWidget.tsx # Добавление пациента (3 способа)
+│   │   ├── OnboardingBanner.tsx # Чеклист для новичков
 │   │   ├── UnpaidWidget.tsx     # Неоплаченные сессии
-│   │   ├── WelcomeModal.tsx     # Первый вход
-│   │   ├── OnboardingBanner.tsx # Баннер настройки
-│   │   └── loading.tsx          # Loading skeleton
+│   │   └── LunarPhaseWidget.tsx # Фазы луны
 │   │
 │   ├── patients/
 │   │   ├── new/page.tsx         # Создать пациента
 │   │   └── [id]/
-│   │       ├── page.tsx         # Карточка пациента + timeline
-│   │       ├── IntakeView.tsx
-│   │       ├── PhotoSection.tsx
+│   │       ├── page.tsx         # Карточка пациента
+│   │       ├── edit/page.tsx    # Редактирование
+│   │       ├── export/          # Экспорт в PDF
+│   │       ├── intake-edit/     # Редактирование анкеты
+│   │       ├── StickyPatientHeader.tsx
+│   │       ├── StartConsultationButton.tsx  # Защита от двойного клика
+│   │       ├── SendSurveyButton.tsx         # Кнопка опросника
+│   │       ├── IntakeLinkButton.tsx
 │   │       ├── FollowupSection.tsx
+│   │       ├── PhotoSection.tsx
 │   │       ├── TreatmentProgress.tsx
 │   │       ├── PatientTimeline.tsx
 │   │       ├── TimelineWithFilter.tsx
-│   │       ├── edit/page.tsx    # Редактировать данные
+│   │       ├── PaidSessionsBlock.tsx
+│   │       ├── DeletePatientButton.tsx
+│   │       ├── IntakeView.tsx
+│   │       ├── CancelAppointmentButton.tsx
 │   │       │
-│   │       ├── consultations/[consultationId]/
-│   │       │   ├── page.tsx      # Шелл редактора (server)
-│   │       │   ├── ConsultationEditor.tsx # Главный редактор (client)
-│   │       │   ├── context/
-│   │       │   │   └── ConsultationContext.tsx # State + autosave
-│   │       │   ├── components/
-│   │       │   │   ├── EditorHeader.tsx
-│   │       │   │   ├── EditorToolbar.tsx
-│   │       │   │   ├── SymptomInput.tsx
-│   │       │   │   ├── CaseFormulation.tsx
-│   │       │   │   ├── InlineRx.tsx
-│   │       │   │   └── MiniRepertory.tsx
-│   │       │   ├── right-panel/
-│   │       │   │   ├── RightPanel.tsx
-│   │       │   │   ├── ActiveRemedy.tsx
-│   │       │   │   ├── PreviousVisitSummary.tsx
-│   │       │   │   ├── SymptomDynamics.tsx
-│   │       │   │   ├── CaseStateBlock.tsx
-│   │       │   │   ├── ClinicalSummaryBlock.tsx
-│   │       │   │   └── DecisionBlock.tsx
-│   │       │   ├── TemplateMenu.tsx
-│   │       │   └── PrescriptionModal.tsx
-│   │       │
-│   │       └── export/           # PDF экспорт
-│   │           ├── page.tsx
-│   │           ├── layout.tsx
-│   │           └── PrintTrigger.tsx
+│   │       └── consultations/[consultationId]/
+│   │           ├── page.tsx              # Загрузка + PreVisitSurvey
+│   │           ├── ConsultationEditor.tsx # Основной редактор (client)
+│   │           ├── SharePrescriptionButton.tsx  # Отправка назначения
+│   │           ├── PrescriptionModal.tsx  # Модалка назначения
+│   │           ├── TemplateMenu.tsx
+│   │           ├── context/
+│   │           │   └── ConsultationContext.tsx  # State + autosave
+│   │           ├── components/
+│   │           │   ├── ComplaintsForm.tsx  # Форма жалоб
+│   │           │   ├── EditorHeader.tsx
+│   │           │   ├── EditorToolbar.tsx   # Панель + type-toggle
+│   │           │   ├── InlineRx.tsx        # Inline-назначение
+│   │           │   ├── DynamicsBlock.tsx
+│   │           │   ├── SymptomInput.tsx
+│   │           │   └── CaseFormulation.tsx
+│   │           ├── right-panel/
+│   │           │   ├── RightPanel.tsx
+│   │           │   ├── ActiveRemedy.tsx
+│   │           │   ├── PreviousVisitSummary.tsx
+│   │           │   └── PreVisitSurveyPanel.tsx  # Ответы опросника
+│   │           ├── MiniRepertory.tsx
+│   │           └── MiniRepertoryTutorial.tsx  # (автозапуск отключён)
 │   │
-│   ├── intake/[token]/          # Анкета пациента (публичная)
-│   ├── followup/[token]/        # Форма после приёма (публичная)
-│   ├── upload/[token]/          # Загрузка фото (публичная)
-│   ├── new/[token]/             # Быстрая запись пациента (публичная)
-│   ├── repertory/               # Поиск по реперторию
-│   └── settings/                # Настройки врача
+│   ├── repertory/               # Полный реперторий
+│   │   ├── page.tsx
+│   │   ├── RepertoryClient.tsx  # Поиск + результаты
+│   │   └── RepertoryTutorialPanel.tsx  # (автозапуск отключён)
+│   │
+│   ├── settings/                # Настройки врача
+│   │   ├── page.tsx
+│   │   ├── SettingsToggle.tsx
+│   │   ├── FollowupReminderSetting.tsx
+│   │   ├── ScheduleSettings.tsx
+│   │   └── PrescriptionRulesEditor.tsx  # Правила приёма
+│   │
+│   ├── referral/                # Реферальная программа
+│   │   ├── page.tsx
+│   │   └── ReferralClient.tsx
+│   │
+│   ├── pricing/                 # Тарифы
+│   │   ├── page.tsx
+│   │   └── CheckoutButton.tsx
+│   │
+│   ├── checkout/success/        # Успешный платёж
+│   │
+│   ├── survey/[token]/          # Предконсультационный опросник (публичный)
+│   │   ├── page.tsx
+│   │   └── PreVisitSurveyForm.tsx
+│   │
+│   ├── rx/[token]/              # Назначение для пациента (публичный)
+│   ├── intake/[token]/          # Анкета пациента (публичный)
+│   ├── followup/[token]/        # Опрос самочувствия (публичный)
+│   ├── upload/[token]/          # Загрузка фото (публичный)
+│   ├── new/[token]/             # Запись нового пациента (публичный)
+│   │
+│   └── api/
+│       ├── checkout/route.ts         # POST: создание платежа ЮKassa
+│       └── yookassa-webhook/route.ts # POST: webhook от ЮKassa
 │
 ├── components/                  # Shared компоненты
-│   ├── AppShell.tsx            # Layout wrapper (server)
-│   ├── SidebarShell.tsx        # Навигация (client)
+│   ├── AppShell.tsx             # Layout wrapper (server)
+│   ├── SidebarShell.tsx         # Навигация (client) + TourMenu
+│   ├── InteractiveTour.tsx      # Единый 32-шаговый тур
+│   ├── WelcomeScreen.tsx        # Приветствие при первом входе
+│   ├── OnboardingFlow.tsx       # Обёртка WelcomeScreen
+│   ├── TourMenu.tsx             # Меню обучения в сайдбаре
+│   ├── RefCookieSetter.tsx      # Cookie для реферальной ссылки
+│   ├── PublicFooter.tsx         # Футер публичных страниц
+│   ├── PatientForm.tsx          # Форма пациента (create/edit)
+│   ├── ScheduleButton.tsx       # Запись на приём
+│   ├── PaywallOverlay.tsx       # Оверлей лимита Free
+│   ├── SubscriptionBadge.tsx    # Бейдж подписки
+│   ├── CookieConsent.tsx        # Cookie-баннер
+│   ├── FeedbackModal.tsx        # Обратная связь
+│   ├── FirstTimeHint.tsx        # Контекстные подсказки
 │   ├── LogoutButton.tsx
-│   ├── MoscowClock.tsx         # Часы московского времени
-│   ├── ScheduleButton.tsx      # Запись на приём
-│   ├── PatientForm.tsx         # Форма пациента
-│   ├── TourModal.tsx           # Обучающий тур
-│   ├── auth/AuthLayout.tsx
-│   └── ui/                     # Примитивы
+│   └── ui/                      # shadcn/ui примитивы
 │       ├── button.tsx
 │       ├── skeleton.tsx
 │       └── toast.tsx
 │
 ├── hooks/
-│   └── useLanguage.ts          # Переключение языка (ru/en)
+│   └── useLanguage.ts           # Переключение языка (ru/en)
 │
 ├── lib/
 │   ├── supabase/
-│   │   ├── server.ts           # Server client (cookies)
-│   │   ├── client.ts           # Browser client
-│   │   └── service.ts          # Service role client (bypass RLS)
+│   │   ├── server.ts            # Server client (cookies)
+│   │   ├── client.ts            # Browser client
+│   │   └── service.ts           # Service role (bypass RLS)
 │   │
-│   ├── actions/                # Server Actions (все мутации)
-│   │   ├── patients.ts
-│   │   ├── consultations.ts
-│   │   ├── intake.ts
-│   │   ├── followups.ts
-│   │   ├── newPatient.ts
-│   │   ├── photos.ts
-│   │   ├── photoUpload.ts
-│   │   ├── remedies.ts
-│   │   ├── repertory.ts
-│   │   ├── payments.ts
-│   │   ├── schedule.ts
-│   │   └── seed.ts
+│   ├── actions/                 # Server Actions (19 файлов)
+│   │   ├── patients.ts          # CRUD пациентов
+│   │   ├── consultations.ts     # CRUD консультаций + autosave
+│   │   ├── intake.ts            # Анкеты
+│   │   ├── followups.ts         # Опросы самочувствия
+│   │   ├── surveys.ts           # Предконсультационные опросники
+│   │   ├── newPatient.ts        # Запись нового пациента
+│   │   ├── photos.ts            # Фото пациентов
+│   │   ├── photoUpload.ts       # Загрузка фото (публичная)
+│   │   ├── repertory.ts         # Поиск рубрик
+│   │   ├── remedies.ts          # Поиск препаратов
+│   │   ├── payments.ts          # Настройки + оплата сеансов
+│   │   ├── subscription.ts      # Подписки и лимиты
+│   │   ├── schedule.ts          # Расписание врача
+│   │   ├── referrals.ts         # Реферальная система
+│   │   ├── prescriptionShare.ts # Отправка назначений
+│   │   └── seed.ts              # Демо-данные
 │   │
-│   ├── clinicalEngine.ts       # Rule-based клинические решения
-│   ├── compareConsultations.ts # Diff между консультациями
-│   ├── remedies.ts             # In-memory база препаратов
-│   ├── repertory-synonyms.ts   # Синонимы для поиска
-│   ├── repertory-translations.ts # Переводы рубрик (3215 строк)
-│   ├── slots.ts                # Расчёт слотов записи
-│   ├── i18n.ts                 # Переводы UI (1259 строк)
-│   ├── i18n-server.ts          # Серверное определение языка
-│   ├── tour.ts                 # Шаги обучающего тура
-│   ├── utils.ts                # cn(), formatDate(), getAge(), pluralize()
-│   └── validation.ts           # Zod-схемы
+│   ├── clinicalEngine.ts        # Rule-based клинические решения
+│   ├── subscription.ts          # Логика тарифов (чистая)
+│   ├── prescriptionDefaults.ts  # Правила приёма препаратов
+│   ├── validation.ts            # Zod-схемы
+│   ├── remedies.ts              # In-memory база препаратов
+│   ├── repertory-translations.ts # Русские переводы рубрик
+│   ├── slots.ts                 # Расчёт слотов записи
+│   ├── i18n.ts                  # Переводы UI (ru/en)
+│   ├── i18n-server.ts           # Серверное определение языка
+│   ├── utils.ts                 # cn(), formatDate(), getAge()
+│   └── __tests__/               # Тесты (vitest, 220 штук)
+│       ├── clinicalEngine.test.ts
+│       ├── clinicalEdgeCases.test.ts
+│       ├── validation.test.ts
+│       ├── validationEdgeCases.test.ts
+│       ├── subscription.test.ts
+│       ├── utils.test.ts
+│       ├── i18n.test.ts
+│       └── prescriptionDefaults.test.ts
 │
 ├── types/
-│   └── index.ts                # Доменные типы
+│   └── index.ts                 # Доменные типы
 │
 ├── styles/
-│   └── theme.css               # CSS переменные (--sim-green и т.д.)
+│   └── theme.css                # CSS-токены (--sim-*)
 │
-└── middleware.ts               # Auth + rate limiting
+└── proxy.ts                     # Auth + rate limiting + CSP (Next.js 16 middleware)
 ```
 
 ---
 
-## Ключевые файлы
+## Публичные маршруты
 
-| Файл | Назначение |
-|------|-----------|
-| `src/middleware.ts` | Auth редиректы, rate limiting, CSP |
-| `src/app/layout.tsx` | Корневой layout, шрифты, ToastProvider |
-| `src/app/page.tsx` | Landing page (~689 строк) |
-| `src/app/dashboard/page.tsx` | Authenticated hub |
-| `src/app/patients/[id]/page.tsx` | Карточка пациента |
-| `src/app/patients/[id]/consultations/[id]/page.tsx` | Редактор консультации |
-| `src/lib/supabase/server.ts` | Server-side Supabase client |
-| `src/lib/actions/consultations.ts` | Мутации консультаций |
-| `src/lib/clinicalEngine.ts` | Клиническая логика |
-| `src/types/index.ts` | Все доменные типы |
-| `src/lib/i18n.ts` | Переводы UI (ru/en) |
-| `src/lib/validation.ts` | Zod схемы валидации |
+| Маршрут | Назначение |
+|---------|-----------|
+| `/` | Landing page |
+| `/login`, `/register`, `/forgot-password` | Авторизация |
+| `/privacy`, `/terms` | Юридические |
+| `/pricing` | Тарифы |
+| `/checkout/success` | Успешная оплата |
+| `/intake/[token]` | Анкета пациента |
+| `/followup/[token]` | Опрос самочувствия |
+| `/upload/[token]` | Загрузка фото |
+| `/survey/[token]` | Предконсультационный опросник |
+| `/rx/[token]` | Назначение для пациента |
+| `/new/[token]` | Запись нового пациента |
+| `/api/yookassa-webhook` | Webhook ЮKassa |
 
----
+## Приватные маршруты
 
-## Именование файлов
-
-- **Страницы:** `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx` (Next.js конвенции)
-- **Компоненты:** PascalCase (`ConsultationEditor.tsx`, `PatientForm.tsx`)
-- **Server Actions:** camelCase в `lib/actions/*.ts`
-- **Утилиты:** camelCase (`clinicalEngine.ts`, `utils.ts`)
-- **Типы:** `index.ts` в папке `types/`
-
-## Маршруты App Router
-
-**Приватные (требуют auth):**
-- `/dashboard` — главная
-- `/patients/new` — создать пациента
-- `/patients/[id]` — карточка
-- `/patients/[id]/consultations/[consultationId]` — редактор
-- `/patients/[id]/edit` — редактировать
-- `/patients/[id]/export` — PDF
-- `/repertory` — реперторий
-- `/settings` — настройки
-
-**Публичные:**
-- `/` — landing
-- `/login`, `/register`, `/forgot-password`
-- `/intake/[token]` — анкета
-- `/followup/[token]` — форма после приёма
-- `/upload/[token]` — загрузка фото
-- `/new/[token]` — быстрая запись
-- `/privacy`, `/terms`
+| Маршрут | Назначение |
+|---------|-----------|
+| `/dashboard` | Главная |
+| `/patients/new` | Создать пациента |
+| `/patients/[id]` | Карточка |
+| `/patients/[id]/edit` | Редактировать |
+| `/patients/[id]/export` | PDF |
+| `/patients/[id]/consultations/[id]` | Консультация |
+| `/repertory` | Реперторий |
+| `/settings` | Настройки |
+| `/referral` | Реферальная программа |

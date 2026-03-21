@@ -1,7 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const runtime = 'edge'
-export const alt = 'Similia — картотека для гомеопата'
+export const alt = 'Similia — думайте о пациенте, не о бумагах'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -10,91 +9,60 @@ export default function Image() {
     (
       <div
         style={{
-          background: '#ede7dd',
+          background: 'linear-gradient(135deg, #1a3020 0%, #2d6a4f 100%)',
           width: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative',
-          overflow: 'hidden',
+          padding: '64px 88px',
+          justifyContent: 'space-between',
         }}
       >
-        {/* Зелёная полоса сверху */}
-        <div style={{ width: '100%', height: '10px', background: '#2d6a4f', display: 'flex' }} />
-
-        {/* Декоративные круги */}
-        <div style={{
-          position: 'absolute', top: '-100px', right: '-100px',
-          width: '500px', height: '500px', borderRadius: '50%',
-          border: '2px solid rgba(45,106,79,0.15)', display: 'flex',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-120px', left: '-120px',
-          width: '480px', height: '480px', borderRadius: '50%',
-          border: '2px solid rgba(45,106,79,0.10)', display: 'flex',
-        }} />
-
-        {/* Контент */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', flex: 1,
-          padding: '60px 80px', justifyContent: 'space-between',
-        }}>
-
-          {/* Верх: логотип + домен */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              width: '52px', height: '52px', borderRadius: '50%',
-              background: '#2d6a4f', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              <div style={{
-                width: '22px', height: '22px', borderRadius: '50%',
-                background: 'rgba(255,255,255,0.9)', display: 'flex',
-              }} />
-            </div>
-            <span style={{ fontSize: '20px', color: '#9a8a6a', fontFamily: 'serif', letterSpacing: '1px' }}>
-              simillia.ru
-            </span>
+        {/* Верх: логотип */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '44px', height: '44px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'rgba(255,255,255,0.85)', display: 'flex' }} />
           </div>
+          <span style={{ fontSize: '26px', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
+            Similia
+          </span>
+          <span style={{ marginLeft: '16px', fontSize: '13px', color: 'rgba(255,255,255,0.4)', display: 'flex' }}>
+            simillia.ru
+          </span>
+        </div>
 
-          {/* Центр: название + подзаголовок */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{
-              fontSize: '96px', fontWeight: 700, color: '#1a3020',
-              fontFamily: 'Georgia, serif', lineHeight: 0.9,
-              letterSpacing: '-2px',
-            }}>
-              Similia
-            </div>
-            <div style={{
-              fontSize: '32px', color: '#4a7060',
-              fontFamily: 'Georgia, serif', fontWeight: 400,
-            }}>
-              Цифровой кабинет гомеопата
-            </div>
+        {/* Центр: заголовок */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <div style={{ fontSize: '64px', fontWeight: 300, color: '#ffffff', lineHeight: 1.1 }}>
+            Думайте о пациенте.
           </div>
-
-          {/* Низ: три фичи */}
-          <div style={{ display: 'flex', gap: '20px' }}>
-            {[
-              'Карточки пациентов',
-              'Реперторий Кента',
-              'Динамика состояния',
-            ].map(text => (
-              <div key={text} style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                background: 'rgba(45,106,79,0.10)',
-                border: '1px solid rgba(45,106,79,0.20)',
-                borderRadius: '12px', padding: '12px 22px',
-              }}>
-                <span style={{ fontSize: '18px', color: '#2d4030', fontFamily: 'Georgia, serif' }}>{text}</span>
-              </div>
-            ))}
+          <div style={{ fontSize: '64px', fontWeight: 300, color: '#7dd4a8', lineHeight: 1.1 }}>
+            Не о бумагах.
+          </div>
+          <div style={{ fontSize: '24px', color: 'rgba(255,255,255,0.55)', display: 'flex' }}>
+            Цифровой кабинет для практикующего гомеопата
           </div>
         </div>
 
-        {/* Градиентная полоса снизу */}
-        <div style={{ width: '100%', height: '8px', background: '#2d6a4f', display: 'flex' }} />
+        {/* Низ: фичи */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 18px' }}>
+            <span style={{ fontSize: '16px', color: 'rgba(255,255,255,0.75)', display: 'flex' }}>Карточки пациентов</span>
+          </div>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 18px' }}>
+            <span style={{ fontSize: '16px', color: 'rgba(255,255,255,0.75)', display: 'flex' }}>Реперторий Кента</span>
+          </div>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 18px' }}>
+            <span style={{ fontSize: '16px', color: 'rgba(255,255,255,0.75)', display: 'flex' }}>Динамика лечения</span>
+          </div>
+          <div style={{ display: 'flex', background: '#2d6a4f', borderRadius: '10px', padding: '10px 20px' }}>
+            <span style={{ fontSize: '16px', color: 'white', fontWeight: 600, display: 'flex' }}>Бесплатно</span>
+          </div>
+        </div>
       </div>
     ),
     { ...size }

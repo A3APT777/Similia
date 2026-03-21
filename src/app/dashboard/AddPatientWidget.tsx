@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { createIntakeLink, createIntakeLinkForPatient } from '@/lib/actions/intake'
+import { createPreVisitSurvey } from '@/lib/actions/surveys'
 import { IntakeType } from '@/types'
 
 type Patient = { id: string; name: string }
@@ -75,7 +76,7 @@ function WidgetButton({
   disabled?: boolean
 }) {
   const cls = `flex items-start gap-3 w-full text-left px-3 py-3 rounded-xl transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed`
-  const style = { backgroundColor: '#1a3020', color: '#f7f3ed' }
+  const style = { backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }
 
   const inner = (
     <>
@@ -84,7 +85,7 @@ function WidgetButton({
       </span>
       <span className="min-w-0">
         <span className="block text-[13px] font-semibold leading-tight">{label}</span>
-        <span className="block text-[11px] leading-snug mt-0.5" style={{ color: 'rgba(247,243,237,0.5)' }}>{sub}</span>
+        <span className="block text-xs leading-snug mt-0.5" style={{ color: 'rgba(247,243,237,0.5)' }}>{sub}</span>
       </span>
     </>
   )
@@ -155,7 +156,7 @@ function PrimaryIntakeModal({ onClose }: { onClose: () => void }) {
 function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onClose: () => void }) {
   const [step, setStep] = useState<ExistingStep>('pick')
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
-  const [intakeType, setIntakeType] = useState<IntakeType>('primary')
+  const [formType, setFormType] = useState<'survey' | 'acute'>('survey')
   const [link, setLink] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -181,8 +182,13 @@ function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onCl
     if (!selectedPatient) return
     setLoading(true)
     try {
-      const token = await createIntakeLinkForPatient(selectedPatient.id, intakeType)
-      setLink(`${window.location.origin}/intake/${token}`)
+      if (formType === 'survey') {
+        const { token } = await createPreVisitSurvey(selectedPatient.id)
+        setLink(`${window.location.origin}/survey/${token}`)
+      } else {
+        const token = await createIntakeLinkForPatient(selectedPatient.id, 'acute')
+        setLink(`${window.location.origin}/intake/${token}`)
+      }
       setStep('link')
     } finally {
       setLoading(false)
@@ -215,7 +221,7 @@ function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onCl
             onChange={e => setSearch(e.target.value)}
             placeholder="Поиск по имени..."
             autoFocus
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/25"
           />
           <div className="max-h-52 overflow-y-auto space-y-1">
             {filtered.length === 0 && (
@@ -237,15 +243,15 @@ function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onCl
       {step === 'type' && (
         <div className="space-y-3">
           <div className="space-y-2">
-            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${intakeType === 'primary' ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-              <input type="radio" className="mt-0.5 accent-emerald-600" checked={intakeType === 'primary'} onChange={() => setIntakeType('primary')} />
+            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formType === 'survey' ? 'border-[#2d6a4f] bg-[rgba(45,106,79,0.05)]' : 'border-gray-200 hover:bg-gray-50'}`}>
+              <input type="radio" className="mt-0.5 accent-[#2d6a4f]" checked={formType === 'survey'} onChange={() => setFormType('survey')} />
               <div>
-                <div className="text-sm font-medium text-gray-800">Первичная анкета</div>
-                <div className="text-xs text-gray-500 mt-0.5">Полный опрос: жалобы, модальности, психика, сон — 10–15 минут</div>
+                <div className="text-sm font-medium text-gray-800">Опросник перед визитом</div>
+                <div className="text-xs text-gray-500 mt-0.5">Реакция на препарат, динамика, сон, аппетит — 10–15 минут</div>
               </div>
             </label>
-            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${intakeType === 'acute' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-              <input type="radio" className="mt-0.5 accent-orange-500" checked={intakeType === 'acute'} onChange={() => setIntakeType('acute')} />
+            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formType === 'acute' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+              <input type="radio" className="mt-0.5 accent-orange-500" checked={formType === 'acute'} onChange={() => setFormType('acute')} />
               <div>
                 <div className="text-sm font-medium text-gray-800">⚡ Острый случай</div>
                 <div className="text-xs text-gray-500 mt-0.5">Короткая анкета острого состояния — 5–7 минут</div>
@@ -256,7 +262,7 @@ function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onCl
             onClick={generateLink}
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-60"
-            style={{ backgroundColor: '#1a3020', color: '#f7f3ed' }}
+            style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}
           >
             {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
             {loading ? 'Создаю ссылку...' : 'Создать ссылку →'}
@@ -287,7 +293,7 @@ function Modal({ title, subtitle, children, onClose, onBack }: {
     >
       <div
         className="w-full rounded-2xl p-6 shadow-2xl"
-        style={{ maxWidth: 420, backgroundColor: '#f7f3ed', border: '0.5px solid #d4c9b8' }}
+        style={{ maxWidth: 420, backgroundColor: 'var(--sim-bg)', border: '0.5px solid #d4c9b8' }}
       >
         <div className="flex items-start justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -308,7 +314,7 @@ function Modal({ title, subtitle, children, onClose, onBack }: {
             </svg>
           </button>
         </div>
-        <p className="text-sm mb-5" style={{ color: '#9a8a6a' }}>{subtitle}</p>
+        <p className="text-sm mb-5" style={{ color: 'var(--sim-text-hint)' }}>{subtitle}</p>
         {children}
       </div>
     </div>
@@ -325,7 +331,7 @@ function LinkResult({ link, copied, onCopy, note }: {
     <div className="space-y-3">
       <div
         className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-mono break-all"
-        style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8', color: '#5a5040' }}
+        style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)', color: 'var(--sim-text-sec)' }}
       >
         {link}
       </div>

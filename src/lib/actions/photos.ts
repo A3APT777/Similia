@@ -66,6 +66,8 @@ export async function deletePhoto(id: string): Promise<void> {
 
   if (!photo) return
 
-  await supabase.storage.from('patient-photos').remove([photo.storage_path])
-  await supabase.from('patient_photos').delete().eq('id', id).eq('doctor_id', user.id)
+  const { error: storageErr } = await supabase.storage.from('patient-photos').remove([photo.storage_path])
+  if (storageErr) console.error('[deletePhoto] storage:', storageErr)
+  const { error: dbErr } = await supabase.from('patient_photos').delete().eq('id', id).eq('doctor_id', user.id)
+  if (dbErr) { console.error('[deletePhoto] db:', dbErr); throw new Error('Не удалось удалить фото') }
 }

@@ -44,7 +44,7 @@ export default function ClinicalSummaryBlock({ assessment, lang }: Props) {
   return (
     <div className="flex items-center gap-1.5 flex-wrap mb-3">
       {totalLabel && (
-        <span className="text-[11px] text-gray-400 mr-0.5">{totalLabel}</span>
+        <span className="text-xs text-gray-400 mr-0.5">{totalLabel}</span>
       )}
       {badges.map((b) => {
         const s = BADGE_STYLES[b.type] || BADGE_STYLES.same

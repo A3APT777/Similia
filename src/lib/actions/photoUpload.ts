@@ -49,7 +49,8 @@ export async function submitPhotoUpload(
 
   const file = formData.get('file') as File
   const takenAt = formData.get('takenAt') as string
-  const note = formData.get('note') as string
+  const rawNote = formData.get('note') as string
+  const note = rawNote ? rawNote.slice(0, 500) : ''
 
   if (!file || file.size === 0) {
     return { success: false, error: 'Файл не выбран' }
@@ -77,7 +78,8 @@ export async function submitPhotoUpload(
     .upload(path, buffer, { contentType: file.type })
 
   if (storageError) {
-    return { success: false, error: `Ошибка загрузки файла: ${storageError.message}` }
+    console.error('Photo upload storage error:', storageError.message)
+    return { success: false, error: 'Ошибка загрузки файла. Попробуйте ещё раз.' }
   }
 
   const { data: { publicUrl } } = supabase.storage

@@ -113,8 +113,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 font-medium transition-colors hover:opacity-90"
-        style={{ border: '1.5px solid var(--color-garden)', color: 'var(--color-garden)', backgroundColor: 'transparent', borderRadius: '8px', fontSize: '15px', padding: '10px 16px' }}
+        className="btn btn-secondary w-full"
       >
         {t(lang).scheduleBtn.schedule}
       </button>
@@ -130,7 +129,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
           onClick={() => setApptType('chronic')}
           className={`text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
             apptType === 'chronic'
-              ? 'bg-emerald-600 text-white shadow-sm'
+              ? 'bg-[#2d6a4f] text-white shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -148,26 +147,32 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
           ⚡ {t(lang).scheduleBtn.acute}
         </button>
       </div>
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
-        <input
-          type="date" value={date}
-          onChange={e => { setDate(e.target.value); resetConflict() }}
-          required
-          className="border border-green-200 rounded-lg px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-green-400"
-        />
-        <input
-          type="time" value={time}
-          onChange={e => { setTime(e.target.value); resetConflict() }}
-          required
-          className="border border-green-200 rounded-lg px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-green-400 w-24"
-        />
-        <span className="text-xs text-green-600 shrink-0">{t(lang).scheduleBtn.msk}</span>
-        <button type="submit" disabled={loading} className="bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-green-800 disabled:opacity-50 transition-colors">
-          {loading ? t(lang).scheduleBtn.checking : t(lang).scheduleBtn.book}
-        </button>
-        <button type="button" onClick={() => { setOpen(false); resetConflict() }} className="text-gray-400 hover:text-gray-600 text-sm px-2">
-          {t(lang).scheduleBtn.cancel}
-        </button>
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date" value={date}
+            onChange={e => { setDate(e.target.value); resetConflict() }}
+            required
+            className="border border-green-200 rounded-lg px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/25"
+          />
+          <div className="flex items-center gap-1">
+            <input
+              type="time" value={time}
+              onChange={e => { setTime(e.target.value); resetConflict() }}
+              required
+              className="border border-green-200 rounded-lg px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/25 w-24"
+            />
+            <span className="text-xs text-green-600 shrink-0">{t(lang).scheduleBtn.msk}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="submit" disabled={loading} className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1a3020] disabled:opacity-50 transition-colors">
+            {loading ? t(lang).scheduleBtn.checking : t(lang).scheduleBtn.book}
+          </button>
+          <button type="button" onClick={() => { setOpen(false); resetConflict() }} className="text-gray-400 hover:text-gray-600 text-sm px-2 py-2">
+            {t(lang).scheduleBtn.cancel}
+          </button>
+        </div>
       </form>
 
       {conflictMsg && (

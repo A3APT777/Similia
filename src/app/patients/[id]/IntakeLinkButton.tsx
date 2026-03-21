@@ -58,10 +58,7 @@ export default function IntakeLinkButton({
         <button
           onClick={handleSendLink}
           disabled={loadingLink}
-          className="text-sm border px-3 py-2 rounded-lg transition-all disabled:opacity-50"
-          style={{ borderColor, color: textColor, backgroundColor: 'transparent' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = hoverBg)}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          className="btn btn-secondary w-full"
         >
           {loadingLink
             ? t(lang).intake.creating
@@ -76,14 +73,14 @@ export default function IntakeLinkButton({
   }
 
   return (
-    <div className="border rounded-xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
+    <div data-tour="intake-link-result" className="border rounded-xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
       <p className="text-xs font-semibold" style={{ color: isAcute ? 'var(--color-amber)' : 'var(--color-primary)' }}>
         {isAcute ? `⚡ ${t(lang).intake.acuteLink}` : t(lang).intake.patientLink}
       </p>
       <div className="flex items-center gap-2">
         <p
           className="text-xs truncate flex-1 rounded-lg px-3 py-1.5 font-mono"
-          style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border)', color: '#5a5040' }}
+          style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border)', color: 'var(--sim-text-sec)' }}
         >
           {link}
         </p>
@@ -95,7 +92,7 @@ export default function IntakeLinkButton({
           {copied ? `✓ ${t(lang).intake.copied}` : t(lang).intake.copy}
         </button>
       </div>
-      <p className="text-[10px]" style={{ color: '#9a8a6a' }}>{t(lang).intake.sendHint}</p>
+      <p className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>{t(lang).intake.sendHint}</p>
     </div>
   )
 }

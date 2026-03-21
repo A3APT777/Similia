@@ -23,7 +23,7 @@ export default function PreviousVisitSummary({ previousConsultation, lang }: Pro
         style={{ backgroundColor: expanded ? '#f0ebe3' : '#faf7f2' }}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-[11px] font-semibold text-gray-400 shrink-0">
+          <span className="text-xs font-semibold text-gray-400 shrink-0">
             {lang === 'ru' ? 'Прошлый приём' : 'Previous visit'}
           </span>
           <span className="text-xs text-gray-500 truncate">{headerText}</span>
@@ -57,7 +57,7 @@ export default function PreviousVisitSummary({ previousConsultation, lang }: Pro
 function Section({ title, text }: { title: string; text: string }) {
   return (
     <div className="mb-2">
-      <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.5px] mb-0.5">
+      <div className="text-xs font-semibold text-gray-400 uppercase tracking-[0.5px] mb-0.5">
         {title}
       </div>
       <div className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { updateFollowupReminderDays } from '@/lib/actions/payments'
 
-const PRESET_OPTIONS = [14, 21, 30, 45, 60, 90]
+const PRESET_OPTIONS = [14, 21, 30, 45, 60, 90, 120, 180]
 
 export default function FollowupReminderSetting({ initial }: { initial: number }) {
   const [days, setDays] = useState(initial)
@@ -11,27 +11,33 @@ export default function FollowupReminderSetting({ initial }: { initial: number }
   const [saved, setSaved] = useState(false)
 
   async function handleChange(val: number) {
+    const prev = days
     setDays(val)
     setSaving(true)
     setSaved(false)
-    await updateFollowupReminderDays(val)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    try {
+      await updateFollowupReminderDays(val)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      setDays(prev)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8' }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)' }}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-sm font-semibold" style={{ color: '#1a1a0a' }}>
-            Напоминание о пациентах
+            Отслеживание визитов
           </p>
-          <p className="text-xs mt-0.5" style={{ color: '#9a8a6a' }}>
-            Уведомлять, если пациент не приходил более указанного числа дней
+          <p className="text-xs mt-0.5" style={{ color: '#6b5f4f' }}>
+            Пациенты без визита дольше указанного срока будут выделены в дашборде
           </p>
         </div>
-        <span className="text-xs shrink-0 ml-4" style={{ color: saving ? '#9a8a6a' : saved ? '#2d6a4f' : 'transparent' }}>
+        <span aria-live="polite" className="text-xs shrink-0 ml-4" style={{ color: saving ? '#6b5f4f' : saved ? '#2d6a4f' : 'transparent' }}>
           {saving ? 'Сохраняю...' : saved ? '✓ Сохранено' : '·'}
         </span>
       </div>
@@ -41,7 +47,10 @@ export default function FollowupReminderSetting({ initial }: { initial: number }
           <button
             key={opt}
             onClick={() => handleChange(opt)}
-            className="text-xs px-3 py-1.5 rounded-lg border transition-all font-medium"
+            disabled={saving}
+            aria-pressed={days === opt}
+            aria-label={`Напоминание через ${opt} дней`}
+            className="text-xs px-3 py-2 rounded-lg border transition-all font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
             style={{
               backgroundColor: days === opt ? '#1a3020' : 'transparent',
               color: days === opt ? '#f7f3ed' : '#5a5040',
@@ -53,7 +62,7 @@ export default function FollowupReminderSetting({ initial }: { initial: number }
         ))}
       </div>
 
-      <p className="text-xs mt-3" style={{ color: '#9a8a6a' }}>
+      <p className="text-xs mt-3" style={{ color: '#6b5f4f' }}>
         Выбрано: <span className="font-semibold" style={{ color: '#1a1a0a' }}>{days} дней</span> — пациенты без визита более {days} дней будут выделены в дашборде
       </p>
     </div>

@@ -37,9 +37,16 @@ export default function FollowupForm({ token }: { token: string }) {
   if (done) {
     return (
       <div className="text-center py-8">
-        <div className="text-4xl mb-4">✓</div>
-        <h2 className="text-lg font-medium text-gray-900">Спасибо!</h2>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--sim-green)' }}>
+          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+        </div>
+        <h2 className="text-lg font-normal" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-forest)' }}>Спасибо!</h2>
         <p className="text-gray-500 mt-2">Ваш врач получил ответ</p>
+        <div className="mt-6">
+          <a href="https://simillia.ru" className="text-xs hover:underline" style={{ color: 'var(--sim-text-hint)' }} target="_blank" rel="noopener noreferrer">
+            Simillia.ru — цифровой кабинет гомеопата
+          </a>
+        </div>
       </div>
     )
   }
@@ -111,7 +118,7 @@ export default function FollowupForm({ token }: { token: string }) {
           onChange={e => setComment(e.target.value)}
           rows={3}
           placeholder={selected === 'new_symptoms' ? 'Опишите подробнее, что именно появилось...' : 'Комментарий (необязательно)...'}
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30"
         />
       </div>
 
@@ -120,7 +127,7 @@ export default function FollowupForm({ token }: { token: string }) {
       <button
         type="submit"
         disabled={!selected || loading}
-        className="w-full bg-green-700 text-white rounded-xl py-3 font-medium hover:bg-green-800 disabled:opacity-40 transition-colors"
+        className="w-full bg-[#2d6a4f] text-white rounded-xl py-3 font-medium hover:bg-[#1a3020] disabled:opacity-40 transition-colors"
       >
         {loading ? 'Отправляю...' : 'Отправить'}
       </button>

@@ -59,22 +59,22 @@ export default function SymptomDynamicsPanel({ symptoms, previousSymptoms, asses
   return (
     <div className="mb-3">
       <div className="flex items-center gap-1.5 flex-wrap mb-2">
-        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.5px]">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-[0.5px]">
           {lang === 'ru' ? 'Динамика' : 'Dynamics'}
         </span>
         {enriched.length > 0 && (
           <>
-            <span className="text-[11px] text-gray-400">·</span>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-xs text-gray-400">·</span>
+            <span className="text-xs text-gray-400">
               {enriched.length} {lang === 'ru' ? 'симпт.' : 'sympt.'}
             </span>
           </>
         )}
         {stateLabel && stateColors && (
           <>
-            <span className="text-[11px] text-gray-400">·</span>
+            <span className="text-xs text-gray-400">·</span>
             <span
-              className="text-[11px] font-medium px-2 py-px rounded-[10px]"
+              className="text-xs font-medium px-2 py-px rounded-[10px]"
               style={{ color: stateColors.color, backgroundColor: stateColors.bg, border: `1px solid ${stateColors.border}` }}
             >
               {stateLabel}
@@ -92,7 +92,7 @@ export default function SymptomDynamicsPanel({ symptoms, previousSymptoms, asses
             return items.map(s => (
               <div key={s.id} className="flex items-center gap-1.5 py-0.5 text-[13px] leading-tight">
                 <span
-                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold shrink-0"
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-xs font-bold shrink-0"
                   style={{ color: cfg.color, backgroundColor: cfg.bgColor }}
                 >
                   {cfg.icon}

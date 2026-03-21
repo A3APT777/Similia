@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#f0ebe3' }}>
 
       {/* Skip to content */}
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:text-sm" style={{ color: '#2d6a4f' }}>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:text-sm" style={{ color: 'var(--sim-green)' }}>
         Перейти к содержимому
       </a>
 
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
               <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65" />
               <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round" />
             </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '18px', fontWeight: 500, color: '#1a3020' }}>Similia</span>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '18px', fontWeight: 500, color: 'var(--sim-forest)' }}>Similia</span>
           </Link>
           <span className="text-gray-300" aria-hidden="true">/</span>
           <span className="text-sm text-gray-700">Политика конфиденциальности</span>

@@ -39,14 +39,17 @@ export default function FeedbackModal({ open, onClose }: Props) {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Обратная связь"
         className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
-        style={{ backgroundColor: '#f7f3ed', border: '1px solid #d4c9b8' }}
+        style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid var(--sim-border)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Шапка */}
         <div
           className="px-5 py-4 flex items-center justify-between"
-          style={{ backgroundColor: '#1a3020' }}
+          style={{ backgroundColor: 'var(--sim-forest)' }}
         >
           <div className="flex items-center gap-2.5">
             <div
@@ -64,7 +67,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
               >
                 Обратная связь
               </p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'rgba(247,243,237,0.4)' }}>Similia</p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(247,243,237,0.4)' }}>Similia</p>
             </div>
           </div>
           <button
@@ -88,14 +91,14 @@ export default function FeedbackModal({ open, onClose }: Props) {
           {/* Email-блок */}
           <div
             className="rounded-xl px-4 py-3.5"
-            style={{ backgroundColor: '#e8e0d4', border: '1px solid #d4c9b8' }}
+            style={{ backgroundColor: '#e8e0d4', border: '1px solid var(--sim-border)' }}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#9a8a6a' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--sim-text-hint)' }}>
               Почта для связи
             </p>
             <p
               className="text-[15px] font-medium"
-              style={{ color: '#1a3020', fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+              style={{ color: 'var(--sim-forest)', fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
               {EMAIL}
             </p>
@@ -119,7 +122,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
           <a
             href={mailtoHref}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold transition-all"
-            style={{ backgroundColor: '#1a3020', color: '#f7f3ed' }}
+            style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
@@ -127,7 +130,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
             Написать письмо
           </a>
 
-          <p className="text-center text-[11px]" style={{ color: '#c4b89a' }}>
+          <p className="text-center text-xs" style={{ color: '#c4b89a' }}>
             Или напишите напрямую на {EMAIL}
           </p>
         </div>

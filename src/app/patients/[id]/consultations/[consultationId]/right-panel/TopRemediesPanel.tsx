@@ -35,7 +35,7 @@ export default function TopRemediesPanel({ lang, onAssignRemedy }: Props) {
 
   return (
     <div className="rounded-lg px-3 py-2.5 mb-3" style={{ backgroundColor: '#f0f7f0', border: '1px solid rgba(45,106,79,0.15)' }}>
-      <div className="flex justify-between items-center text-[10px] font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: 'var(--color-garden)' }}>
+      <div className="flex justify-between items-center text-xs font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: 'var(--color-garden)' }}>
         <span>{lang === 'ru' ? 'Топ препаратов' : 'Top remedies'}</span>
         <span className="font-normal" style={{ color: 'var(--color-text-muted)' }}>
           {data.length} {lang === 'ru' ? 'рубр.' : 'rubrics'}
@@ -43,10 +43,10 @@ export default function TopRemediesPanel({ lang, onAssignRemedy }: Props) {
       </div>
 
       {loading && (
-        <div className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>…</div>
+        <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>…</div>
       )}
       {!loading && remedies.length === 0 && (
-        <div className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+        <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
           {lang === 'ru' ? 'Нет подходящих препаратов' : 'No matching remedies'}
         </div>
       )}
@@ -57,7 +57,7 @@ export default function TopRemediesPanel({ lang, onAssignRemedy }: Props) {
           className="flex items-center gap-1.5 py-1"
           style={{ borderBottom: i < remedies.length - 1 ? '1px solid rgba(45,106,79,0.08)' : 'none' }}
         >
-          <span className="text-[10px] text-gray-400 min-w-[14px]">{i + 1}.</span>
+          <span className="text-xs text-gray-400 min-w-[14px]">{i + 1}.</span>
           <span
             className="flex-1 text-[13px]"
             style={{
@@ -68,7 +68,7 @@ export default function TopRemediesPanel({ lang, onAssignRemedy }: Props) {
           >
             {r.name}
           </span>
-          <span className="text-[10px] text-gray-400">{r.score}</span>
+          <span className="text-xs text-gray-400">{r.score}</span>
           {onAssignRemedy && (
             <button
               type="button"

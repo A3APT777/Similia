@@ -54,35 +54,38 @@ export default function HeroStatCards({ todayCount, totalPatients, pendingCount,
     fontFamily: 'var(--font-cormorant, Georgia, serif)',
     color: 'rgba(255,255,255,0.9)',
   }
-  const labelStyle: React.CSSProperties = { color: 'rgba(255,255,255,0.45)' }
+  const labelStyle: React.CSSProperties = { color: 'rgba(255,255,255,0.75)' }
 
   return (
     <div className="grid grid-cols-3 gap-2 sm:gap-3">
       <button
         onClick={handleToday}
+        aria-label={`${todayCount} ${todayLabel}`}
         className="text-left rounded-xl px-3 py-3 transition-opacity hover:opacity-75"
         style={{ background: 'rgba(255,255,255,0.08)' }}
       >
         <p className="text-[22px] sm:text-[26px] font-light leading-none" style={numStyle}>{todayCount}</p>
-        <p className="text-[10px] mt-1" style={labelStyle}>{todayLabel}</p>
+        <p className="text-[12px] mt-1" style={labelStyle}>{todayLabel}</p>
       </button>
 
       <button
         onClick={handlePatients}
+        aria-label={`${totalPatients} ${patientsLabel}`}
         className="text-left rounded-xl px-3 py-3 transition-opacity hover:opacity-75"
         style={{ background: 'rgba(255,255,255,0.08)' }}
       >
         <p className="text-[22px] sm:text-[26px] font-light leading-none" style={numStyle}>{totalPatients}</p>
-        <p className="text-[10px] mt-1" style={labelStyle}>{patientsLabel}</p>
+        <p className="text-[12px] mt-1" style={labelStyle}>{patientsLabel}</p>
       </button>
 
       <button
         onClick={handlePending}
+        aria-label={`${pendingCount} ${noPrescriptionLabel}`}
         className="text-left rounded-xl px-3 py-3 transition-opacity hover:opacity-75"
         style={{ background: pendingCount > 0 ? 'rgba(200,160,53,0.18)' : 'rgba(255,255,255,0.08)' }}
       >
         <p className="text-[22px] sm:text-[26px] font-light leading-none" style={{ ...numStyle, color: pendingCount > 0 ? 'var(--color-amber)' : 'rgba(255,255,255,0.9)' }}>{pendingCount}</p>
-        <p className="text-[10px] mt-1" style={labelStyle}>{noPrescriptionLabel}</p>
+        <p className="text-[12px] mt-1" style={labelStyle}>{noPrescriptionLabel}</p>
       </button>
     </div>
   )

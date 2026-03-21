@@ -19,6 +19,10 @@ type State = {
   symptoms: StructuredSymptom[]
   rubrics: string
   reactionToPrev: string
+  modalityWorseText: string
+  modalityBetterText: string
+  mentalText: string
+  generalText: string
   type: ConsultationType
   mode: ConsultationMode
   // Мета
@@ -58,7 +62,7 @@ type ConsultationContextValue = {
   state: State
   dispatch: React.Dispatch<Action>
   // Хелперы для обновления полей
-  updateField: (field: 'notes' | 'complaints' | 'observations' | 'recommendations' | 'rubrics' | 'reactionToPrev', value: string) => void
+  updateField: (field: 'notes' | 'complaints' | 'observations' | 'recommendations' | 'rubrics' | 'reactionToPrev' | 'modalityWorseText' | 'modalityBetterText' | 'mentalText' | 'generalText', value: string) => void
   addSymptom: (symptom: StructuredSymptom) => void
   removeSymptom: (id: string) => void
   updateSymptomDynamics: (id: string, dynamics: SymptomDynamics) => void
@@ -107,6 +111,10 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
     symptoms: consultation.structured_symptoms || [],
     rubrics: consultation.rubrics || '',
     reactionToPrev: consultation.reaction_to_previous || '',
+    modalityWorseText: consultation.modality_worse_text || '',
+    modalityBetterText: consultation.modality_better_text || '',
+    mentalText: consultation.mental_text || '',
+    generalText: consultation.general_text || '',
     type: consultation.type ?? 'chronic',
     mode: consultation.mode ?? 'quick',
     saveState: 'saved',
@@ -119,10 +127,14 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
   const [state, dispatch] = useReducer(reducer, initialState)
   stateRef.current = state
 
-  // --- Автосохранение: единый таймер ---
-  // При каждом изменении saveState на 'unsaved' — перезапускаем таймер
+  // --- Автосохранение: единый таймер с backoff ---
+  const errorCountRef = useRef(0)
+
   useEffect(() => {
     if (state.saveState !== 'unsaved') return
+
+    // Экспоненциальный backoff: 1.5с, 3с, 6с, 12с, макс 30с
+    const delay = Math.min(1500 * Math.pow(2, errorCountRef.current), 30000)
 
     clearTimeout(autosaveTimerRef.current)
     autosaveTimerRef.current = setTimeout(async () => {
@@ -130,7 +142,6 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
       dispatch({ type: 'SET_SAVE_STATE', state: 'saving' })
 
       try {
-        // Батч-сохранение всех полей одновременно
         const currentAssessment = assessmentRef.current
         await Promise.all([
           updateConsultationNotes(consultation.id, s.notes),
@@ -142,28 +153,35 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
             mode: s.mode,
             case_state: currentAssessment?.caseState ?? null,
             clinical_assessment: currentAssessment ?? null,
+            modality_worse_text: s.modalityWorseText,
+            modality_better_text: s.modalityBetterText,
+            mental_text: s.mentalText,
+            general_text: s.generalText,
           }),
           updateConsultationExtra(consultation.id, s.rubrics, s.reactionToPrev),
         ])
 
+        errorCountRef.current = 0
         const now = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
         dispatch({ type: 'SET_SAVE_STATE', state: 'saved', savedAt: now })
       } catch {
+        errorCountRef.current++
         dispatch({ type: 'SET_SAVE_STATE', state: 'unsaved' })
+        if (errorCountRef.current <= 3) return // тихий retry
         toast(t(lang).consultation.saveError, 'error', {
           label: lang === 'ru' ? 'Повторить' : 'Retry',
-          onClick: () => saveAllRef.current(),
+          onClick: () => { errorCountRef.current = 0; saveAllRef.current() },
         })
       }
-    }, 1500)
+    }, delay)
 
     return () => clearTimeout(autosaveTimerRef.current)
-  }, [state.saveState, state.notes, state.complaints, state.observations, state.recommendations, state.symptoms, state.rubrics, state.reactionToPrev, consultation.id, lang, toast])
+  }, [state.saveState, state.notes, state.complaints, state.observations, state.recommendations, state.symptoms, state.rubrics, state.reactionToPrev, state.modalityWorseText, state.modalityBetterText, state.mentalText, state.generalText, consultation.id, lang, toast])
 
   // --- Хелперы ---
 
   const updateField = useCallback((
-    field: 'notes' | 'complaints' | 'observations' | 'recommendations' | 'rubrics' | 'reactionToPrev',
+    field: 'notes' | 'complaints' | 'observations' | 'recommendations' | 'rubrics' | 'reactionToPrev' | 'modalityWorseText' | 'modalityBetterText' | 'mentalText' | 'generalText',
     value: string,
   ) => {
     dispatch({ type: 'SET_FIELD', field, value })
@@ -184,11 +202,15 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
     })
   }, [])
 
-  const toggleType = useCallback(() => {
+  const toggleType = useCallback(async () => {
     const next: ConsultationType = stateRef.current.type === 'chronic' ? 'acute' : 'chronic'
     dispatch({ type: 'SET_FIELD', field: 'type', value: next })
-    // Тип сохраняем сразу (отдельный API)
-    updateConsultationType(consultation.id, next)
+    try {
+      await updateConsultationType(consultation.id, next)
+    } catch {
+      // Откатываем UI при ошибке
+      dispatch({ type: 'SET_FIELD', field: 'type', value: stateRef.current.type === 'chronic' ? 'acute' : 'chronic' })
+    }
   }, [consultation.id])
 
   const saveAll = useCallback(async () => {
@@ -209,6 +231,10 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
           structured_symptoms: s.symptoms,
           case_state: currentAssessment?.caseState ?? null,
           clinical_assessment: currentAssessment ?? null,
+          modality_worse_text: s.modalityWorseText,
+          modality_better_text: s.modalityBetterText,
+          mental_text: s.mentalText,
+          general_text: s.generalText,
         }),
         updateConsultationExtra(consultation.id, s.rubrics, s.reactionToPrev),
       ])

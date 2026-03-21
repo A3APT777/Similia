@@ -4,6 +4,8 @@ import { getAge } from '@/lib/utils'
 import PrintTrigger from './PrintTrigger'
 import { t } from '@/lib/i18n'
 import { getLang } from '@/lib/i18n-server'
+import { getSubscription } from '@/lib/actions/subscription'
+import { isFeatureAllowed } from '@/lib/subscription'
 
 // Секции анкет для отображения в PDF
 const PRIMARY_SECTIONS = [
@@ -65,12 +67,16 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: patient } = await supabase.from('patients').select('*').eq('id', id).eq('doctor_id', user.id).single()
+  // Проверка подписки — экспорт только на Стандарте
+  const sub = await getSubscription()
+  if (!isFeatureAllowed(sub, 'export')) redirect('/pricing')
+
+  const { data: patient } = await supabase.from('patients').select('id, name, birth_date, phone, email, constitutional_type, notes, first_visit_date').eq('id', id).eq('doctor_id', user.id).single()
   if (!patient) notFound()
 
   const { data: consultations } = await supabase
     .from('consultations')
-    .select('*')
+    .select('id, date, type, status, notes, prescription, scheduled_at, structured_symptoms, clinical_assessment, doctor_dynamics, etiology, remedy, potency, pellets, dosage')
     .eq('patient_id', id)
     .neq('status', 'cancelled')
     .order('scheduled_at', { ascending: true, nullsFirst: false })
@@ -80,14 +86,14 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
   const consultationIds = completed.map(c => c.id)
 
   const { data: followups } = consultationIds.length > 0
-    ? await supabase.from('followups').select('*').in('consultation_id', consultationIds)
+    ? await supabase.from('followups').select('id, consultation_id, answers, created_at').in('consultation_id', consultationIds)
     : { data: [] }
 
   const followupMap = Object.fromEntries((followups || []).map(f => [f.consultation_id, f]))
 
   const { data: intakeForms } = await supabase
     .from('intake_forms')
-    .select('*')
+    .select('id, type, status, answers, created_at')
     .eq('patient_id', id)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
@@ -153,7 +159,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                         .filter((k: string) => intake.answers?.[k]?.trim())
                         .map((k: string) => (
                           <div key={k}>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-0.5">
                               {FIELD_LABELS[k] || k}
                             </p>
                             <p className="text-sm text-gray-800 leading-snug">
@@ -197,7 +203,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                             {title}
                           </p>
                           {isAcute && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
                               {t(lang).consultation.acuteShort}
                             </span>
                           )}
@@ -209,7 +215,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                         {/* Заметки */}
                         {c.notes?.trim() && (
                           <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t(lang).export.notes}</p>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">{t(lang).export.notes}</p>
                             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.notes}</p>
                           </div>
                         )}
@@ -218,7 +224,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                         {c.remedy && (
                           <div className="flex items-center gap-3 pt-1 border-t border-gray-100">
                             <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">{t(lang).export.prescription}</p>
+                              <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-0.5">{t(lang).export.prescription}</p>
                               <p className="text-sm font-semibold text-gray-800">
                                 {c.remedy}{c.potency ? ` ${c.potency}` : ''}{c.pellets ? ` · ${c.pellets} ${t(lang).export.pellets}` : ''}
                               </p>
@@ -228,7 +234,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                             {/* Ответ пациента */}
                             {followup?.status && FOLLOWUP_LABELS[followup.status] && (
                               <div className="ml-auto text-right">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">{t(lang).export.patientResponse}</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-0.5">{t(lang).export.patientResponse}</p>
                                 <p className="text-sm font-semibold text-gray-700">{FOLLOWUP_LABELS[followup.status]}</p>
                                 {followup.comment && (
                                   <p className="text-xs text-gray-400 italic mt-0.5 max-w-48">«{followup.comment}»</p>

@@ -73,7 +73,7 @@ function daysAgo(timestamp: number, lang: Parameters<typeof t>[0]): string {
 
 const followupStyles = {
   better: {
-    dot: 'bg-emerald-500',
+    dot: 'bg-[#2d6a4f]',
     badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     icon: (
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -155,7 +155,7 @@ function ConsultationCard({
     ? 'bg-amber-400 border-amber-300'
     : isAcute
     ? 'bg-orange-400 border-orange-300'
-    : 'bg-emerald-500 border-emerald-400'
+    : 'bg-[#2d6a4f] border-emerald-400'
 
   return (
     <div className={`relative flex gap-5 pb-8 ${isLast && !followup ? 'pb-0' : ''} ${isCancelled ? 'opacity-50' : ''}`}>
@@ -172,9 +172,9 @@ function ConsultationCard({
       <div className="flex-1 min-w-0 pb-1">
         {/* Дата + тег относительного времени */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="font-medium" style={{ fontSize: '14px', color: '#1a3020' }}>{dateStr}</span>
+          <span className="font-medium" style={{ fontSize: '14px', color: 'var(--sim-forest)' }}>{dateStr}</span>
           {!isScheduled && !isCancelled && (
-            <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{daysAgo(event.sortKey, lang)}</span>
+            <span style={{ fontSize: '12px', color: 'var(--sim-text-hint)' }}>{daysAgo(event.sortKey, lang)}</span>
           )}
           {isAcute && !isCancelled && (
             <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200">
@@ -207,7 +207,7 @@ function ConsultationCard({
           className="group block transition-all"
           style={{
             backgroundColor: '#f0ebe3',
-            border: '1px solid #d4c9b8',
+            border: '1px solid var(--sim-border)',
             borderLeft: isAcute ? '4px solid #c8a035' : '4px solid #2d6a4f',
             borderRadius: '8px',
             padding: '16px',
@@ -220,31 +220,31 @@ function ConsultationCard({
           {/* Назначение — всегда первое, bold, акцент */}
           {isCompleted && consultation.remedy ? (
             <div className="mb-1.5 flex items-baseline gap-2 flex-wrap">
-              <span style={{ fontSize: '16px', fontWeight: 700, color: '#1a3020', fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--sim-forest)', fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
                 {consultation.remedy}
               </span>
-              <span style={{ fontSize: '14px', fontWeight: 600, color: '#2d6a4f' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--sim-green)' }}>
                 {consultation.potency}
               </span>
               {consultation.pellets && (
-                <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{consultation.pellets} {t(lang).timeline.pellets}</span>
+                <span style={{ fontSize: '12px', color: 'var(--sim-text-hint)' }}>{consultation.pellets} {t(lang).timeline.pellets}</span>
               )}
             </div>
           ) : isCompleted && !consultation.remedy ? (
             <div className="mb-1.5">
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#c8a035' }}>{t(lang).timeline.noPrescription}</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--sim-amber)' }}>{t(lang).timeline.noPrescription}</span>
             </div>
           ) : null}
 
           {/* Краткое содержание — вторичный текст */}
           {isScheduled ? (
-            <p style={{ fontSize: '13px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.scheduledAppointment}</p>
+            <p style={{ fontSize: '13px', color: 'var(--sim-text-hint)', fontStyle: 'italic' }}>{t(lang).timeline.scheduledAppointment}</p>
           ) : isCompleted && (consultation.complaints || consultation.notes) ? (
             <p style={{ fontSize: '13px', color: '#7a7060', lineHeight: '1.5' }}>
               {preview(consultation.complaints || consultation.notes || '', 100)}
             </p>
           ) : isInProgress ? (
-            <p style={{ fontSize: '13px', color: '#9a8a6a', fontStyle: 'italic' }}>{t(lang).timeline.appointmentInProgress}</p>
+            <p style={{ fontSize: '13px', color: 'var(--sim-text-hint)', fontStyle: 'italic' }}>{t(lang).timeline.appointmentInProgress}</p>
           ) : null}
         </Link>
       </div>
@@ -286,11 +286,11 @@ function FollowupCard({
       {/* Карточка */}
       <div className="flex-1 min-w-0 pb-1">
         <div className="flex items-center gap-2 mb-2">
-          <span className="font-medium" style={{ fontSize: '14px', color: '#1a3020' }}>{dateStr}</span>
-          <span style={{ fontSize: '12px', color: '#9a8a6a' }}>{daysAgo(event.sortKey, lang)}</span>
+          <span className="font-medium" style={{ fontSize: '14px', color: 'var(--sim-forest)' }}>{dateStr}</span>
+          <span style={{ fontSize: '12px', color: 'var(--sim-text-hint)' }}>{daysAgo(event.sortKey, lang)}</span>
         </div>
 
-        <div style={{ backgroundColor: '#f0ebe3', border: '1px solid #d4c9b8', borderRadius: '8px', padding: '16px' }}>
+        <div style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)', borderRadius: '8px', padding: '16px' }}>
           <div className="flex items-center gap-2 mb-1.5">
             <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.badge}`}>
               {cfg.icon}

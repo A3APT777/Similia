@@ -32,13 +32,13 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
     <AppShell>
       <div className="max-w-lg mx-auto px-6 py-8">
         <div className="flex items-center gap-3 mb-6">
-          <Link href={`/patients/${id}`} className="text-gray-400 hover:text-gray-600 text-sm">
+          <Link href={`/patients/${id}`} className="text-gray-600 hover:text-gray-900 text-sm">
             ← {t(lang).patientCard.back}
           </Link>
           <h1 className="text-xl font-semibold text-gray-900">{t(lang).patientCard.editPatient}</h1>
         </div>
 
-        <div className="bg-[#ede7dd] border border-gray-100 rounded-xl p-6">
+        <div className="bg-white border border-gray-100 rounded-xl p-6">
           <PatientForm patient={patient} action={update} submitLabel={t(lang).patientCard.save} />
         </div>
       </div>

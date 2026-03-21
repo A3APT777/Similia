@@ -70,7 +70,7 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
           </code>
           <button
             onClick={copyLink}
-            className="text-xs bg-green-700 text-white px-3 py-1.5 rounded-lg hover:bg-green-800 transition-colors shrink-0"
+            className="text-xs bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[#1a3020] transition-colors shrink-0"
           >
             {copied ? t(lang).followup.copied : t(lang).followup.copy}
           </button>
@@ -86,7 +86,7 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
       <button
         onClick={handleCreate}
         disabled={loading}
-        className="text-sm text-gray-500 border border-gray-200 px-4 py-2 rounded-lg hover:border-gray-300 hover:text-gray-700 disabled:opacity-50 transition-all"
+        className="btn btn-secondary"
       >
         {loading ? t(lang).followup.creating : t(lang).followup.askFeeling}
       </button>

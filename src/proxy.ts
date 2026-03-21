@@ -11,14 +11,22 @@ const PUBLIC_PATHS = [
   '/intake',
   '/followup',
   '/upload',
+  '/survey',
+  '/rx',
   '/new',
   '/privacy',
   '/terms',
   '/opengraph-image',
+  '/api/yookassa-webhook',
+  '/checkout',
+  '/pricing',
+  '/demo',
+  '/ai-intake',
+  '/api/ai-demo',
 ]
 
 // Публичные маршруты с rate limiting (защита от спама)
-const RATE_LIMITED_PATHS = ['/intake/', '/followup/', '/upload/', '/new/']
+const RATE_LIMITED_PATHS = ['/intake/', '/followup/', '/upload/', '/survey/', '/new/', '/login', '/register']
 
 // Простой in-process счётчик (сбрасывается при cold start, но лучше чем ничего).
 // Для production с высокой нагрузкой заменить на Upstash Redis.
@@ -71,29 +79,17 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Генерируем nonce для CSP — заменяет unsafe-inline (Web Crypto API для Edge Runtime)
-  const nonceBytes = new Uint8Array(16)
-  globalThis.crypto.getRandomValues(nonceBytes)
-  const nonce = btoa(String.fromCharCode(...nonceBytes))
   const csp = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://yastatic.net`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
-    `img-src 'self' data: blob: https://*.supabase.co`,
-    `connect-src 'self' https://*.supabase.co`,
+    `img-src 'self' data: blob: https://*.supabase.co https://mc.yandex.ru https://mc.yandex.com`,
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://mc.yandex.ru https://mc.yandex.com https://mc.webvisor.org`,
     `frame-ancestors 'none'`,
   ].join('; ')
 
-  // Передаём nonce через заголовок — Next.js подхватит его автоматически
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-nonce', nonce)
-
-  let response = NextResponse.next({
-    request: { headers: requestHeaders },
-  })
-
-  response.headers.set('Content-Security-Policy', csp)
+  let response = NextResponse.next({ request })
 
   // Создаём Supabase клиент с возможностью обновлять cookies сессии
   const supabase = createServerClient(
@@ -118,8 +114,12 @@ export async function proxy(request: NextRequest) {
   // Обновляем сессию (важно для SSR — продлевает токен)
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Если маршрут защищён и пользователь не авторизован — редиректим на /login
+  // Если маршрут защищён и пользователь не авторизован
   if (!isPublic && !user) {
+    // API-маршруты → JSON 401 (не редирект)
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+    }
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     return NextResponse.redirect(loginUrl)
@@ -132,6 +132,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl)
   }
 
+  response.headers.set('Content-Security-Policy', csp)
   return response
 }
 

@@ -11,11 +11,15 @@ import IntakeView from './IntakeView'
 import PhotoSection from './PhotoSection'
 import CancelAppointmentButton from './CancelAppointmentButton'
 import TreatmentProgress from './TreatmentProgress'
-import TourSuccessToast from '@/components/TourSuccessToast'
-import TourPatientCardStarter from '@/components/TourPatientCardStarter'
 import IntakeLinkButton from './IntakeLinkButton'
+import AIIntakeLinkButton from './AIIntakeLinkButton'
 import PaidSessionsBlock from './PaidSessionsBlock'
 import DeletePatientButton from './DeletePatientButton'
+import StickyPatientHeader from './StickyPatientHeader'
+import FirstTimeHint from '@/components/FirstTimeHint'
+import SendSurveyButton from './SendSurveyButton'
+import StartConsultationButton from './StartConsultationButton'
+import SharePrescriptionButton from './consultations/[consultationId]/SharePrescriptionButton'
 import { getDoctorSettings } from '@/lib/actions/payments'
 import { t } from '@/lib/i18n'
 import { getLang } from '@/lib/i18n-server'
@@ -80,10 +84,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     await createConsultation(id, 'chronic')
   }
 
-  async function newAcuteConsultation() {
-    'use server'
-    await createConsultation(id, 'acute')
-  }
 
   // Вычисляемые данные для новых блоков
   const lastVisitDate = consultations?.[0]?.date || null
@@ -169,41 +169,54 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
 
   return (
     <AppShell>
-      <TourSuccessToast />
-      <TourPatientCardStarter />
+      <StickyPatientHeader
+        name={patient.name}
+        status={patientStatus}
+        remedy={currentPrescription?.remedy}
+        potency={currentPrescription?.potency}
+      />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
 
-        {/* ═══ 1. HERO — мгновенное понимание ═══ */}
+        {/* ═══ 1. HERO — чистый информационный блок ═══ */}
         <div data-tour="patient-hero" className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid var(--sim-border)' }}>
-          <div style={{ height: '4px', backgroundColor: patientStatus.color }} />
+          <div style={{ height: '3px', backgroundColor: patientStatus.color, borderRadius: '3px 3px 0 0' }} />
           <div className="p-4 sm:p-5" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
 
-            {/* Статус + мета */}
+            {/* Статус + кнопки */}
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ color: patientStatus.color, backgroundColor: patientStatus.bg }}>
+              <span className="text-[12px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ color: patientStatus.color, backgroundColor: patientStatus.bg }}>
                 {patientStatus.label}
               </span>
               <div className="flex items-center gap-1.5">
-                <a href={`/patients/${id}/export`} target="_blank" rel="noopener noreferrer" className="text-[11px] px-2 py-1 rounded transition-colors" style={{ color: 'var(--sim-text-muted)', border: '1px solid var(--sim-border)' }}>PDF</a>
-                <Link href={`/patients/${id}/edit`} className="text-[11px] px-2 py-1 rounded transition-colors" style={{ color: 'var(--sim-text-muted)', border: '1px solid var(--sim-border)' }}>{t(lang).patientCard.edit}</Link>
+                <a href={`/patients/${id}/export`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
+                  PDF
+                </a>
+                <Link href={`/patients/${id}/edit`} className="btn btn-ghost btn-sm">
+                  {t(lang).patientCard.edit}
+                </Link>
                 <DeletePatientButton patientId={id} patientName={patient.name} />
               </div>
             </div>
 
-            {/* ФИО — крупно */}
+            {/* ФИО + конституция как бейдж */}
             <h1 className="text-xl sm:text-2xl font-semibold leading-tight" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-text)' }}>
               {patient.name}
               {patient.birth_date && <span className="text-sm font-normal ml-2" style={{ color: 'var(--sim-text-hint)' }}>{getAge(patient.birth_date)}</span>}
             </h1>
+            {patient.constitutional_type && (
+              <span className="inline-block mt-1.5 text-[12px] font-semibold px-2.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: 'var(--sim-green)' }}>
+                {patient.constitutional_type}
+              </span>
+            )}
 
-            {/* Клиническая формулировка — суть, не симптомы */}
+            {/* Клиническая формулировка */}
             {clinicalSummary && (
-              <p className="text-[15px] font-semibold mt-1.5 leading-snug" style={{ color: 'var(--sim-forest)' }}>
+              <p className="text-[15px] font-semibold mt-2 leading-snug" style={{ color: 'var(--sim-forest)' }}>
                 {clinicalSummary}
               </p>
             )}
 
-            {/* Доп. факты — коротко */}
+            {/* Доп. факты */}
             {symptomBullets.length > 0 && (
               <ul className="mt-1.5 space-y-0.5">
                 {symptomBullets.map((s: string, i: number) => (
@@ -215,7 +228,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               </ul>
             )}
 
-            {/* Динамика — 1 строка */}
+            {/* Динамика */}
             {dynamicsInfo && (
               <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: dynamicsInfo.color + '10' }}>
                 <span className="text-base font-bold" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.arrow}</span>
@@ -229,67 +242,84 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               </div>
             )}
 
-            {/* Мета */}
-            <div className="flex flex-wrap items-center gap-x-2 mt-3 text-[11px]" style={{ color: 'var(--sim-text-muted)' }}>
-              {patient.phone && <a href={`tel:${patient.phone}`} className="hover:text-emerald-700 transition-colors">{patient.phone}</a>}
-              {patient.constitutional_type && <><span>·</span><span>{patient.constitutional_type}</span></>}
-            </div>
-
-            {/* Нет конституционального типа */}
-            {!patient.constitutional_type && (
-              <div className="flex items-center justify-between gap-2 mt-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'rgba(200,160,53,0.10)', border: '1px solid rgba(200,160,53,0.3)' }}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <svg className="w-3.5 h-3.5 shrink-0" style={{ color: '#c8a035' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
-                  </svg>
-                  <p className="text-[11px] truncate" style={{ color: '#9a6c00' }}>
-                    {lang === 'ru' ? 'Конституциональный тип не указан' : 'Constitutional type not set'}
-                  </p>
-                </div>
-                <Link
-                  href={`/patients/${id}/edit`}
-                  className="text-[11px] font-semibold shrink-0 px-2.5 py-1 rounded-md transition-all"
-                  style={{ backgroundColor: '#c8a035', color: '#fff' }}
-                >
-                  {lang === 'ru' ? '+ Добавить' : '+ Add'}
-                </Link>
+            {/* Мета — телефон */}
+            {patient.phone && (
+              <div className="mt-2 text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>
+                <a href={`tel:${patient.phone}`} className="hover:text-emerald-700 transition-colors">{patient.phone}</a>
               </div>
             )}
 
-            {/* CTA */}
+            {/* Одна CTA-кнопка */}
             <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--sim-border)' }}>
-              <form action={newChronicConsultation}>
-                <button data-tour="new-consultation" type="submit" className="btn btn-primary btn-lg w-full">
-                  {consultations && consultations.filter(c => c.status === 'completed').length > 0
-                    ? (lang === 'ru' ? 'Начать повторный приём' : 'Start follow-up')
-                    : (lang === 'ru' ? 'Начать первый приём' : 'Start first appointment')
-                  }
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                </button>
-              </form>
-              <div className="flex items-center justify-center mt-1.5" data-tour="schedule-btn">
-                <ScheduleButton patientId={id} />
-              </div>
-              <div className="mt-2" data-tour="intake-link">
-                <IntakeLinkButton patientId={id} patientName={patient.name} />
-              </div>
+              <StartConsultationButton
+                action={newChronicConsultation}
+                label={consultations && consultations.filter(c => c.status === 'completed').length > 0
+                  ? (lang === 'ru' ? 'Начать повторный приём' : 'Start follow-up')
+                  : (lang === 'ru' ? 'Начать первый приём' : 'Start first appointment')
+                }
+              />
             </div>
           </div>
         </div>
 
-        {/* ═══ 2. ТЕКУЩЕЕ ЛЕЧЕНИЕ — визуально доминирует ═══ */}
+        <FirstTimeHint id="patient_card">
+          {lang === 'ru'
+            ? 'Это карточка пациента — вся история в одном месте. Кнопки PDF и Редактировать — справа вверху. Анкета и запись на приём — ниже.'
+            : 'This is the patient card — full history in one place. PDF and Edit buttons — top right. Questionnaire and scheduling — below.'}
+        </FirstTimeHint>
+
+        {/* ═══ 2. ДЕЙСТВИЯ — анкета, запись, оплата ═══ */}
+        <div data-tour="action-buttons" className="mb-5 flex flex-wrap gap-2">
+          <div data-tour="intake-link" className="flex-1 min-w-[140px]">
+            <IntakeLinkButton
+              patientId={id}
+              patientName={patient.name}
+              type={completedPrimaryIntake ? 'acute' : 'primary'}
+              hasCompleted={!!completedPrimaryIntake}
+            />
+          </div>
+          <div className="flex-1 min-w-[140px]">
+            <AIIntakeLinkButton patientId={id} />
+          </div>
+          <div data-tour="schedule-btn" className="flex-1 min-w-[140px]">
+            <ScheduleButton patientId={id} />
+          </div>
+          {(completedPrimaryIntake || lastCompleted) && (
+            <div className="flex-1 min-w-[140px]">
+              <SendSurveyButton patientId={id} patientName={patient.name} />
+            </div>
+          )}
+        </div>
+
+        {/* Запланированные приёмы */}
+        {consultations?.some(c => c.status === 'scheduled') && (
+          <div className="mb-4 space-y-1.5">
+            {consultations.filter(c => c.status === 'scheduled').map(consultation => (
+              <div key={consultation.id} className="flex items-center justify-between rounded-xl px-4 py-2.5 text-sm" style={{ backgroundColor: 'rgba(45,106,79,0.06)', border: '1px solid rgba(45,106,79,0.15)' }}>
+                <span className="font-medium" style={{ color: 'var(--sim-green)' }}>
+                  {t(lang).patientCard.scheduled}{' '}
+                  {consultation.scheduled_at
+                    ? new Date(consultation.scheduled_at).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                    : ''}
+                </span>
+                <CancelAppointmentButton consultationId={consultation.id} patientId={id} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ═══ 3. ТЕКУЩЕЕ ЛЕЧЕНИЕ + FOLLOW-UP — связанный блок ═══ */}
         {currentPrescription && (
-          <div className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(45,106,79,0.3)' }}>
-            <div className="flex items-center justify-between px-4 py-2.5" style={{ backgroundColor: '#2d6a4f' }}>
-              <h2 className="text-[11px] font-bold uppercase tracking-widest text-white">
+          <div data-tour="treatment" className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(45,106,79,0.3)' }}>
+            <div className="flex items-center justify-between px-4 py-2.5" style={{ backgroundColor: 'var(--sim-green)' }}>
+              <h2 className="text-[12px] font-bold uppercase tracking-widest text-white">
                 {lang === 'ru' ? 'Текущее лечение' : 'Current treatment'}
               </h2>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>
                 {lang === 'ru' ? '● активно' : '● active'}
               </span>
             </div>
             <div className="p-4 sm:p-5" style={{ backgroundColor: 'var(--sim-green-light)' }}>
-              {/* Препарат — максимально крупно */}
               <div className="flex items-baseline gap-3 flex-wrap">
                 <span className="text-3xl font-bold" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-forest)', letterSpacing: '-0.01em' }}>
                   {currentPrescription.remedy}
@@ -298,29 +328,32 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
                   {currentPrescription.potency}
                 </span>
               </div>
-
-              {/* Схема — компактно */}
-              <div className="mt-3 space-y-1.5">
-                {currentPrescription.dosage && (
-                  <div className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--sim-text-sec)' }}>
-                    <span className="shrink-0 mt-0.5 font-semibold" style={{ color: 'var(--sim-green)' }}>Rx</span>
-                    <span>{currentPrescription.dosage}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Цель лечения */}
+              {currentPrescription.dosage && (
+                <div className="flex items-start gap-2 mt-3 text-[13px]" style={{ color: 'var(--sim-text-sec)' }}>
+                  <span className="shrink-0 mt-0.5 font-semibold" style={{ color: 'var(--sim-green)' }}>Rx</span>
+                  <span>{currentPrescription.dosage}</span>
+                </div>
+              )}
               {treatmentGoal && (
                 <div className="mt-3 pt-2.5" style={{ borderTop: '1px solid rgba(45,106,79,0.15)' }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--sim-green)' }}>
+                  <p className="text-[12px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--sim-green)' }}>
                     {lang === 'ru' ? 'Цель' : 'Goal'}
                   </p>
                   <p className="text-[13px] leading-snug" style={{ color: 'var(--sim-text-sec)' }}>{treatmentGoal}</p>
                 </div>
               )}
-
-              <p className="text-[10px] mt-2.5" style={{ color: 'var(--sim-border)' }}>{formatDate(currentPrescription.date)}</p>
+              <p className="text-[12px] mt-2.5" style={{ color: 'var(--sim-border)' }}>{formatDate(currentPrescription.date)}</p>
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(45,106,79,0.15)' }}>
+                <SharePrescriptionButton consultationId={currentPrescription.id} />
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Follow-up — сразу после лечения */}
+        {lastCompleted && (
+          <div className="mb-5">
+            <FollowupSection latestConsultationId={lastCompleted.id} patientId={id} existingFollowup={followupByConsultation[lastCompleted.id] || null} />
           </div>
         )}
 
@@ -333,35 +366,54 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-amber-800">{t(lang).patientCard.noPrescription}</p>
             </div>
-            <a href={`/patients/${id}/consultations/${lastCompleted!.id}`} className="text-xs font-semibold text-amber-700 hover:text-amber-900 border border-amber-300 rounded-lg px-3 py-1.5 transition-colors shrink-0">
+            <a href={`/patients/${id}/consultations/${lastCompleted!.id}`} className="btn btn-sm" style={{ color: 'var(--sim-amber)', borderColor: 'var(--sim-amber)' }}>
               {t(lang).patientCard.prescribe}
             </a>
           </div>
         )}
 
-        {/* Блок оплаченных консультаций */}
+        {/* Оплаченные сессии */}
         {paid_sessions_enabled && (
           <PaidSessionsBlock patientId={id} initialCount={patient.paid_sessions ?? 0} />
         )}
 
-        {/* Запланированные приёмы */}
-        {consultations?.some(c => c.status === 'scheduled') && (
-          <div className="mb-4 space-y-1.5">
-            {consultations.filter(c => c.status === 'scheduled').map(consultation => (
-              <div key={consultation.id} className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5 text-sm">
-                <span className="text-emerald-700 font-medium">
-                  {t(lang).patientCard.scheduled}{' '}
-                  {consultation.scheduled_at
-                    ? new Date(consultation.scheduled_at).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                    : ''}
+        {/* ═══ 4. АНКЕТЫ — collapsible ═══ */}
+        <details className="mb-5 rounded-2xl overflow-hidden group" style={{ border: '1px solid var(--sim-border)' }} open={!!(completedPrimaryIntake?.answers || completedAcuteIntake?.answers)}>
+          <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+            <div className="flex items-center gap-2">
+              <h2 className="text-[12px] font-bold uppercase tracking-widest" style={{ color: 'var(--sim-text-muted)' }}>
+                {t(lang).patientCard.intakes}
+              </h2>
+              {(completedPrimaryIntake || completedAcuteIntake) && (
+                <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#ecfdf5', color: '#059669' }}>
+                  ✓ {lang === 'ru' ? 'заполнена' : 'filled'}
                 </span>
-                <CancelAppointmentButton consultationId={consultation.id} patientId={id} />
-              </div>
-            ))}
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/patients/${id}/intake-edit`}
+                className="btn btn-ghost btn-sm"
+              >
+                {lang === 'ru' ? '📋 Заполнить' : '📋 Fill'}
+              </a>
+              <svg className="w-4 h-4 transition-transform" data-details-arrow style={{ color: 'var(--sim-text-hint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </div>
+          </summary>
+          <div className="px-4 pb-4 space-y-3">
+            {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" patientId={id} />}
+            {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" patientId={id} />}
+            {!completedPrimaryIntake && !completedAcuteIntake && (
+              <p className="text-[13px] py-2" style={{ color: 'var(--sim-text-hint)' }}>
+                {lang === 'ru' ? 'Анкета не заполнена. Отправьте ссылку пациенту — кнопка выше.' : 'No intake data. Send a link to the patient — button above.'}
+              </p>
+            )}
           </div>
-        )}
+        </details>
 
-        {/* ═══ 4. ИСТОРИЯ ПРИЁМОВ ═══ */}
+        {/* ═══ 5. ИСТОРИЯ ПРИЁМОВ ═══ */}
         {(!consultations || consultations.length === 0) ? (
           <div className="mb-5 rounded-2xl p-5" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1.5px dashed rgba(45,106,79,0.25)' }}>
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--sim-forest)' }}>
@@ -384,49 +436,28 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
               <h2 className="text-base font-light" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-green)' }}>
                 {t(lang).patientCard.timeline}
               </h2>
-              <span className="text-xs text-gray-300">{t(lang).patientCard.countConsultations(consultations.length)}</span>
+              <span className="text-[12px]" style={{ color: 'var(--sim-text-hint)' }}>{t(lang).patientCard.countConsultations(consultations.length)}</span>
             </div>
-
-            {/* Динамика лечения */}
             <TreatmentProgress consultations={consultations} followupByConsultation={followupByConsultation} />
-
             <TimelineWithFilter patientId={id} consultations={consultations} followupByConsultation={followupByConsultation} />
           </div>
         )}
 
-        {/* ═══ 5. ДОПОЛНИТЕЛЬНО ═══ */}
-        <div className="space-y-4">
-          {/* Follow-up */}
-          {lastCompleted && (
-            <FollowupSection latestConsultationId={lastCompleted.id} patientId={id} existingFollowup={followupByConsultation[lastCompleted.id] || null} />
-          )}
-
-          {/* Анкеты */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="sim-label">{t(lang).patientCard.intakes}</h2>
-              <Link
-                href={`/patients/${id}/intake-edit`}
-                className="text-xs font-medium border px-3 py-1.5 rounded-lg transition-all"
-                style={{ borderColor: 'var(--sim-border)', color: 'var(--sim-text-muted)' }}
-              >
-                {lang === 'ru' ? '📋 Заполнить за пациента' : '📋 Fill for patient'}
-              </Link>
-            </div>
-            {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" patientId={id} />}
-            {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" patientId={id} />}
-            {!completedPrimaryIntake && !completedAcuteIntake && (
-              <p className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>
-                {lang === 'ru' ? 'Анкета не заполнена' : 'No intake data'}
-              </p>
-            )}
-          </div>
-
-          {/* Фото */}
-          <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--sim-bg-muted)', border: '1px solid var(--sim-border)' }}>
+        {/* ═══ 6. ФОТО — collapsible ═══ */}
+        <details className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid var(--sim-border)' }}>
+          <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+            <h2 className="text-[12px] font-bold uppercase tracking-widest" style={{ color: 'var(--sim-text-muted)' }}>
+              {lang === 'ru' ? 'Фотографии' : 'Photos'}
+              {photos && photos.length > 0 && <span className="ml-1.5 font-normal">({photos.length})</span>}
+            </h2>
+            <svg className="w-4 h-4 transition-transform group-open:rotate-180" style={{ color: 'var(--sim-text-hint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </summary>
+          <div className="p-4">
             <PhotoSection patientId={id} photos={photos || []} />
           </div>
-        </div>
+        </details>
 
         <div className="h-8" />
       </div>

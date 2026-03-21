@@ -34,21 +34,21 @@ export default function Error({
         >
           {t(lang).error.somethingWrong}
         </h2>
-        <p className="text-sm mb-6" style={{ color: '#9a8a6a', lineHeight: 1.6 }}>
+        <p className="text-sm mb-6" style={{ color: 'var(--sim-text-hint)', lineHeight: 1.6 }}>
           {t(lang).error.unexpectedDesc}
         </p>
         <div className="flex gap-3 justify-center">
           <button
             onClick={reset}
             className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#1a3020' }}
+            style={{ backgroundColor: 'var(--sim-forest)' }}
           >
             {t(lang).error.tryAgain}
           </button>
           <a
             href="/dashboard"
             className="px-5 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
-            style={{ color: '#9a8a6a', border: '1px solid #d4c9b8' }}
+            style={{ color: 'var(--sim-text-hint)', border: '1px solid var(--sim-border)' }}
           >
             {t(lang).error.goHome}
           </a>

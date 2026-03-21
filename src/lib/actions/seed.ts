@@ -49,7 +49,8 @@ export async function seedDemoData(): Promise<void> {
     phone: '+7 (916) 234-56-78',
     email: 'ivanova.ms@example.com',
     constitutional_type: 'Natrum Muriaticum',
-    notes: 'Хроническая мигрень с аурой. Высокая эмоциональная чувствительность. Предпочитает тихую, спокойную обстановку на приёме.',
+    is_demo: true,
+    notes: '⚠️ Демо-пациент\nХроническая мигрень с аурой. Высокая эмоциональная чувствительность. Предпочитает тихую, спокойную обстановку на приёме.',
     first_visit_date: daysAgo(62),
   }).select('id').single()
 
@@ -273,7 +274,8 @@ Spigelia 30C — при приступе.`,
     phone: '+7 (985) 456-78-90',
     email: null,
     constitutional_type: 'Arsenicum Album',
-    notes: 'Синдром хронической усталости. Программист, работает из дома. Интровертный, склонен к тревожности.',
+    is_demo: true,
+    notes: '⚠️ Демо-пациент\nСиндром хронической усталости. Программист, работает из дома. Интровертный, склонен к тревожности.',
     first_visit_date: daysAgo(85),
   }).select('id').single()
 
@@ -434,7 +436,8 @@ Arsenicum Album 200C — одна доза.
     phone: '+7 (926) 789-01-23',
     email: 'kuznetsova.si@example.com',
     constitutional_type: 'Rhus Toxicodendron',
-    notes: 'Артрит коленных суставов. Метеочувствительность. Пунктуальна, всегда приходит с записями симптомов.',
+    is_demo: true,
+    notes: '⚠️ Демо-пациент\nАртрит коленных суставов. Метеочувствительность. Пунктуальна, всегда приходит с записями симптомов.',
     first_visit_date: daysAgo(47),
   }).select('id').single()
 
@@ -583,7 +586,8 @@ Causticum 200C — одна доза, более глубокое констит
     phone: '+7 (903) 112-34-56',
     email: null,
     constitutional_type: null,
-    notes: 'Новый пациент. Рецидивирующие ангины, снижение иммунитета.',
+    is_demo: true,
+    notes: '⚠️ Демо-пациент\nНовый пациент. Рецидивирующие ангины, снижение иммунитета.',
     first_visit_date: daysAgo(3),
   }).select('id').single()
 

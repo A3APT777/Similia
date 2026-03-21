@@ -50,7 +50,7 @@ function InlineDynamicsPicker({ consultationId, onSave, lang }: { consultationId
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-[10px] text-gray-300 hover:text-emerald-600 transition-colors mb-1 whitespace-nowrap"
+        className="text-xs text-gray-300 hover:text-emerald-600 transition-colors mb-1 whitespace-nowrap"
       >
         {lang === 'ru' ? '+ динамика' : '+ dynamics'}
       </button>
@@ -64,7 +64,7 @@ function InlineDynamicsPicker({ consultationId, onSave, lang }: { consultationId
           key={opt.value}
           onClick={() => handleSelect(opt.value)}
           disabled={saving}
-          className="text-[10px] px-1.5 py-0.5 rounded border border-gray-200 text-gray-500 hover:border-emerald-400 hover:text-emerald-700 transition-colors whitespace-nowrap"
+          className="text-xs px-1.5 py-0.5 rounded border border-gray-200 text-gray-500 hover:border-emerald-400 hover:text-emerald-700 transition-colors whitespace-nowrap"
         >
           {opt.icon} {opt.labelRu}
         </button>
@@ -117,7 +117,7 @@ export default function TreatmentProgress({ consultations, followupByConsultatio
                 {/* Блок консультации */}
                 <div className="flex flex-col items-center gap-1 w-28 shrink-0">
                   {/* Дата */}
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-gray-400">
                     {c.date
                       ? new Date(c.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: '2-digit' })
                       : c.scheduled_at
@@ -134,12 +134,12 @@ export default function TreatmentProgress({ consultations, followupByConsultatio
                       {c.remedy}
                     </span>
                     {c.potency && (
-                      <span className="text-[11px] text-gray-400 font-medium">{c.potency}</span>
+                      <span className="text-xs text-gray-400 font-medium">{c.potency}</span>
                     )}
                   </a>
 
                   {/* Тип */}
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${c.type === 'acute' ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${c.type === 'acute' ? 'bg-orange-50 text-orange-500' : 'bg-emerald-50 text-emerald-600'}`}>
                     {c.type === 'acute' ? t(lang).treatmentProgress.acute : t(lang).treatmentProgress.chronic}
                   </span>
                 </div>
@@ -148,11 +148,11 @@ export default function TreatmentProgress({ consultations, followupByConsultatio
                 {!isLast && (
                   <div className="flex flex-col items-center mx-1 w-20 shrink-0">
                     {doctorDynInfo ? (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium mb-1 ${doctorDynInfo.color}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded border font-medium mb-1 ${doctorDynInfo.color}`}>
                         {lang === 'ru' ? doctorDynInfo.label : doctorDynInfo.labelEn}
                       </span>
                     ) : statusInfo ? (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium mb-1 ${statusInfo.color}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded border font-medium mb-1 ${statusInfo.color}`}>
                         {statusInfo.label}
                       </span>
                     ) : (
@@ -176,7 +176,7 @@ export default function TreatmentProgress({ consultations, followupByConsultatio
                   <div className="flex flex-col items-center mx-1 shrink-0">
                     <div className="flex items-center gap-1 ml-2">
                       <div className="w-6 h-px bg-gray-200" />
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${(selfDynInfo || statusInfo)!.color}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${(selfDynInfo || statusInfo)!.color}`}>
                         {selfDynInfo
                           ? (lang === 'ru' ? selfDynInfo.label : selfDynInfo.labelEn)
                           : statusInfo!.label}

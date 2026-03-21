@@ -38,7 +38,7 @@ export default function LunarPhaseWidget({ lang = 'ru' }: { lang?: 'ru' | 'en' }
         <div className="flex-1 min-w-0">
           <p className="text-[12px] font-semibold leading-tight" style={{ color: 'var(--sim-text)' }}>
             {lang === 'ru' ? phase.name : phase.nameEn}
-            <span className="ml-1.5 text-[11px] font-normal" style={{ color: 'var(--sim-text-muted)' }}>{phase.illumination}%</span>
+            <span className="ml-1.5 text-xs font-normal" style={{ color: 'var(--sim-text-muted)' }}>{phase.illumination}%</span>
           </p>
         </div>
       </div>
@@ -47,12 +47,12 @@ export default function LunarPhaseWidget({ lang = 'ru' }: { lang?: 'ru' | 'en' }
       <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
         <div
           className="h-full rounded-full"
-          style={{ width: `${phase.illumination}%`, backgroundColor: '#c8a035' }}
+          style={{ width: `${phase.illumination}%`, backgroundColor: 'var(--sim-amber)' }}
         />
       </div>
 
       {/* Подсказка для гомеопата */}
-      <p className="mt-1.5 text-[10px] leading-relaxed" style={{ color: 'var(--sim-text-hint)' }}>
+      <p className="mt-1.5 text-xs leading-relaxed" style={{ color: 'var(--sim-text-hint)' }}>
         {phase.hint}
       </p>
     </div>

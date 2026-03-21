@@ -75,7 +75,7 @@ export default function CookieConsent() {
         <button
           onClick={accept}
           className="shrink-0 px-5 py-2 rounded-xl text-sm font-medium text-white transition-colors cursor-pointer"
-          style={{ backgroundColor: '#2d6a4f' }}
+          style={{ backgroundColor: 'var(--sim-green)' }}
           onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#245a42')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#2d6a4f')}
         >

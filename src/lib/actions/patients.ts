@@ -4,11 +4,18 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { patientSchema, validate } from '@/lib/validation'
+import { checkPatientLimit } from './subscription'
 
 export async function createPatient(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Проверка лимита подписки
+  const limit = await checkPatientLimit()
+  if (!limit.allowed) {
+    throw new Error(`Лимит бесплатного тарифа: ${limit.max} пациентов. Перейдите на Стандарт для безлимита.`)
+  }
 
   const raw = {
     name: (formData.get('name') as string) || '',
@@ -17,6 +24,7 @@ export async function createPatient(formData: FormData) {
     email: (formData.get('email') as string) || null,
     notes: (formData.get('notes') as string) || null,
     constitutional_type: (formData.get('constitutional_type') as string) || null,
+    gender: (formData.get('gender') as string) || null,
   }
 
   const validationResult = validate(patientSchema, raw)
@@ -53,6 +61,7 @@ export async function updatePatient(id: string, formData: FormData) {
     email: (formData.get('email') as string) || null,
     notes: (formData.get('notes') as string) || null,
     constitutional_type: (formData.get('constitutional_type') as string) || null,
+    gender: (formData.get('gender') as string) || null,
   }
 
   const validationResult = validate(patientSchema, raw)
@@ -82,24 +91,16 @@ export async function deletePatient(id: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Удаляем каскадно: сначала связанные данные, потом пациента
-  await supabase.from('payment_history').delete().eq('patient_id', id).eq('doctor_id', user.id)
-  await supabase.from('patient_photos').delete().eq('patient_id', id).eq('doctor_id', user.id)
-  await supabase.from('photo_upload_tokens').delete().eq('patient_id', id).eq('doctor_id', user.id)
+  // Атомарное каскадное удаление через SQL-функцию (транзакция)
+  const { error } = await supabase.rpc('delete_patient_cascade', {
+    p_patient_id: id,
+    p_doctor_id: user.id,
+  })
 
-  const { data: consultations } = await supabase
-    .from('consultations')
-    .select('id')
-    .eq('patient_id', id)
-    .eq('doctor_id', user.id)
-
-  if (consultations && consultations.length > 0) {
-    const ids = consultations.map(c => c.id)
-    await supabase.from('followups').delete().in('consultation_id', ids)
-    await supabase.from('consultations').delete().in('id', ids)
+  if (error) {
+    console.error('[deletePatient] error:', error)
+    throw new Error('Не удалось удалить пациента')
   }
-
-  await supabase.from('patients').delete().eq('id', id).eq('doctor_id', user.id)
 
   revalidatePath('/dashboard')
   redirect('/dashboard')

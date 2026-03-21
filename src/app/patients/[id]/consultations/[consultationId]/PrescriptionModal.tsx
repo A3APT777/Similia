@@ -143,7 +143,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                 onChange={e => handleRemedyChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Аконит, Sulphur, Pulsatilla, сера..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
               />
               {/* Индикатор поиска */}
               {searching && (
@@ -176,7 +176,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                           {highlightMatch(r.name_ru, remedy)}
                         </span>
                       )}
-                      <span className="text-[10px] text-gray-300 ml-1.5">{r.abbrev}</span>
+                      <span className="text-xs text-gray-300 ml-1.5">{r.abbrev}</span>
                     </button>
                   ))}
                 </div>
@@ -197,7 +197,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                   onClick={() => setPotency(potency === p ? '' : p)}
                   className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
                     potency === p
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      ? 'bg-[#2d6a4f] text-white border-[#2d6a4f] shadow-sm'
                       : 'border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
                   }`}
                 >
@@ -210,7 +210,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               value={potency}
               onChange={e => setPotency(e.target.value)}
               placeholder={t(lang).prescription.schemeManual}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
             />
           </div>
 
@@ -227,7 +227,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                   onClick={() => setPellets(pellets === n ? null : n)}
                   className={`w-9 h-9 rounded-xl border text-sm font-semibold transition-all ${
                     pellets === n
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      ? 'bg-[#2d6a4f] text-white border-[#2d6a4f] shadow-sm'
                       : 'border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
                   }`}
                 >
@@ -247,7 +247,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               onChange={e => setDosage(e.target.value)}
               rows={2}
               placeholder={t(lang).prescription.schemePlaceholder}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 resize-none focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 resize-none focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
             />
           </div>
         </div>
@@ -257,7 +257,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
           <button
             onClick={handleSave}
             disabled={saving || !remedy.trim()}
-            className="flex-1 bg-emerald-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="flex-1 bg-[#2d6a4f] text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-[#1a3020] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {saving ? t(lang).prescription.saving : t(lang).prescription.prescribeAndFinish}
           </button>

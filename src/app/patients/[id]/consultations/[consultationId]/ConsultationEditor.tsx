@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { decrementPaidSession } from '@/lib/actions/payments'
 import { completeConsultation } from '@/lib/actions/consultations'
-import { Consultation, Patient } from '@/types'
+import { Consultation, Patient, PreVisitSurvey } from '@/types'
 import { useToast } from '@/components/ui/toast'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -16,7 +16,7 @@ import ComplaintsForm from './components/ComplaintsForm'
 import InlineRx from './components/InlineRx'
 import PrescriptionModal from './PrescriptionModal'
 import RightPanel from './right-panel/RightPanel'
-import TourConsultStarter from '@/components/TourConsultStarter'
+import SharePrescriptionButton from './SharePrescriptionButton'
 import DynamicsBlock from './components/DynamicsBlock'
 import FirstTimeHint from '@/components/FirstTimeHint'
 
@@ -28,17 +28,18 @@ type Props = {
   previousConsultation: Consultation | null
   paidSessionsEnabled: boolean
   visitNumber: number
+  preVisitSurvey?: PreVisitSurvey | null
 }
 
-export default function ConsultationEditor({ consultation, patient, previousConsultation, paidSessionsEnabled, visitNumber }: Props) {
+export default function ConsultationEditor({ consultation, patient, previousConsultation, paidSessionsEnabled, visitNumber, preVisitSurvey }: Props) {
   return (
     <ConsultationProvider consultation={consultation} patient={patient} previousConsultation={previousConsultation}>
-      <EditorInner paidSessionsEnabled={paidSessionsEnabled} visitNumber={visitNumber} />
+      <EditorInner paidSessionsEnabled={paidSessionsEnabled} visitNumber={visitNumber} preVisitSurvey={preVisitSurvey} />
     </ConsultationProvider>
   )
 }
 
-function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled: boolean; visitNumber: number }) {
+function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { paidSessionsEnabled: boolean; visitNumber: number; preVisitSurvey?: PreVisitSurvey | null }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -52,8 +53,13 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
   const [repertoryData, setRepertoryData] = useState(consultation.repertory_data)
   const [repertoryAssignedRemedy, setRepertoryAssignedRemedy] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCompleted, setIsCompleted] = useState(consultation.status === 'completed')
   const [savedRx, setSavedRx] = useState<{ remedy: string; potency: string; dosage: string } | null>(
     consultation.remedy ? { remedy: consultation.remedy, potency: consultation.potency || '', dosage: consultation.dosage || '' } : null
+  )
+  const [aiLoading, setAILoading] = useState(false)
+  const [aiResult, setAIResult] = useState<import('@/lib/mdri/types').ConsensusResult | null>(
+    consultation.ai_result as import('@/lib/mdri/types').ConsensusResult | null
   )
 
   useEffect(() => {
@@ -74,6 +80,47 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
       window.history.replaceState({}, '', url.pathname)
     }
   }, [searchParams])
+
+  async function handleRunAI() {
+    // Собрать текст из всех полей консультации
+    const parts = [
+      state.complaints && `Жалобы: ${state.complaints}`,
+      state.modalityWorseText && `Хуже от: ${state.modalityWorseText}`,
+      state.modalityBetterText && `Лучше от: ${state.modalityBetterText}`,
+      state.mentalText && `Психика: ${state.mentalText}`,
+      state.generalText && `Общее: ${state.generalText}`,
+      state.observations && `Наблюдения: ${state.observations}`,
+      state.notes && `Заметки: ${state.notes}`,
+    ].filter(Boolean)
+
+    if (parts.length === 0) {
+      toast(lang === 'ru' ? 'Заполните жалобы для AI-анализа' : 'Fill in complaints for AI analysis', 'error')
+      return
+    }
+
+    setAILoading(true)
+    try {
+      await saveAll()
+      const { analyzeText } = await import('@/lib/actions/ai-consultation')
+      const result = await analyzeText({
+        consultationId: consultation.id,
+        text: parts.join('\n'),
+      })
+      setAIResult(result)
+      toast(lang === 'ru'
+        ? `AI: ${result.finalRemedy.toUpperCase()} (${result.method})`
+        : `AI: ${result.finalRemedy.toUpperCase()} (${result.method})`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg === 'NO_AI_ACCESS') {
+        toast(lang === 'ru' ? 'Нет доступа к AI. Оформите подписку AI Pro или купите пакет.' : 'No AI access. Subscribe to AI Pro or buy a package.', 'error')
+      } else {
+        toast(lang === 'ru' ? 'Ошибка AI-анализа' : 'AI analysis error', 'error')
+      }
+    } finally {
+      setAILoading(false)
+    }
+  }
 
   async function doFinish() {
     const hasContent = state.complaints.trim() || state.modalityWorseText.trim() ||
@@ -121,11 +168,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
       const { prevCount, newCount } = await decrementPaidSession(patient.id)
       if (prevCount === 1) toast(t(lang).consultation.savedPaymentDone)
       else if (prevCount > 1) toast(t(lang).consultation.savedRemaining(newCount))
-      else toast(lang === 'ru' ? 'Консультация завершена' : 'Consultation completed', 'success')
-    } else {
-      toast(lang === 'ru' ? 'Консультация завершена' : 'Consultation completed', 'success')
     }
-    router.push(`/patients/${consultation.patient_id}`)
+    setIsCompleted(true)
   }
 
   function handleOpenRepertory() {
@@ -170,21 +214,56 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [state.saveState])
 
+  // Финальный экран после завершения консультации
+  if (isCompleted && !consultation.status?.startsWith('in')) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--sim-green)' }}>
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-cormorant)', color: 'var(--sim-forest)' }}>
+            {lang === 'ru' ? 'Приём завершён' : 'Consultation completed'}
+          </h2>
+          {savedRx?.remedy && (
+            <p className="text-sm mb-6" style={{ color: 'var(--sim-text-sec)' }}>
+              {savedRx.remedy} {savedRx.potency}
+            </p>
+          )}
+
+          <div className="space-y-3">
+            {savedRx?.remedy && (
+              <SharePrescriptionButton consultationId={consultation.id} />
+            )}
+            <button
+              onClick={() => router.push(`/patients/${consultation.patient_id}`)}
+              className="w-full px-5 py-3 rounded-xl text-sm font-medium transition-colors"
+              style={{ border: '1px solid var(--sim-border)', color: 'var(--sim-forest)' }}
+            >
+              {lang === 'ru' ? 'Вернуться к пациенту' : 'Back to patient'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
-      <TourConsultStarter />
 
       {/* Zero sessions warning */}
       {showZeroWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true" aria-label={lang === 'ru' ? 'Предупреждение об оплате' : 'Payment warning'}>
-          <div className="relative rounded-2xl p-6 w-[calc(100%-2rem)] max-w-[340px] shadow-2xl" style={{ backgroundColor: '#f7f3ed', border: '1px solid #c8a035' }}>
+          <div className="relative rounded-2xl p-6 w-[calc(100%-2rem)] max-w-[340px] shadow-2xl" style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid #c8a035' }}>
             <div className="flex items-start gap-3 mb-4">
-              <svg className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#c8a035' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--sim-amber)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
               </svg>
               <div>
                 <p className="text-[15px] font-semibold" style={{ color: '#1a1a0a' }}>{t(lang).consultation.noPayment}</p>
-                <p className="text-sm mt-1 leading-relaxed" style={{ color: '#5a5040' }}>{t(lang).consultation.noPaymentDesc}</p>
+                <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--sim-text-sec)' }}>{t(lang).consultation.noPaymentDesc}</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -226,7 +305,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
         <div className={`${mobileTab === 'editor' ? 'flex' : 'hidden'} lg:flex flex-col min-h-0`} style={{ borderRight: '1px solid var(--sim-border-light)' }}>
 
           <EditorHeader visitNumber={visitNumber} />
-          <EditorToolbar onOpenRepertory={handleOpenRepertory} onStartMiniTour={handleStartMiniTour} />
+          <EditorToolbar onOpenRepertory={handleOpenRepertory} onRunAI={handleRunAI} aiLoading={aiLoading} hasAIResult={!!aiResult} />
 
           <div className="px-4">
             <FirstTimeHint id="consultation">
@@ -370,6 +449,13 @@ function EditorInner({ paidSessionsEnabled, visitNumber }: { paidSessionsEnabled
                 previousConsultation={previousConsultation}
                 patient={patient}
                 lang={lang}
+                preVisitSurvey={preVisitSurvey}
+                aiResult={aiResult}
+                onAssignRemedy={(abbrev) => {
+                  setRepertoryAssignedRemedy(abbrev)
+                  setPendingPrescription({ abbrev, potency: '30C', dosage: '' })
+                  setShowPrescription(true)
+                }}
               />
             </div>
           )}

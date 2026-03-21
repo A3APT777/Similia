@@ -45,12 +45,17 @@ export async function saveDoctorSchedule(schedule: DoctorSchedule): Promise<void
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  await supabase
+  const { error } = await supabase
     .from('doctor_schedules')
     .upsert(
       { doctor_id: user.id, ...schedule, updated_at: new Date().toISOString() },
       { onConflict: 'doctor_id' }
     )
+
+  if (error) {
+    console.error('[saveDoctorSchedule]', error)
+    throw new Error('Не удалось сохранить расписание')
+  }
 
   revalidatePath('/settings')
 }

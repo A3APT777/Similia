@@ -608,7 +608,7 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
             onClick={() => setSelectedDate(d)}
             className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
               selectedDate === d
-                ? 'bg-emerald-600 text-white border-emerald-600'
+                ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
             }`}
           >
@@ -635,7 +635,7 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
                 onClick={() => setSelectedTime(t)}
                 className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
                   selectedTime === t
-                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
                 }`}
               >
@@ -654,7 +654,7 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
         <button
           onClick={handleBook}
           disabled={!selectedDate || !selectedTime || bookingState === 'booking'}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-xl transition-colors"
+          className="flex-1 bg-[#2d6a4f] hover:bg-[#1a3020] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-xl transition-colors"
         >
           {bookingState === 'booking' ? 'Записываю...' : 'Записаться'}
         </button>
@@ -691,16 +691,16 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
 
   const btnClass = isAcute
     ? 'bg-orange-500 hover:bg-orange-600 text-white'
-    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+    : 'bg-[#2d6a4f] hover:bg-[#1a3020] text-white'
 
   const chipActiveClass = isAcute
     ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-    : 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+    : 'bg-[#2d6a4f] text-white border-[#2d6a4f] shadow-sm'
 
-  const progressClass = isAcute ? 'bg-orange-500' : 'bg-emerald-500'
+  const progressClass = isAcute ? 'bg-orange-500' : 'bg-[#2d6a4f]'
   const focusRingClass = isAcute
     ? 'focus:border-orange-400 focus:ring-orange-500/10'
-    : 'focus:border-emerald-400 focus:ring-emerald-500/10'
+    : 'focus:border-emerald-400 focus:ring-[#2d6a4f]/30/10'
 
   const DRAFT_KEY = isDoctorMode ? `intake_doctor_draft_${doctorPatientId}_${type}` : `intake_draft_${token}`
   const restoredRef = useRef(false)
@@ -920,10 +920,10 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
 
   // ── Шаги ──
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
         <div
-          className={`h-0.5 transition-all duration-500 ${progressClass}`}
+          className={`h-1 transition-all duration-500 ${progressClass}`}
           style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
         />
         <div className="px-4 py-2 flex items-center justify-between">
@@ -1035,15 +1035,15 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
 
               {field.type === 'scale' && (
                 <div>
-                  <div className="flex gap-1 mb-1">
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1 mb-1">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                       <button
                         key={n}
                         type="button"
                         onClick={() => setField(field.key, String(n))}
-                        className={`flex-1 h-8 rounded-lg border text-xs font-semibold transition-all ${
+                        className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
                           answers[field.key] === String(n)
-                            ? n <= 3 ? 'bg-emerald-500 text-white border-emerald-500'
+                            ? n <= 3 ? 'bg-[#2d6a4f] text-white border-emerald-500'
                               : n <= 6 ? 'bg-amber-400 text-white border-amber-400'
                               : 'bg-red-500 text-white border-red-500'
                             : 'border-gray-200 text-gray-500 bg-gray-50'

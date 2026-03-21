@@ -92,7 +92,7 @@ export async function submitIntake(token: string, answers: IntakeAnswers): Promi
 
   // Если пациент ещё не привязан — создаём новую карточку из данных анкеты
   if (!patientId && answers.patient_name?.trim()) {
-    const { data: newPatient } = await supabase
+    const { data: newPatient, error: patientError } = await supabase
       .from('patients')
       .insert({
         doctor_id: intake.doctor_id,
@@ -105,10 +105,11 @@ export async function submitIntake(token: string, answers: IntakeAnswers): Promi
       .select('id')
       .single()
 
+    if (patientError) console.error('[submitIntake] patient insert:', patientError)
     patientId = newPatient?.id || null
   }
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('intake_forms')
     .update({
       status: 'completed',
@@ -119,6 +120,8 @@ export async function submitIntake(token: string, answers: IntakeAnswers): Promi
     })
     .eq('token', token)
     .eq('status', 'pending')
+
+  if (updateError) console.error('[submitIntake] update:', updateError)
 }
 
 // Врач заполняет/редактирует анкету напрямую (без токена)
@@ -151,12 +154,13 @@ export async function submitDoctorIntake(patientId: string, type: IntakeType, an
     .maybeSingle()
 
   if (existing) {
-    await supabase
+    const { error } = await supabase
       .from('intake_forms')
       .update({ answers, completed_at: new Date().toISOString() })
       .eq('id', existing.id)
+    if (error) { console.error('[submitDoctorIntake] update:', error); throw new Error('Не удалось сохранить анкету') }
   } else {
-    await supabase.from('intake_forms').insert({
+    const { error } = await supabase.from('intake_forms').insert({
       token: randomUUID().replace(/-/g, ''),
       doctor_id: user.id,
       patient_id: patientId,
@@ -165,6 +169,7 @@ export async function submitDoctorIntake(patientId: string, type: IntakeType, an
       answers,
       completed_at: new Date().toISOString(),
     })
+    if (error) { console.error('[submitDoctorIntake] insert:', error); throw new Error('Не удалось создать анкету') }
   }
 }
 

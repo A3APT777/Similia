@@ -200,7 +200,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
       {/* Дни недели */}
       <div className="grid grid-cols-7 px-2 pt-2.5">
         {t(lang).calendar.weekdays.map(d => (
-          <div key={d} className="text-center text-[10px] font-semibold text-gray-300 uppercase tracking-wide py-1">{d}</div>
+          <div key={d} className="text-center text-[12px] font-semibold text-gray-300 uppercase tracking-wide py-1">{d}</div>
         ))}
       </div>
 
@@ -221,7 +221,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
               onClick={() => handleDayClick(dateStr)}
               className={`flex flex-col items-center py-1 rounded-xl transition-all ${
                 isSelected
-                  ? 'bg-emerald-600 text-white'
+                  ? 'bg-[#2d6a4f] text-white'
                   : isToday
                   ? 'bg-emerald-50 text-emerald-800 font-bold'
                   : isWeekend
@@ -232,7 +232,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
               <span className="text-xs leading-none">{day}</span>
               <span className={`w-1 h-1 rounded-full mt-1 ${
                 apptCount > 0
-                  ? isSelected ? 'bg-emerald-300' : 'bg-emerald-500'
+                  ? isSelected ? 'bg-emerald-300' : 'bg-[#2d6a4f]'
                   : 'opacity-0'
               }`} />
             </button>
@@ -242,12 +242,12 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
 
       {/* Панель выбранного дня */}
       <div className="px-3 py-2" style={{ borderTop: '0.5px solid #d4c9b8' }}>
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide capitalize mb-2">
+        <p className="text-[12px] font-semibold text-gray-400 uppercase tracking-wide capitalize mb-2">
           {formatSelectedDay(selectedDay)}
         </p>
 
         {visibleDayAppts.length === 0 && !showAdd && (
-          <p className="text-[11px] text-gray-300 italic mb-2">{t(lang).calendar.noAppointments}</p>
+          <p className="text-[12px] text-gray-300 italic mb-2">{t(lang).calendar.noAppointments}</p>
         )}
 
         <div className="space-y-0.5 mb-1.5">
@@ -262,32 +262,32 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
                 key={appt.id}
                 className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${isUrgent ? 'bg-amber-50' : ''} ${done ? 'opacity-50' : ''}`}
               >
-                <span className={`text-[11px] font-mono font-semibold w-9 shrink-0 tabular-nums ${isUrgent ? 'text-amber-600' : 'text-gray-500'}`}>
+                <span className={`text-[12px] font-mono font-semibold w-9 shrink-0 tabular-nums ${isUrgent ? 'text-amber-600' : 'text-gray-500'}`}>
                   {toMskTime(appt.scheduled_at)}
                 </span>
                 <Link href={`/patients/${appt.patient_id}`} className="flex-1 min-w-0">
-                  <p className={`text-[11px] font-medium truncate transition-colors ${done ? 'text-gray-500' : 'text-gray-800 hover:text-emerald-700'}`}>
+                  <p className={`text-[12px] font-medium truncate transition-colors ${done ? 'text-gray-500' : 'text-gray-800 hover:text-emerald-700'}`}>
                     {appt.patients?.name}
                   </p>
                   {remedy && (
-                    <p className="text-[10px] text-gray-400 truncate leading-tight">{remedy}</p>
+                    <p className="text-[12px] text-gray-400 truncate leading-tight">{remedy}</p>
                   )}
                 </Link>
                 {done ? (
                   <Link
                     href={`/patients/${appt.patient_id}`}
-                    className="text-[10px] text-gray-400 hover:text-gray-600 shrink-0 transition-colors"
+                    className="text-[12px] text-gray-400 hover:text-gray-600 shrink-0 transition-colors"
                   >→</Link>
                 ) : live ? (
                   <Link
                     href={`/patients/${appt.patient_id}`}
-                    className="text-[10px] bg-emerald-600 text-white px-2 py-1 rounded-md font-semibold shrink-0"
+                    className="text-[12px] bg-[#2d6a4f] text-white px-2 py-1 rounded-md font-semibold shrink-0"
                   >→</Link>
                 ) : (
                   <form action={startConsultation.bind(null, appt.id, appt.patient_id)}>
                     <button
                       type="submit"
-                      className={`text-[10px] px-2 py-1 rounded-md font-medium shrink-0 transition-colors ${isUrgent ? 'bg-amber-500 text-white' : 'border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700'}`}
+                      className={`text-[12px] px-2 py-1 rounded-md font-medium shrink-0 transition-colors ${isUrgent ? 'bg-amber-500 text-white' : 'border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700'}`}
                     >→</button>
                   </form>
                 )}
@@ -299,7 +299,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
         {completedDayAppts.length > 0 && (
           <button
             onClick={() => setShowCompleted(v => !v)}
-            className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors mb-1.5 block"
+            className="text-[12px] text-gray-400 hover:text-gray-600 transition-colors mb-1.5 block"
           >
             {showCompleted
               ? (lang === 'ru' ? '↑ Скрыть завершённые' : '↑ Hide completed')
@@ -310,7 +310,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
         {!showAdd && (
           <button
             onClick={() => setShowAdd(true)}
-            className="text-[11px] text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+            className="text-[12px] text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
           >
             {t(lang).calendar.addAppointment}
           </button>
@@ -325,7 +325,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
                 placeholder={t(lang).calendar.patientName}
                 value={patientSearch}
                 onChange={e => { setPatientSearch(e.target.value); setAddPatientId('') }}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-[#2d6a4f]/30/10"
                 autoFocus
               />
               {patientSearch.length > 0 && !addPatientId && filteredPatients.length > 0 && (
@@ -345,7 +345,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
 
             {/* Слоты времени */}
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t(lang).calendar.time}</p>
+              <p className="text-[12px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t(lang).calendar.time}</p>
               {freeSlots.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {freeSlots.map(slot => (
@@ -354,7 +354,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
                       onClick={() => setAddTime(slot)}
                       className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${
                         addTime === slot
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          ? 'bg-[#2d6a4f] text-white border-[#2d6a4f] shadow-sm'
                           : 'border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700'
                       }`}
                     >
@@ -373,7 +373,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
               <button
                 onClick={handleAdd}
                 disabled={!addPatientId || addLoading || freeSlots.length === 0}
-                className="flex-1 text-xs bg-emerald-600 text-white py-2 rounded-xl hover:bg-emerald-700 disabled:opacity-40 transition-colors font-semibold shadow-sm"
+                className="flex-1 text-xs bg-[#2d6a4f] text-white py-2 rounded-xl hover:bg-[#1a3020] disabled:opacity-40 transition-colors font-semibold shadow-sm"
               >
                 {addLoading ? t(lang).calendar.saving : t(lang).calendar.save}
               </button>

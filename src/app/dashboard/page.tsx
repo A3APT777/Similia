@@ -10,20 +10,45 @@ import CalendarWidget from './CalendarWidget'
 import LunarPhaseWidget from './LunarPhaseWidget'
 import AddPatientWidget from './AddPatientWidget'
 import OnboardingBanner from './OnboardingBanner'
+import { getAccessiblePatientIds } from '@/lib/actions/subscription'
 import UnpaidWidget from './UnpaidWidget'
-import { getUnpaidPatients, getDoctorSettings } from '@/lib/actions/payments'
+import OnboardingFlow from '@/components/OnboardingFlow'
+import { getUnpaidPatients } from '@/lib/actions/payments'
+import { seedDemoData } from '@/lib/actions/seed'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  function pluralPatients(n: number): string {
+    if (n % 100 >= 11 && n % 100 <= 19) return 'пациентов доверяют'
+    const last = n % 10
+    if (last === 1) return 'пациент доверяет'
+    if (last >= 2 && last <= 4) return 'пациента доверяют'
+    return 'пациентов доверяют'
+  }
+
+  // Создаём демо-данные при первом входе (если пациентов нет)
+  const { count: patientCount } = await supabase
+    .from('patients')
+    .select('*', { count: 'exact', head: true })
+    .eq('doctor_id', user.id)
+  if ((patientCount ?? 0) === 0) {
+    await seedDemoData().catch(() => null)
+  }
+
   const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
   const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const ninetyDaysAgoIso = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
   const threeDaysAgoIso = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
 
-  // Параллельные запросы — не зависят друг от друга
+  // Параллельные запросы с fallback — один сбой не роняет дашборд
+  // Обёртка: при ошибке возвращает { data: null } вместо throw
+  async function safe<T>(fn: () => PromiseLike<{ data: T | null }>): Promise<{ data: T | null }> {
+    try { return await fn() } catch { return { data: null } }
+  }
+
   const [
     { data: appointments },
     { data: patients },
@@ -33,41 +58,53 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     { data: activeConsultations },
     { data: pendingFollowups },
   ] = await Promise.all([
-    supabase
+    safe(() => supabase
       .from('consultations')
       .select('*, patients(id, name, phone)')
+      .eq('doctor_id', user.id)
       .not('scheduled_at', 'is', null)
       .gte('scheduled_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
       .lte('scheduled_at', in30days)
       .neq('status', 'cancelled')
-      .order('scheduled_at', { ascending: true }),
-    supabase
+      .order('scheduled_at', { ascending: true })),
+    safe(() => supabase
       .from('patients')
       .select('*')
-      .order('updated_at', { ascending: false }),
-    supabase
+      .eq('doctor_id', user.id)
+      .order('updated_at', { ascending: false })),
+    safe(() => supabase
       .from('consultations')
       .select('remedy, date, status')
+      .eq('doctor_id', user.id)
       .eq('status', 'completed')
-      .gte('date', threeMonthsAgo),
-    supabase
+      .gte('date', threeMonthsAgo)),
+    safe(() => supabase
       .from('followups')
-      .select('status')
+      .select('status, consultations!inner(doctor_id)')
       .not('responded_at', 'is', null)
-      .gte('created_at', ninetyDaysAgoIso),
-    getUnpaidPatients(),
-    supabase
+      .eq('consultations.doctor_id', user.id)
+      .gte('created_at', ninetyDaysAgoIso)),
+    getUnpaidPatients().catch(() => []),
+    safe(() => supabase
       .from('consultations')
       .select('id, patient_id, patients(id, name)')
+      .eq('doctor_id', user.id)
       .eq('status', 'in_progress')
       .order('updated_at', { ascending: false })
-      .limit(1),
-    supabase
+      .limit(1)),
+    safe(() => supabase
       .from('followups')
-      .select('id, patient_id, created_at')
+      .select('id, patient_id, created_at, consultations!inner(doctor_id)')
       .is('responded_at', null)
-      .lte('created_at', threeDaysAgoIso),
+      .eq('consultations.doctor_id', user.id)
+      .lte('created_at', threeDaysAgoIso)),
   ])
+
+  // Graceful downgrade — определяем заблокированных пациентов
+  const { ids: accessibleIds, isLimited } = await getAccessiblePatientIds()
+  const lockedPatientIds = isLimited
+    ? (patients || []).filter(p => !accessibleIds.includes(p.id)).map(p => p.id)
+    : []
 
   // Один запрос для всех последних консультаций вместо N+1
   const patientIds = (patients || []).map(p => p.id)
@@ -75,6 +112,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     ? await supabase
         .from('consultations')
         .select('patient_id, date, notes, remedy, status')
+        .eq('doctor_id', user.id)
         .in('patient_id', patientIds)
         .eq('status', 'completed')
         .order('date', { ascending: false })
@@ -99,7 +137,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const patientsList = (patients || []).map(p => ({ id: p.id, name: p.name }))
   const lang = await getLang()
-  const { followup_reminder_days } = await getDoctorSettings()
+  // Прямой запрос вместо getDoctorSettings() — экономит 2 лишних вызова (getUser + select)
+  const { data: doctorSettingsRow } = await Promise.resolve(supabase
+    .from('doctor_settings')
+    .select('followup_reminder_days')
+    .eq('doctor_id', user.id)
+    .single()
+  ).catch(() => ({ data: null }))
+  const followup_reminder_days = doctorSettingsRow?.followup_reminder_days ?? 14
 
   // Пациенты без повторного приёма X+ дней и без записи
   const sixtyDaysAgo = new Date(Date.now() - followup_reminder_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -142,10 +187,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const betterCount = followups.filter(f => f.status === 'better').length
   const betterPct = followups.length > 0 ? Math.round((betterCount / followups.length) * 100) : null
 
-  // Онбординг
-  const hasRealPatients = (patients || []).length > 0
-  const hasSentIntake = (patients || []).some((p) => p.intake_sent_at)
-  const hasScheduled = (appointments || []).length > 0
+  // Онбординг — не считаем демо-пациентов как "реальных"
+  const hasRealPatients = (patients || []).some(p => !p.notes?.startsWith('⚠️ Демо-пациент'))
+  const hasSentIntake = (patients || []).some((p) => p.intake_sent_at && !p.notes?.startsWith('⚠️ Демо-пациент'))
+  const realPatientIds = new Set((patients || []).filter(p => !p.notes?.startsWith('⚠️ Демо-пациент')).map(p => p.id))
+  const hasScheduled = (appointments || []).some((a: any) => a.patients?.id && realPatientIds.has(a.patients.id))
 
   const totalPatients = (patients || []).length
   const newPatientsCount = (patients || []).filter(p =>
@@ -156,6 +202,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const totalConsultations90d = (recentConsultations || []).length
   const params = await searchParams
   const filterPending = params?.filter === 'pending'
+  const filterOverdue = params?.filter === 'overdue'
 
   // Продающая строка в баннере — по приоритету
   let insightLine: string | null = null
@@ -165,7 +212,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       : `${betterPct}% of your patients are feeling better`
   } else if (totalPatients >= 5) {
     insightLine = lang === 'ru'
-      ? `${totalPatients} ${totalPatients < 5 ? 'пациента доверяют' : 'пациентов доверяют'} вам своё здоровье`
+      ? `${totalPatients} ${pluralPatients(totalPatients)} вам своё здоровье`
       : `${totalPatients} patients trust you with their health`
   } else if (totalPatients > 0) {
     insightLine = lang === 'ru'
@@ -190,7 +237,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="relative z-10 px-5 sm:px-7 py-5 sm:py-6">
               <h1
                 className="text-[20px] sm:text-[24px] font-light leading-tight mb-5"
-                style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.7)' }}
+                style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.85)', letterSpacing: '0.01em' }}
               >
                 {t(lang).dashboard.greeting}, {firstName}
               </h1>
@@ -208,7 +255,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
               {/* Продающая строка */}
               {insightLine && (
-                <p className="mt-3 text-[13px] font-light italic" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.65)' }}>
+                <p className="mt-3 text-[13px] font-light italic" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.80)' }}>
                   {insightLine}
                 </p>
               )}
@@ -241,12 +288,39 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </div>
 
+          <div className="flex items-center gap-2 mb-4">
+            <OnboardingFlow />
+          </div>
+
           <OnboardingBanner
             hasRealPatients={hasRealPatients}
             hasSentIntake={hasSentIntake}
             hasScheduled={hasScheduled}
             lastPatientId={patients?.[0]?.id}
           />
+
+          {/* AI Pro карточка */}
+          <Link
+            href="/demo"
+            className="ai-card-dark block mb-5 px-5 py-4 transition-opacity hover:opacity-95"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(99,102,241,0.3)' }}>
+                <svg className="w-5 h-5 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white">{lang === 'ru' ? 'AI-анализ случая' : 'AI Case Analysis'}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(165,160,255,0.6)' }}>
+                  {lang === 'ru' ? '8 линз MDRI · AI-гомеопат · Consensus' : '8 MDRI lenses · AI homeopath · Consensus'}
+                </p>
+              </div>
+              <div className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
+                {lang === 'ru' ? 'Попробовать' : 'Try it'}
+              </div>
+            </div>
+          </Link>
 
           {/* Активный приём — идёт прямо сейчас */}
           {activeConsultations && activeConsultations.length > 0 && (() => {
@@ -256,7 +330,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <Link
                 href={`/patients/${active.patient_id}/consultations/${active.id}`}
                 className="flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-5 transition-opacity hover:opacity-90"
-                style={{ backgroundColor: '#1a3020', color: '#f7f3ed' }}
+                style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}
               >
                 <span className="relative flex h-3 w-3 shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: '#4ade80' }} />
@@ -264,14 +338,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold leading-none" style={{ color: '#f7f3ed' }}>
-                    Идёт приём
+                    {lang === 'ru' ? 'Идёт приём' : 'Appointment in progress'}
                   </p>
                   <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(247,243,237,0.6)' }}>
                     {patientName}
                   </p>
                 </div>
                 <span className="text-xs font-medium shrink-0" style={{ color: 'rgba(247,243,237,0.7)' }}>
-                  Продолжить →
+                  {lang === 'ru' ? 'Продолжить →' : 'Continue →'}
                 </span>
               </Link>
             )
@@ -283,12 +357,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
 
           {/* Заголовок списка пациентов */}
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
+          <p className="text-[12px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
             {t(lang).dashboard.patientsSection}
           </p>
 
           <div id="patients-section" data-tour="patient-list" className="scroll-mt-6">
-            <PatientListClient patients={patientsWithConsultations} filterPending={filterPending} />
+            <PatientListClient patients={patientsWithConsultations} filterPending={filterPending} filterOverdue={filterOverdue} lockedPatientIds={lockedPatientIds} />
           </div>
         </div>
 
@@ -307,7 +381,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {/* Аналитика за 90 дней */}
           {(totalConsultations90d > 0 || betterPct !== null || topRemedy || newPatientsCount > 0) && (
             <div className="rounded-2xl p-3" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
+              <p className="text-[12px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
                 {t(lang).dashboard.last90days}
               </p>
               <div className="space-y-3">
@@ -362,7 +436,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                           </Link>
                         ))}
                       {overdueCount > 3 && (
-                        <Link href="?filter=overdue#patients-section" className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors">
+                        <Link href="?filter=overdue#patients-section" className="text-[12px] text-gray-400 hover:text-gray-600 transition-colors">
                           {lang === 'ru' ? `+ ещё ${overdueCount - 3}` : `+ ${overdueCount - 3} more`}
                         </Link>
                       )}
@@ -376,7 +450,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 )}
                 {betterPct !== null && followups.length >= 3 && (
                   <div className="mt-2 pt-2 border-t border-gray-50">
-                    <div className="flex items-center justify-between text-[10px] text-gray-300 mb-1">
+                    <div className="flex items-center justify-between text-[12px] text-gray-300 mb-1">
                       <span>{t(lang).dashboard.dynamics}</span>
                       <span>{followups.length} {t(lang).dashboard.responses}</span>
                     </div>
@@ -386,7 +460,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         style={{ width: `${betterPct}%`, backgroundColor: 'var(--color-primary)' }}
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] text-gray-300 mt-1">
+                    <div className="flex justify-between text-[12px] text-gray-300 mt-1">
                       <span>{betterCount} {t(lang).dashboard.better}</span>
                       <span>{followups.length - betterCount} {t(lang).dashboard.notBetter}</span>
                     </div>

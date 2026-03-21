@@ -27,7 +27,7 @@ export default function DecisionBlock({ assessment, onConfirm, lang }: Props) {
 
   return (
     <div className="mb-3">
-      <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.5px] mb-1.5">
+      <div className="text-xs font-semibold text-gray-400 uppercase tracking-[0.5px] mb-1.5">
         {lang === 'ru' ? 'Решение' : 'Decision'}
       </div>
       <div className="flex flex-wrap gap-1">

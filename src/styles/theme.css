@@ -59,13 +59,22 @@
 
   /* ── Тени ───────────────────────────────────────────────── */
   --sim-shadow-xs: 0 1px 2px rgba(26,48,32,0.06);
-  --sim-shadow-sm: 0 2px 8px rgba(26,48,32,0.08);
-  --sim-shadow-md: 0 4px 16px rgba(26,48,32,0.10);
-  --sim-shadow-lg: 0 8px 32px rgba(26,48,32,0.14);
+  --sim-shadow-sm: 0 1px 2px rgba(26,48,32,0.06), 0 2px 8px rgba(26,48,32,0.08);
+  --sim-shadow-md: 0 2px 4px rgba(26,48,32,0.04), 0 4px 16px rgba(26,48,32,0.10);
+  --sim-shadow-lg: 0 4px 8px rgba(26,48,32,0.06), 0 8px 32px rgba(26,48,32,0.14);
 
   /* ── Spacing ────────────────────────────────────────────── */
   /* Используй Tailwind: gap-1(4px) gap-2(8px) gap-3(12px)    */
   /* gap-4(16px) gap-6(24px) gap-8(32px) gap-10(40px)        */
+
+  /* ── AI Pro цвета ──────────────────────────────────────────── */
+  --sim-ai:          #6366f1;   /* primary AI — indigo */
+  --sim-ai-hover:    #4f46e5;   /* hover AI */
+  --sim-ai-light:    #eef2ff;   /* фон AI-элементов */
+  --sim-ai-dark:     #1e1b4b;   /* тёмный AI (онбординг, карточки) */
+  --sim-ai-glow:     rgba(99,102,241,0.4);  /* свечение кнопок */
+  --sim-ai-glass:    rgba(99,102,241,0.06); /* glassmorphism фон */
+  --sim-ai-glass-border: rgba(99,102,241,0.15); /* glassmorphism граница */
 
   /* ── Обратная совместимость (старые токены → новые) ──────── */
   --color-bg:           var(--sim-bg);
@@ -118,8 +127,13 @@ body {
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
   user-select: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--sim-shadow-md);
 }
 
 .btn:disabled,
@@ -164,17 +178,6 @@ body {
 .btn-ghost:hover {
   background-color: var(--sim-bg-hover);
   color: var(--sim-text);
-}
-
-/* Danger — деструктивное */
-.btn-danger {
-  background-color: transparent;
-  color: var(--sim-red);
-  border-color: var(--sim-border);
-}
-.btn-danger:hover {
-  background-color: var(--sim-red-light);
-  border-color: var(--sim-red);
 }
 
 /* Размеры */
@@ -252,123 +255,9 @@ textarea.input {
 .card {
   background-color: var(--sim-bg-card);
   border-radius: var(--sim-r-lg);
-  padding: 16px;
+  padding: 20px;
   box-shadow: var(--sim-shadow-sm);
-}
-
-.card-bordered {
-  background-color: var(--sim-bg-card);
-  border-radius: var(--sim-r-lg);
-  padding: 16px;
-  border: 1px solid var(--sim-border);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   БЕЙДЖИ / ТЕГИ
-   Использование:
-     .badge          — базовый тег
-     .badge-green    — зелёный
-     .badge-amber    — янтарный
-     .badge-red      — красный/ошибка
-═══════════════════════════════════════════════════════════ */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  font-size: var(--sim-text-xs);
-  font-weight: 500;
-  border-radius: var(--sim-r-full);
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-
-.badge-green {
-  background-color: var(--sim-green-light);
-  color: var(--sim-green);
-  border-color: rgba(45,106,79,0.2);
-}
-
-.badge-amber {
-  background-color: var(--sim-amber-light);
-  color: var(--sim-amber);
-  border-color: rgba(200,160,53,0.25);
-}
-
-.badge-red {
-  background-color: var(--sim-red-light);
-  color: var(--sim-red);
-  border-color: rgba(220,38,38,0.2);
-}
-
-.badge-neutral {
-  background-color: var(--sim-bg-muted);
-  color: var(--sim-text-muted);
-  border-color: var(--sim-border);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   ТИПОГРАФИКА
-   Использование: классы .sim-h1, .sim-h2, .sim-h3, .sim-label
-═══════════════════════════════════════════════════════════ */
-
-.sim-h1 {
-  font-family: var(--sim-font-serif);
-  font-size: var(--sim-text-2xl);
-  font-weight: 400;
-  color: var(--sim-text);
-  line-height: 1.3;
-}
-
-.sim-h2 {
-  font-family: var(--sim-font-sans);
-  font-size: var(--sim-text-xl);
-  font-weight: 600;
-  color: var(--sim-text);
-  line-height: 1.3;
-}
-
-.sim-h3 {
-  font-family: var(--sim-font-sans);
-  font-size: var(--sim-text-lg);
-  font-weight: 600;
-  color: var(--sim-text);
-  line-height: 1.4;
-}
-
-.sim-label {
-  font-size: var(--sim-text-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--sim-text-hint);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   РАЗДЕЛИТЕЛЬ
-═══════════════════════════════════════════════════════════ */
-
-.sim-divider {
-  border: none;
-  border-top: 1px solid var(--sim-border-light);
-  margin: 0;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   УТИЛИТЫ
-═══════════════════════════════════════════════════════════ */
-
-/* Display-шрифт для заголовков (обратная совместимость) */
-.font-display,
-h1.display,
-h2.display {
-  font-family: var(--sim-font-serif);
-}
-
-/* Страницы */
-.page-bg {
-  background-color: var(--sim-bg);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 /* Скроллбары */
@@ -401,5 +290,210 @@ h2.display {
   .input-sm,
   textarea.input {
     font-size: 16px;
+  }
+}
+
+/* ── Глобальный focus-visible ──────────────────────────────
+   Видимая рамка при навигации через Tab.
+   Чинит 350+ кнопок одной декларацией.
+═══════════════════════════════════════════════════════════ */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[role="switch"]:focus-visible {
+  outline: 2px solid var(--sim-green, #2d6a4f);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AI PRO — КНОПКИ, АНИМАЦИИ, ЭФФЕКТЫ
+   Использование:
+     .btn-ai         — AI-кнопка с glow и 3D эффектом
+     .btn-ai-outline — контурная AI-кнопка
+     .ai-glass       — glassmorphism карточка
+     .ai-card-dark   — тёмная AI-карточка (dashboard)
+     .ai-glow        — мягкое свечение вокруг элемента
+     .ai-pulse       — пульсация для индикатора загрузки
+     .ai-fade-in     — плавное появление
+     .ai-slide-up    — появление снизу
+     .ai-progress    — анимированная полоска прогресса
+     .ai-shimmer     — блик на загрузке
+     .ai-counter     — анимированный счётчик
+     .ai-lens-bar    — полоска линзы с анимацией заполнения
+═══════════════════════════════════════════════════════════ */
+
+/* ── AI-кнопка с 3D и glow ─────────────────────────────── */
+.btn-ai {
+  background: linear-gradient(135deg, var(--sim-ai) 0%, #818cf8 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow:
+    0 2px 4px rgba(99,102,241,0.3),
+    0 4px 16px rgba(99,102,241,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+  position: relative;
+  overflow: hidden;
+}
+.btn-ai:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 8px rgba(99,102,241,0.35),
+    0 8px 24px rgba(99,102,241,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.btn-ai:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px rgba(99,102,241,0.3),
+    inset 0 1px 3px rgba(0,0,0,0.1);
+}
+/* Блик на кнопке */
+.btn-ai::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.05) 55%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ── AI-кнопка контурная ──────────────────────────────── */
+.btn-ai-outline {
+  background: transparent;
+  color: var(--sim-ai);
+  border: 1px solid var(--sim-ai-glass-border);
+}
+.btn-ai-outline:hover:not(:disabled) {
+  background: var(--sim-ai-glass);
+  border-color: var(--sim-ai);
+  transform: translateY(-1px);
+}
+
+/* ── Glassmorphism карточка ────────────────────────────── */
+.ai-glass {
+  background: var(--sim-ai-glass);
+  border: 1px solid var(--sim-ai-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--sim-r-xl);
+}
+
+/* ── Тёмная AI-карточка (dashboard, онбординг) ────────── */
+.ai-card-dark {
+  background: linear-gradient(135deg, var(--sim-ai-dark) 0%, #312e81 100%);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: var(--sim-r-xl);
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+/* Тонкий свечение по краю */
+.ai-card-dark::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(99,102,241,0.4) 0%, transparent 50%, rgba(129,140,248,0.2) 100%);
+  z-index: -1;
+  opacity: 0.5;
+}
+
+/* ── Мягкое свечение ──────────────────────────────────── */
+.ai-glow {
+  box-shadow: 0 0 20px var(--sim-ai-glow), 0 0 40px rgba(99,102,241,0.15);
+}
+
+/* ── Анимации ─────────────────────────────────────────── */
+
+/* Пульсация */
+@keyframes aiPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+.ai-pulse {
+  animation: aiPulse 2s ease-in-out infinite;
+}
+
+/* Плавное появление */
+@keyframes aiFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.ai-fade-in {
+  animation: aiFadeIn 0.4s ease both;
+}
+
+/* Появление снизу */
+@keyframes aiSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ai-slide-up {
+  animation: aiSlideUp 0.5s ease both;
+}
+
+/* Прогресс-бар с волной */
+@keyframes aiProgress {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.ai-progress {
+  background: linear-gradient(90deg, var(--sim-ai) 0%, #818cf8 25%, var(--sim-ai) 50%, #818cf8 75%, var(--sim-ai) 100%);
+  background-size: 200% 100%;
+  animation: aiProgress 2s linear infinite;
+}
+
+/* Блик-шиммер (скелетон загрузки) */
+@keyframes aiShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.ai-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.ai-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: aiShimmer 1.5s ease-in-out infinite;
+}
+
+/* Заполнение полоски линзы */
+@keyframes aiLensFill {
+  from { width: 0; }
+}
+.ai-lens-bar {
+  animation: aiLensFill 0.8s ease both;
+}
+
+/* Счётчик — стиль для цифр */
+@keyframes aiCountUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ai-counter {
+  animation: aiCountUp 0.3s ease both;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Онбординг слайды ─────────────────────────────────── */
+@keyframes aiOnboardFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.ai-onboard-slide {
+  animation: aiOnboardFadeIn 0.4s ease both;
+}
+
+/* ── Mobile: AI-кнопки увеличены ─────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  .btn-ai,
+  .btn-ai-outline {
+    height: 44px;
+    min-height: 44px;
+    font-size: var(--sim-text-md);
   }
 }

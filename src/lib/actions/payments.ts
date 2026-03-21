@@ -3,6 +3,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { uuidSchema, addPaidSessionsSchema } from '@/lib/validation'
+import { z } from 'zod'
+
+const followupDaysSchema = z.number().int().min(1).max(365)
+const enabledSchema = z.boolean()
 
 export async function getDoctorSettings(): Promise<{ paid_sessions_enabled: boolean; followup_reminder_days: number }> {
   const supabase = await createClient()
@@ -22,29 +26,39 @@ export async function getDoctorSettings(): Promise<{ paid_sessions_enabled: bool
 }
 
 export async function updateFollowupReminderDays(days: number): Promise<void> {
+  const validated = followupDaysSchema.parse(days)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  await supabase
+  const { error } = await supabase
     .from('doctor_settings')
     .upsert(
-      { doctor_id: user.id, followup_reminder_days: days, updated_at: new Date().toISOString() },
+      { doctor_id: user.id, followup_reminder_days: validated, updated_at: new Date().toISOString() },
       { onConflict: 'doctor_id' }
     )
+  if (error) {
+    console.error('[updateFollowupReminderDays] error:', error)
+    throw new Error('Не удалось сохранить')
+  }
 }
 
 export async function updatePaidSessionsEnabled(enabled: boolean): Promise<void> {
+  const validated = enabledSchema.parse(enabled)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  await supabase
+  const { error } = await supabase
     .from('doctor_settings')
     .upsert(
-      { doctor_id: user.id, paid_sessions_enabled: enabled, updated_at: new Date().toISOString() },
+      { doctor_id: user.id, paid_sessions_enabled: validated, updated_at: new Date().toISOString() },
       { onConflict: 'doctor_id' }
     )
+  if (error) {
+    console.error('[updatePaidSessionsEnabled] error:', error)
+    throw new Error('Не удалось сохранить')
+  }
 }
 
 export async function addPaidSessions(patientId: string, amount: number, note: string): Promise<void> {
@@ -55,18 +69,20 @@ export async function addPaidSessions(patientId: string, amount: number, note: s
   if (!user) redirect('/login')
 
   // Атомарное обновление через RPC — защита от race condition
-  await supabase.rpc('increment_paid_sessions', {
+  const { error: rpcError } = await supabase.rpc('increment_paid_sessions', {
     p_patient_id: patientId,
     p_doctor_id: user.id,
     p_amount: amount,
   })
+  if (rpcError) { console.error('[addPaidSessions] rpc:', rpcError); throw new Error('Не удалось обновить оплату') }
 
-  await supabase.from('payment_history').insert({
+  const { error: histError } = await supabase.from('payment_history').insert({
     patient_id: patientId,
     doctor_id: user.id,
     amount,
     note: note.trim() || null,
   })
+  if (histError) console.error('[addPaidSessions] history:', histError)
 }
 
 export async function decrementPaidSession(
@@ -77,10 +93,11 @@ export async function decrementPaidSession(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { prevCount: 0, newCount: 0 }
 
-  const { data } = await supabase.rpc('decrement_paid_session', {
+  const { data, error: rpcError } = await supabase.rpc('decrement_paid_session', {
     p_patient_id: patientId,
     p_doctor_id: user.id,
   })
+  if (rpcError) { console.error('[decrementPaidSession] rpc:', rpcError); return { prevCount: 0, newCount: 0 } }
 
   const result = data?.[0] || { prev_count: 0, new_count: 0 }
   const prevCount = result.prev_count ?? 0

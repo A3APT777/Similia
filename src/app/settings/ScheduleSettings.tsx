@@ -35,32 +35,36 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
 
   function handleSave() {
     startTransition(async () => {
-      await saveDoctorSchedule(data)
-      toast(t(lang).settings.scheduleSaved)
+      try {
+        await saveDoctorSchedule(data)
+        toast(t(lang).settings.scheduleSaved)
+      } catch {
+        toast(lang === 'ru' ? 'Ошибка сохранения расписания' : 'Schedule save error')
+      }
     })
   }
 
   const selectStyle = {
-    backgroundColor: '#faf7f2', border: '1px solid #d4c9b8',
+    backgroundColor: '#faf7f2', border: '1px solid var(--sim-border)',
     borderRadius: '8px', padding: '8px 12px', fontSize: '14px',
     color: '#1a1a0a', outline: 'none',
   }
-  const labelStyle = { fontSize: '13px', fontWeight: 600 as const, color: '#9a8a6a', textTransform: 'uppercase' as const, letterSpacing: '0.05em', display: 'block' as const, marginBottom: '8px' }
+  const labelStyle = { fontSize: '13px', fontWeight: 600 as const, color: '#6b5f4f', textTransform: 'uppercase' as const, letterSpacing: '0.05em', display: 'block' as const, marginBottom: '8px' }
 
   return (
     <div className="space-y-5">
       {/* Длительность */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label style={labelStyle}>{t(lang).settings.consultationDuration}</label>
-          <select style={selectStyle} value={data.session_duration} onChange={e => setData(p => ({ ...p, session_duration: Number(e.target.value) }))}>
-            {[30, 45, 60, 90].map(v => <option key={v} value={v}>{v} {t(lang).settings.min}</option>)}
+          <label htmlFor="sched-duration" style={labelStyle}>{t(lang).settings.consultationDuration}</label>
+          <select id="sched-duration" style={selectStyle} value={data.session_duration} onChange={e => setData(p => ({ ...p, session_duration: Number(e.target.value) }))}>
+            {[30, 45, 60, 90, 120, 150].map(v => <option key={v} value={v}>{v} {t(lang).settings.min}</option>)}
           </select>
         </div>
         <div>
-          <label style={labelStyle}>{t(lang).settings.breakBetween}</label>
-          <select style={selectStyle} value={data.break_duration} onChange={e => setData(p => ({ ...p, break_duration: Number(e.target.value) }))}>
-            {[0, 10, 15, 20, 30].map(v => <option key={v} value={v}>{v} {t(lang).settings.min}</option>)}
+          <label htmlFor="sched-break" style={labelStyle}>{t(lang).settings.breakBetween}</label>
+          <select id="sched-break" style={selectStyle} value={data.break_duration} onChange={e => setData(p => ({ ...p, break_duration: Number(e.target.value) }))}>
+            {[0, 10, 15, 20, 30, 45, 60].map(v => <option key={v} value={v}>{v} {t(lang).settings.min}</option>)}
           </select>
         </div>
       </div>
@@ -73,11 +77,13 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
             <button
               key={key}
               type="button"
+              aria-pressed={data.working_days.includes(key)}
+              aria-label={`${t(lang).settings.days[i]}`}
               onClick={() => toggleDay(key)}
-              className="px-3 py-2 rounded-lg text-sm font-semibold transition-all"
+              className="px-3 py-2 rounded-lg text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
               style={data.working_days.includes(key)
-                ? { backgroundColor: '#2d6a4f', color: '#fff', border: '1px solid #2d6a4f' }
-                : { backgroundColor: '#f0ebe3', color: '#9a8a6a', border: '1px solid #d4c9b8' }}
+                ? { backgroundColor: 'var(--sim-green)', color: '#fff', border: '1px solid #2d6a4f' }
+                : { backgroundColor: '#f0ebe3', color: '#6b5f4f', border: '1px solid var(--sim-border)' }}
             >
               {t(lang).settings.days[i]}
             </button>
@@ -89,11 +95,11 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
       <div>
         <label style={labelStyle}>{t(lang).settings.workHours}</label>
         <div className="flex items-center gap-3">
-          <select style={selectStyle} value={data.start_time} onChange={e => setData(p => ({ ...p, start_time: e.target.value }))}>
+          <select id="sched-start" aria-label={lang === 'ru' ? 'Начало рабочего дня' : 'Work start time'} style={selectStyle} value={data.start_time} onChange={e => setData(p => ({ ...p, start_time: e.target.value }))}>
             {timeOptions(7, 12).map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <span style={{ color: '#9a8a6a', fontSize: '14px' }}>—</span>
-          <select style={selectStyle} value={data.end_time} onChange={e => setData(p => ({ ...p, end_time: e.target.value }))}>
+          <span style={{ color: '#6b5f4f', fontSize: '14px' }} aria-hidden="true">—</span>
+          <select id="sched-end" aria-label={lang === 'ru' ? 'Конец рабочего дня' : 'Work end time'} style={selectStyle} value={data.end_time} onChange={e => setData(p => ({ ...p, end_time: e.target.value }))}>
             {timeOptions(14, 22).map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
@@ -105,9 +111,12 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
           <label style={{ ...labelStyle, marginBottom: 0 }}>{t(lang).settings.lunchBreak}</label>
           <button
             type="button"
+            role="switch"
+            aria-checked={data.lunch_enabled}
+            aria-label={lang === 'ru' ? 'Включить обеденный перерыв' : 'Enable lunch break'}
             onClick={() => setData(p => ({ ...p, lunch_enabled: !p.lunch_enabled }))}
-            className="relative inline-flex items-center rounded-full transition-colors"
-            style={{ width: 40, height: 22, backgroundColor: data.lunch_enabled ? '#2d6a4f' : '#d4c9b8', padding: '2px' }}
+            className="relative inline-flex items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+            style={{ width: 40, height: 24, backgroundColor: data.lunch_enabled ? '#2d6a4f' : '#d4c9b8', padding: '2px' }}
           >
             <span
               className="inline-block rounded-full bg-white transition-transform"
@@ -117,11 +126,11 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
         </div>
         {data.lunch_enabled && (
           <div className="flex items-center gap-3">
-            <select style={selectStyle} value={data.lunch_start} onChange={e => setData(p => ({ ...p, lunch_start: e.target.value }))}>
+            <select id="sched-lunch-start" aria-label={lang === 'ru' ? 'Начало обеда' : 'Lunch start'} style={selectStyle} value={data.lunch_start} onChange={e => setData(p => ({ ...p, lunch_start: e.target.value }))}>
               {timeOptions(11, 15).map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <span style={{ color: '#9a8a6a', fontSize: '14px' }}>—</span>
-            <select style={selectStyle} value={data.lunch_end} onChange={e => setData(p => ({ ...p, lunch_end: e.target.value }))}>
+            <span style={{ color: '#6b5f4f', fontSize: '14px' }} aria-hidden="true">—</span>
+            <select id="sched-lunch-end" aria-label={lang === 'ru' ? 'Конец обеда' : 'Lunch end'} style={selectStyle} value={data.lunch_end} onChange={e => setData(p => ({ ...p, lunch_end: e.target.value }))}>
               {timeOptions(12, 16).map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
@@ -132,7 +141,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
         onClick={handleSave}
         disabled={isPending}
         className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-        style={{ backgroundColor: '#1a3020' }}
+        style={{ backgroundColor: 'var(--sim-forest)' }}
       >
         {isPending ? t(lang).settings.saving : t(lang).settings.saveSchedule}
       </button>

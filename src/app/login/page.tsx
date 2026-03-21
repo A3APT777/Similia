@@ -6,28 +6,7 @@ import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 import { loginAction } from './actions'
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  backgroundColor: '#faf7f2',
-  border: '1px solid #d4c9b8',
-  borderRadius: '8px',
-  padding: '12px 16px',
-  fontSize: '16px',
-  color: '#3a2e1a',
-  outline: 'none',
-  boxSizing: 'border-box',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-}
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '12px',
-  fontWeight: 500,
-  letterSpacing: '0.08em',
-  color: '#5a7060',
-  marginBottom: '6px',
-  textTransform: 'uppercase',
-}
+import { authInputStyle as inputStyle, authLabelStyle as labelStyle, getAuthInputFocusStyle } from '@/lib/authStyles'
 
 export default function LoginPage() {
   const { lang } = useLanguage()
@@ -37,16 +16,19 @@ export default function LoginPage() {
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
 
-  const error = serverError ? t(lang).auth.invalidCredentials : ''
+  const error = !serverError ? '' :
+    serverError === 'rate_limit' ? (lang === 'ru' ? 'Слишком много попыток — подождите минуту' : 'Too many attempts — wait a minute') :
+    serverError === 'network' ? (lang === 'ru' ? 'Ошибка сети — проверьте подключение' : 'Network error — check connection') :
+    t(lang).auth.invalidCredentials
 
   const getInputStyle = (field: string): React.CSSProperties => ({
     ...inputStyle,
     borderColor: focusedField === field ? '#2d6a4f' : '#d4c9b8',
-    boxShadow: focusedField === field ? '0 0 0 3px rgba(45,106,79,0.1)' : 'none',
+    boxShadow: focusedField === field ? '0 0 0 3px rgba(45,106,79,0.3)' : 'none',
   })
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#f7f3ed' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--sim-bg)' }}>
 
       {/* Левая панель */}
       <div style={{
@@ -57,7 +39,7 @@ export default function LoginPage() {
         padding: '48px',
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: '#1a3020',
+        backgroundColor: 'var(--sim-forest)',
         flexShrink: 0,
       }} className="auth-left-panel">
         {/* Ботаническая иллюстрация */}
@@ -157,7 +139,7 @@ export default function LoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '48px 24px',
-        backgroundColor: '#f7f3ed',
+        backgroundColor: 'var(--sim-bg)',
       }}>
         <div style={{ width: '100%', maxWidth: '360px' }}>
 
@@ -168,7 +150,7 @@ export default function LoginPage() {
               <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
               <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: '#1a3020' }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: 'var(--sim-forest)' }}>
               Similia
             </span>
           </div>
@@ -177,19 +159,20 @@ export default function LoginPage() {
             fontFamily: "'Cormorant Garamond', Georgia, serif",
             fontSize: '28px',
             fontWeight: 400,
-            color: '#1a3020',
+            color: 'var(--sim-forest)',
             marginBottom: '6px',
           }}>
             {t(lang).auth.welcome}
           </h1>
-          <p style={{ fontSize: '15px', color: '#9a8a6a', marginBottom: '32px' }}>
+          <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', marginBottom: '32px' }}>
             {t(lang).auth.signInPrompt}
           </p>
 
           <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
-              <label style={labelStyle}>Email</label>
+              <label htmlFor="login-email" style={labelStyle}>Email</label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -205,12 +188,13 @@ export default function LoginPage() {
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label style={{ ...labelStyle, marginBottom: 0 }}>{t(lang).auth.password}</label>
-                <Link href="/forgot-password" style={{ fontSize: '14px', color: '#2d6a4f', textDecoration: 'none' }}>
+                <label htmlFor="login-password" style={{ ...labelStyle, marginBottom: 0 }}>{t(lang).auth.password}</label>
+                <Link href="/forgot-password" style={{ fontSize: '14px', color: 'var(--sim-green)', textDecoration: 'none' }}>
                   {t(lang).auth.forgotPassword}
                 </Link>
               </div>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -224,7 +208,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div style={{ backgroundColor: '#fef0f0', border: '1px solid #fbd5d5', borderRadius: '8px', padding: '12px 16px' }}>
+              <div role="alert" style={{ backgroundColor: '#fef0f0', border: '1px solid #fbd5d5', borderRadius: '8px', padding: '12px 16px' }}>
                 <p style={{ color: '#c0392b', fontSize: '14px' }}>{error}</p>
               </div>
             )}
@@ -252,14 +236,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p style={{ marginTop: '24px', fontSize: '14px', color: '#9a8a6a', textAlign: 'center' }}>
+          <p style={{ marginTop: '24px', fontSize: '14px', color: 'var(--sim-text-hint)', textAlign: 'center' }}>
             {t(lang).auth.noAccount}{' '}
-            <Link href="/register" style={{ color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
+            <Link href="/register" style={{ color: 'var(--sim-green)', fontWeight: 500, textDecoration: 'none' }}>
               {t(lang).auth.register}
             </Link>
           </p>
 
-          <p style={{ marginTop: '16px', fontSize: '12px', color: '#9a8a6a', textAlign: 'center' }}>
+          <p style={{ marginTop: '16px', fontSize: '12px', color: 'var(--sim-text-hint)', textAlign: 'center' }}>
             {t(lang).auth.freeAndSecure}
           </p>
         </div>

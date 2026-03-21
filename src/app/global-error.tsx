@@ -36,13 +36,13 @@ export default function GlobalError({
             }}>
               {t(lang).error.criticalError}
             </h2>
-            <p style={{ fontSize: '14px', color: '#9a8a6a', lineHeight: 1.6, marginBottom: '24px' }}>
+            <p style={{ fontSize: '14px', color: 'var(--sim-text-hint)', lineHeight: 1.6, marginBottom: '24px' }}>
               {t(lang).error.criticalDesc}
             </p>
             <button
               onClick={reset}
               style={{
-                backgroundColor: '#1a3020', color: '#f7f3ed',
+                backgroundColor: 'var(--sim-forest)', color: '#f7f3ed',
                 border: 'none', borderRadius: '12px',
                 padding: '12px 24px', fontSize: '15px', fontWeight: 600,
                 cursor: 'pointer',

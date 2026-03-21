@@ -17,14 +17,22 @@ type Props = {
 export default function TimelineWithFilter({ patientId, consultations, followupByConsultation }: Props) {
   const { lang } = useLanguage()
   const [remedy, setRemedy] = useState('')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'chronic' | 'acute'>('all')
   const [limit, setLimit] = useState(INITIAL_LIMIT)
 
+  const byType = typeFilter === 'all'
+    ? consultations
+    : consultations.filter(c => c.type === typeFilter)
+
   const filtered = remedy.trim()
-    ? consultations.filter(c =>
+    ? byType.filter(c =>
         c.remedy?.toLowerCase().includes(remedy.toLowerCase()) ||
         c.notes?.toLowerCase().includes(remedy.toLowerCase())
       )
-    : consultations
+    : byType
+
+  const hasAcute = consultations.some(c => c.type === 'acute')
+  const hasChronic = consultations.some(c => c.type === 'chronic')
 
   // При поиске показываем все результаты, при просмотре — с пагинацией
   const visible = remedy.trim() ? filtered : filtered.slice(0, limit)
@@ -38,6 +46,31 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
 
   return (
     <div>
+      {/* Фильтр по типу */}
+      {hasAcute && hasChronic && (
+        <div className="flex gap-1.5 mb-3">
+          {([
+            { value: 'all' as const, label: lang === 'ru' ? 'Все' : 'All' },
+            { value: 'chronic' as const, label: lang === 'ru' ? 'Хронические' : 'Chronic' },
+            { value: 'acute' as const, label: lang === 'ru' ? 'Острые' : 'Acute' },
+          ]).map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => { setTypeFilter(opt.value); setLimit(INITIAL_LIMIT) }}
+              className="text-[12px] px-3 py-1 rounded-lg border transition-all"
+              style={{
+                borderColor: typeFilter === opt.value ? '#2d6a4f' : '#d4c9b8',
+                backgroundColor: typeFilter === opt.value ? '#2d6a4f' : 'transparent',
+                color: typeFilter === opt.value ? '#fff' : '#9a8a6a',
+                fontWeight: typeFilter === opt.value ? 600 : 400,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Фильтр по препарату */}
       {allRemedies.length > 0 && (
         <div className="mb-5">
@@ -53,7 +86,7 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
                 setLimit(INITIAL_LIMIT) // сбрасываем пагинацию при новом поиске
               }}
               placeholder={t(lang).timelineFilter.search}
-              className="w-full pl-8 pr-8 py-2 text-sm border border-[#d4c9b8] rounded-xl focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+              className="w-full pl-8 pr-8 py-2 text-sm border border-[#d4c9b8] rounded-xl focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
               style={{ backgroundColor: '#faf7f2' }}
             />
             {remedy && (
@@ -75,7 +108,7 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
                 <button
                   key={r}
                   onClick={() => setRemedy(r)}
-                  className="text-[11px] px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+                  className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
                 >
                   {r}
                 </button>

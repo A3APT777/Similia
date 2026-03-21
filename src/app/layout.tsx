@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import "@/styles/theme.css";
 import { ToastProvider } from "@/components/ui/toast";
+import CookieConsent from "@/components/CookieConsent";
+import Script from "next/script";
+import InteractiveTour from "@/components/InteractiveTour";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,9 +27,11 @@ const cormorant = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://simillia.ru"),
-  title: "Similia — картотека для гомеопата",
-  description: "Цифровой кабинет гомеопата: карточки пациентов, анкеты, опрос самочувствия, фото-динамика.",
+  alternates: { canonical: 'https://simillia.ru' },
+  title: "Similia — цифровой кабинет гомеопата",
+  description: "Ведите пациентов, ищите рубрики в реперториуме и отслеживайте динамику — всё в одном месте. Бесплатно во время бета-теста. Данные хранятся в России.",
   manifest: "/manifest.json",
+  keywords: ["гомеопат", "гомеопатия", "реперторий", "карточки пациентов", "программа для гомеопата", "цифровой кабинет"],
   icons: {
     icon: "/favicon.svg",
     apple: "/favicon.svg",
@@ -40,17 +45,24 @@ export const metadata: Metadata = {
     "mobile-web-app-capable": "yes",
   },
   openGraph: {
-    title: "Similia — картотека для гомеопата",
-    description: "Цифровой кабинет гомеопата: карточки пациентов, реперторий Кента, динамика состояния.",
+    title: "Similia — думайте о пациенте, не о бумагах",
+    description: "Карточки пациентов, реперторий (74 000+ рубрик), анкеты до приёма и опросы самочувствия. Бесплатно для практикующих гомеопатов.",
     url: "https://simillia.ru",
     siteName: "Similia",
     type: "website",
     locale: "ru_RU",
+    images: [{
+      url: 'https://simillia.ru/opengraph-image',
+      width: 1200,
+      height: 630,
+      type: 'image/png',
+      alt: 'Similia — думайте о пациенте, не о бумагах',
+    }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Similia — картотека для гомеопата",
-    description: "Цифровой кабинет гомеопата: карточки пациентов, реперторий Кента, динамика состояния.",
+    title: "Similia — думайте о пациенте, не о бумагах",
+    description: "Карточки пациентов, реперторий (74 000+ рубрик), анкеты до приёма и опросы самочувствия. Бесплатно.",
   },
 };
 
@@ -73,20 +85,22 @@ export default function RootLayout({
         <ToastProvider>
           {children}
         </ToastProvider>
-        {/* Яндекс.Метрика — замени XXXXXXXX на свой номер счётчика */}
-        {process.env.NEXT_PUBLIC_METRIKA_ID && (
-          <Script
-            id="yandex-metrika"
-            strategy="afterInteractive"
-            src="https://mc.yandex.ru/metrika/tag.js"
-            onLoad={() => {
-              // @ts-expect-error ym is injected by Yandex Metrika
-              window.ym?.(process.env.NEXT_PUBLIC_METRIKA_ID, 'init', {
-                clickmap: true, trackLinks: true, accurateTrackBounce: true,
-              })
-            }}
-          />
-        )}
+        <CookieConsent />
+        <InteractiveTour />
+
+        {/* Яндекс.Метрика — код с сайта metrika.yandex.ru */}
+        <Script id="yandex-metrika" strategy="afterInteractive">
+          {`(function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+          })(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108156570','ym');
+          ym(108156570,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});`}
+        </Script>
+        <noscript>
+          <div><img src="https://mc.yandex.ru/watch/108156570" style={{position:'absolute',left:'-9999px'}} alt="" /></div>
+        </noscript>
       </body>
     </html>
   );

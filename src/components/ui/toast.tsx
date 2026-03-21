@@ -33,7 +33,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      <div role="status" aria-live="polite" className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
           <ToastItem key={t.id} toast={t} onClose={() => setToasts(prev => prev.filter(x => x.id !== t.id))} />
         ))}
@@ -76,7 +76,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       }}
       onClick={toast.action ? undefined : onClose}
     >
-      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0" style={{ backgroundColor: c.iconBg, color: c.iconColor }}>
+      <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ backgroundColor: c.iconBg, color: c.iconColor }}>
         {c.icon}
       </span>
       <p className="text-[13px] flex-1" style={{ color: c.textColor }}>{toast.message}</p>
@@ -84,7 +84,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
         <button
           type="button"
           onClick={() => { toast.action!.onClick(); onClose() }}
-          className="text-[11px] font-medium px-2 py-1 rounded shrink-0 transition-opacity hover:opacity-70"
+          className="text-xs font-medium px-2 py-1 rounded shrink-0 transition-opacity hover:opacity-70"
           style={{ color: c.iconColor, backgroundColor: c.iconBg }}
         >
           {toast.action.label}

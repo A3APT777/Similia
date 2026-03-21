@@ -4,6 +4,7 @@ import Link from 'next/link'
 import ConsultationEditor from './ConsultationEditor'
 import LogoutButton from '@/components/LogoutButton'
 import { getDoctorSettings } from '@/lib/actions/payments'
+import { getPreVisitSurveyByConsultation, getLatestPatientSurvey } from '@/lib/actions/surveys'
 
 export default async function ConsultationPage({
   params,
@@ -27,6 +28,7 @@ export default async function ConsultationPage({
       .from('consultations')
       .select('*')
       .eq('patient_id', id)
+      .eq('doctor_id', user.id)
       .neq('id', consultationId)
       .lt('created_at', consultation.created_at)
       .order('created_at', { ascending: false })
@@ -41,7 +43,12 @@ export default async function ConsultationPage({
   ])
 
   const name = user?.user_metadata?.name || user?.email || ''
-  const { paid_sessions_enabled } = await getDoctorSettings()
+  const [{ paid_sessions_enabled }, surveyByConsultation] = await Promise.all([
+    getDoctorSettings(),
+    getPreVisitSurveyByConsultation(consultationId),
+  ])
+  // Fallback: если survey не привязан к консультации — берём последний completed для пациента
+  const preVisitSurvey = surveyByConsultation || await getLatestPatientSurvey(id)
 
   return (
     <div className="min-h-[100dvh] bg-[#ede7dd] flex flex-col">
@@ -68,6 +75,7 @@ export default async function ConsultationPage({
         previousConsultation={previousConsultation || null}
         paidSessionsEnabled={paid_sessions_enabled}
         visitNumber={visitCount ?? 1}
+        preVisitSurvey={preVisitSurvey}
       />
     </div>
   )

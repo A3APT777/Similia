@@ -57,6 +57,43 @@ export async function createConsultation(patientId: string, type: ConsultationTy
   redirect(`/patients/${patientId}/consultations/${data.id}`)
 }
 
+// Создать консультацию для AI-анализа (без redirect, возвращает ID)
+export async function createAIConsultation(
+  patientId: string,
+  type: ConsultationType = 'chronic',
+  notes: string = '',
+): Promise<string> {
+  uuidSchema.parse(patientId)
+  consultationTypeSchema.parse(type)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('id')
+    .eq('id', patientId)
+    .eq('doctor_id', user.id)
+    .single()
+  if (!patient) throw new Error('Patient not found')
+
+  const { data, error } = await supabase
+    .from('consultations')
+    .insert({
+      patient_id: patientId,
+      doctor_id: user.id,
+      notes,
+      status: 'in_progress',
+      type,
+      source: 'ai',
+    })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data.id
+}
+
 // Запланировать приём на конкретную дату и время (scheduledAt — ISO UTC строка)
 export async function scheduleConsultation(
   patientId: string,
@@ -191,7 +228,6 @@ export async function updateConsultationNotes(id: string, notes: string) {
     .from('consultations')
     .update({
       notes,
-      status: notes.trim().length > 0 ? 'completed' : 'in_progress',
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

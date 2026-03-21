@@ -13,7 +13,7 @@ export default async function NewPatientPage({ params }: { params: Promise<{ tok
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f7f3ed', padding: '24px 16px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--sim-bg)', padding: '24px 16px' }}>
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
         {/* Логотип */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px' }}>
@@ -22,7 +22,7 @@ export default async function NewPatientPage({ params }: { params: Promise<{ tok
             <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65"/>
             <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '22px', fontWeight: 400, color: '#1a3020', letterSpacing: '0.02em' }}>Similia</span>
+          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '22px', fontWeight: 400, color: 'var(--sim-forest)', letterSpacing: '0.02em' }}>Similia</span>
         </div>
 
         {/* Карточка */}
@@ -33,7 +33,7 @@ export default async function NewPatientPage({ params }: { params: Promise<{ tok
               <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '26px', color: '#1a1a0a', marginBottom: '10px' }}>
                 Ссылка недействительна
               </h2>
-              <p style={{ color: '#9a8a6a', fontSize: '15px', lineHeight: 1.6 }}>
+              <p style={{ color: 'var(--sim-text-hint)', fontSize: '15px', lineHeight: 1.6 }}>
                 Ссылка устарела или уже была использована.<br />
                 Обратитесь к врачу за новой ссылкой.
               </p>

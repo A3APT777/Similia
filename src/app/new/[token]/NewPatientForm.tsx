@@ -129,21 +129,21 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
 
   const inputStyle = {
     width: '100%', backgroundColor: '#faf7f2',
-    border: '1px solid #d4c9b8', borderRadius: '8px',
+    border: '1px solid var(--sim-border)', borderRadius: '8px',
     padding: '12px 14px', fontSize: '16px', color: '#1a1a0a',
     outline: 'none', boxSizing: 'border-box' as const,
   }
-  const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#9a8a6a', marginBottom: '6px', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }
+  const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--sim-text-hint)', marginBottom: '6px', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }
 
   if (success) {
     return (
       <div className="text-center py-12">
         <div className="text-5xl mb-6">🌿</div>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '32px', fontWeight: 400, color: '#1a3020', marginBottom: '12px' }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '32px', fontWeight: 400, color: 'var(--sim-forest)', marginBottom: '12px' }}>
           Вы записаны!
         </h2>
-        <p style={{ fontSize: '18px', color: '#2d6a4f', fontWeight: 500, marginBottom: '16px' }}>{success}</p>
-        <p style={{ fontSize: '15px', color: '#9a8a6a', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '18px', color: 'var(--sim-green)', fontWeight: 500, marginBottom: '16px' }}>{success}</p>
+        <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', lineHeight: 1.6 }}>
           Врач свяжется с вами для подтверждения перед приёмом.
         </p>
       </div>
@@ -154,16 +154,16 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
     <div>
       {/* Progress bar */}
       <div className="flex items-center gap-3 mb-8">
-        <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: '#1a3020', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f7f3ed', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>1</div>
+        <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--sim-forest)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f7f3ed', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>1</div>
         <div style={{ flex: 1, height: '2px', backgroundColor: step >= 2 ? '#1a3020' : '#d4c9b8' }} />
         <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: step >= 2 ? '#1a3020' : '#f0ebe3', border: step >= 2 ? 'none' : '2px solid #d4c9b8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: step >= 2 ? '#f7f3ed' : '#9a8a6a', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>2</div>
-        <p style={{ fontSize: '13px', color: '#9a8a6a', flexShrink: 0 }}>Шаг {step} из 2</p>
+        <p style={{ fontSize: '13px', color: 'var(--sim-text-hint)', flexShrink: 0 }}>Шаг {step} из 2</p>
       </div>
 
       {step === 1 && (
         <form onSubmit={handleStep1Submit}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a1a0a', marginBottom: '6px' }}>Первичная анкета</h2>
-          <p style={{ fontSize: '15px', color: '#9a8a6a', marginBottom: '28px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', marginBottom: '28px', lineHeight: 1.5 }}>
             Заполните до первого приёма — это сэкономит время на консультации
           </p>
 
@@ -228,9 +228,9 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
                 onChange={e => setConsent(e.target.checked)}
                 style={{ width: 18, height: 18, marginTop: '2px', accentColor: '#1a3020', flexShrink: 0 }}
               />
-              <span style={{ fontSize: '13px', color: '#9a8a6a', lineHeight: 1.5 }}>
+              <span style={{ fontSize: '13px', color: 'var(--sim-text-hint)', lineHeight: 1.5 }}>
                 Я согласен(на) на обработку моих персональных данных, включая трансграничную передачу (ст. 12 ФЗ-152), в соответствии с{' '}
-                <a href="/privacy" target="_blank" style={{ color: '#2d6a4f', textDecoration: 'underline' }}>
+                <a href="/privacy" target="_blank" style={{ color: 'var(--sim-green)', textDecoration: 'underline' }}>
                   политикой конфиденциальности
                 </a>
                 . Данные используются исключительно для организации консультации.
@@ -252,7 +252,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
 
       {step === 2 && (
         <div>
-          <button onClick={() => setStep(1)} style={{ fontSize: '14px', color: '#9a8a6a', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>
+          <button onClick={() => setStep(1)} style={{ fontSize: '14px', color: 'var(--sim-text-hint)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>
             ← Вернуться к анкете
           </button>
           <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a1a0a', marginBottom: '24px' }}>Выберите удобное время</h2>
@@ -260,7 +260,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
           {/* Calendar */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '24px' }}>
             {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: '12px', color: '#9a8a6a', fontWeight: 600, paddingBottom: '4px' }}>{d}</div>
+              <div key={d} style={{ textAlign: 'center', fontSize: '12px', color: 'var(--sim-text-hint)', fontWeight: 600, paddingBottom: '4px' }}>{d}</div>
             ))}
             {/* Пустые ячейки для выравнивания первой недели */}
             {Array.from({ length: (calendarDays[0].getDay() + 6) % 7 }).map((_, i) => (
@@ -296,16 +296,16 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
           {/* Time slots */}
           {selectedDate && (
             <div style={{ marginBottom: '24px' }}>
-              <p style={{ fontSize: '14px', color: '#9a8a6a', marginBottom: '12px', fontWeight: 600 }}>
+              <p style={{ fontSize: '14px', color: 'var(--sim-text-hint)', marginBottom: '12px', fontWeight: 600 }}>
                 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
               </p>
               {loadingSlots ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9a8a6a', fontSize: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--sim-text-hint)', fontSize: '14px' }}>
                   <span style={{ width: 16, height: 16, border: '2px solid #d4c9b8', borderTopColor: '#2d6a4f', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
                   Загружаю слоты...
                 </div>
               ) : slots.length === 0 ? (
-                <p style={{ color: '#9a8a6a', fontSize: '14px' }}>На этот день нет свободных слотов</p>
+                <p style={{ color: 'var(--sim-text-hint)', fontSize: '14px' }}>На этот день нет свободных слотов</p>
               ) : (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {slots.map(slot => (

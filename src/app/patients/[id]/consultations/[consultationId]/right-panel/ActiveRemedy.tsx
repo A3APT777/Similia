@@ -29,7 +29,7 @@ export default function ActiveRemedy({ previousConsultation, lang }: Props) {
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2.5 mt-1 text-[11px] text-gray-500">
+      <div className="flex items-center gap-2.5 mt-1 text-xs text-gray-500">
         <span>{daysLabel}</span>
         {dosage && (
           <>

@@ -39,6 +39,14 @@ function getSteps(lang: 'ru' | 'en', lastPatientId?: string) {
       href: patientUrl,
       label: lang === 'ru' ? 'Открыть карточку' : 'Open patient',
     },
+    {
+      key: 'ai_demo',
+      done: () => false,
+      title: lang === 'ru' ? '✨ Попробуйте AI-анализ' : '✨ Try AI analysis',
+      desc: lang === 'ru' ? '3 бесплатных анализа без подписки' : '3 free analyses without subscription',
+      href: '/demo',
+      label: lang === 'ru' ? 'Демо' : 'Demo',
+    },
   ]
 }
 

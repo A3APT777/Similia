@@ -5,7 +5,7 @@ import { savePrescription } from '@/lib/actions/consultations'
 import { searchRemediesDB, RemedyResult } from '@/lib/actions/remedies'
 import { useLanguage } from '@/hooks/useLanguage'
 
-const POTENCY_CHIPS = ['6C', '12C', '30C', '200C', '1M', '10M']
+const POTENCY_CHIPS = ['6C', '12C', '30C', '200C', '1M', '10M', 'LM1', 'LM2', 'LM3', 'LM6']
 
 const LABELS = {
   ru: { remedy: 'Препарат', potency: 'Потенция', pellets: 'Гранулы', dosage: 'Дозировка', title: 'НАЗНАЧЕНИЕ', saved: 'Сохранено' },
@@ -15,18 +15,26 @@ const LABELS = {
 type Props = {
   consultationId: string
   onSaved?: (remedy: string, potency: string, dosage: string) => void
-  assignedRemedy?: string  // передаётся из репертория при нажатии «Назначить»
+  assignedRemedy?: string
+  initialRemedy?: string | null
+  initialPotency?: string | null
+  initialDosage?: string | null
+  initialPellets?: number | null
 }
 
-export default function InlineRx({ consultationId, onSaved, assignedRemedy }: Props) {
+export default function InlineRx({ consultationId, onSaved, assignedRemedy, initialRemedy, initialPotency, initialDosage, initialPellets }: Props) {
   const { lang } = useLanguage()
   const L = LABELS[lang] || LABELS.en
 
-  const [remedy, setRemedy] = useState('')
-  const [potency, setPotency] = useState('')
-  const [customPotency, setCustomPotency] = useState('')
-  const [pellets, setPellets] = useState(3)
-  const [dosage, setDosage] = useState('')
+  const [remedy, setRemedy] = useState(initialRemedy || '')
+  const [potency, setPotency] = useState(
+    initialPotency && POTENCY_CHIPS.includes(initialPotency) ? initialPotency : ''
+  )
+  const [customPotency, setCustomPotency] = useState(
+    initialPotency && !POTENCY_CHIPS.includes(initialPotency) ? initialPotency : ''
+  )
+  const [pellets, setPellets] = useState(initialPellets || 3)
+  const [dosage, setDosage] = useState(initialDosage || '')
 
   // Автодополнение
   const [suggestions, setSuggestions] = useState<RemedyResult[]>([])
@@ -136,15 +144,15 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy }: Pr
 
   return (
     <div data-tour="inline-rx" className="space-y-2.5">
-      <label className="block text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-forest)' }}>
+      <label className="block text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-forest)' }}>
         {L.title}
         {saveStatus === 'saved' && (
-          <span className="ml-2 text-[10px] font-normal" style={{ color: 'var(--sim-green)' }}>
+          <span className="ml-2 text-[12px] font-normal" style={{ color: 'var(--sim-green)' }}>
             ✓ {L.saved}
           </span>
         )}
         {saveStatus === 'saving' && (
-          <span className="ml-2 text-[10px] font-normal" style={{ color: 'var(--sim-text-hint)' }}>…</span>
+          <span className="ml-2 text-[12px] font-normal" style={{ color: 'var(--sim-text-hint)' }}>…</span>
         )}
       </label>
 
@@ -152,7 +160,7 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy }: Pr
       <div className="flex flex-wrap items-start gap-3">
         {/* Препарат */}
         <div className="relative flex-1 min-w-[160px]">
-          <label className="block text-[10px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.remedy}</label>
+          <label className="block text-[12px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.remedy}</label>
           <input
             ref={inputRef}
             type="text"
@@ -184,8 +192,8 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy }: Pr
                   onMouseLeave={e => { if (i !== activeSuggestion) e.currentTarget.style.backgroundColor = '' }}
                 >
                   <span className="text-[13px] font-medium" style={{ color: 'var(--sim-text)' }}>{r.name_latin}</span>
-                  {r.name_ru && <span className="text-[11px] ml-2" style={{ color: 'var(--sim-text-hint)' }}>{r.name_ru}</span>}
-                  <span className="text-[10px] ml-1.5" style={{ color: 'var(--sim-border)' }}>{r.abbrev}</span>
+                  {r.name_ru && <span className="text-[12px] ml-2" style={{ color: 'var(--sim-text-hint)' }}>{r.name_ru}</span>}
+                  <span className="text-[12px] ml-1.5" style={{ color: 'var(--sim-border)' }}>{r.abbrev}</span>
                 </button>
               ))}
             </div>
@@ -194,14 +202,14 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy }: Pr
 
         {/* Потенция chips */}
         <div>
-          <label className="block text-[10px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.potency}</label>
+          <label className="block text-[12px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.potency}</label>
           <div className="flex flex-wrap gap-1">
             {POTENCY_CHIPS.map(p => (
               <button
                 key={p}
                 type="button"
                 onClick={() => { setPotency(potency === p ? '' : p); setCustomPotency('') }}
-                className="text-[11px] px-2 py-1.5 rounded-md border font-medium transition-all"
+                className="text-[12px] px-2 py-1.5 rounded-md border font-medium transition-all"
                 style={potency === p
                   ? { backgroundColor: 'var(--sim-green)', color: '#fff', borderColor: 'var(--sim-green)' }
                   : { borderColor: 'var(--sim-border)', color: 'var(--sim-text-muted)' }}
@@ -213,15 +221,16 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy }: Pr
               type="text"
               value={customPotency}
               onChange={e => { setCustomPotency(e.target.value); setPotency('') }}
-              placeholder="..."
-              className="input input-sm w-12 text-center"
+              placeholder={lang === 'ru' ? 'Другая' : 'Other'}
+              title={lang === 'ru' ? 'Введите нестандартную потенцию: LM12, Q5, 50M, 12X...' : 'Enter custom potency: LM12, Q5, 50M, 12X...'}
+              className="input input-sm w-16 text-center"
             />
           </div>
         </div>
 
         {/* Гранулы */}
         <div>
-          <label className="block text-[10px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.pellets}</label>
+          <label className="block text-[12px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.pellets}</label>
           <input
             type="number"
             min={1}
@@ -233,14 +242,42 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy }: Pr
         </div>
       </div>
 
-      {/* Строка 2: Дозировка */}
+      {/* Строка 2: Форма приёма (quick-select) */}
       <div>
-        <label className="block text-[10px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.dosage}</label>
+        <label className="block text-[12px] font-medium mb-1" style={{ color: 'var(--sim-text-hint)' }}>
+          {lang === 'ru' ? 'Форма приёма' : 'Administration'}
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {(lang === 'ru'
+            ? ['Сухая доза', 'Раствор', 'Ольфакция', 'Однократно', 'Ежедневно', 'По необходимости']
+            : ['Dry dose', 'Solution', 'Olfaction', 'Single dose', 'Daily', 'As needed']
+          ).map(chip => (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => setDosage(prev => prev.includes(chip) ? prev.replace(chip, '').trim() : (prev ? prev + ', ' + chip : chip))}
+              className="px-2.5 py-1 text-[12px] rounded-lg border transition-all"
+              style={{
+                borderColor: dosage.includes(chip) ? 'var(--sim-forest)' : 'var(--sim-border)',
+                backgroundColor: dosage.includes(chip) ? 'var(--sim-forest)' : 'transparent',
+                color: dosage.includes(chip) ? '#fff' : 'var(--sim-text-muted)',
+                fontWeight: dosage.includes(chip) ? 600 : 400,
+              }}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Строка 3: Дозировка */}
+      <div>
+        <label className="block text-[12px] font-medium mb-0.5" style={{ color: 'var(--sim-text-hint)' }}>{L.dosage}</label>
         <input
           type="text"
           value={dosage}
           onChange={e => setDosage(e.target.value)}
-          placeholder={lang === 'ru' ? '1 гранула 1 раз в день' : '1 pellet once daily'}
+          placeholder={lang === 'ru' ? 'Раствор, 1 ч.л. 1 раз в день, 8 ударов' : 'Solution, 1 tsp once daily, 8 succussions'}
           className="input input-sm"
         />
       </div>

@@ -6,28 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  backgroundColor: '#faf7f2',
-  border: '1px solid #d4c9b8',
-  borderRadius: '8px',
-  padding: '12px 16px',
-  fontSize: '16px',
-  color: '#3a2e1a',
-  outline: 'none',
-  boxSizing: 'border-box',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-}
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '12px',
-  fontWeight: 500,
-  letterSpacing: '0.08em',
-  color: '#5a7060',
-  marginBottom: '6px',
-  textTransform: 'uppercase',
-}
+import { authInputStyle as inputStyle, authLabelStyle as labelStyle, getAuthInputFocusStyle } from '@/lib/authStyles'
 
 export default function ForgotPasswordPage() {
   const { lang } = useLanguage()
@@ -56,7 +35,7 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f7f3ed', padding: '24px' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--sim-bg)', padding: '24px' }}>
         <div style={{ width: '100%', maxWidth: '360px', textAlign: 'center' }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '16px',
@@ -69,16 +48,16 @@ export default function ForgotPasswordPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
             </svg>
           </div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a3020', marginBottom: '12px' }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: 'var(--sim-forest)', marginBottom: '12px' }}>
             {t(lang).auth.emailSent}
           </h1>
-          <p style={{ fontSize: '15px', color: '#5a5040', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '15px', color: 'var(--sim-text-sec)', lineHeight: 1.6 }}>
             {t(lang).auth.checkEmail}
           </p>
-          <p style={{ fontSize: '13px', color: '#9a8a6a', marginTop: '12px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--sim-text-hint)', marginTop: '12px' }}>
             {t(lang).auth.checkSpam}
           </p>
-          <Link href="/login" style={{ display: 'inline-block', marginTop: '24px', fontSize: '14px', color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
+          <Link href="/login" style={{ display: 'inline-block', marginTop: '24px', fontSize: '14px', color: 'var(--sim-green)', fontWeight: 500, textDecoration: 'none' }}>
             {t(lang).auth.backToLogin}
           </Link>
         </div>
@@ -87,7 +66,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#f7f3ed' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--sim-bg)' }}>
 
       {/* Левая панель */}
       <div style={{
@@ -98,7 +77,7 @@ export default function ForgotPasswordPage() {
         padding: '48px',
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: '#1a3020',
+        backgroundColor: 'var(--sim-forest)',
         flexShrink: 0,
       }} className="auth-left-panel">
         <div style={{
@@ -151,7 +130,7 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* Правая панель — форма */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', backgroundColor: '#f7f3ed' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', backgroundColor: 'var(--sim-bg)' }}>
         <div style={{ width: '100%', maxWidth: '360px' }}>
 
           {/* Мобильный логотип */}
@@ -161,15 +140,15 @@ export default function ForgotPasswordPage() {
               <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
               <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: '#1a3020' }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: 'var(--sim-forest)' }}>
               Similia
             </span>
           </div>
 
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a3020', marginBottom: '6px' }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: 'var(--sim-forest)', marginBottom: '6px' }}>
             {t(lang).auth.resetPassword}
           </h1>
-          <p style={{ fontSize: '15px', color: '#9a8a6a', marginBottom: '32px' }}>
+          <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', marginBottom: '32px' }}>
             {t(lang).auth.resetPrompt}
           </p>
 
@@ -222,8 +201,8 @@ export default function ForgotPasswordPage() {
             </button>
           </form>
 
-          <p style={{ marginTop: '24px', fontSize: '14px', color: '#9a8a6a', textAlign: 'center' }}>
-            <Link href="/login" style={{ color: '#2d6a4f', fontWeight: 500, textDecoration: 'none' }}>
+          <p style={{ marginTop: '24px', fontSize: '14px', color: 'var(--sim-text-hint)', textAlign: 'center' }}>
+            <Link href="/login" style={{ color: 'var(--sim-green)', fontWeight: 500, textDecoration: 'none' }}>
               {t(lang).auth.backToLogin}
             </Link>
           </p>

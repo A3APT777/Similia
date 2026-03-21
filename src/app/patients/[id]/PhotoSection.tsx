@@ -156,7 +156,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
       {/* Ссылка для пациента */}
       {uploadLink && (
         <div className="mb-4 rounded-xl p-3" style={{ backgroundColor: '#f0ebe3', border: '1px solid #c8a035' }}>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#c8a035' }}>{t(lang).photo.linkHint}</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: 'var(--sim-amber)' }}>{t(lang).photo.linkHint}</p>
           <div className="flex items-center gap-2">
             <input
               readOnly
@@ -167,12 +167,12 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <button
               onClick={handleCopyLink}
               className="shrink-0 text-xs font-medium text-white px-3 py-2 rounded-lg transition-colors hover:opacity-90"
-              style={{ backgroundColor: '#1a3020' }}
+              style={{ backgroundColor: 'var(--sim-forest)' }}
             >
               {linkCopied ? t(lang).photo.copied : t(lang).photo.copy}
             </button>
           </div>
-          <p className="text-[10px] mt-1.5" style={{ color: '#9a8a6a' }}>{t(lang).photo.sendHint}</p>
+          <p className="text-xs mt-1.5" style={{ color: 'var(--sim-text-hint)' }}>{t(lang).photo.sendHint}</p>
         </div>
       )}
 
@@ -196,7 +196,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   value={takenAt}
                   onChange={e => setTakenAt(e.target.value)}
                   required
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   value={note}
                   onChange={e => setNote(e.target.value)}
                   placeholder={t(lang).photo.notePlaceholder}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
                 />
               </div>
             </div>
@@ -219,7 +219,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <button
               type="submit"
               disabled={uploading}
-              className="bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              className="bg-[#2d6a4f] text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-[#1a3020] disabled:opacity-50 transition-colors"
             >
               {uploading ? t(lang).photo.uploading : t(lang).photo.save}
             </button>
@@ -244,7 +244,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
           <svg className="w-8 h-8" style={{ color: '#c4b89a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
           </svg>
-          <p style={{ fontSize: '14px', color: '#9a8a6a' }}>{t(lang).photo.clickToUpload}</p>
+          <p style={{ fontSize: '14px', color: 'var(--sim-text-hint)' }}>{t(lang).photo.clickToUpload}</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2.5">
@@ -277,11 +277,11 @@ export default function PhotoSection({ patientId, photos }: Props) {
               </button>
 
               {/* Дата */}
-              <p className="text-[10px] text-gray-400 text-center mt-1 leading-tight">
+              <p className="text-xs text-gray-400 text-center mt-1 leading-tight">
                 {formatPhotoDate(photo.taken_at)}
               </p>
               {photo.note && (
-                <p className="text-[10px] text-gray-400 text-center truncate px-1">{photo.note}</p>
+                <p className="text-xs text-gray-400 text-center truncate px-1">{photo.note}</p>
               )}
             </div>
           ))}

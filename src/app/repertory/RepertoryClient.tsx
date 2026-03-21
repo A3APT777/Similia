@@ -6,7 +6,8 @@ import { saveRepertoryData } from '@/lib/actions/consultations'
 import { translateRubric } from '@/lib/repertory-translations'
 import { useLanguage } from '@/hooks/useLanguage'
 import { t } from '@/lib/i18n'
-import TourRepertoryStarter from '@/components/TourRepertoryStarter'
+import FirstTimeHint from '@/components/FirstTimeHint'
+import RepertoryTutorialPanel, { type TutorialStep } from './RepertoryTutorialPanel'
 
 // ── Цветовая схема V3 ─────────────────────────────────────────────
 const C = {
@@ -35,6 +36,51 @@ const SECTION_GROUPS = [
   { ru: 'Кожа · Общее', en: 'Skin · General', chapters: ['Skin', 'Generalities', 'Blood', 'Clinical'] },
 ]
 
+// ── Русские названия глав реперториума ────────────────────────────
+const CHAPTER_LABELS: Record<string, string> = {
+  'Mind': 'Психика',
+  'Head': 'Голова',
+  'Vertigo': 'Головокружение',
+  'Eye': 'Глаза',
+  'Vision': 'Зрение',
+  'Ear': 'Уши',
+  'Hearing': 'Слух',
+  'Nose': 'Нос',
+  'Face': 'Лицо',
+  'Mouth': 'Рот',
+  'Teeth': 'Зубы',
+  'Throat': 'Горло',
+  'External throat': 'Горло внеш.',
+  'Larynx and trachea': 'Гортань',
+  'Respiration': 'Дыхание',
+  'Cough': 'Кашель',
+  'Expectoration': 'Мокрота',
+  'Chest': 'Грудь',
+  'Heart & Circulation': 'Сердце',
+  'Stomach': 'Желудок',
+  'Appetite': 'Аппетит',
+  'Abdomen': 'Живот',
+  'Rectum': 'Прямая кишка',
+  'Stool': 'Стул',
+  'Bladder': 'Мочевой пузырь',
+  'Kidneys': 'Почки',
+  'Urethra': 'Уретра',
+  'Prostate gland': 'Простата',
+  'Urine': 'Моча',
+  'Genitalia male': 'Гениталии м.',
+  'Genitalia female': 'Гениталии ж.',
+  'Back': 'Спина',
+  'Extremities': 'Конечности',
+  'Sleep': 'Сон',
+  'Chill': 'Озноб',
+  'Fever': 'Жар',
+  'Perspiration': 'Потливость',
+  'Skin': 'Кожа',
+  'Generalities': 'Общее',
+  'Blood': 'Кровь',
+  'Clinical': 'Клиника',
+}
+
 // Цвета для coverage dots — по одному на каждую рубрику в анализе
 const COVERAGE_COLORS = ['#2d6a4f', '#c8a035', '#2563eb', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#6b7280']
 
@@ -47,7 +93,7 @@ type PrescribeModal = {
   abbrev: string
   name: string
   potency: string
-  form: 'granules' | 'drops' | 'powder'
+  form: 'granules' | 'drops' | 'powder' | 'olfaction'
   scheme: string
   duration: string
 } | null
@@ -103,11 +149,39 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   const [saveConsultations, setSaveConsultations] = useState<{ id: string; date: string; status: string }[]>([])
   const [saveConsLoading, setSaveConsLoading] = useState(false)
 
+  // Учебный режим
+  const [tutorialStep, setTutorialStep] = useState<number>(-1)
+  const [tutorialAddedCount, setTutorialAddedCount] = useState(0)
+
   const { lang } = useLanguage()
   const searchRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Загружаем недавние из localStorage + контекст консультации
+  // Авто-переход туториала: step 1 → 2 когда появились результаты поиска
+  useEffect(() => {
+    if (tutorialStep === 1 && query.length >= 2 && rubrics.length > 0 && !loading) {
+      const timer = setTimeout(() => setTutorialStep(2), 800)
+      return () => clearTimeout(timer)
+    }
+  }, [tutorialStep, query, rubrics.length, loading])
+
+  // Авто-переход туториала: step 3 → 4 когда рубрика раскрыта
+  useEffect(() => {
+    if (tutorialStep === 3 && expandedIds.size > 0) {
+      const timer = setTimeout(() => setTutorialStep(4), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [tutorialStep, expandedIds.size])
+
+  // Авто-переход туториала: step 5 → 6 когда первая рубрика добавлена в анализ
+  useEffect(() => {
+    if (tutorialStep === 5 && tutorialAddedCount >= 1) {
+      const timer = setTimeout(() => setTutorialStep(6), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [tutorialStep, tutorialAddedCount])
+
+  // Загружаем недавние из localStorage + контекст консультации + автозапуск обучения
   useEffect(() => {
     try {
       const stored = localStorage.getItem(RECENT_KEY)
@@ -115,6 +189,16 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
     } catch {}
     const last = localStorage.getItem('hc-last-consultation')
     setLastConsultation(last)
+
+    // Автозапуск отключён — обучение через InteractiveTour в сайдбаре
+    try {
+      if (/* disabled */ false && !localStorage.getItem('rep_tutorial_done')) {
+        setTimeout(() => {
+          setTutorialStep(0)
+          setTutorialAddedCount(0)
+        }, 800)
+      }
+    } catch {}
   }, [])
 
   // ── Топ препаратов из текущей выдачи (для шапки) ─────────────────
@@ -142,7 +226,9 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           scores[r.abbrev] = { name: r.name, total: 0, coverage: new Array(n).fill(0), coveredCount: 0 }
         }
         const g = Number(r.grade)
-        scores[r.abbrev].total += g * ae.weight
+        // Кент: grade 3 = 3 балла, grade 2 = 2 балла, grade 1 = 1 балл
+        const pts = g >= 3 ? 3 : g === 2 ? 2 : 1
+        scores[r.abbrev].total += pts * ae.weight
         scores[r.abbrev].coverage[idx] = g
         scores[r.abbrev].coveredCount++
       })
@@ -211,6 +297,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
     if (analysisEntries.find(ae => ae.rubric.id === rubric.id)) return
     setAnalysisEntries(prev => [...prev, { rubric, weight: 1 }])
     setShowAnalysis(true)
+    if (tutorialStep >= 0) setTutorialAddedCount(c => c + 1)
 
     // Сохраняем в недавние
     setRecentRubrics(prev => {
@@ -218,6 +305,34 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)) } catch {}
       return next
     })
+  }
+
+  // ── Tutorial handlers ────────────────────────────────────────────
+  function startTutorial() {
+    setTutorialStep(0)
+    setTutorialAddedCount(0)
+  }
+
+  function handleTutorialNext() {
+    if (tutorialStep === 0) {
+      // Шаг 0 → 1: начинаем поиск примера
+      const exampleQuery = lang === 'ru' ? 'головная боль' : 'headache'
+      handleQueryChange(exampleQuery)
+      setTutorialStep(1)
+      setTimeout(() => searchRef.current?.focus(), 100)
+      return
+    }
+    if (tutorialStep >= 12) {
+      setTutorialStep(-1)
+      try { localStorage.setItem('rep_tutorial_done', 'true') } catch {}
+      return
+    }
+    setTutorialStep(s => s + 1)
+  }
+
+  function handleTutorialExit() {
+    setTutorialStep(-1)
+    try { localStorage.setItem('rep_tutorial_done', 'true') } catch {}
   }
 
   function removeFromAnalysis(id: number) {
@@ -272,8 +387,16 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       const prefix = r.chapter + ', '
       return r.fullpath.startsWith(prefix) ? r.fullpath.slice(prefix.length) : r.fullpath
     }
-    // Если есть предварительный перевод из БД — используем его (быстрее и полнее)
-    if (r.fullpath_ru) return r.fullpath_ru
+    // Если есть перевод из БД — проверяем что он не состоит из латиницы
+    if (r.fullpath_ru) {
+      const latinWords = r.fullpath_ru.split(/[\s,]+/).filter(w => w.length > 2 && /^[a-zA-Z]/.test(w))
+      const totalWords = r.fullpath_ru.split(/[\s,]+/).filter(w => w.length > 1)
+      // Если больше половины слов — латиница, показываем английский оригинал
+      if (latinWords.length > 0 && latinWords.length >= totalWords.length / 2) {
+        return translateRubric(r.fullpath, r.chapter)
+      }
+      return r.fullpath_ru
+    }
     return translateRubric(r.fullpath, r.chapter)
   }
 
@@ -335,6 +458,11 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   }
 
   function openPrescribeModal(abbrev: string, name: string) {
+    // Завершаем обучение при открытии модала (иначе z-index конфликт)
+    if (tutorialStep >= 0) {
+      setTutorialStep(-1)
+      try { localStorage.setItem('rep_tutorial_done', 'true') } catch {}
+    }
     setPrescribeModal({ abbrev, name, potency: '30C', form: 'granules', scheme: '', duration: '' })
   }
 
@@ -343,19 +471,21 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
     const { abbrev, potency, scheme, duration } = prescribeModal
     const dosage = [scheme, duration].filter(Boolean).join('. ')
     const params = new URLSearchParams({ rx: abbrev, potency, dosage })
-    // Перейти обратно в консультацию с rx-параметрами в URL (надёжнее localStorage)
     const last = localStorage.getItem('hc-last-consultation')
-    const base = last || '/patients'
-    const sep = base.includes('?') ? '&' : '?'
-    window.location.href = `${base}${sep}${params}`
+    if (last && last.startsWith('/patients/')) {
+      const sep = last.includes('?') ? '&' : '?'
+      window.location.href = `${last}${sep}${params}`
+    } else {
+      setPrescribeModal(null)
+      openSaveModal()
+    }
   }
 
   function goSelectPatient() {
-    if (!prescribeModal) return
-    const { abbrev, potency, scheme, duration } = prescribeModal
-    const dosage = [scheme, duration].filter(Boolean).join('. ')
-    const params = new URLSearchParams({ rx: abbrev, potency, dosage })
-    window.location.href = `/patients?${params}`
+    // Сохраняем данные рецепта перед закрытием Rx-модалки
+    // TODO: передать Rx-данные в saveToConsultation при выборе консультации
+    setPrescribeModal(null)
+    openSaveModal()
   }
 
   const totalPages = Math.ceil(total / 30)
@@ -366,7 +496,6 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       className="flex flex-col h-full"
       style={{ fontFamily: 'Inter, sans-serif', backgroundColor: C.bg }}
     >
-      <TourRepertoryStarter />
       {/* ══════════════════════════════════════════
           ШАПКА
       ══════════════════════════════════════════ */}
@@ -374,7 +503,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
         {/* Строка 1: Поиск + кнопка */}
         <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-          <div className="flex-1 relative">
+          <div className={`flex-1 relative${tutorialStep === 1 ? ' tut-glow-light' : ''}`}>
             <svg
               className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
               style={{ color: 'rgba(255,255,255,0.35)' }}
@@ -386,6 +515,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               data-tour="rep-search"
               ref={searchRef}
               type="text"
+              aria-label={lang === 'ru' ? 'Поиск симптома в реперториуме' : 'Search symptom in repertory'}
               value={query}
               onChange={e => handleQueryChange(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -403,7 +533,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             {query && (
               <>
                 <span
-                  className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 rounded pointer-events-none"
+                  className="absolute right-10 top-1/2 -translate-y-1/2 text-[12px] px-1.5 py-0.5 rounded pointer-events-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.30)' }}
                 >
                   {t(lang).repertory.enterToAdd}
@@ -430,7 +560,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
             onPointerDown={() => {
-              window.location.href = lastConsultation || '/dashboard'
+              window.location.href = (lastConsultation && lastConsultation.startsWith('/')) ? lastConsultation : '/dashboard'
             }}
           >
             {lastConsultation ? (
@@ -453,16 +583,16 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             className="flex items-center gap-2 px-3 py-2 rounded-lg overflow-hidden"
             style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
           >
-            <span className="shrink-0 text-[11px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
+            <span className="shrink-0 text-[12px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
               {t(lang).repertory.topNow}
             </span>
             <div className="flex items-baseline gap-x-2.5 gap-y-0.5 flex-wrap flex-1 min-w-0">
               {loading ? (
-                <span className="text-[11px] animate-pulse" style={{ color: 'rgba(255,255,255,0.20)' }}>
+                <span className="text-[12px] animate-pulse" style={{ color: 'rgba(255,255,255,0.20)' }}>
                   {t(lang).repertory.loading}
                 </span>
               ) : headerTopRemedies.top.length === 0 ? (
-                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.20)' }}>
+                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.20)' }}>
                   {t(lang).repertory.noData}
                 </span>
               ) : (
@@ -483,7 +613,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     </span>
                   ))}
                   {headerTopRemedies.extra > 0 && (
-                    <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.20)' }}>
+                    <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.20)' }}>
                       +{headerTopRemedies.extra} {t(lang).repertory.more}
                     </span>
                   )}
@@ -598,7 +728,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               {t(lang).repertory.analysis}
               {analysisEntries.length > 0 && (
                 <span
-                  className="w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                  className="w-4 h-4 rounded-full text-white text-[12px] font-bold flex items-center justify-center"
                   style={{ backgroundColor: C.link }}
                 >
                   {analysisEntries.length}
@@ -606,6 +736,16 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               )}
             </button>
           </div>
+
+          {tutorialStep < 0 && (
+            <div className="px-4">
+              <FirstTimeHint id="full_repertory">
+                {lang === 'ru'
+                  ? 'Полный реперторий Кента — 74 482 рубрики с поиском по разделам. Добавляйте рубрики в анализ [+], настраивайте веса и элиминацию. Кнопка «📚 Обучение» вверху — подробный тур из 13 шагов.'
+                  : "Full Kent's Repertory — 74,482 rubrics searchable by chapter. Add rubrics to analysis [+], set weights and elimination. '📚 Tutorial' button — detailed 13-step tour."}
+              </FirstTimeHint>
+            </div>
+          )}
 
           {/* Список рубрик */}
           <div className="flex-1 overflow-y-auto">
@@ -643,6 +783,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     isExpanded={expandedIds.has(rubric.id)}
                     inAnalysis={isInAnalysis(rubric.id)}
                     isFocused={focusedIndex === idx}
+                    tutorialStep={tutorialStep}
+                    isTutorialTarget={tutorialStep >= 2 && tutorialStep <= 6 && idx === 0}
                     onToggleExpand={() => toggleExpand(rubric.id)}
                     onAddToAnalysis={() => addToAnalysis(rubric)}
                     onNavigate={term => {
@@ -689,7 +831,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
         {/* ─ Панель анализа (260px) ─────────────── */}
         <div
           data-tour="rep-analysis"
-          className={`shrink-0 flex-col border-l bg-white ${showAnalysis ? 'flex' : 'hidden'} lg:flex`}
+          className={`shrink-0 flex-col border-l bg-white ${showAnalysis ? 'flex' : 'hidden'} lg:flex${tutorialStep >= 7 && tutorialStep <= 9 ? ' tut-glow' : ''}`}
           style={{ width: 260, borderColor: C.border }}
         >
           {/* Заголовок */}
@@ -703,7 +845,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               </span>
               {analysisEntries.length > 0 && (
                 <span
-                  className="px-1.5 py-0.5 text-[10px] font-bold rounded-full text-white"
+                  className="px-1.5 py-0.5 text-[12px] font-bold rounded-full text-white"
                   style={{ backgroundColor: C.link }}
                 >
                   {analysisEntries.length}
@@ -762,11 +904,16 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                       <button
                         data-tour="rep-eliminate"
                         onPointerDown={() => toggleEliminate(ae.rubric.id)}
-                        className="w-5 h-5 rounded text-[10px] font-bold transition-all flex items-center justify-center"
+                        className="w-6 h-6 rounded text-[12px] font-bold transition-all flex items-center justify-center"
                         style={{
                           backgroundColor: ae.eliminate ? '#dc2626' : 'transparent',
                           color: ae.eliminate ? 'white' : C.muted,
                           border: `1px solid ${ae.eliminate ? '#dc2626' : C.border}`,
+                          ...(tutorialStep === 9 ? {
+                            outline: '2px solid #dc2626',
+                            outlineOffset: 2,
+                            boxShadow: '0 0 12px rgba(220,38,38,0.4)',
+                          } : {}),
                         }}
                         title={lang === 'ru' ? 'Элиминация: оставить только препараты, присутствующие в этой рубрике' : 'Elimination: keep only remedies present in this rubric'}
                       >
@@ -776,11 +923,16 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                         <button
                           key={w}
                           onPointerDown={() => setWeight(ae.rubric.id, w)}
-                          className="w-5 h-5 rounded text-[10px] font-bold transition-all flex items-center justify-center"
+                          className="w-6 h-6 rounded text-[12px] font-bold transition-all flex items-center justify-center"
                           style={{
                             backgroundColor: ae.weight === w ? C.link : 'transparent',
                             color: ae.weight === w ? 'white' : C.muted,
                             border: `1px solid ${ae.weight === w ? C.link : C.border}`,
+                            ...(tutorialStep === 8 ? {
+                              outline: '2px solid #2d6a4f',
+                              outlineOffset: 1,
+                              boxShadow: '0 0 10px rgba(45,106,79,0.35)',
+                            } : {}),
                           }}
                           title={t(lang).repertory.weight(w)}
                         >
@@ -789,7 +941,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                       ))}
                       <button
                         onPointerDown={() => removeFromAnalysis(ae.rubric.id)}
-                        className="ml-0.5 w-4 h-4 flex items-center justify-center text-[11px]"
+                        className="ml-0.5 w-6 h-6 flex items-center justify-center text-[12px]"
                         style={{ color: C.muted }}
                         title={t(lang).repertory.delete}
                       >
@@ -802,17 +954,22 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
               {/* Топ препаратов */}
               {analysisScores.length > 0 && (
-                <div data-tour="rep-top-remedies" className="p-3 flex-1">
+                <div data-tour="rep-top-remedies" className={`p-3 flex-1${tutorialStep >= 10 && tutorialStep <= 11 ? ' tut-glow' : ''}`}>
                   {/* Баннер: элиминация активна */}
                   {analysisEntries.some(ae => ae.eliminate) && (
                     <div
-                      className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded text-[11px] font-medium"
+                      className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded text-[12px] font-medium"
                       style={{ backgroundColor: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)' }}
                     >
                       <span>⊘</span>
                       <span>{lang === 'ru' ? `Элиминация: ${analysisEntries.filter(ae => ae.eliminate).length} рубрик` : `Elimination: ${analysisEntries.filter(ae => ae.eliminate).length} rubrics`}</span>
                     </div>
                   )}
+                  {/* Предупреждение: проверить по Materia Medica */}
+                  <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded text-[12px]" style={{ backgroundColor: 'rgba(200,160,53,0.08)', color: '#9a6c00', border: '1px solid rgba(200,160,53,0.2)' }}>
+                    <span>⚠</span>
+                    <span>{lang === 'ru' ? 'Это кандидаты — проверьте по Materia Medica перед назначением' : 'These are candidates — verify via Materia Medica before prescribing'}</span>
+                  </div>
                   <div className="flex items-center justify-between mb-2.5">
                     <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: C.muted }}>
                       {t(lang).repertory.topRemedies}
@@ -821,7 +978,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     {analysisEntries.length > 1 && (
                       <button
                         onPointerDown={() => setCoverageOnly(v => !v)}
-                        className="text-[10px] px-1.5 py-0.5 rounded border transition-all"
+                        className="text-[12px] px-1.5 py-0.5 rounded border transition-all"
                         style={{
                           borderColor: coverageOnly ? C.link : C.border,
                           color: coverageOnly ? C.link : C.muted,
@@ -838,17 +995,17 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   {/* Легенда grade — всегда видна */}
                   <div className="flex items-center gap-2.5 mb-2 flex-wrap">
                     {[
-                      { label: lang === 'ru' ? 'Крупный' : 'Bold', opacity: '1', title: lang === 'ru' ? 'Грейд 3: препарат крупным шрифтом (Кент) — высокая степень соответствия' : 'Grade 3: bold type — highest confidence' },
-                      { label: lang === 'ru' ? 'Курсив' : 'Italic', opacity: 'aa', title: lang === 'ru' ? 'Грейд 2: препарат курсивом — средняя степень соответствия' : 'Grade 2: italic — moderate confidence' },
-                      { label: lang === 'ru' ? 'Обычный' : 'Plain', opacity: '55', title: lang === 'ru' ? 'Грейд 1: обычный шрифт — слабое соответствие' : 'Grade 1: plain — low confidence' },
+                      { label: lang === 'ru' ? 'Крупный' : 'Bold', opacity: '1', title: lang === 'ru' ? 'Грейд 3: высокая степень подтверждённости в прувингах и клинике' : 'Grade 3: highest confirmation in provings and clinic' },
+                      { label: lang === 'ru' ? 'Курсив' : 'Italic', opacity: 'aa', title: lang === 'ru' ? 'Грейд 2: средняя подтверждённость' : 'Grade 2: moderate confirmation' },
+                      { label: lang === 'ru' ? 'Обычный' : 'Plain', opacity: '55', title: lang === 'ru' ? 'Грейд 1: слабая подтверждённость, единичные данные' : 'Grade 1: low confirmation, sparse data' },
                     ].map(({ label, opacity, title }) => (
                       <div key={label} className="flex items-center gap-0.5" title={title}>
                         <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, backgroundColor: `${C.link}${opacity === '1' ? '' : opacity}`, flexShrink: 0 }} />
-                        <span className="text-[9px]" style={{ color: C.muted }}>{label}</span>
+                        <span className="text-[12px]" style={{ color: C.muted }}>{label}</span>
                       </div>
                     ))}
                     {analysisEntries.length > 1 && (
-                      <span className="text-[9px]" style={{ color: C.muted }}>·</span>
+                      <span className="text-[12px]" style={{ color: C.muted }}>·</span>
                     )}
                     {analysisEntries.length > 1 && analysisEntries.map((ae, i) => (
                       <div key={i} className="flex items-center gap-0.5" title={localize(ae.rubric)}>
@@ -859,7 +1016,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                             opacity: 0.85, flexShrink: 0,
                           }}
                         />
-                        <span className="text-[9px] truncate max-w-[50px]" style={{ color: C.muted }}>
+                        <span className="text-[12px] truncate max-w-[50px]" style={{ color: C.muted }}>
                           {localize(ae.rubric).split(', ').slice(-1)[0]}
                         </span>
                       </div>
@@ -900,7 +1057,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                             <button
                               type="button"
                               onPointerDown={() => openPrescribeModal(abbrev, data.name)}
-                              className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[11px] rounded"
+                              className={`shrink-0 transition-opacity text-[12px] rounded ${tutorialStep === 11 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                               style={{
                                 border: `1px solid ${C.link}`, color: C.link,
                                 backgroundColor: 'transparent', padding: '1px 5px', lineHeight: 1.4,
@@ -984,8 +1141,12 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       ══════════════════════════════════════════ */}
       {showSaveModal && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={lang === 'ru' ? 'Сохранить в консультацию' : 'Save to consultation'}
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          onKeyDown={e => { if (e.key === 'Escape') setShowSaveModal(false) }}
           onPointerDown={e => { if (e.target === e.currentTarget) setShowSaveModal(false) }}
         >
           <div className="w-full flex flex-col" style={{ maxWidth: 400, backgroundColor: 'white', borderRadius: 12, overflow: 'hidden', maxHeight: '80vh', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
@@ -1175,6 +1336,17 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       {/* ══════════════════════════════════════════
           МОДАЛ "ВЫПИСАТЬ"
       ══════════════════════════════════════════ */}
+      {/* Панель учебного режима */}
+      {tutorialStep >= 0 && (
+        <RepertoryTutorialPanel
+          step={tutorialStep as TutorialStep}
+          lang={lang}
+          addedCount={tutorialAddedCount}
+          onNext={handleTutorialNext}
+          onExit={handleTutorialExit}
+        />
+      )}
+
       {prescribeModal && (
         <PrescribeModalDialog
           modal={prescribeModal}
@@ -1191,7 +1363,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
 // ── Строка рубрики ─────────────────────────────────────────────────
 function RubricRow({
-  rubric, lang, localName, isExpanded, inAnalysis, isFocused,
+  rubric, lang, localName, isExpanded, inAnalysis, isFocused, isTutorialTarget, tutorialStep,
   onToggleExpand, onAddToAnalysis, onNavigate,
 }: {
   rubric: RepertoryRubric
@@ -1200,6 +1372,8 @@ function RubricRow({
   isExpanded: boolean
   inAnalysis: boolean
   isFocused: boolean
+  isTutorialTarget?: boolean
+  tutorialStep?: number
   onToggleExpand: () => void
   onAddToAnalysis: () => void
   onNavigate?: (term: string) => void
@@ -1208,21 +1382,19 @@ function RubricRow({
   const indent = depth * 16
 
   const segments = localName.split(', ')
-  const firstWord = segments[0].toUpperCase()
-  const rest = segments.length > 1 ? ', ' + segments.slice(1).join(', ') : ''
-  // Хлебные крошки: родительские сегменты — кликабельные
   const parentSegments = segments.slice(0, -1)
 
-  const grade3 = rubric.remedies.filter(r => r.grade >= 3)
-  const grade2 = rubric.remedies.filter(r => r.grade === 2)
-  const grade1 = rubric.remedies.filter(r => r.grade <= 1)
+  const grade3 = rubric.remedies.filter(r => Number(r.grade) >= 3)
+  const grade2 = rubric.remedies.filter(r => Number(r.grade) === 2)
+  const grade1 = rubric.remedies.filter(r => Number(r.grade) <= 1)
 
-  const showRemedies = isExpanded
+  // Превью: топ-10 по грейду для свёрнутого вида (как в мини-репертории)
+  const previewRemedies = rubric.remedies.slice(0, 10)
 
   return (
     <div
       data-tour="rep-rubric-row"
-      className="group border-b"
+      className={`group border-b${isTutorialTarget && tutorialStep !== 4 ? ' tut-glow' : ''}`}
       style={{
         borderColor: '#e8e4dc',
         borderLeftWidth: inAnalysis ? 3 : 0,
@@ -1231,35 +1403,25 @@ function RubricRow({
           ? '#e8f0e8'
           : inAnalysis
             ? 'rgba(45,106,79,0.05)'
-            : 'transparent',
+            : (tutorialStep !== undefined && (tutorialStep === 2 || tutorialStep === 3))
+              ? 'rgba(45,106,79,0.06)'
+              : 'transparent',
+        ...((tutorialStep !== undefined && (tutorialStep === 2 || tutorialStep === 3))
+          ? { position: 'relative' as const, zIndex: 9995 }
+          : (tutorialStep === 4 && isTutorialTarget)
+            ? { position: 'relative' as const, zIndex: 9995, background: 'white' }
+            : {}),
       }}
     >
-      {/* Основная строка 36px */}
+      {/* Основная строка */}
       <div
         className="flex items-center gap-2 cursor-pointer"
-        style={{ paddingLeft: 12 + indent, paddingRight: 8, height: 36 }}
+        style={{ paddingLeft: 12 + indent, paddingRight: 8, paddingTop: 6, paddingBottom: isExpanded ? 6 : 2 }}
         onPointerDown={onToggleExpand}
       >
-        {/* Чекбокс */}
-        <div
-          className="shrink-0 w-4 h-4 flex items-center justify-center transition-all"
-          style={{
-            border: `1.5px solid ${isExpanded ? C.link : '#c4b89a'}`,
-            backgroundColor: isExpanded ? C.link : 'transparent',
-            borderRadius: 4,
-            width: 16, height: 16,
-          }}
-        >
-          {isExpanded && (
-            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </div>
-
         {/* Название рубрики */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* Хлебные крошки (только если есть родители и это не поиск, т.е. depth > 0) */}
+          {/* Хлебные крошки (только если есть родители) */}
           {parentSegments.length > 0 && onNavigate && (
             <div className="flex items-center gap-0.5 mb-0.5 flex-wrap">
               {parentSegments.map((seg, i) => (
@@ -1268,8 +1430,8 @@ function RubricRow({
                   <button
                     type="button"
                     onPointerDown={e => { e.stopPropagation(); onNavigate(seg) }}
-                    className="text-[9px] transition-colors hover:underline"
-                    style={{ color: '#9a8a6a' }}
+                    className="text-[12px] transition-colors hover:underline"
+                    style={{ color: 'var(--sim-text-hint)' }}
                     title={lang === 'ru' ? `Найти "${seg}"` : `Search "${seg}"`}
                   >
                     {seg}
@@ -1278,21 +1440,37 @@ function RubricRow({
               ))}
             </div>
           )}
-          <span className="text-[15px] leading-tight truncate" style={{ fontFamily: 'Georgia, serif' }}>
-            <span className="font-bold" style={{ color: '#1a3020' }}>{segments[segments.length - 1].toUpperCase()}</span>
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[14px] leading-tight truncate" style={{ fontFamily: 'Georgia, serif' }}>
+              <span className="font-bold" style={{ color: 'var(--sim-forest)' }}>{segments[segments.length - 1].toUpperCase()}</span>
+            </span>
+            {rubric.chapter && (
+              <span
+                className="shrink-0 text-[12px] px-1 rounded"
+                style={{ backgroundColor: '#e8e4dc', color: '#7a6a50', letterSpacing: '0.03em', lineHeight: '16px' }}
+              >
+                {CHAPTER_LABELS[rubric.chapter] ?? rubric.chapter}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Кнопка [+] — добавить в анализ */}
         <button
           data-tour="rep-add-rubric"
           type="button"
+          aria-label={inAnalysis ? 'Already in analysis' : 'Add to analysis'}
           onPointerDown={e => { e.stopPropagation(); onAddToAnalysis() }}
-          className="shrink-0 flex items-center justify-center transition-all opacity-40 group-hover:opacity-100"
+          className={`shrink-0 flex items-center justify-center transition-all ${isTutorialTarget || (tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
           style={{
             width: 20, height: 20,
             backgroundColor: inAnalysis ? '#1a7a40' : C.link,
             borderRadius: 4,
+            ...((tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6 && !inAnalysis) ? {
+              outline: '2px solid #2d6a4f',
+              outlineOffset: 2,
+              boxShadow: '0 0 12px rgba(45,106,79,0.4)',
+            } : {}),
           }}
           title={inAnalysis ? t(lang).repertory.alreadyInAnalysis : t(lang).repertory.addToAnalysis}
         >
@@ -1308,37 +1486,56 @@ function RubricRow({
         </button>
 
         {/* Счётчик */}
-        <span
-          className="shrink-0 text-[13px] text-right"
-          style={{ width: 28, color: '#9a8a6a' }}
-        >
+        <span className="shrink-0 text-[13px] text-right" style={{ width: 28, color: 'var(--sim-text-hint)' }}>
           {rubric.remedy_count}
         </span>
 
         {/* Стрелка */}
         <span
           className="shrink-0 text-[13px] transition-transform duration-150 inline-block"
-          style={{ color: '#9a8a6a', transform: isExpanded ? 'rotate(90deg)' : 'none' }}
+          style={{ color: 'var(--sim-text-hint)', transform: isExpanded ? 'rotate(90deg)' : 'none' }}
         >
           ›
         </span>
       </div>
 
-      {/* Развёрнутые препараты */}
-      {showRemedies && (
+      {/* Превью препаратов (свёрнуто) — как в мини-репертории */}
+      {!isExpanded && previewRemedies.length > 0 && (
         <div
-          className="pb-2 leading-relaxed"
-          style={{
-            paddingLeft: 14 + indent + 24,
-            paddingRight: 8,
-            fontSize: isExpanded ? undefined : '11px',
-          }}
+          className="flex flex-wrap gap-x-1.5 pb-2"
+          style={{ paddingLeft: 14 + indent, paddingRight: 36 }}
+        >
+          {previewRemedies.map((r, i) => (
+            <span
+              key={i}
+              style={{
+                color: Number(r.grade) >= 3 ? '#2d6a4f' : Number(r.grade) === 2 ? '#2a2010' : '#9a9a8a',
+                fontWeight: Number(r.grade) >= 3 ? 700 : Number(r.grade) === 2 ? 500 : 400,
+                fontSize: Number(r.grade) >= 3 ? '11px' : '10px',
+                fontStyle: Number(r.grade) === 2 ? 'italic' : 'normal',
+              }}
+              title={r.name}
+            >
+              {r.abbrev}
+            </span>
+          ))}
+          {rubric.remedy_count > 10 && (
+            <span style={{ color: 'var(--sim-text-hint)', fontSize: '12px' }}>+{rubric.remedy_count - 10}</span>
+          )}
+        </div>
+      )}
+
+      {/* Развёрнутые препараты */}
+      {isExpanded && (
+        <div
+          className={`pb-3 leading-relaxed${tutorialStep === 4 && isTutorialTarget ? ' tut-glow' : ''}`}
+          style={{ paddingLeft: 14 + indent, paddingRight: 8 }}
         >
           {grade3.map(r => (
             <span
               key={r.abbrev}
-              className={`mr-2 cursor-pointer hover:underline font-bold uppercase`}
-              style={{ fontSize: isExpanded ? '15px' : '13px', color: '#1a3020' }}
+              className="mr-2 cursor-pointer hover:underline font-bold uppercase"
+              style={{ fontSize: '15px', color: 'var(--sim-forest)' }}
               title={r.name}
             >
               {r.abbrev}
@@ -1347,14 +1544,14 @@ function RubricRow({
           {grade2.map(r => (
             <span
               key={r.abbrev}
-              className="mr-1.5 cursor-pointer hover:underline font-bold"
-              style={{ fontSize: isExpanded ? '14px' : '12px', color: '#2a2010' }}
+              className="mr-1.5 cursor-pointer hover:underline"
+              style={{ fontSize: '14px', color: '#2a2010', fontStyle: 'italic' }}
               title={r.name}
             >
               {r.abbrev}
             </span>
           ))}
-          {(isExpanded ? grade1 : grade1.slice(0, 0)).map(r => (
+          {grade1.map(r => (
             <span
               key={r.abbrev}
               className="mr-1 cursor-pointer hover:underline"
@@ -1371,7 +1568,7 @@ function RubricRow({
 }
 
 // ── Модал "Выписать препарат" ──────────────────────────────────────
-const POTENCIES = ['6C', '12C', '30C', '200C', '1M', '10M', 'LM1', 'LM2', 'LM3']
+const POTENCIES = ['6C', '12C', '30C', '200C', '1M', '10M', 'LM1', 'LM2', 'LM3', 'LM6']
 
 function PrescribeModalDialog({
   modal, lang, onChange, onSaveToConsultation, onSelectPatient, onClose,
@@ -1391,22 +1588,27 @@ function PrescribeModalDialog({
     { value: 'granules' as const, label: L.granules },
     { value: 'drops' as const,    label: L.drops   },
     { value: 'powder' as const,   label: L.powder  },
+    { value: 'olfaction' as const, label: lang === 'ru' ? 'Ольфакция' : 'Olfaction' },
   ]
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === 'ru' ? 'Назначение препарата' : 'Prescribe remedy'}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      onKeyDown={e => { if (e.key === 'Escape') onClose() }}
       onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         className="w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
-        style={{ backgroundColor: '#f7f3ed', border: '1px solid #d4c9b8' }}
+        style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid var(--sim-border)' }}
       >
         {/* Заголовок */}
         <div className="px-6 pt-6 pb-4" style={{ borderBottom: '1px solid #e0d8cc' }}>
-          <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: '#9a8a6a' }}>{L.prescribeTitle}</p>
-          <h2 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: 26, fontWeight: 600, color: '#1a3020', lineHeight: 1.2 }}>
+          <p className="text-[12px] uppercase tracking-widest mb-1" style={{ color: 'var(--sim-text-hint)' }}>{L.prescribeTitle}</p>
+          <h2 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: 26, fontWeight: 600, color: 'var(--sim-forest)', lineHeight: 1.2 }}>
             {L.prescribe(modal.name || modal.abbrev)}
           </h2>
         </div>
@@ -1414,7 +1616,7 @@ function PrescribeModalDialog({
         <div className="px-6 py-4 space-y-4">
           {/* Потенция */}
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5a5040' }}>
+            <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--sim-text-sec)' }}>
               {L.potency}
             </label>
             <div className="flex gap-1.5 flex-wrap">
@@ -1439,7 +1641,7 @@ function PrescribeModalDialog({
 
           {/* Форма */}
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5a5040' }}>
+            <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--sim-text-sec)' }}>
               {L.form}
             </label>
             <div className="flex gap-2">
@@ -1464,7 +1666,7 @@ function PrescribeModalDialog({
 
           {/* Схема */}
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5a5040' }}>
+            <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--sim-text-sec)' }}>
               {L.scheme}
             </label>
             <input
@@ -1474,7 +1676,7 @@ function PrescribeModalDialog({
               placeholder={L.schemePlaceholder}
               className="w-full px-3 py-2.5 text-sm rounded-lg"
               style={{
-                border: '1px solid #d4c9b8',
+                border: '1px solid var(--sim-border)',
                 backgroundColor: 'white',
                 color: '#1a1a0a',
                 outline: 'none',
@@ -1486,7 +1688,7 @@ function PrescribeModalDialog({
 
           {/* Длительность */}
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5a5040' }}>
+            <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--sim-text-sec)' }}>
               {L.duration}
             </label>
             <div className="flex gap-1.5 flex-wrap">
@@ -1517,7 +1719,7 @@ function PrescribeModalDialog({
               type="button"
               onPointerDown={onSaveToConsultation}
               className="w-full py-3 text-sm font-semibold text-white rounded-xl transition-colors"
-              style={{ backgroundColor: '#1a3020' }}
+              style={{ backgroundColor: 'var(--sim-forest)' }}
             >
               {L.saveToConsultation}
             </button>
@@ -1528,7 +1730,7 @@ function PrescribeModalDialog({
             className="w-full py-2.5 text-sm font-medium rounded-xl border transition-colors"
             style={{
               borderColor: '#1a3020',
-              color: '#1a3020',
+              color: 'var(--sim-forest)',
               backgroundColor: hasActiveConsultation ? 'transparent' : '#1a3020',
               ...(hasActiveConsultation ? {} : { color: 'white' }),
             }}
@@ -1539,7 +1741,7 @@ function PrescribeModalDialog({
             type="button"
             onPointerDown={onClose}
             className="w-full py-2 text-sm rounded-xl transition-colors"
-            style={{ color: '#9a8a6a', backgroundColor: 'transparent' }}
+            style={{ color: 'var(--sim-text-hint)', backgroundColor: 'transparent' }}
           >
             {L.cancelBtn}
           </button>
