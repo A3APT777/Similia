@@ -11,7 +11,7 @@ import {
   summarizePatientHistory,
 } from '@/lib/actions/ai-consultation'
 import type { AIQuestion } from '@/lib/actions/ai-consultation'
-import { createAIConsultation } from '@/lib/actions/consultations'
+// createAIConsultation убран — консультация создаётся при назначении
 import AIResultPanel from '@/app/patients/[id]/consultations/[consultationId]/right-panel/AIResultPanel'
 import AIOnboarding from '@/components/AIOnboarding'
 import type { Patient, Consultation, IntakeForm } from '@/types'
@@ -171,12 +171,6 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
     else setStepI('analyzing')
 
     try {
-      const consultationId = await createAIConsultation(
-        patient.id,
-        profile.acuteOrChronic,
-        mode === 'I' ? freeText.slice(0, 500) : (additions || summary).slice(0, 500),
-      )
-
       // Собираем полный текст: история + дополнения + ответы
       let fullText = ''
       if (mode === 'K') {
@@ -188,7 +182,6 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
       fullText += `Ответы на вопросы:\n${answersText}`
 
       const aiResult = await analyzeText({
-        consultationId,
         text: fullText,
         profile,
       })
