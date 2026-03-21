@@ -252,7 +252,7 @@ export default function DemoForm() {
     'high': 'Высокая', 'medium': 'Средняя', 'low': 'Низкая', 'insufficient': 'Недостаточно',
   }
   const confidenceColors: Record<string, string> = {
-    'high': '#34d399', 'medium': '#818cf8', 'low': '#fbbf24', 'insufficient': '#f87171',
+    'high': '#2d6a4f', 'medium': '#3b82f6', 'low': '#f59e0b', 'insufficient': '#ef4444',
   }
 
   // ═══ ВЫБОР РЕЖИМА ═══
@@ -261,26 +261,26 @@ export default function DemoForm() {
       <div className="space-y-4">
         <button
           onClick={() => setMode('questions')}
-          className="w-full rounded-2xl p-5 text-left transition-all hover:bg-white/[0.08] bg-white/[0.04] border border-white/[0.08]"
+          className="w-full rounded-xl p-5 text-left transition-all hover:shadow-md bg-white border border-[#d4c9b8]"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-10 h-10 rounded-xl bg-[#2d6a4f]/10 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-[#2d6a4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">Пошаговый опрос</p>
-              <p className="text-xs text-indigo-300/60">9 вопросов · 2 минуты · выбирайте несколько ответов</p>
+              <p className="text-sm font-semibold text-[#1a1a0a]">Пошаговый опрос</p>
+              <p className="text-xs text-[#9a8a6a]">9 вопросов · 2 минуты · выбирайте несколько ответов</p>
             </div>
           </div>
-          <p className="text-xs text-white/40 ml-[52px]">
+          <p className="text-xs text-[#9a8a6a] ml-[52px]">
             Жалобы → Модальности → Температура → Психика → Страхи → Еда → Сон → Результат
           </p>
         </button>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2 px-1 text-white/30">
+          <p className="text-xs font-semibold uppercase tracking-wider mb-2 px-1 text-[#9a8a6a]">
             Или попробуйте готовый случай
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -292,10 +292,10 @@ export default function DemoForm() {
               <button
                 key={i}
                 onClick={() => loadPreset(i)}
-                className="rounded-xl p-3 text-left transition-all hover:bg-white/[0.08] bg-white/[0.04] border border-white/[0.08]"
+                className="rounded-xl p-3 text-left transition-all hover:shadow-md bg-white border border-[#d4c9b8]"
               >
-                <p className="text-sm font-medium text-white">{p.name}</p>
-                <p className="text-[11px] text-indigo-300/60 mt-0.5">{p.desc}</p>
+                <p className="text-sm font-medium text-[#1a1a0a]">{p.name}</p>
+                <p className="text-[11px] text-[#9a8a6a] mt-0.5">{p.desc}</p>
               </button>
             ))}
           </div>
@@ -312,35 +312,35 @@ export default function DemoForm() {
     return (
       <div className="space-y-4">
         {/* Прогресс */}
-        <div className="rounded-2xl overflow-hidden bg-white/[0.04] border border-white/[0.08]">
-          <div className="px-4 py-2.5 flex items-center justify-between border-b border-white/[0.06]">
+        <div className="rounded-xl overflow-hidden bg-white border border-[#d4c9b8]">
+          <div className="px-4 py-2.5 flex items-center justify-between border-b border-[#d4c9b8]">
             <button
               onClick={() => step > 0 ? setStep(s => s - 1) : setMode('choose')}
-              className="text-xs text-white/40 hover:text-white flex items-center gap-1 transition-colors"
+              className="text-xs text-[#9a8a6a] hover:text-[#1a1a0a] flex items-center gap-1 transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
               Назад
             </button>
-            <span className="text-xs text-white/40 font-medium">{step + 1} / {QUESTIONS.length}</span>
-            <span className="text-xs text-indigo-400 font-medium">
+            <span className="text-xs text-[#9a8a6a] font-medium">{step + 1} / {QUESTIONS.length}</span>
+            <span className="text-xs text-[#2d6a4f] font-medium">
               {totalSelected > 0 ? `${totalSelected} выбрано` : ''}
             </span>
           </div>
 
           {/* Полоска прогресса */}
-          <div className="h-1 bg-white/[0.06]">
+          <div className="h-1 bg-gray-100">
             <div
-              className="h-full bg-indigo-500 transition-all duration-300"
+              className="h-full bg-[#2d6a4f] transition-all duration-300"
               style={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }}
             />
           </div>
 
           {/* Вопрос */}
           <div className="px-5 pt-4 pb-2">
-            <h3 className="text-base font-semibold text-white">{q.label}</h3>
-            <p className="text-xs text-indigo-300/60 mt-0.5">Можно выбрать несколько</p>
+            <h3 className="text-base font-semibold text-[#1a1a0a]">{q.label}</h3>
+            <p className="text-xs text-[#9a8a6a] mt-0.5">Можно выбрать несколько</p>
           </div>
 
           {/* Чипы — ВСЕГДА multi-select */}
@@ -354,13 +354,13 @@ export default function DemoForm() {
                     onClick={() => toggleChip(q.key, opt.rubric)}
                     className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${
                       isActive
-                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                        : 'bg-white/[0.06] border-white/[0.1] text-indigo-200 hover:bg-white/[0.1]'
+                        ? 'bg-[#2d6a4f] border-[#2d6a4f] text-white shadow-sm'
+                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
                     <span className="flex items-center gap-2">
                       <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
-                        isActive ? 'border-white bg-white/20' : 'border-white/30'
+                        isActive ? 'border-white bg-white/20' : 'border-gray-300'
                       }`}>
                         {isActive && (
                           <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
@@ -382,14 +382,14 @@ export default function DemoForm() {
                 value={customText[q.key] ?? ''}
                 onChange={e => setCustomText(prev => ({ ...prev, [q.key]: e.target.value }))}
                 placeholder="Другое (через запятую)..."
-                className="w-full text-sm bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2.5 text-white placeholder:text-white/25 focus:outline-none focus:border-indigo-500/50"
+                className="w-full text-sm bg-[#faf7f2] border border-[#d4c9b8] rounded-lg px-3 py-2.5 text-[#1a1a0a] placeholder:text-[#9a8a6a] focus:outline-none focus:border-[#2d6a4f]"
               />
             </div>
           </div>
         </div>
 
         {error && (
-          <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">{error}</div>
+          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>
         )}
 
         {/* Кнопка далее / анализировать */}
@@ -401,7 +401,7 @@ export default function DemoForm() {
               handleAnalyze()
             }
           }}
-          className="btn btn-ai w-full py-3.5 text-sm"
+          className="btn btn-primary w-full py-3.5 text-sm"
         >
           {step === QUESTIONS.length - 1
             ? `Анализировать${totalSelected > 0 ? ` (${totalSelected})` : ''}`
@@ -414,15 +414,15 @@ export default function DemoForm() {
   // ═══ АНАЛИЗ ═══
   if (mode === 'analyzing') {
     return (
-      <div className="rounded-2xl p-8 text-center bg-white/[0.04] border border-white/[0.08]">
-        <div className="w-12 h-12 rounded-full bg-indigo-600/20 flex items-center justify-center mx-auto mb-3 ai-pulse">
-          <svg className="w-6 h-6 text-indigo-400 animate-spin" fill="none" viewBox="0 0 24 24">
+      <div className="rounded-xl p-8 text-center bg-white border border-[#d4c9b8]">
+        <div className="w-12 h-12 rounded-full bg-[#2d6a4f]/10 flex items-center justify-center mx-auto mb-3">
+          <svg className="w-6 h-6 text-[#2d6a4f] animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
         </div>
-        <p className="text-sm text-white font-medium">MDRI Engine анализирует...</p>
-        <p className="text-xs text-indigo-300/60 mt-1">8 линз · реперторизация · матчинг</p>
+        <p className="text-sm text-[#1a1a0a] font-medium">MDRI Engine анализирует...</p>
+        <p className="text-xs text-[#9a8a6a] mt-1">8 линз · реперторизация · матчинг</p>
       </div>
     )
   }
@@ -431,32 +431,32 @@ export default function DemoForm() {
   if (mode === 'result' && results) {
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl overflow-hidden border border-indigo-500/20">
-          <div className="px-5 py-3 flex items-center justify-between bg-indigo-600/10">
+        <div className="rounded-xl overflow-hidden border border-[#d4c9b8] bg-white">
+          <div className="px-5 py-3 flex items-center justify-between border-b border-[#d4c9b8]">
             <div>
-              <p className="text-xs font-semibold text-indigo-400">Результат MDRI-анализа</p>
+              <p className="text-xs font-semibold text-[#2d6a4f]">Результат MDRI-анализа</p>
               {remaining !== null && (
-                <p className="text-[10px] mt-0.5 text-white/40">Осталось демо-запросов: {remaining}</p>
+                <p className="text-[10px] mt-0.5 text-[#9a8a6a]">Осталось демо-запросов: {remaining}</p>
               )}
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-600/20 text-indigo-300 font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#6366f1]/10 text-[#6366f1] font-medium">
               MDRI Engine
             </span>
           </div>
-          <div className="divide-y divide-white/[0.06] bg-white/[0.04]">
+          <div className="divide-y divide-[#d4c9b8]/50">
             {results.map((r, i) => (
               <div key={r.remedy} className="px-5 py-3.5 flex items-center gap-3 ai-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
                 <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  i === 0 ? 'bg-indigo-600 text-white' : 'bg-white/[0.08] text-indigo-300'
+                  i === 0 ? 'bg-[#2d6a4f] text-white' : 'bg-gray-100 text-[#3a3020]'
                 }`}>
                   {i + 1}
                 </span>
                 <div className="flex-1">
-                  <span className="text-sm font-bold text-white uppercase">{r.remedy}</span>
-                  <span className="text-xs text-indigo-300/60 ml-1.5">{r.remedyName}</span>
+                  <span className="text-sm font-bold text-[#1a1a0a] uppercase">{r.remedy}</span>
+                  <span className="text-xs text-[#9a8a6a] ml-1.5">{r.remedyName}</span>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className={`ai-counter text-base font-bold ${i === 0 ? 'text-indigo-400' : 'text-indigo-300/60'}`}>
+                  <span className={`text-base font-bold ${i === 0 ? 'text-[#2d6a4f]' : 'text-[#9a8a6a]'}`}>
                     {r.totalScore}%
                   </span>
                   <span className="block text-[10px] font-medium" style={{ color: confidenceColors[r.confidence] }}>
@@ -466,14 +466,14 @@ export default function DemoForm() {
               </div>
             ))}
           </div>
-          <div className="px-5 py-3 text-center bg-white/[0.02]">
-            <p className="text-[11px] text-white/40">
+          <div className="px-5 py-3 text-center border-t border-[#d4c9b8]/50">
+            <p className="text-[11px] text-[#9a8a6a]">
               В полной версии: детали по 8 линзам, AI-гомеопат, потенция, differential
             </p>
           </div>
         </div>
 
-        <button onClick={handleRestart} className="btn btn-ai-outline w-full">
+        <button onClick={handleRestart} className="btn btn-primary w-full" style={{ backgroundColor: 'transparent', color: '#2d6a4f', border: '1px solid #2d6a4f' }}>
           Попробовать другой случай
         </button>
       </div>
