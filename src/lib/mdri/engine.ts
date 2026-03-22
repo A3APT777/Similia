@@ -1121,9 +1121,173 @@ function getWeights(hasMiasm: boolean) {
   return { kent: 0.14, polarity: 0.134, hierarchy: 0.12, constellation: 0.26, negative: 0.096, outcome: 0.048, miasm: 0.061 }
 }
 
+// Semantic mapping: клинический термин → точные рубрики реперториума
+// Один симптом → несколько возможных рубрик, приоритет generals/mental/modalities
+const SEMANTIC_MAP: Record<string, string[]> = {
+  // Термика
+  'chilly': ['generalities, cold, agg', 'generalities, warm, amel', 'generalities, cold, tendency to take'],
+  'hot patient': ['generalities, heat, agg', 'generalities, warm, agg', 'generalities, cold, amel'],
+  'cold agg': ['generalities, cold, agg'],
+  'heat agg': ['generalities, heat, agg', 'generalities, warm, agg'],
+  'cold amel': ['generalities, cold, amel'],
+  'cold damp agg': ['generalities, cold, wet weather, agg', 'generalities, wet, agg'],
+  // Жажда
+  'thirstless': ['stomach, thirstless', 'stomach, thirst, absent'],
+  'thirst large': ['stomach, thirst, large quantities', 'stomach, thirst, extreme'],
+  'thirst small sips': ['stomach, thirst, small quantities', 'stomach, thirst, sip'],
+  'thirst cold': ['stomach, thirst, cold drinks', 'stomach, desires, cold drinks'],
+  // Модальности движения
+  'motion agg': ['generalities, motion, agg', 'generalities, motion, aversion to'],
+  'motion amel': ['generalities, motion, amel', 'generalities, motion, desire for'],
+  'first motion agg': ['generalities, motion, beginning of, agg', 'generalities, motion, agg, beginning'],
+  'rest agg': ['generalities, rest, agg'],
+  // Модальности позиции
+  'lies still': ['generalities, lying, amel', 'generalities, motion, agg'],
+  'sleep abdomen': ['sleep, position, abdomen, on', 'sleep, position, stomach'],
+  'sleep position abdomen': ['sleep, position, abdomen, on'],
+  // Время
+  'worse after sleep': ['sleep, after, agg', 'generalities, sleep, after, agg'],
+  'worse morning': ['generalities, morning, agg'],
+  'worse night': ['generalities, night, agg'],
+  'worse 2-4am': ['generalities, night, 2 a.m.', 'generalities, night, 3 a.m.'],
+  'worse 4-8pm': ['generalities, afternoon, 4 p.m.', 'generalities, evening'],
+  // Consolation
+  'consolation agg': ['mind, consolation, agg', 'mind, consolation, aversion to'],
+  'consolation amel': ['mind, consolation, amel'],
+  // Company
+  'company desire': ['mind, company, desire for', 'mind, company, amel'],
+  'company aversion': ['mind, company, aversion to', 'mind, solitude, desire for'],
+  'desire company': ['mind, company, desire for'],
+  // Mental
+  'grief suppressed': ['mind, grief, silent', 'mind, ailments from, grief'],
+  'grief acute': ['mind, grief', 'mind, ailments from, grief'],
+  'anxiety': ['mind, anxiety', 'mind, anxiety, health, about'],
+  'anxiety anticipation': ['mind, anticipation', 'mind, anxiety, anticipation'],
+  'anxiety health': ['mind, anxiety, health, about', 'mind, hypochondria'],
+  'fear death': ['mind, fear, death', 'mind, death, fear of'],
+  'fear alone': ['mind, fear, alone, of being', 'mind, company, desire for'],
+  'fear dark': ['mind, fear, dark', 'mind, darkness, agg'],
+  'fear thunderstorm': ['mind, fear, thunderstorm', 'mind, sensitive, noise, thunder'],
+  'fear heights': ['mind, fear, high places', 'mind, vertigo, high places'],
+  'fear water': ['mind, fear, water', 'mind, hydrophobia'],
+  'irritability': ['mind, irritability', 'mind, anger'],
+  'jealousy': ['mind, jealousy', 'mind, envy'],
+  'loquacity': ['mind, loquacity', 'mind, talking, excessive'],
+  'restlessness': ['mind, restlessness', 'mind, restlessness, anxious'],
+  'weeping easily': ['mind, weeping', 'mind, weeping, easily'],
+  'weeping alone': ['mind, weeping, alone, when', 'mind, grief, silent'],
+  'indifference': ['mind, indifference', 'mind, indifference, loved ones, to'],
+  'indifference family': ['mind, indifference, loved ones, to', 'mind, indifference, children, to her'],
+  'sighing': ['mind, sighing', 'respiration, sighing'],
+  'mood alternating': ['mind, mood, alternating', 'mind, mood, changeable'],
+  'suicidal': ['mind, suicidal disposition', 'mind, death, desires'],
+  'suppressed anger': ['mind, ailments from, anger, suppressed', 'mind, indignation'],
+  'humiliation': ['mind, ailments from, mortification', 'mind, ailments from, humiliation'],
+  'haughtiness': ['mind, haughtiness', 'mind, contemptuous'],
+  'secretive': ['mind, secretive', 'mind, reserved'],
+  'violence': ['mind, rage', 'mind, violent'],
+  'hurry': ['mind, hurry', 'mind, impatience'],
+  'timidity': ['mind, timidity', 'mind, bashful'],
+  'sympathy': ['mind, sympathy', 'mind, compassion'],
+  // Desire/Aversion
+  'desire salt': ['generalities, food, salt, desire', 'stomach, desires, salt things'],
+  'desire sweets': ['generalities, food, sweets, desire', 'stomach, desires, sweets'],
+  'desire sour': ['generalities, food, sour, desire', 'stomach, desires, sour, acids'],
+  'desire stimulants': ['stomach, desires, stimulants', 'stomach, desires, coffee', 'stomach, desires, alcohol'],
+  'desire eggs': ['stomach, desires, eggs', 'generalities, food, eggs, desire'],
+  'aversion fish': ['stomach, aversion, fish'],
+  'aversion bathing': ['generalities, bathing, aversion to', 'mind, washing, aversion to'],
+  // Perspiration
+  'perspiration feet': ['extremities, perspiration, foot', 'extremities, perspiration, foot, offensive'],
+  'perspiration profuse': ['perspiration, profuse', 'generalities, perspiration, profuse'],
+  'cold sweat forehead': ['face, perspiration, cold', 'face, perspiration, forehead'],
+  'head sweating': ['head, perspiration', 'head, perspiration, sleep, during'],
+  // Particulars (частые)
+  'headache': ['head, pain'],
+  'nausea': ['stomach, nausea'],
+  'burning urination': ['bladder, urination, burning', 'urethra, pain, burning'],
+  'splinter pain': ['generalities, pain, splinter, as from a', 'throat, pain, splinter, as from a'],
+  'stinging pain': ['generalities, pain, stinging', 'skin, pain, stinging'],
+  'stitching pains': ['generalities, pain, stitching', 'chest, pain, stitching'],
+  'throbbing': ['generalities, pulsation', 'head, pain, pulsating'],
+  'dilated pupils': ['eye, pupils, dilated'],
+  'salivation': ['mouth, salivation', 'mouth, salivation, profuse'],
+  'offensive breath': ['mouth, odor, offensive', 'mouth, breath, offensive'],
+  'vertigo turning': ['vertigo, turning', 'vertigo, motion, head, of'],
+  'dry cough': ['cough, dry'],
+  'whooping cough': ['cough, whooping', 'cough, paroxysmal'],
+  'hemorrhage': ['generalities, hemorrhage', 'generalities, blood, loss of'],
+  'bruised feeling': ['generalities, pain, sore, bruised', 'generalities, injuries, bruises'],
+  'warts': ['skin, warts', 'skin, excrescences'],
+  'cracks skin': ['skin, cracks', 'skin, eruptions, cracks'],
+  'eczema': ['skin, eruptions, eczema'],
+  'suppuration': ['generalities, suppuration', 'skin, suppuration'],
+  'collapse': ['generalities, faintness', 'generalities, weakness, sudden'],
+  'paralysis': ['generalities, paralysis', 'extremities, paralysis'],
+  // Onset
+  'sudden onset': ['generalities, sudden, manifestation', 'fever, sudden'],
+}
+
 function findRubrics(data: MDRIData, query: string, cache: Map<string, MDRIRepertoryRubric[]>): MDRIRepertoryRubric[] {
   const q = query.toLowerCase()
   if (cache.has(q)) return cache.get(q)!
+
+  // === Semantic layer: проверить mapping ===
+  const semanticKeys = Object.keys(SEMANTIC_MAP).filter(k => q.includes(k) || k.includes(q))
+  if (semanticKeys.length > 0) {
+    // Найти рубрики по точным путям из mapping
+    const semanticResults: [MDRIRepertoryRubric, number][] = []
+    for (const key of semanticKeys) {
+      const paths = SEMANTIC_MAP[key]
+      for (const path of paths) {
+        const pathLower = path.toLowerCase()
+        const pathWords = pathLower.split(/[,\s]+/).filter(w => w.length > 2)
+
+        // Искать в wordIndex по первому уникальному слову пути
+        for (const pw of pathWords) {
+          const idx = data.wordIndex.get(pw)
+          if (!idx) continue
+          for (const i of idx) {
+            const r = data.repertory[i]
+            const rl = r.rubric.toLowerCase()
+            // Проверить что рубрика содержит ВСЕ слова из пути
+            if (pathWords.every(w => rl.includes(w))) {
+              // Приоритет: generals/mind > particular
+              const chapterBonus = rl.startsWith('generalities') ? 20
+                : rl.startsWith('mind') ? 15
+                : rl.startsWith('sleep') ? 10
+                : rl.startsWith('stomach') ? 8
+                : 0
+              // Приоритет: средние рубрики (5-100 препаратов)
+              const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 10
+                : r.remedies.length > 100 ? 5
+                : 3
+              semanticResults.push([r, 50 + chapterBonus + sizeBonus])
+            }
+          }
+          break // Один слово достаточно для поиска
+        }
+      }
+    }
+
+    if (semanticResults.length > 0) {
+      semanticResults.sort((a, b) => b[1] - a[1])
+      // Дедупликация
+      const seen = new Set<string>()
+      const deduped: MDRIRepertoryRubric[] = []
+      for (const [r] of semanticResults) {
+        if (!seen.has(r.rubric)) {
+          seen.add(r.rubric)
+          deduped.push(r)
+        }
+        if (deduped.length >= 5) break
+      }
+      cache.set(q, deduped)
+      return deduped
+    }
+  }
+
+  // === Fallback: оригинальный keyword matching ===
 
   const qWords = q.replace(/,/g, ' ').replace(/;/g, ' ')
     .split(' ')
