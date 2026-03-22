@@ -871,14 +871,16 @@ export function analyzePipeline(
   //   - headache, nausea, weakness, cough, pain, fever...
 
   // Внутренний вес characteristic симптома:
-  //   2 = peculiar (w=3), strong mental (w>=2) — один такой = два обычных
+  //   3 = peculiar (w=3) — редкий/странный, самый ценный
+  //   2 = strong mental (w>=2) — выраженный ментальный
   //   1 = модальности, термика, жажда, desire и т.д. — базовый
   //   0 = common (не characteristic)
   const charWeight = (s: MDRISymptom): number => {
     const r = s.rubric.toLowerCase()
 
-    // Вес 2: peculiar / strong mental — самые ценные
-    if (s.weight >= 3) return 2
+    // Вес 3: peculiar — самый ценный (странный, редкий, необычный)
+    if (s.weight >= 3) return 3
+    // Вес 2: strong mental
     if (s.category === 'mental' && s.weight >= 2) return 2
 
     // Вес 1: модальности
@@ -952,10 +954,27 @@ export function analyzePipeline(
     }
 
     // Rule 2: ≥2 characteristic (без common) → candidate
-    // Два решающих симптома достаточно даже без подтверждения
+    // Защита: если набрано одним peculiar (3) — нужно подтверждение (≥1 common или ≥1 general)
     if (charHits >= 2) {
-      candidates.add(rem)
-      continue
+      // Проверить: это 2+ реальных симптома или один peculiar?
+      // Если commonHits > 0 — есть подтверждение, пропускаем
+      // Если charHits >= 3 — точно 2+ реальных (peculiar=3 + base=1, или 3 base)
+      // Единственный опасный случай: charHits = 2 или 3 от ОДНОГО peculiar (w=3) без common
+      if (commonHits >= 1 || charHits >= 4) {
+        candidates.add(rem)
+        continue
+      }
+      // Один peculiar без подтверждения — проверить есть ли general category
+      const cov = coverage.get(rem)
+      const hasGeneral = cov?.rubrics.some(r => {
+        const rl = r.toLowerCase()
+        return rl.startsWith('generalities') || rl.startsWith('mind') || rl.startsWith('sleep')
+      }) ?? false
+      if (hasGeneral) {
+        candidates.add(rem)
+        continue
+      }
+      // Нет подтверждения — не пропускаем
     }
 
     // Rule 3: ≥4 common из ≥2 domains → candidate
