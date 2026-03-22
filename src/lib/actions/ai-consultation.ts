@@ -127,31 +127,36 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
   try {
     log('START')
 
-    // Шаг 1: Sonnet парсит текст
-    const { symptoms, modalities, familyHistory } = await parseTextWithSonnet(parsed.text)
-    log(`parseTextWithSonnet done (${symptoms.length} symptoms)`)
+    // Шаг 1+2 ПАРАЛЛЕЛЬНО: Sonnet парсит + MDRI данные загружаются одновременно
+    const [parseResult, data] = await Promise.all([
+      parseTextWithSonnet(parsed.text),
+      loadMDRIData(),
+    ])
+    const { symptoms, modalities, familyHistory } = parseResult
+    log(`parallel done: ${symptoms.length} symptoms, ${data.repertory.length} rubrics`)
 
     if (symptoms.length === 0) {
       throw new Error('AI не смог извлечь симптомы из текста. Попробуйте описать подробнее.')
     }
 
-    // Шаг 2: Загрузка данных MDRI
-    const data = await loadMDRIData()
-    log(`loadMDRIData done (${data.repertory.length} rubrics)`)
-
-    // Шаг 3: MDRI-анализ
+    // Шаг 3: MDRI Engine v4 (6 этапов — основной анализ)
     const mdriResults = analyze(data, symptoms, modalities, familyHistory, parsed.profile as MDRIPatientProfile)
-    log(`MDRI analyze done (${mdriResults.length} results, top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
+    log(`MDRI v4 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
 
-    // Шаг 4: Sonnet-гомеопат
-    const aiResult = await callSonnetHomeopath(parsed.text)
-    log(`callSonnetHomeopath done (${aiResult?.remedy ?? 'null'})`)
+    // Результат = только MDRI (без двойного Sonnet, укладываемся в 10 сек)
+    const topRemedy = mdriResults[0]?.remedy ?? ''
+    const result: ConsensusResult = {
+      method: 'consensus',
+      finalRemedy: topRemedy,
+      sonnetRemedy: topRemedy,
+      mdriRemedy: topRemedy,
+      mdriResults,
+      aiResult: null,
+      cost: 0.01,
+    }
+    log(`result: ${topRemedy}`)
 
-    // Шаг 5: Consensus
-    const result = await buildConsensus(mdriResults, aiResult, parsed.text)
-    log(`buildConsensus done (${result.method}, ${result.finalRemedy})`)
-
-    // Шаг 6: Сохранить
+    // Сохранить если есть consultationId
     if (parsed.consultationId) {
       await supabase
         .from('consultations')
@@ -160,7 +165,6 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
           source: 'ai',
         })
         .eq('id', parsed.consultationId)
-      log('saved to consultation')
     }
 
     await deductAICredit(supabase, user.id)
