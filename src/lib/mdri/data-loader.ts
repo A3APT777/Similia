@@ -7,7 +7,7 @@ import { buildIndices } from './engine'
 import type { MDRIData } from './engine'
 import type {
   MDRIRepertoryRubric, MDRIConstellationData, MDRIPolarityData,
-  MDRIRemedyRelationships,
+  MDRIRemedyRelationships, MDRIClinicalData,
 } from './types'
 
 // Кеш в памяти — живёт пока жив серверный процесс
@@ -48,7 +48,7 @@ export async function loadMDRIData(): Promise<MDRIData> {
   const supabase = createServiceClient()
 
   // Параллельная загрузка всех данных
-  const [repertoryRes, constellationsRes, polaritiesRes] = await Promise.all([
+  const [repertoryRes, constellationsRes, polaritiesRes, clinicalRes] = await Promise.all([
     supabase
       .from('repertory_rubrics')
       .select('fullpath, chapter, remedies')
@@ -59,6 +59,9 @@ export async function loadMDRIData(): Promise<MDRIData> {
     supabase
       .from('mdri_polarities')
       .select('*'),
+    supabase
+      .from('mdri_clinical_data')
+      .select('type, data'),
   ])
 
   // Реперториум → формат MDRI
@@ -87,6 +90,34 @@ export async function loadMDRIData(): Promise<MDRIData> {
     polarities[row.remedy] = row.polarities
   }
 
+  // Клинические данные → MDRIClinicalData
+  const clinicalData: MDRIClinicalData = {
+    thermal_contradictions: {},
+    consistency_groups: {},
+  }
+  for (const row of clinicalRes.data ?? []) {
+    const d = typeof row.data === 'string' ? JSON.parse(row.data) : row.data
+    if (row.type === 'thermal_contradiction') {
+      // d = { chilly: [...remedies] } или { hot_patient: [...remedies] }
+      for (const [key, remedies] of Object.entries(d)) {
+        const thermal = key === 'chilly' ? 'hot' as const : 'chilly' as const
+        for (const rem of remedies as string[]) {
+          clinicalData.thermal_contradictions[rem] = thermal
+        }
+      }
+    } else if (row.type === 'consistency_group') {
+      // d = { name, symptoms, remedy }
+      const remedy = d.remedy as string
+      if (!clinicalData.consistency_groups[remedy]) {
+        clinicalData.consistency_groups[remedy] = []
+      }
+      clinicalData.consistency_groups[remedy].push({
+        name: d.name as string,
+        symptoms: d.symptoms as string[],
+      })
+    }
+  }
+
   // Построить индексы
   const { wordIndex, constellationWordIndex, remedyRubricCount } = buildIndices(repertory, constellations)
 
@@ -98,6 +129,7 @@ export async function loadMDRIData(): Promise<MDRIData> {
     wordIndex,
     constellationWordIndex,
     remedyRubricCount,
+    clinicalData,
   }
   cacheTimestamp = now
 

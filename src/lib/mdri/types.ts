@@ -100,6 +100,15 @@ export type MDRIPolarityData = {
   [pairId: string]: string // 'agg' | 'amel' | 'agg_heat' | 'agg_cold' и т.д.
 }
 
+// === Клинические данные для фильтрации и consistency ===
+
+export type MDRIClinicalData = {
+  // Термические противоречия: remedy → 'chilly' | 'hot' | 'neutral'
+  thermal_contradictions: Record<string, 'chilly' | 'hot' | 'neutral'>
+  // Группы согласованности: remedy → массив групп симптомов
+  consistency_groups: Record<string, { name: string; symptoms: string[] }[]>
+}
+
 // === Результат AI-гомеопата (Sonnet) ===
 
 export type AIHomeopathResult = {

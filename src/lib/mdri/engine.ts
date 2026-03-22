@@ -5,7 +5,7 @@ import type {
   MDRISymptom, MDRIModality, MDRIPatientProfile, MDRIResult,
   MDRILensResult, MDRIPotencyRecommendation, MDRIDifferentialNote,
   MDRIRepertoryRubric, MDRIConstellationData, MDRIPolarityData,
-  MDRIRemedyRelationships,
+  MDRIRemedyRelationships, MDRIClinicalData,
 } from './types'
 import { DEFAULT_PROFILE } from './types'
 
@@ -56,6 +56,7 @@ export type MDRIData = {
   wordIndex: Map<string, number[]>
   constellationWordIndex: Map<string, [string, number, number][]>
   remedyRubricCount: Map<string, number>
+  clinicalData?: MDRIClinicalData
 }
 
 /**
@@ -107,7 +108,32 @@ export function buildIndices(
 }
 
 /**
- * Основная функция анализа — возвращает топ-10 препаратов
+ * Базовый Kent score — чистый grade × weight, без IDF и anti-domination
+ */
+function kentScoreBase(data: MDRIData, symptoms: MDRISymptom[], cache: Map<string, MDRIRepertoryRubric[]>): Record<string, number> {
+  const scores: Record<string, number> = {}
+  for (const sym of symptoms) {
+    if (!sym.present) continue
+    const matches = findRubrics(data, sym.rubric, cache)
+    for (const match of matches) {
+      for (const rem of match.remedies) {
+        scores[rem.abbrev] = (scores[rem.abbrev] ?? 0) + rem.grade * sym.weight
+      }
+    }
+  }
+  if (Object.keys(scores).length === 0) return scores
+
+  // Нормализация
+  const maxS = Math.max(...Object.values(scores))
+  if (maxS === 0) return scores
+  for (const k of Object.keys(scores)) {
+    scores[k] /= maxS
+  }
+  return scores
+}
+
+/**
+ * Основная функция анализа — динамическая система с приоритетами, 6 этапов
  */
 export function analyze(
   data: MDRIData,
@@ -118,57 +144,199 @@ export function analyze(
 ): MDRIResult[] {
   const rubricCache = new Map<string, MDRIRepertoryRubric[]>()
 
+  // === Этап 0: Предварительный анализ ===
+  const hasMentalSymptoms = symptoms.some(s => s.present && s.category === 'mental')
+  const hasGeneralSymptoms = symptoms.some(s => s.present && s.category === 'general')
+  const isAcute = symptoms.some(s => s.present && ['sudden onset', 'sudden'].includes(s.rubric.toLowerCase()))
+  const isChronic = familyHistory.length > 0
   const presentSymptoms = symptoms.filter(s => s.present)
   const insufficientData = presentSymptoms.length < 3
 
-  // Запуск всех линз
-  const l1 = kentScore(data, symptoms, rubricCache)
-  const l2 = polarityScore(data, modalities)
-  const l3 = hierarchyScore(data, symptoms, rubricCache)
-  const l4 = constellationScore(data, symptoms)
-  const l5 = negativeScore(data, symptoms, rubricCache)
-  const [l7, dominantMiasm] = miasmScore(familyHistory)
+  // === Этап 1: Глобальный фильтр противоречий ===
+  const excluded = new Set<string>()       // полностью исключены
+  const ceilingMap = new Map<string, number>() // максимальный score
+  const penaltyMap = new Map<string, number>() // множитель
 
-  const hasMiasm = Object.keys(l7).length > 0
-  const weights = getWeights(hasMiasm)
-
-  // Собрать все кандидаты
-  const allRemedies = new Set<string>()
-  for (const d of [l1, l2, l3, l4, l5, l7]) {
-    for (const k of Object.keys(d)) allRemedies.add(k)
+  // Critical: проверить sine_qua_non — если отсутствует → исключить препарат
+  const absentRubrics = symptoms.filter(s => !s.present).map(s => s.rubric.toLowerCase())
+  for (const [remedy, con] of Object.entries(data.constellations)) {
+    if (!con.sine_qua_non?.length) continue
+    for (const sqn of con.sine_qua_non) {
+      if (absentRubrics.some(a => symMatch(a, sqn))) {
+        excluded.add(remedy)
+      }
+    }
   }
 
-  const results: MDRIResult[] = []
-  for (const rem of allRemedies) {
-    const s1 = l1[rem] ?? 0
-    const s2 = l2[rem] ?? 0.35
-    const s3 = l3[rem] ?? 0
-    const s4 = l4[rem] ?? 0
-    const s5 = l5[rem] ?? 0
-    const s7 = l7[rem] ?? 0
+  // Strong: excluders — если присутствует → ограничить потолок до 0.60
+  const presentRubrics = presentSymptoms.map(s => s.rubric.toLowerCase())
+  for (const [remedy, con] of Object.entries(data.constellations)) {
+    if (excluded.has(remedy)) continue
+    if (!con.excluders?.length) continue
+    for (const excl of con.excluders) {
+      if (presentRubrics.some(p => symMatch(p, excl))) {
+        ceilingMap.set(remedy, 0.60)
+      }
+    }
+  }
 
-    if (s1 === 0 && s7 < 0.5) continue
+  // Weak: термические противоречия
+  const isChilly = presentSymptoms.some(s => s.rubric.toLowerCase().includes('chill'))
+  const isHot = presentSymptoms.some(s => ['hot patient', 'hot'].some(h => s.rubric.toLowerCase().includes(h)))
+  const thermalData = data.clinicalData?.thermal_contradictions ?? {}
+  if (isChilly || isHot) {
+    for (const [remedy, thermal] of Object.entries(thermalData)) {
+      if (excluded.has(remedy)) continue
+      // Зябкий пациент + жаркий препарат → штраф
+      if (isChilly && thermal === 'hot') {
+        penaltyMap.set(remedy, (penaltyMap.get(remedy) ?? 1) * 0.85)
+      }
+      // Жаркий пациент + зябкий препарат → штраф
+      if (isHot && thermal === 'chilly') {
+        penaltyMap.set(remedy, (penaltyMap.get(remedy) ?? 1) * 0.85)
+      }
+    }
+  }
 
-    let total = weights.kent * s1 + weights.polarity * s2 +
-                weights.hierarchy * s3 + weights.constellation * s4 +
-                weights.negative * s5 + weights.miasm * s7
+  // === Этап 2: Базовый Kent (без усилений) ===
+  const baseKent = kentScoreBase(data, symptoms, rubricCache)
+  // Убрать исключённые
+  for (const rem of excluded) delete baseKent[rem]
+  // Отсечь слабых — score < 10% от max
+  const maxBase = Math.max(...Object.values(baseKent), 0)
+  if (maxBase > 0) {
+    for (const [rem, score] of Object.entries(baseKent)) {
+      if (score < maxBase * 0.10) delete baseKent[rem]
+    }
+  }
 
-    // Constellation Override (только для редких/нозодов)
-    const remCount = data.remedyRubricCount.get(rem) ?? 0
-    if (s4 > 0.70 && s1 < 0.3 && remCount < 2000) {
-      total += (s4 - 0.70) * 0.25
+  // === Этап 3: Доминирование — Иерархия ===
+  // Пересчёт Kent с IDF + anti-domination
+  const kentFull = kentScore(data, symptoms, rubricCache)
+  const hierarchyScores = hierarchyScore(data, symptoms, rubricCache)
+  // Комбинация: 0.4 × kentFull + 0.6 × hierarchy — только для кандидатов из этапа 2
+  const kentHierarchy: Record<string, number> = {}
+  for (const rem of Object.keys(baseKent)) {
+    if (excluded.has(rem)) continue
+    const kf = kentFull[rem] ?? 0
+    const hs = hierarchyScores[rem] ?? 0
+    kentHierarchy[rem] = 0.4 * kf + 0.6 * hs
+  }
+
+  // === Этап 4: Constellation + Consistency ===
+  const conScores = constellationScore(data, symptoms)
+  const consistencyGroups = data.clinicalData?.consistency_groups ?? {}
+
+  // Рассчитать consistency bonus и fragmentation penalty для каждого кандидата
+  const conAdjusted: Record<string, number> = {}
+  for (const rem of Object.keys(baseKent)) {
+    if (excluded.has(rem)) continue
+    const rawCon = conScores[rem] ?? 0
+
+    let consistencyBonus = 0
+    let fragmentationPenalty = 0
+
+    const groups = consistencyGroups[rem]
+    if (groups && groups.length > 0) {
+      // Consistency: сколько симптомов пациента совпадают с consistency_group
+      let maxGroupMatch = 0
+      const matchedGroupNames = new Set<string>()
+
+      for (const group of groups) {
+        let groupMatches = 0
+        for (const groupSym of group.symptoms) {
+          if (presentRubrics.some(p => symMatch(p, groupSym))) {
+            groupMatches++
+            matchedGroupNames.add(group.name)
+          }
+        }
+        maxGroupMatch = Math.max(maxGroupMatch, groupMatches)
+      }
+
+      // Бонус пропорционально совпадениям
+      if (presentSymptoms.length > 0) {
+        consistencyBonus = (maxGroupMatch / presentSymptoms.length) * 0.20
+      }
+
+      // Fragmentation: если симптомы из РАЗНЫХ consistency_groups → штраф
+      if (matchedGroupNames.size > 2) {
+        fragmentationPenalty = (matchedGroupNames.size - 1) * 0.05
+      }
     }
 
-    // Бонус нозодов
-    if (NOSODES.has(rem) && s4 > 0.4 && s7 > 0.4) {
-      total += s4 * s7 * 0.20
+    conAdjusted[rem] = rawCon * (1 + consistencyBonus) * (1 - Math.min(fragmentationPenalty, 0.30))
+  }
+
+  // === Этап 5: Polarity (только при близких top-2) ===
+  // Предварительный score для определения, нужна ли polarity
+  const prelimScores: [string, number][] = []
+  for (const rem of Object.keys(baseKent)) {
+    if (excluded.has(rem)) continue
+    const kh = kentHierarchy[rem] ?? 0
+    const ca = conAdjusted[rem] ?? 0
+    prelimScores.push([rem, 0.35 * kh + 0.45 * ca])
+  }
+  prelimScores.sort((a, b) => b[1] - a[1])
+
+  let polarityApplied = false
+  let polScores: Record<string, number> = {}
+  if (prelimScores.length >= 2) {
+    const top1Score = prelimScores[0][1]
+    const top2Score = prelimScores[1][1]
+    // Если разница < 10% → применить polarity
+    if (top1Score > 0 && (top1Score - top2Score) / top1Score < 0.10) {
+      polScores = polarityScore(data, modalities)
+      polarityApplied = true
+    }
+  }
+
+  // === Этап 6: Miasm (только chronic) ===
+  let miasmApplied = false
+  let mScores: Record<string, number> = {}
+  let dominantMiasm = ''
+  if (isChronic && familyHistory.length > 0) {
+    const [ms, dm] = miasmScore(familyHistory)
+    mScores = ms
+    dominantMiasm = dm
+    miasmApplied = Object.keys(mScores).length > 0
+  }
+
+  // === Финальный scoring ===
+  // Динамические веса в зависимости от того, какие этапы применились
+  let wKentHierarchy = 0.35
+  let wConstellation = 0.45
+  let wPolarity = polarityApplied ? 0.10 : 0
+  let wMiasm = miasmApplied ? 0.10 : 0
+
+  // Если polarity/miasm не применяются — перераспределить веса
+  const unusedWeight = (polarityApplied ? 0 : 0.10) + (miasmApplied ? 0 : 0.10)
+  wKentHierarchy += unusedWeight * 0.40
+  wConstellation += unusedWeight * 0.60
+
+  const results: MDRIResult[] = []
+  for (const rem of Object.keys(baseKent)) {
+    if (excluded.has(rem)) continue
+
+    const kh = kentHierarchy[rem] ?? 0
+    const ca = conAdjusted[rem] ?? 0
+    const pol = polScores[rem] ?? 0.35
+    const mi = mScores[rem] ?? 0
+
+    let total = wKentHierarchy * kh + wConstellation * ca
+
+    if (polarityApplied) {
+      total += wPolarity * pol
+    }
+    if (miasmApplied) {
+      // Miasm НЕ МОЖЕТ сделать top-1 из ничего — только усилить нозод в top-5
+      if (NOSODES.has(rem) && mi > 0) {
+        total += wMiasm * mi * 1.2
+      } else {
+        total += wMiasm * mi
+      }
     }
 
     // Acute/Chronic контекст
-    const isAcute = symptoms.some(s =>
-      s.present && ['sudden onset', 'sudden', 'violent onset'].includes(s.rubric.toLowerCase())
-    )
-    const isChronic = familyHistory.length > 0
     if (isAcute && CHRONIC_REMEDIES.has(rem)) {
       total *= 0.85
     } else if (isChronic && ACUTE_REMEDIES.has(rem)) {
@@ -187,6 +355,16 @@ export function analyze(
       else if (overlap >= 1) total *= 1.02
     }
 
+    // Применить ceiling и penalty из Этапа 1
+    const ceil = ceilingMap.get(rem)
+    if (ceil !== undefined) {
+      total = Math.min(total, ceil)
+    }
+    const pen = penaltyMap.get(rem)
+    if (pen !== undefined) {
+      total *= pen
+    }
+
     // Уверенность
     let confidence: MDRIResult['confidence']
     if (insufficientData) {
@@ -199,6 +377,13 @@ export function analyze(
     const isNosode = NOSODES.has(rem)
     const potency = selectPotency(profile, total * 100, isNosode)
 
+    // Линзы для отображения
+    const s1 = kentFull[rem] ?? 0
+    const s3 = hierarchyScores[rem] ?? 0
+    const s4 = conScores[rem] ?? 0
+    const s2 = polScores[rem] ?? 0
+    const s7 = mScores[rem] ?? 0
+
     results.push({
       remedy: rem,
       remedyName: name,
@@ -206,11 +391,11 @@ export function analyze(
       confidence,
       lenses: [
         { name: 'Kent', score: Math.round(s1 * 100), details: `${Math.round(s1 * 100)}%` },
-        { name: 'Polarity', score: Math.round(s2 * 100), details: `${Math.round(s2 * 100)}%` },
+        { name: 'Polarity', score: Math.round(s2 * 100), details: polarityApplied ? `${Math.round(s2 * 100)}%` : 'н/п' },
         { name: 'Hierarchy', score: Math.round(s3 * 100), details: `${Math.round(s3 * 100)}%` },
         { name: 'Constellation', score: Math.round(s4 * 100), details: `${Math.round(s4 * 100)}%` },
-        { name: 'Negative', score: Math.round((s5 + 1) * 50), details: `${Math.round(s5 * 100)}` },
-        { name: 'Miasm', score: Math.round(s7 * 100), details: s7 > 0 ? `${Math.round(s7 * 100)}% (${dominantMiasm})` : '-' },
+        { name: 'Consistency', score: Math.round((conAdjusted[rem] ?? 0) * 100), details: `${Math.round((conAdjusted[rem] ?? 0) * 100)}%` },
+        { name: 'Miasm', score: Math.round(s7 * 100), details: miasmApplied ? `${Math.round(s7 * 100)}% (${dominantMiasm})` : '-' },
       ],
       potency,
       miasm: dominantMiasm || null,
