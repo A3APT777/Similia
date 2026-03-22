@@ -847,23 +847,132 @@ export function analyzePipeline(
   }
 
   // ===================================================================
-  // STAGE 2: SELECTION — кто покрывает достаточно симптомов
+  // STAGE 2: SELECTION — decision rules, не фиксированный порог
+  //
   // Вход: ~3000 препаратов (минус excluded)
-  // Выход: кандидаты с coverage ≥ 40%
+  // Выход: кандидаты (20-50)
+  //
+  // Логика: разделить симптомы на KEY и SUPPORTING.
+  // Препарат проходит если:
+  //   Rule A: покрывает ≥1 key symptom + ≥1 supporting
+  //   Rule B: покрывает ≥3 supporting (даже без key)
+  //   Rule C: покрывает key symptom с grade 3 (один сильный = достаточно)
   // ===================================================================
+
+  // --- Классификация симптомов ---
+  // Key symptoms: модальности, peculiar, strong general, characteristic mental
+  // Supporting: остальные (particular complaints, weak generals)
+
+  type SymptomClass = 'key' | 'supporting'
+  const symptomClasses: SymptomClass[] = presentSymptoms.map(s => {
+    const r = s.rubric.toLowerCase()
+
+    // KEY: модальности (хуже/лучше от чего-то)
+    if (r.includes('agg') || r.includes('amel') || r.includes('worse') || r.includes('better')) return 'key'
+
+    // KEY: термика
+    if (r.includes('chill') || r.includes('hot patient') || r.includes('cold') || r.includes('warm')) return 'key'
+
+    // KEY: жажда (strong general)
+    if (r.includes('thirst') || r.includes('thirstless')) return 'key'
+
+    // KEY: characteristic mental
+    if (s.category === 'mental' && s.weight >= 2) return 'key'
+
+    // KEY: peculiar / strange (weight 3 = врач отметил как важное)
+    if (s.weight >= 3) return 'key'
+
+    // KEY: desire/aversion (strong general)
+    if (r.includes('desire') || r.includes('aversion')) return 'key'
+
+    // KEY: sleep position, consolation, company
+    if (r.includes('consolat') || r.includes('company') || r.includes('sleep') && r.includes('position')) return 'key'
+
+    // KEY: time aggravation (2-4am, 4-8pm)
+    if (r.includes('2') && r.includes('4') || r.includes('4') && r.includes('8')) return 'key'
+
+    // KEY: side (right/left)
+    if (r.includes('right side') || r.includes('left side')) return 'key'
+
+    // Всё остальное — supporting
+    return 'supporting'
+  })
+
+  const keyIndices = new Set<number>()
+  const supportingIndices = new Set<number>()
+  for (let i = 0; i < symptomClasses.length; i++) {
+    if (symptomClasses[i] === 'key') keyIndices.add(i)
+    else supportingIndices.add(i)
+  }
+
+  const totalKey = keyIndices.size
+  const totalSupporting = supportingIndices.size
+
+  // --- Coverage с разделением на key/supporting ---
   const coverage = computeCoverage(data, symptoms, rubricCache)
-  const COVERAGE_THRESHOLD = insufficientData ? 0.20 : 0.40
   const candidates = new Set<string>()
 
-  for (const [rem, cov] of coverage) {
-    if (excluded.has(rem)) continue
-    const ratio = cov.total > 0 ? cov.covered / cov.total : 0
-    if (ratio >= COVERAGE_THRESHOLD) {
-      candidates.add(rem)
+  // Для каждого препарата — посчитать key и supporting coverage отдельно
+  // computeCoverage возвращает covered (кол-во симптомов), но не какие именно
+  // Нужна детальная версия — посчитаем здесь
+  const remedyKeyHits = new Map<string, number>()    // сколько key симптомов покрыто
+  const remedySuppHits = new Map<string, number>()   // сколько supporting покрыто
+  const remedyGrade3Key = new Map<string, boolean>()  // есть ли grade 3 в key симптоме
+
+  for (let i = 0; i < presentSymptoms.length; i++) {
+    const sym = presentSymptoms[i]
+    const isKey = keyIndices.has(i)
+    const matches = findRubrics(data, sym.rubric, rubricCache)
+
+    for (const match of matches) {
+      for (const rem of match.remedies) {
+        if (excluded.has(rem.abbrev)) continue
+
+        if (isKey) {
+          remedyKeyHits.set(rem.abbrev, (remedyKeyHits.get(rem.abbrev) ?? 0) + 1)
+          if (rem.grade >= 3) remedyGrade3Key.set(rem.abbrev, true)
+        } else {
+          remedySuppHits.set(rem.abbrev, (remedySuppHits.get(rem.abbrev) ?? 0) + 1)
+        }
+      }
     }
   }
 
-  // Гарантировать минимум 10 кандидатов (если отсечение слишком жёсткое)
+  // --- Decision rules ---
+  const allRemedies = new Set([...remedyKeyHits.keys(), ...remedySuppHits.keys()])
+
+  for (const rem of allRemedies) {
+    if (excluded.has(rem)) continue
+    const keyHits = remedyKeyHits.get(rem) ?? 0
+    const suppHits = remedySuppHits.get(rem) ?? 0
+    const hasGrade3Key = remedyGrade3Key.get(rem) ?? false
+
+    // Rule A: ≥1 key + ≥1 supporting → candidate
+    if (keyHits >= 1 && suppHits >= 1) {
+      candidates.add(rem)
+      continue
+    }
+
+    // Rule B: ≥3 supporting (broad coverage without key) → candidate
+    if (suppHits >= 3) {
+      candidates.add(rem)
+      continue
+    }
+
+    // Rule C: grade 3 в key symptom (одно сильное совпадение) → candidate
+    if (hasGrade3Key) {
+      candidates.add(rem)
+      continue
+    }
+
+    // Rule D: ≥2 key symptoms (даже без supporting) → candidate
+    if (keyHits >= 2) {
+      candidates.add(rem)
+      continue
+    }
+  }
+
+  // Гарантировать минимум 10 кандидатов
   if (candidates.size < 10) {
     const sorted = [...coverage.entries()]
       .filter(([rem]) => !excluded.has(rem))
