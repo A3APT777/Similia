@@ -154,50 +154,154 @@ for (const [key, syns] of Object.entries(SYNONYM_MAP)) {
   }
 }
 
+/** Проверка stem-совпадения: общий префикс >=5 символов */
+function stemEq(a: string, b: string): boolean {
+  if (a === b) return true
+  const minLen = Math.min(a.length, b.length)
+  if (minLen < 5) return false
+  let cp = 0
+  for (let i = 0; i < minLen; i++) {
+    if (a[i] === b[i]) cp++
+    else break
+  }
+  if (cp < 5) return false
+  // Защита от антонимов: "thirst"/"thirstless", "pain"/"painless"
+  // Если одно слово заканчивается на "less" а другое нет — это антоним
+  const longer = a.length > b.length ? a : b
+  const shorter = a.length > b.length ? b : a
+  if (longer.endsWith('less') && !shorter.endsWith('less')) return false
+  if (longer.endsWith('ness') && !shorter.endsWith('ness') && longer.length - shorter.length > 3) return false
+  return true
+}
+
 /**
- * Быстрый семантический matching между рубрикой пациента и целевой рубрикой
+ * Семантический matching между рубрикой пациента и целевой рубрикой.
+ *
+ * Принципы:
+ * 1. Phrase-level: совпадение по фразам/биграмам, не по одиночным словам
+ * 2. Одно общее слово ("cold", "fear", "agg") ≠ match
+ * 3. Synonym matching только через ПОЛНЫЙ ключ (фразу), не через отдельные слова
+ * 4. Контекст: "cold sweat" ≠ "chilly", "fear dark" ≠ "fear death"
  */
 export function symMatch(patientRubric: string, target: string): boolean {
   const p = patientRubric.toLowerCase()
   const t = target.toLowerCase()
 
-  // Точное вхождение
+  // 1. Точное вхождение (phrase-level)
   if (p.includes(t) || t.includes(p)) return true
 
-  // Совпадение по словам (>50%)
-  const pWords = new Set(p.split(' ').filter(w => w.length > 2))
+  const pWords = p.split(' ').filter(w => w.length > 2)
   const tWords = t.split(' ').filter(w => w.length > 2)
-  if (tWords.length > 0) {
-    let matchCount = 0
-    for (const tw of tWords) {
-      for (const pw of pWords) {
-        if (pw.includes(tw) || tw.includes(pw)) {
-          matchCount++
-          break
-        }
-      }
+  if (tWords.length === 0 || pWords.length === 0) return false
+
+  // 2. Слово-в-слово matching с порогом зависящим от длины target
+  //    1 слово → нужно точное совпадение (порог 100%)
+  //    2 слова → нужно 2/2 (100%) — "fear death" не матчится на "fear dark"
+  //    3+ слов → нужно >=2 И >=60%
+  let exactWordMatches = 0
+  for (const tw of tWords) {
+    // Точное совпадение слова (не substring! "head" ≠ "headache")
+    if (pWords.includes(tw)) {
+      exactWordMatches++
+      continue
     }
-    if (matchCount / tWords.length >= 0.5) return true
+    // Stem-level: общий префикс >=5 символов
+    // "violent" ~ "violence" (prefix "violen" = 6), "suppress" ~ "suppressed" (8)
+    for (const pw of pWords) {
+      if (stemEq(pw, tw)) { exactWordMatches++; break }
+    }
   }
 
-  // Быстрые синонимы через индекс
-  const pSynonymKeys = new Set<string>()
+  // Стоп-слова которые не считаются самостоятельным match
+  const stopWords = new Set(['agg', 'amel', 'worse', 'better', 'from', 'with', 'after', 'before', 'during', 'like'])
+
+  if (tWords.length === 1) {
+    // 1 слово: нужно точное совпадение
+    if (exactWordMatches >= 1) return true
+  } else if (tWords.length === 2) {
+    // 2 слова: нужно >=1 СПЕЦИФИЧНОЕ (>=5 chars) совпадение
+    // "dullness drowsiness" → "drowsiness" (10 chars) match = OK
+    // "fear death" → "fear" (4 chars) = не специфичное → нужно 2/2
+    // "fear alone" → "alone" (5 chars) match = OK
+    // "head sweating" → "head" (4 chars) = не специфичное → через synonyms
+    if (exactWordMatches >= 2) return true
+    if (exactWordMatches >= 1) {
+      // Проверяем: совпавшее слово достаточно специфичное (>=5 символов)?
+      const matchedSpecific = tWords.some(tw => {
+        if (tw.length < 5) return false // Короткие слова ("fear", "cold", "heat") не специфичны
+        return pWords.includes(tw) || pWords.some(pw => stemEq(pw, tw))
+      })
+      if (matchedSpecific) return true
+    }
+  } else {
+    // 3+ слов: >=2 совпадения И >=50% слов
+    if (exactWordMatches >= 2 && exactWordMatches / tWords.length >= 0.5) return true
+  }
+
+  // 3. Synonym matching: через ПОЛНЫЙ КЛЮЧ SYNONYM_MAP, а не через индекс слов
+  //    Ищем synonym key который:
+  //    - содержится в patient rubric (все слова ключа есть в patient)
+  //    - И содержится в target (все слова ключа есть в target)
+  //    ИЛИ:
+  //    - patient содержит synonym key
+  //    - target содержит одно из значений (synonym expansions) этого ключа
+  // 3. Synonym matching через предрасчитанный индекс SYNONYM_WORD_INDEX
+  // Но только через ПОЛНЫЙ ключ (все слова ключа должны быть в patient/target)
+  // и ключ должен содержать >=1 специфичное слово (>=5 chars)
+  //
+  // Оптимизация: используем SYNONYM_WORD_INDEX чтобы найти candidate keys
+  // через слова из patient, а не итерировать весь SYNONYM_MAP
+  const candidateKeys = new Set<string>()
   for (const pw of pWords) {
+    if (pw.length < 5) continue // Только специфичные слова
     const keys = SYNONYM_WORD_INDEX.get(pw)
-    if (keys) {
-      for (const k of keys) pSynonymKeys.add(k)
+    if (keys) for (const k of keys) candidateKeys.add(k)
+  }
+
+  for (const key of candidateKeys) {
+    const keyWords = key.split(' ').filter(w => w.length > 2)
+    if (keyWords.length === 0) continue
+    if (!keyWords.some(kw => kw.length >= 5)) continue
+
+    // Patient содержит ВСЕ слова ключа?
+    const patientHasKey = keyWords.every(kw =>
+      pWords.some(pw => pw === kw || stemEq(pw, kw))
+    )
+    if (!patientHasKey) continue
+
+    // Target содержит ВСЕ слова ключа?
+    if (keyWords.every(kw => tWords.some(tw => tw === kw || stemEq(tw, kw)))) return true
+
+    // Target содержит synonym-фразу?
+    const synonyms = SYNONYM_MAP[key]
+    if (!synonyms) continue
+    for (const syn of synonyms) {
+      const synWords = syn.split(' ').filter(w => w.length > 2)
+      if (synWords.length === 0 || !synWords.some(sw => sw.length >= 5)) continue
+      if (synWords.every(sw => tWords.some(tw => tw === sw || stemEq(tw, sw)))) return true
     }
   }
 
-  if (pSynonymKeys.size > 0) {
-    const tWordsSet = new Set(tWords)
-    for (const tw of tWordsSet) {
-      const tKeys = SYNONYM_WORD_INDEX.get(tw)
-      if (tKeys) {
-        for (const tk of tKeys) {
-          if (pSynonymKeys.has(tk)) return true
-        }
-      }
+  // 4. Обратный: candidate keys через target слова
+  const candidateKeysT = new Set<string>()
+  for (const tw of tWords) {
+    if (tw.length < 5) continue
+    const keys = SYNONYM_WORD_INDEX.get(tw)
+    if (keys) for (const k of keys) candidateKeysT.add(k)
+  }
+
+  for (const key of candidateKeysT) {
+    const keyWords = key.split(' ').filter(w => w.length > 2)
+    if (keyWords.length === 0 || !keyWords.some(kw => kw.length >= 5)) continue
+
+    if (!keyWords.every(kw => tWords.some(tw => tw === kw || stemEq(tw, kw)))) continue
+
+    const synonyms = SYNONYM_MAP[key]
+    if (!synonyms) continue
+    for (const syn of synonyms) {
+      const synWords = syn.split(' ').filter(w => w.length > 2)
+      if (synWords.length === 0 || !synWords.some(sw => sw.length >= 5)) continue
+      if (synWords.every(sw => pWords.some(pw => pw === sw || stemEq(pw, sw)))) return true
     }
   }
 
