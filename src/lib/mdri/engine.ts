@@ -1049,11 +1049,23 @@ export function analyzePipeline(
     const coverageRatio = cov ? cov.covered / Math.max(cov.total, 1) : 0
     const coverageBonus = coverageRatio * 0.20 // до +0.20 за полное покрытие
 
-    // Ranking formula (временная — текущий scoring + coverage bonus)
-    let total = 0.30 * (0.4 * kf + 0.6 * hs) // kent+hierarchy
-      + 0.35 * cs                              // constellation
-      + 0.15 * pol                             // polarity
-      + coverageBonus                          // НОВОЕ: coverage bonus
+    // Ranking formula v2:
+    // - Kent+Hierarchy 25% — база, с IDF и anti-domination
+    // - Constellation 40% — характерные паттерны, главный дифференциатор
+    // - Polarity 15% — модальности
+    // - Coverage до 10% — бонус только если constellation подтверждает
+    // - Miasm 10%
+    //
+    // Ключевое: coverage бонус масштабируется по constellation score
+    // Если cs=0 (нет паттерна) → coverage бонус = 0 (просто "везде появляется" ≠ подходит)
+    // Если cs>0.3 (есть паттерн) → coverage бонус = полный
+    const coverageWeight = Math.min(1, cs / 0.3) // 0..1 в зависимости от constellation
+    const adjustedCoverage = coverageBonus * 0.5 * coverageWeight
+
+    let total = 0.25 * (0.4 * kf + 0.6 * hs)   // kent+hierarchy
+      + 0.40 * cs                                // constellation
+      + 0.15 * pol                                // polarity
+      + adjustedCoverage                          // coverage (гейтован constellation)
 
     if (isChronic && mi > 0) {
       total += 0.10 * mi
@@ -1872,30 +1884,34 @@ function kentScore(data: MDRIData, symptoms: MDRISymptom[], cache: Map<string, M
     for (const match of matches) {
       const rubricSize = match.remedies.length
       const totalRemedies = 2432
-      // Усиленный IDF: степень 1.8 для большего разброса
-      // Маленькая рубрика (10 rems): 7.9^1.8 = 46 → вес x46
-      // Средняя рубрика (50 rems): 5.6^1.8 = 22 → вес x22
-      // Большая рубрика (200 rems): 3.6^1.8 = 10 → вес x10
-      // Это даёт 4.6x разницу между 10 и 200, вместо 2.2x при линейном IDF
       const rawIdf = Math.log2(Math.max(totalRemedies, 1) / Math.max(rubricSize, 1))
       const idf = Math.pow(rawIdf, 1.8)
       for (const rem of match.remedies) {
-        scores[rem.abbrev] = (scores[rem.abbrev] ?? 0) + rem.grade * sym.weight * idf
+        // Grade 1 в маленькой рубрике = слабое доказательство → cap IDF
+        const effectiveIdf = rem.grade >= 2 ? idf : Math.min(idf, 30)
+        scores[rem.abbrev] = (scores[rem.abbrev] ?? 0) + rem.grade * sym.weight * effectiveIdf
       }
     }
   }
   if (Object.keys(scores).length === 0) return scores
 
-  // Anti-domination: чем больше рубрик у препарата, тем сильнее штраф
-  // Полихресты (Sulph 12k, Phos 10k) появляются в каждой рубрике и доминируют без этого
+  // Динамический anti-domination: плавная функция от количества рубрик
+  // Используем remedyRubricCount (общее кол-во рубрик где препарат присутствует)
+  // penalty = 1 / (1 + (count/median)^exponent)
+  // Median ~3000. Exponent=0.8:
+  //   count=500   → penalty=0.83
+  //   count=2000  → penalty=0.56
+  //   count=5000  → penalty=0.38
+  //   count=8000  → penalty=0.29
+  //   count=12000 → penalty=0.23
+  const MEDIAN_COUNT = 3000
+  const AD_EXPONENT = 0.8
   for (const remAbbrev of Object.keys(scores)) {
     const count = data.remedyRubricCount.get(remAbbrev) ?? 0
-    if (count > 10000) scores[remAbbrev] *= 0.55       // Sulph, Phos
-    else if (count > 8000) scores[remAbbrev] *= 0.65   // Lyc, Sep, Calc, Puls, Ars, Nat-m, Nux-v, Rhus-t
-    else if (count > 6000) scores[remAbbrev] *= 0.75   // Bell, Merc, Sil, Lach, Thuj, Caust, Kali-c, Bry
-    else if (count > 4000) scores[remAbbrev] *= 0.85   // Cham, Verat, Arn, Con, Bar-c, Ferr
-    else if (count > 2000) scores[remAbbrev] *= 0.92   // Gels, Spong, Dros, Tab, Cina
-    // Мелкие (<2000) — без штрафа: Lac-c, All-c, Med, Mag-p, Tub
+    if (count > 100) {
+      const penalty = 1 / (1 + Math.pow(count / MEDIAN_COUNT, AD_EXPONENT))
+      scores[remAbbrev] *= penalty
+    }
   }
 
   const maxS = Math.max(...Object.values(scores))
@@ -1949,13 +1965,27 @@ function hierarchyScore(data: MDRIData, symptoms: MDRISymptom[], cache: Map<stri
   const totalW = present.reduce((sum, s) => sum + (catW[s.category] ?? 1) * s.weight, 0)
   if (totalW === 0) return scores
 
+  const totalRemedies = 2432
   for (const sym of present) {
     const matches = findRubrics(data, sym.rubric, cache)
     const sw = (catW[sym.category] ?? 1) * sym.weight
     for (const match of matches) {
+      // IDF — специфичная рубрика важнее общей
+      const rawIdf = Math.log2(Math.max(totalRemedies, 1) / Math.max(match.remedies.length, 1))
+      const idf = Math.pow(rawIdf, 1.2) // Мягче чем в Kent (1.2 vs 1.8)
       for (const rem of match.remedies) {
-        scores[rem.abbrev] = (scores[rem.abbrev] ?? 0) + (sw * rem.grade) / totalW
+        scores[rem.abbrev] = (scores[rem.abbrev] ?? 0) + (sw * rem.grade * idf) / totalW
       }
+    }
+  }
+
+  // Anti-domination — тот же динамический
+  const MEDIAN_COUNT = 3000
+  for (const remAbbrev of Object.keys(scores)) {
+    const count = data.remedyRubricCount.get(remAbbrev) ?? 0
+    if (count > 100) {
+      const penalty = 1 / (1 + Math.pow(count / MEDIAN_COUNT, 0.5)) // Мягче чем в Kent
+      scores[remAbbrev] *= penalty
     }
   }
 
@@ -1980,9 +2010,10 @@ function constellationScore(data: MDRIData, symptoms: MDRISymptom[]): Record<str
         for (const [remedy] of idx) candidates.add(remedy)
       }
       // Синонимы
-      for (const [key, syns] of Object.entries(SYNONYM_MAP)) {
-        if (pw.includes(key) || key.includes(pw) || syns.some(s => pw.includes(s) || s.includes(pw))) {
-          for (const synWord of key.split(' ')) {
+      const synKeys = SYNONYM_WORD_INDEX.get(pw)
+      if (synKeys) {
+        for (const synKey of synKeys) {
+          for (const synWord of synKey.split(' ')) {
             const synIdx = data.constellationWordIndex.get(synWord)
             if (synIdx) {
               for (const [remedy] of synIdx) candidates.add(remedy)
@@ -1998,19 +2029,48 @@ function constellationScore(data: MDRIData, symptoms: MDRISymptom[]): Record<str
     if (!con?.clusters) continue
 
     let totalAct = 0, totalImp = 0
+    let matchedClusters = 0
+
     for (const cluster of con.clusters) {
       let cAct = 0, cTotal = 0
+      let clusterMatched = 0
       for (const sym of cluster.symptoms) {
         cTotal += sym.weight
-        if (present.some(p => symMatch(p, sym.rubric))) {
+        // Matching: symMatch (50%+ слов) = полный match, частичный (1 слово) = 50% веса
+        const fullMatch = present.some(p => symMatch(p, sym.rubric))
+        if (fullMatch) {
           cAct += sym.weight
+          clusterMatched++
+        } else {
+          // Частичный match: >=1 значимое слово — но только 40% веса
+          // Это ловит "anticipation" в "weakness trembling anticipation exam"
+          // но не даёт полный балл за одно слово
+          const partialMatch = present.some(p => {
+            const tWords = sym.rubric.toLowerCase().split(' ').filter(w => w.length > 3)
+            const pWords = p.split(' ').filter(w => w.length > 3)
+            const matchCount = tWords.filter(tw => pWords.some(pw => pw.includes(tw) || tw.includes(pw))).length
+            return tWords.length > 0 && matchCount >= 1
+          })
+          if (partialMatch) {
+            cAct += sym.weight * 0.4
+            clusterMatched++
+          }
         }
       }
       const act = cTotal > 0 ? cAct / cTotal : 0
       totalAct += act * cluster.importance
       totalImp += cluster.importance
+      if (clusterMatched > 0) matchedClusters++
     }
-    scores[remedy] = totalImp > 0 ? totalAct / totalImp : 0
+
+    let score = totalImp > 0 ? totalAct / totalImp : 0
+
+    // Бонус за множественные кластеры — если совпало 2+ кластера, это сильный сигнал
+    if (matchedClusters >= 2) {
+      score = Math.min(1.0, score * 1.3)
+    }
+
+    scores[remedy] = score
   }
 
   return scores
