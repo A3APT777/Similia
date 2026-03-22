@@ -273,32 +273,33 @@ function checkCondition(cond: ConsistencyCondition, caseData: CaseData): boolean
   }
 }
 
-// Вес условия по типу: modality > physical > mental
+// Категория условия: modality > physical > mental/desire > keynote
+// Сбалансировано: max/min ratio = 1.5x (не 3x)
 const CONDITION_WEIGHT: Record<string, number> = {
-  thermal: 2,       // physical
-  modality: 3,      // modality — самый важный
-  thirst: 2,        // physical
-  perspiration: 2,  // physical
-  sleep: 2,         // physical
-  onset: 2,         // physical
-  side: 2,          // physical
-  desire: 1.5,      // physical/general
-  aversion: 1.5,    // physical/general
-  consolation: 1.5, // mental/behavioral
-  company: 1.5,     // mental/behavioral
-  mental: 1,        // mental — наименьший вес
-  time: 1.5,        // modality/time
-  keynote: 1,       // fallback
+  modality: 1.5,    // модальности — самый надёжный дифференциатор
+  thermal: 1.2,     // physical/объективный
+  thirst: 1.2,      // physical
+  perspiration: 1.2, // physical
+  sleep: 1.2,       // physical
+  onset: 1.2,       // physical
+  side: 1.2,        // physical
+  desire: 1.0,      // general
+  aversion: 1.0,    // general
+  consolation: 1.0, // mental/behavioral
+  company: 1.0,     // mental/behavioral
+  mental: 1.0,      // mental
+  time: 1.0,        // time
+  keynote: 0.8,     // fallback — менее надёжно
 }
 
 function getConditionWeight(cond: ConsistencyCondition): number {
   return CONDITION_WEIGHT[cond.type] ?? 1
 }
 
-// Оценить consistency группу — additive scoring
-// Core: +3 за каждое совпадение (взвешенное)
-// Optional: +1 за каждое (взвешенное)
-// Противоречие: -2 за каждое
+// Оценить consistency группу — additive scoring (сбалансированный)
+// Core: +2 x category_weight за каждое совпадение
+// Optional: +1 x category_weight за каждое
+// Contradiction: -3 (mutual_exclusive) или -1.5 (weak)
 function evaluateConsistency(
   caseData: CaseData,
   group: ConsistencyGroup,
@@ -313,9 +314,9 @@ function evaluateConsistency(
 
   for (const cond of group.core) {
     const w = getConditionWeight(cond)
-    coreMaxPoints += 3 * w
+    coreMaxPoints += 2 * w
     if (checkCondition(cond, caseData)) {
-      corePoints += 3 * w
+      corePoints += 2 * w
       coreMatchCount++
     }
   }
@@ -360,7 +361,7 @@ function evaluateConsistency(
     const groupExpectsB = [...groupValues].some(v => v.includes(b))
 
     if ((caseHasA && groupExpectsB) || (caseHasB && groupExpectsA)) {
-      const penalty = contr.type === 'mutual_exclusive' ? 4 : 2
+      const penalty = contr.type === 'mutual_exclusive' ? 3 : 1.5
       contradictionPenalty += penalty
     }
   }
@@ -529,13 +530,13 @@ export function analyze(
     conAdjusted[rem] = rawCon + (consistencyAdd > 0 ? consistencyAdd : 0)
   }
 
-  // Нормализовать consistency к диапазону 0-0.25 (additive к rawCon 0-1)
+  // Нормализовать consistency к диапазону 0-0.15 (additive к rawCon 0-1)
   if (maxConsistencyScore > 0) {
     for (const rem of Object.keys(conAdjusted)) {
       const rawCon = conScores[rem] ?? 0
       const conAdd = conAdjusted[rem] - rawCon
       if (conAdd > 0) {
-        conAdjusted[rem] = rawCon + (conAdd / maxConsistencyScore) * 0.25
+        conAdjusted[rem] = rawCon + (conAdd / maxConsistencyScore) * 0.15
       }
     }
   }
