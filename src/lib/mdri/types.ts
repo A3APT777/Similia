@@ -102,11 +102,35 @@ export type MDRIPolarityData = {
 
 // === Клинические данные для фильтрации и consistency ===
 
+// Условие consistency — проверяется по данным кейса, НЕ по строкам
+export type ConsistencyCondition = {
+  type: 'thermal'    // chilly | hot
+    | 'modality'     // motion_agg | motion_amel | rest_agg | open_air_amel | pressure_amel и т.д.
+    | 'mental'       // grief | anxiety | irritability | jealousy | indifference и т.д.
+    | 'desire'       // salt | sweets | sour | fat | stimulants | eggs | cold_drinks | warm_drinks
+    | 'aversion'     // fat | milk | fish | meat
+    | 'thirst'       // large | small_sips | thirstless
+    | 'time'         // worse_morning | worse_evening | worse_night | worse_2_4am | worse_4_8pm
+    | 'side'         // right | left
+    | 'sleep'        // on_abdomen | after_sleep_worse
+    | 'consolation'  // agg | amel
+    | 'company'      // desire | aversion
+    | 'onset'        // sudden | gradual
+    | 'perspiration' // profuse | absent | feet | head
+    | 'keynote'      // специфичный клинический ключ (строковое сравнение)
+  value: string
+}
+
+export type ConsistencyGroup = {
+  remedy: string
+  name: string
+  core: ConsistencyCondition[]       // обязательные — все должны совпасть
+  optional: ConsistencyCondition[]   // усиливающие — каждое совпадение = бонус
+}
+
 export type MDRIClinicalData = {
-  // Термические противоречия: remedy → 'chilly' | 'hot' | 'neutral'
   thermal_contradictions: Record<string, 'chilly' | 'hot' | 'neutral'>
-  // Группы согласованности: remedy → массив групп симптомов
-  consistency_groups: Record<string, { name: string; symptoms: string[] }[]>
+  consistency_groups: ConsistencyGroup[]
 }
 
 // === Результат AI-гомеопата (Sonnet) ===

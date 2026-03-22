@@ -6,6 +6,7 @@ import type {
   MDRILensResult, MDRIPotencyRecommendation, MDRIDifferentialNote,
   MDRIRepertoryRubric, MDRIConstellationData, MDRIPolarityData,
   MDRIRemedyRelationships, MDRIClinicalData,
+  ConsistencyCondition, ConsistencyGroup,
 } from './types'
 import { DEFAULT_PROFILE } from './types'
 
@@ -105,6 +106,193 @@ export function buildIndices(
   }
 
   return { wordIndex, constellationWordIndex, remedyRubricCount }
+}
+
+// === Consistency: boolean-логика вместо symMatch ===
+
+// Извлечь структурированные данные из кейса (симптомы + модальности)
+type CaseData = {
+  thermal: 'chilly' | 'hot' | null
+  modalities: Set<string>   // 'motion_agg', 'rest_agg', 'open_air_amel' и т.д.
+  mentals: Set<string>      // 'grief', 'anxiety', 'irritability' и т.д.
+  desires: Set<string>      // 'salt', 'sweets', 'sour' и т.д.
+  aversions: Set<string>    // 'fat', 'milk' и т.д.
+  thirst: string | null     // 'large', 'small_sips', 'thirstless'
+  time: Set<string>         // 'worse_morning', 'worse_2_4am' и т.д.
+  side: string | null       // 'right', 'left'
+  sleep: Set<string>        // 'on_abdomen', 'after_sleep_worse'
+  consolation: string | null // 'agg', 'amel'
+  company: string | null     // 'desire', 'aversion'
+  onset: string | null       // 'sudden', 'gradual'
+  perspiration: Set<string>  // 'profuse', 'absent', 'feet', 'head'
+  allRubrics: Set<string>    // все рубрики в lowercase для keynote matching
+}
+
+function extractCaseData(symptoms: MDRISymptom[], modalities: MDRIModality[]): CaseData {
+  const rubrics = new Set<string>()
+  const mentals = new Set<string>()
+  const desires = new Set<string>()
+  const aversions = new Set<string>()
+  const mods = new Set<string>()
+  const timeAgg = new Set<string>()
+  const sleepData = new Set<string>()
+  const perspData = new Set<string>()
+  let thermal: 'chilly' | 'hot' | null = null
+  let thirst: string | null = null
+  let consolation: string | null = null
+  let company: string | null = null
+  let onset: string | null = null
+  let side: string | null = null
+
+  for (const s of symptoms) {
+    if (!s.present) continue
+    const r = s.rubric.toLowerCase()
+    rubrics.add(r)
+
+    // Thermal
+    if (r.includes('chill') || r.includes('cold') || r.includes('froz')) thermal = 'chilly'
+    if (r.includes('hot patient') || r.includes('hot ') || r.includes('warm agg')) thermal = 'hot'
+    // Thirst
+    if (r.includes('thirst') && r.includes('large')) thirst = 'large'
+    if (r.includes('small sip') || r.includes('sip')) thirst = 'small_sips'
+    if (r.includes('thirstless') || r.includes('no thirst')) thirst = 'thirstless'
+    // Mental
+    if (r.includes('grief')) mentals.add('grief')
+    if (r.includes('anxiety')) mentals.add('anxiety')
+    if (r.includes('irritab')) mentals.add('irritability')
+    if (r.includes('jealous')) mentals.add('jealousy')
+    if (r.includes('indifferen')) mentals.add('indifference')
+    if (r.includes('restless')) mentals.add('restlessness')
+    if (r.includes('weep') || r.includes('cry')) mentals.add('weeping')
+    if (r.includes('fear') && r.includes('death')) mentals.add('fear_death')
+    if (r.includes('fear') && r.includes('alone')) mentals.add('fear_alone')
+    if (r.includes('fear') && r.includes('dark')) mentals.add('fear_dark')
+    if (r.includes('fear') && r.includes('thunder')) mentals.add('fear_thunderstorm')
+    if (r.includes('fear') && r.includes('height')) mentals.add('fear_heights')
+    if (r.includes('anticipat')) mentals.add('anticipation')
+    if (r.includes('sighing')) mentals.add('sighing')
+    if (r.includes('suicid')) mentals.add('suicidal')
+    if (r.includes('haughty') || r.includes('contempt')) mentals.add('haughtiness')
+    if (r.includes('hurry') || r.includes('impatien')) mentals.add('hurry')
+    if (r.includes('mood') && (r.includes('alter') || r.includes('chang'))) mentals.add('mood_alternating')
+    if (r.includes('suppress') && (r.includes('anger') || r.includes('indignat'))) mentals.add('suppressed_anger')
+    if (r.includes('humiliat')) mentals.add('humiliation')
+    if (r.includes('secretiv')) mentals.add('secretive')
+    if (r.includes('violen')) mentals.add('violence')
+    if (r.includes('stammer')) mentals.add('stammering')
+    // Desires
+    if (r.includes('desire') && r.includes('salt')) desires.add('salt')
+    if (r.includes('desire') && r.includes('sweet')) desires.add('sweets')
+    if (r.includes('desire') && r.includes('sour')) desires.add('sour')
+    if (r.includes('desire') && r.includes('fat')) desires.add('fat')
+    if (r.includes('desire') && r.includes('egg')) desires.add('eggs')
+    if (r.includes('desire') && r.includes('stimul')) desires.add('stimulants')
+    if (r.includes('desire') && (r.includes('cold') && r.includes('drink'))) desires.add('cold_drinks')
+    if (r.includes('desire') && (r.includes('warm') && r.includes('drink'))) desires.add('warm_drinks')
+    if (r.includes('desire') && r.includes('vinegar')) desires.add('vinegar')
+    if (r.includes('desire') && r.includes('juicy')) desires.add('juicy')
+    // Aversions
+    if (r.includes('aversion') && r.includes('fat')) aversions.add('fat')
+    if (r.includes('aversion') && r.includes('milk')) aversions.add('milk')
+    if (r.includes('aversion') && r.includes('fish')) aversions.add('fish')
+    if (r.includes('aversion') && r.includes('bath')) aversions.add('bathing')
+    // Modalities
+    if (r.includes('motion') && r.includes('agg')) mods.add('motion_agg')
+    if (r.includes('motion') && r.includes('amel')) mods.add('motion_amel')
+    if (r.includes('rest') && r.includes('agg')) mods.add('rest_agg')
+    if (r.includes('first motion') && r.includes('agg')) mods.add('first_motion_agg')
+    if (r.includes('open air') && r.includes('amel')) mods.add('open_air_amel')
+    if (r.includes('cold') && r.includes('amel')) mods.add('cold_amel')
+    if (r.includes('cold') && r.includes('damp')) mods.add('cold_damp_agg')
+    if (r.includes('pressure') && r.includes('amel')) mods.add('pressure_amel')
+    if (r.includes('sea') && r.includes('amel')) mods.add('sea_amel')
+    // Consolation
+    if (r.includes('consolat') && r.includes('agg')) consolation = 'agg'
+    if (r.includes('consolat') && r.includes('amel')) consolation = 'amel'
+    // Company
+    if (r.includes('company') && r.includes('desire')) company = 'desire'
+    if (r.includes('company') && r.includes('aversion')) company = 'aversion'
+    if (r.includes('alone') && !r.includes('fear')) company = 'aversion'
+    // Onset
+    if (r.includes('sudden')) onset = 'sudden'
+    // Time
+    if (r.includes('morning') && r.includes('agg')) timeAgg.add('worse_morning')
+    if (r.includes('evening') && r.includes('agg')) timeAgg.add('worse_evening')
+    if (r.includes('night') && r.includes('agg')) timeAgg.add('worse_night')
+    if (r.includes('2') && r.includes('4') && (r.includes('am') || r.includes('night'))) timeAgg.add('worse_2_4am')
+    if (r.includes('4') && r.includes('8') && r.includes('pm')) timeAgg.add('worse_4_8pm')
+    if (r.includes('after sleep') && r.includes('worse')) timeAgg.add('after_sleep_worse')
+    // Side
+    if (r.includes('right') && r.includes('side')) side = 'right'
+    if (r.includes('left') && r.includes('side')) side = 'left'
+    // Sleep
+    if (r.includes('abdomen') && r.includes('sleep')) sleepData.add('on_abdomen')
+    if (r.includes('after sleep') && r.includes('worse')) sleepData.add('after_sleep_worse')
+    // Perspiration
+    if (r.includes('perspir') && r.includes('profuse')) perspData.add('profuse')
+    if (r.includes('perspir') && r.includes('feet')) perspData.add('feet')
+    if (r.includes('perspir') && r.includes('head')) perspData.add('head')
+  }
+
+  // Модальности из отдельного массива
+  for (const m of modalities) {
+    if (m.pairId === 'heat_cold') {
+      if (m.value === 'agg') thermal = thermal ?? 'hot'
+      else thermal = thermal ?? 'chilly'
+    }
+    if (m.pairId === 'motion_rest') {
+      mods.add(m.value === 'agg' ? 'motion_agg' : 'motion_amel')
+    }
+    if (m.pairId === 'open_air') mods.add(m.value === 'amel' ? 'open_air_amel' : 'open_air_agg')
+    if (m.pairId === 'sea') mods.add('sea_amel')
+    if (m.pairId === 'consolation') consolation = m.value === 'agg' ? 'agg' : 'amel'
+    if (m.pairId === 'company_alone') company = m.value === 'agg' ? 'aversion' : 'desire'
+  }
+
+  return { thermal, modalities: mods, mentals, desires, aversions, thirst, time: timeAgg, side, sleep: sleepData, consolation, company, onset, perspiration: perspData, allRubrics: rubrics }
+}
+
+// Проверить одно условие по данным кейса
+function checkCondition(cond: ConsistencyCondition, caseData: CaseData): boolean {
+  switch (cond.type) {
+    case 'thermal': return caseData.thermal === cond.value
+    case 'modality': return caseData.modalities.has(cond.value)
+    case 'mental': return caseData.mentals.has(cond.value)
+    case 'desire': return caseData.desires.has(cond.value)
+    case 'aversion': return caseData.aversions.has(cond.value)
+    case 'thirst': return caseData.thirst === cond.value
+    case 'time': return caseData.time.has(cond.value)
+    case 'side': return caseData.side === cond.value
+    case 'sleep': return caseData.sleep.has(cond.value)
+    case 'consolation': return caseData.consolation === cond.value
+    case 'company': return caseData.company === cond.value
+    case 'onset': return caseData.onset === cond.value
+    case 'perspiration': return caseData.perspiration.has(cond.value)
+    case 'keynote': return caseData.allRubrics.has(cond.value.toLowerCase())
+    default: return false
+  }
+}
+
+// Оценить consistency группу
+function evaluateConsistency(caseData: CaseData, group: ConsistencyGroup): { score: number; coreMatch: boolean } {
+  // Проверить core — все должны совпасть
+  const coreMatches = group.core.filter(c => checkCondition(c, caseData)).length
+  const coreTotal = group.core.length
+  const coreMatch = coreTotal > 0 && coreMatches === coreTotal
+
+  if (!coreMatch && coreTotal > 0) {
+    return { score: 0, coreMatch: false }
+  }
+
+  // Optional — каждое совпадение добавляет бонус
+  const optMatches = group.optional.filter(c => checkCondition(c, caseData)).length
+  const optTotal = group.optional.length
+
+  // Score: core совпало → базовый 0.5, + optional пропорционально
+  const optBonus = optTotal > 0 ? (optMatches / optTotal) * 0.5 : 0
+  const score = coreMatch ? 0.5 + optBonus : 0
+
+  return { score, coreMatch }
 }
 
 /**
@@ -223,48 +411,35 @@ export function analyze(
     kentHierarchy[rem] = 0.4 * kf + 0.6 * hs
   }
 
-  // === Этап 4: Constellation + Consistency ===
+  // === Этап 4: Constellation + Consistency (boolean-логика) ===
   const conScores = constellationScore(data, symptoms)
-  const consistencyGroups = data.clinicalData?.consistency_groups ?? {}
+  const consistencyGroupsList = data.clinicalData?.consistency_groups ?? []
 
-  // Рассчитать consistency bonus и fragmentation penalty для каждого кандидата
+  // Извлечь структурированные данные из кейса (один раз)
+  const caseData = extractCaseData(symptoms, modalities)
+
+  // Рассчитать consistency через evaluateConsistency (без symMatch)
   const conAdjusted: Record<string, number> = {}
   for (const rem of Object.keys(baseKent)) {
     if (excluded.has(rem)) continue
     const rawCon = conScores[rem] ?? 0
 
+    // Найти consistency group для этого препарата
+    const group = consistencyGroupsList.find(g => g.remedy === rem)
     let consistencyBonus = 0
-    let fragmentationPenalty = 0
 
-    const groups = consistencyGroups[rem]
-    if (groups && groups.length > 0) {
-      // Consistency: сколько симптомов пациента совпадают с consistency_group
-      let maxGroupMatch = 0
-      const matchedGroupNames = new Set<string>()
-
-      for (const group of groups) {
-        let groupMatches = 0
-        for (const groupSym of group.symptoms) {
-          if (presentRubrics.some(p => symMatch(p, groupSym))) {
-            groupMatches++
-            matchedGroupNames.add(group.name)
-          }
-        }
-        maxGroupMatch = Math.max(maxGroupMatch, groupMatches)
-      }
-
-      // Бонус пропорционально совпадениям
-      if (presentSymptoms.length > 0) {
-        consistencyBonus = (maxGroupMatch / presentSymptoms.length) * 0.20
-      }
-
-      // Fragmentation: если симптомы из РАЗНЫХ consistency_groups → штраф
-      if (matchedGroupNames.size > 2) {
-        fragmentationPenalty = (matchedGroupNames.size - 1) * 0.05
+    if (group) {
+      const { score: conScore, coreMatch } = evaluateConsistency(caseData, group)
+      if (coreMatch) {
+        // Core совпало → сильный бонус (0.15-0.30)
+        consistencyBonus = conScore * 0.30
+      } else if (conScore > 0) {
+        // Частичное совпадение → слабый бонус
+        consistencyBonus = conScore * 0.10
       }
     }
 
-    conAdjusted[rem] = rawCon * (1 + consistencyBonus) * (1 - Math.min(fragmentationPenalty, 0.30))
+    conAdjusted[rem] = rawCon * (1 + consistencyBonus)
   }
 
   // === Этап 5: Polarity (только при близких top-2) ===
