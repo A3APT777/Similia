@@ -48,31 +48,58 @@ export async function loadMDRIData(): Promise<MDRIData> {
 
   const supabase = createServiceClient()
 
-  // Параллельная загрузка всех данных
-  const [repertoryRes, constellationsRes, polaritiesRes, clinicalRes] = await Promise.all([
-    supabase
-      .from('repertory_rubrics')
-      .select('fullpath, chapter, remedies')
-      .in('source', ['publicum', 'kent']),
+  // Загрузка реперториума — пагинация (Supabase default limit = 1000)
+  // 74k рубрик нужно загрузить полностью
+  async function loadAllRubrics() {
+    const PAGE_SIZE = 5000
+    const allRubrics: { fullpath: string; chapter: string; remedies: { abbrev: string; grade: number }[] }[] = []
+    let offset = 0
+    let hasMore = true
+
+    while (hasMore) {
+      const { data } = await supabase
+        .from('repertory_rubrics')
+        .select('fullpath, chapter, remedies')
+        .in('source', ['publicum', 'kent'])
+        .range(offset, offset + PAGE_SIZE - 1)
+
+      if (data && data.length > 0) {
+        allRubrics.push(...data)
+        offset += data.length
+        hasMore = data.length === PAGE_SIZE
+      } else {
+        hasMore = false
+      }
+    }
+    return allRubrics
+  }
+
+  // Параллельная загрузка (реперториум + остальное)
+  const [allRubrics, constellationsRes, polaritiesRes, clinicalRes] = await Promise.all([
+    loadAllRubrics(),
     supabase
       .from('mdri_constellations')
-      .select('*'),
+      .select('*')
+      .limit(5000),
     supabase
       .from('mdri_polarities')
-      .select('*'),
+      .select('*')
+      .limit(2000),
     supabase
       .from('mdri_clinical_data')
-      .select('type, data'),
+      .select('type, data')
+      .limit(500),
   ])
 
-  // Реперториум → формат MDRI
-  const repertory: MDRIRepertoryRubric[] = (repertoryRes.data ?? []).map(
+  // Реперториум → формат MDRI (все 74k+ рубрик)
+  const repertory: MDRIRepertoryRubric[] = allRubrics.map(
     (r: { fullpath: string; chapter: string; remedies: { abbrev: string; grade: number }[] }) => ({
       rubric: r.fullpath,
       chapter: r.chapter,
       remedies: r.remedies,
     })
   )
+  console.log(`[MDRI] Loaded ${repertory.length} rubrics`)
 
   // Кластеры → Record по remedy
   const constellations: Record<string, MDRIConstellationData> = {}
