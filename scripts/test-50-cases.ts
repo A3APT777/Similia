@@ -820,12 +820,19 @@ async function main() {
       // Найти позицию expected
       const pos = results.findIndex(r => norm(r.remedy) === norm(c.expected))
       const expScore = pos >= 0 ? results[pos].totalScore : 0
+      // Детали: cs и kent для top-1 и expected
+      const top1cs = results[0]?.lenses?.find(l => l.name === 'Constellation')?.score ?? 0
+      const top1kent = results[0]?.lenses?.find(l => l.name === 'Kent')?.score ?? 0
+      const expResult = pos >= 0 ? results[pos] : null
+      const expCs = expResult?.lenses?.find(l => l.name === 'Constellation')?.score ?? 0
+      const expKent = expResult?.lenses?.find(l => l.name === 'Kent')?.score ?? 0
+      const detail = ` | ${norm(top1Remedy)}[k:${top1kent},cs:${top1cs}] vs ${c.expected}[k:${expKent},cs:${expCs}]`
       misses.push({
         id: c.id,
         name: c.name,
         expected: c.expected,
         got: norm(top1Remedy),
-        top3List: t3str + (pos >= 0 ? ` | expected@${pos + 1}(${expScore})` : ' | NOT FOUND'),
+        top3List: t3str + (pos >= 0 ? ` | expected@${pos + 1}(${expScore})` : ' | NOT FOUND') + detail,
       })
     }
   }

@@ -1038,65 +1038,77 @@ export function analyzePipeline(
     dominantMiasm = dm
   }
 
+  // ===================================================================
+  // STAGE 3.5: RARITY-WEIGHTED SCORING
+  // Для каждого симптома считаем rarity — насколько он сужает выбор.
+  // Совпадение на редком симптоме ценнее чем на общем.
+  // ===================================================================
+  const symptomRarity = new Map<number, number>() // symptom index → rarity 0..1
+  for (let i = 0; i < presentSymptoms.length; i++) {
+    const matches = findRubrics(data, presentSymptoms[i].rubric, rubricCache)
+    if (matches.length === 0) {
+      symptomRarity.set(i, 1.0) // Не нашли рубрик → считаем редким
+      continue
+    }
+    // Rarity = среднее log(totalRemedies / rubricSize) нормализованное на 0..1
+    // Маленькая рубрика (5 rems) → rarity ~1.0
+    // Большая рубрика (200 rems) → rarity ~0.3
+    const totalRemedies = 2432
+    const avgLogRarity = matches.reduce((sum, m) => {
+      return sum + Math.log2(totalRemedies / Math.max(m.remedies.length, 1))
+    }, 0) / matches.length
+    // Нормализуем: log2(2432/1)=11.2 → 1.0, log2(2432/2432)=0 → 0
+    symptomRarity.set(i, Math.min(1.0, avgLogRarity / 11.2))
+  }
+
   const results: MDRIResult[] = []
   for (const rem of candidates) {
     const kf = kentFull[rem] ?? 0
     const hs = hierarchyScores[rem] ?? 0
-    const cs = conScores[rem] ?? 0
-    const pol = polScores[rem] ?? 0.35
-    const mi = mScores[rem] ?? 0
+    // Нормализация ключа: constellations/polarities = lowercase без точки, repertory = Capitalized.
+    const remNorm = rem.toLowerCase().replace(/\.$/, '')
+    const cs = conScores[remNorm] ?? conScores[rem] ?? 0
+    const pol = polScores[remNorm] ?? polScores[rem] ?? 0.35
+    const mi = mScores[remNorm] ?? mScores[rem] ?? 0
     const cov = coverage.get(rem)
-    const coverageRatio = cov ? cov.covered / Math.max(cov.total, 1) : 0
-    const coverageBonus = coverageRatio * 0.20 // до +0.20 за полное покрытие
 
-    // === Ranking v3: нелинейная формула ===
+    // === Ranking v4: adaptive weighting ===
     //
-    // Клиническое мышление: не "складываем баллы", а ищем ПОДТВЕРЖДЕНИЕ паттерна.
-    // 1) Базовый score = Kent + Hierarchy (кто покрыт в реперториуме)
-    // 2) Constellation boost = мультипликатор (не аддитивный!)
-    //    cs > 0.4 → boost 1.8x (сильный паттерн)
-    //    cs > 0.2 → boost 1.4x (частичный паттерн)
-    //    cs = 0   → boost 1.0x (нет паттерна, только база)
-    // 3) Polarity = мягкий аддитивный
-    // 4) Coverage penalty: если покрытие > 70% но constellation < 0.15 → штраф
-    //    (полихрест "везде" без характерного паттерна ≠ подходит)
+    // Вместо фиксированных весов — адаптивная комбинация:
+    // Чем выше constellation score, тем больше его вес в итоговой формуле.
+    // При cs=0: total = kent/hierarchy (100% реперторий)
+    // При cs=0.5: total = 50% реперторий + 50% constellation
+    // При cs=1.0: total = 30% реперторий + 70% constellation
+    //
+    // Это автоматически решает проблему полихрестов:
+    // если constellation не подтверждает → вес переходит к kent (где anti-domination работает)
+    // если подтверждает → constellation доминирует (и правильно)
 
-    // Базовый score: Kent + Hierarchy, 50/50
     const baseScore = 0.5 * kf + 0.5 * hs
 
-    // Constellation boost — мультипликативный, плавный
-    // Используем непрерывную функцию вместо ступенчатой:
-    // boost = 1 + cs * 3 (для cs 0..0.5 → boost 1..2.5)
-    // Cap на 2.5 чтобы не улетать
-    let constellationBoost = 1.0 + Math.min(cs, 0.6) * 3.0
-    // Минимальный порог: cs < 0.05 → boost = 1.0 (шум)
-    if (cs < 0.05) constellationBoost = 1.0
+    // Адаптивные веса: wCon = cs^0.7, wBase = 1 - wCon * 0.6
+    // При cs=0: wBase=1.0, wCon=0.0
+    // При cs=0.3: wBase=0.76, wCon=0.40
+    // При cs=0.6: wBase=0.57, wCon=0.72
+    // При cs=1.0: wBase=0.40, wCon=1.0
+    const wCon = Math.pow(cs, 0.7)
+    const wBase = 1.0 - wCon * 0.6
 
-    // Polarity bonus — аддитивный, но мягкий
-    const polBonus = (pol - 0.5) * 0.15 // от -0.075 до +0.075
+    // Polarity — мягкий аддитивный
+    const polBonus = (pol - 0.5) * 0.12
 
-    // Specificity penalty: полихресты без паттерна → мягкий штраф
-    const remCount = data.remedyRubricCount.get(rem) ?? 0
-    let specificityPenalty = 1.0
-    if (remCount > 10000 && cs < 0.15) {
-      specificityPenalty = 0.85 // Только для самых крупных (Sulph, Phos) без паттерна
-    }
+    let total = wBase * baseScore + wCon * cs * 0.7 + polBonus
 
-    // Нет guard по base score — constellation может правильно продвигать
-    // препарат даже при слабом kent match
-
-    let total = baseScore * constellationBoost * specificityPenalty + polBonus
-
-    // Miasm — аддитивный бонус
+    // Miasm
     if (isChronic && mi > 0) {
-      total += 0.08 * mi
+      total += 0.06 * mi
     }
 
     // Acute/Chronic
-    if (isAcute && CHRONIC_REMEDIES.has(rem)) total *= 0.90
-    if (isChronic && ACUTE_REMEDIES.has(rem)) total *= 0.90
+    if (isAcute && CHRONIC_REMEDIES.has(rem)) total *= 0.92
+    if (isChronic && ACUTE_REMEDIES.has(rem)) total *= 0.92
 
-    // Нормализация: clamp 0..1
+    // Clamp
     total = Math.max(0, Math.min(1, total))
 
     // Confidence
@@ -1118,7 +1130,7 @@ export function analyzePipeline(
       confidence,
       lenses: [
         { name: 'Kent', score: Math.round(kf * 100), details: `${Math.round(kf * 100)}%` },
-        { name: 'Coverage', score: Math.round(coverageRatio * 100), details: `${cov?.covered ?? 0}/${cov?.total ?? 0}` },
+        { name: 'Coverage', score: Math.round((cov ? cov.covered / Math.max(cov.total, 1) : 0) * 100), details: `${cov?.covered ?? 0}/${cov?.total ?? 0}` },
         { name: 'Hierarchy', score: Math.round(hs * 100), details: `${Math.round(hs * 100)}%` },
         { name: 'Constellation', score: Math.round(cs * 100), details: `${Math.round(cs * 100)}%` },
         { name: 'Polarity', score: Math.round(pol * 100), details: `${Math.round(pol * 100)}%` },
@@ -2026,6 +2038,7 @@ function constellationScore(data: MDRIData, symptoms: MDRISymptom[]): Record<str
   const present = symptoms.filter(s => s.present).map(s => s.rubric.toLowerCase())
   const candidates = new Set<string>()
 
+  // Собираем кандидатов через wordIndex + синонимы
   for (const p of present) {
     const pWords = new Set(p.split(' ').filter(w => w.length > 2))
     for (const pw of pWords) {
@@ -2033,7 +2046,6 @@ function constellationScore(data: MDRIData, symptoms: MDRISymptom[]): Record<str
       if (idx) {
         for (const [remedy] of idx) candidates.add(remedy)
       }
-      // Синонимы
       const synKeys = SYNONYM_WORD_INDEX.get(pw)
       if (synKeys) {
         for (const synKey of synKeys) {
@@ -2048,78 +2060,52 @@ function constellationScore(data: MDRIData, symptoms: MDRISymptom[]): Record<str
     }
   }
 
+  // Для каждого кандидата — rarity-weighted match score
   for (const remedy of candidates) {
     const con = data.constellations[remedy]
     if (!con?.clusters) continue
 
-    let totalAct = 0, totalImp = 0
-    let matchedClusters = 0
+    // Rarity-weighted constellation matching:
+    // Специфичный симптом ("one cheek red other pale") ценнее общего ("restlessness")
+    // Rarity оценивается по длине target (больше слов = более специфичный)
+    let weightedMatch = 0
+    let weightedTotal = 0
+    let fullMatches = 0
 
     for (const cluster of con.clusters) {
-      let cAct = 0, cTotal = 0
-      let clusterMatched = 0
       for (const sym of cluster.symptoms) {
-        cTotal += sym.weight
-        // Matching: symMatch (50%+ слов) = полный match, частичный (1 слово) = 50% веса
-        const fullMatch = present.some(p => symMatch(p, sym.rubric))
-        if (fullMatch) {
-          cAct += sym.weight
-          clusterMatched++
+        const symWords = sym.rubric.toLowerCase().split(' ').filter(w => w.length > 2)
+        // Rarity: 1-слово = 1.0, 2-слова = 1.3, 3+ = 1.6
+        const rarity = 1.0 + Math.min(symWords.length - 1, 3) * 0.2
+        const w = sym.weight * rarity * cluster.importance
+        weightedTotal += w
+
+        if (present.some(p => symMatch(p, sym.rubric))) {
+          weightedMatch += w
+          fullMatches++
         } else {
-          // Частичный match: >=1 значимое слово — 25% веса
-          // Ловит "anticipation" в "weakness trembling anticipation exam"
-          // Но 1 общее слово ("restlessness", "weeping") не должно давать много
-          const partialMatch = present.some(p => {
-            const tWords = sym.rubric.toLowerCase().split(' ').filter(w => w.length > 3)
-            const pWords = p.split(' ').filter(w => w.length > 3)
-            const matchCount = tWords.filter(tw => pWords.some(pw => pw.includes(tw) || tw.includes(pw))).length
-            // Требуем хотя бы 1 совпадение, и если target длинный (3+ слов) — нужно 2+
-            const minRequired = tWords.length >= 3 ? 2 : 1
-            return tWords.length > 0 && matchCount >= minRequired
+          // Partial: >=1 значимое слово, >=2 для длинных targets
+          const matched = present.some(p => {
+            const tWords = sym.rubric.toLowerCase().split(' ').filter(tw => tw.length > 3)
+            const pWords = p.split(' ').filter(pw => pw.length > 3)
+            const mc = tWords.filter(tw => pWords.some(pw => pw.includes(tw) || tw.includes(pw))).length
+            return tWords.length > 0 && mc >= (tWords.length >= 3 ? 2 : 1)
           })
-          if (partialMatch) {
-            cAct += sym.weight * 0.25
-            clusterMatched++
+          if (matched) {
+            weightedMatch += w * 0.3 // Partial = 30%
           }
         }
       }
-      const act = cTotal > 0 ? cAct / cTotal : 0
-      totalAct += act * cluster.importance
-      totalImp += cluster.importance
-      if (clusterMatched > 0) matchedClusters++
     }
 
-    let score = totalImp > 0 ? totalAct / totalImp : 0
+    let score = weightedTotal > 0 ? weightedMatch / weightedTotal : 0
 
-    // Бонус за множественные кластеры — если совпало 2+ кластера, это сильный сигнал
-    if (matchedClusters >= 2) {
-      score = Math.min(1.0, score * 1.3)
-    }
-
-    // Минимальный порог: если совпал только 1 симптом из 1 кластера — это шум, не паттерн
-    // Подавляем score чтобы не давать constellation boost за случайное совпадение
-    let totalSymMatched = 0
-    for (const cluster of con.clusters) {
-      for (const sym of cluster.symptoms) {
-        if (present.some(p => symMatch(p, sym.rubric))) totalSymMatched++
-      }
-    }
-    if (totalSymMatched <= 1 && score > 0) {
-      score *= 0.5 // Одно совпадение = 50% от расчётного (недостаточно для boost)
-    }
-
-    // Sine qua non boost: если ВСЕ SQN совпали → сильный бонус
-    // SQN = ключевые симптомы без которых препарат НЕ назначается
+    // SQN: все sine_qua_non совпали → аддитивный бонус пропорциональный
     if (con.sine_qua_non?.length) {
       const sqnMatched = con.sine_qua_non.filter(sqn =>
         present.some(p => symMatch(p, sqn))
       ).length
-      if (sqnMatched === con.sine_qua_non.length && con.sine_qua_non.length >= 2) {
-        // Все SQN совпали — очень сильный сигнал
-        score = Math.min(1.0, score * 1.5)
-      } else if (sqnMatched === con.sine_qua_non.length) {
-        score = Math.min(1.0, score * 1.2)
-      }
+      score = Math.min(1.0, score + (sqnMatched / con.sine_qua_non.length) * 0.15)
     }
 
     scores[remedy] = score
