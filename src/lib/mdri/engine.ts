@@ -426,20 +426,20 @@ export function analyze(
 
     // Найти consistency group для этого препарата
     const group = consistencyGroupsList.find(g => g.remedy === rem)
-    let consistencyBonus = 0
+    let consistencyAdd = 0
 
     if (group) {
       const { score: conScore, coreMatch } = evaluateConsistency(caseData, group)
       if (coreMatch) {
-        // Core совпало → сильный бонус (0.15-0.30)
-        consistencyBonus = conScore * 0.30
+        // Core совпало → additive бонус +0.15 (+ optional пропорционально)
+        consistencyAdd = 0.15 + conScore * 0.10
       } else if (conScore > 0) {
-        // Частичное совпадение → слабый бонус
-        consistencyBonus = conScore * 0.10
+        // Частичное → слабый additive бонус
+        consistencyAdd = conScore * 0.05
       }
     }
 
-    conAdjusted[rem] = rawCon * (1 + consistencyBonus)
+    conAdjusted[rem] = rawCon + consistencyAdd
   }
 
   // === Этап 5: Polarity (только при близких top-2) ===
