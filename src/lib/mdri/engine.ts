@@ -273,26 +273,102 @@ function checkCondition(cond: ConsistencyCondition, caseData: CaseData): boolean
   }
 }
 
-// Оценить consistency группу
-function evaluateConsistency(caseData: CaseData, group: ConsistencyGroup): { score: number; coreMatch: boolean } {
-  // Проверить core — все должны совпасть
-  const coreMatches = group.core.filter(c => checkCondition(c, caseData)).length
-  const coreTotal = group.core.length
-  const coreMatch = coreTotal > 0 && coreMatches === coreTotal
+// Вес условия по типу: modality > physical > mental
+const CONDITION_WEIGHT: Record<string, number> = {
+  thermal: 2,       // physical
+  modality: 3,      // modality — самый важный
+  thirst: 2,        // physical
+  perspiration: 2,  // physical
+  sleep: 2,         // physical
+  onset: 2,         // physical
+  side: 2,          // physical
+  desire: 1.5,      // physical/general
+  aversion: 1.5,    // physical/general
+  consolation: 1.5, // mental/behavioral
+  company: 1.5,     // mental/behavioral
+  mental: 1,        // mental — наименьший вес
+  time: 1.5,        // modality/time
+  keynote: 1,       // fallback
+}
 
-  if (!coreMatch && coreTotal > 0) {
-    return { score: 0, coreMatch: false }
+function getConditionWeight(cond: ConsistencyCondition): number {
+  return CONDITION_WEIGHT[cond.type] ?? 1
+}
+
+// Оценить consistency группу — additive scoring
+// Core: +3 за каждое совпадение (взвешенное)
+// Optional: +1 за каждое (взвешенное)
+// Противоречие: -2 за каждое
+function evaluateConsistency(
+  caseData: CaseData,
+  group: ConsistencyGroup,
+  contradictions: Array<{ symptom_a: string; symptom_b: string; type: string }>,
+): { score: number; coreScore: number; coreMatch: boolean } {
+
+  // === Core scoring ===
+  let corePoints = 0
+  let coreMaxPoints = 0
+  let coreMatchCount = 0
+  const coreTotal = group.core.length
+
+  for (const cond of group.core) {
+    const w = getConditionWeight(cond)
+    coreMaxPoints += 3 * w
+    if (checkCondition(cond, caseData)) {
+      corePoints += 3 * w
+      coreMatchCount++
+    }
   }
 
-  // Optional — каждое совпадение добавляет бонус
-  const optMatches = group.optional.filter(c => checkCondition(c, caseData)).length
-  const optTotal = group.optional.length
+  const coreScore = coreTotal > 0 ? coreMatchCount / coreTotal : 0
+  const coreMatch = coreTotal > 0 && coreMatchCount === coreTotal
 
-  // Score: core совпало → базовый 0.5, + optional пропорционально
-  const optBonus = optTotal > 0 ? (optMatches / optTotal) * 0.5 : 0
-  const score = coreMatch ? 0.5 + optBonus : 0
+  // === Optional scoring ===
+  let optPoints = 0
+  for (const cond of group.optional) {
+    const w = getConditionWeight(cond)
+    if (checkCondition(cond, caseData)) {
+      optPoints += 1 * w
+    }
+  }
 
-  return { score, coreMatch }
+  // === Negative scoring — проверить contradictions ===
+  let contradictionPenalty = 0
+  // Собрать все значения из кейса для проверки
+  const caseValues = new Set<string>()
+  if (caseData.thermal) caseValues.add(caseData.thermal === 'chilly' ? 'chilly' : 'hot patient')
+  if (caseData.consolation) caseValues.add(`consolation ${caseData.consolation}`)
+  if (caseData.company) caseValues.add(`company ${caseData.company}`)
+  if (caseData.thirst) caseValues.add(caseData.thirst === 'thirstless' ? 'thirstless' : `thirst ${caseData.thirst}`)
+  for (const m of caseData.modalities) caseValues.add(m.replace('_', ' '))
+  for (const m of caseData.mentals) caseValues.add(m.replace('_', ' '))
+
+  // Собрать все значения из группы
+  const groupValues = new Set<string>()
+  for (const c of [...group.core, ...group.optional]) {
+    groupValues.add(`${c.type}:${c.value}`)
+  }
+
+  // Проверить каждую contradiction pair
+  for (const contr of contradictions) {
+    const a = contr.symptom_a.toLowerCase()
+    const b = contr.symptom_b.toLowerCase()
+    // Если кейс имеет A, а группа ожидает B (или наоборот) → штраф
+    const caseHasA = [...caseValues].some(v => v.includes(a))
+    const caseHasB = [...caseValues].some(v => v.includes(b))
+    const groupExpectsA = [...groupValues].some(v => v.includes(a))
+    const groupExpectsB = [...groupValues].some(v => v.includes(b))
+
+    if ((caseHasA && groupExpectsB) || (caseHasB && groupExpectsA)) {
+      const penalty = contr.type === 'mutual_exclusive' ? 4 : 2
+      contradictionPenalty += penalty
+    }
+  }
+
+  // === Итоговый score ===
+  const totalScore = corePoints + optPoints - contradictionPenalty
+
+  return { score: totalScore, coreScore, coreMatch }
 }
 
 /**
@@ -411,35 +487,57 @@ export function analyze(
     kentHierarchy[rem] = 0.4 * kf + 0.6 * hs
   }
 
-  // === Этап 4: Constellation + Consistency (boolean-логика) ===
+  // === Этап 4: Constellation + Consistency (additive boolean-логика) ===
   const conScores = constellationScore(data, symptoms)
   const consistencyGroupsList = data.clinicalData?.consistency_groups ?? []
 
   // Извлечь структурированные данные из кейса (один раз)
   const caseData = extractCaseData(symptoms, modalities)
 
-  // Рассчитать consistency через evaluateConsistency (без symMatch)
+  // Загрузить contradictions для negative scoring
+  // (из clinicalData — загружены в data-loader, но формат старый, парсим здесь)
+  const contradictionPairs: Array<{ symptom_a: string; symptom_b: string; type: string }> = []
+  // contradictions хранятся в Supabase, но для consistency достаточно thermal_contradictions
+  // Для полных — нужно загружать отдельно. Пока используем thermal + inline
+  if (caseData.thermal) {
+    const thermalContr = data.clinicalData?.thermal_contradictions ?? {}
+    // Не добавляем как contradictions — thermal уже обработан в Этапе 1
+  }
+
+  // Рассчитать consistency (additive, без symMatch)
   const conAdjusted: Record<string, number> = {}
+  // Найти max consistency для нормализации
+  let maxConsistencyScore = 0
+
   for (const rem of Object.keys(baseKent)) {
     if (excluded.has(rem)) continue
     const rawCon = conScores[rem] ?? 0
 
-    // Найти consistency group для этого препарата
     const group = consistencyGroupsList.find(g => g.remedy === rem)
     let consistencyAdd = 0
 
     if (group) {
-      const { score: conScore, coreMatch } = evaluateConsistency(caseData, group)
-      if (coreMatch) {
-        // Core совпало → additive бонус +0.15 (+ optional пропорционально)
-        consistencyAdd = 0.15 + conScore * 0.10
-      } else if (conScore > 0) {
-        // Частичное → слабый additive бонус
-        consistencyAdd = conScore * 0.05
+      const { score, coreScore, coreMatch } = evaluateConsistency(caseData, group, contradictionPairs)
+
+      if (score > 0) {
+        // Нормализуем позже — пока абсолютные баллы
+        consistencyAdd = score
+        maxConsistencyScore = Math.max(maxConsistencyScore, score)
       }
     }
 
-    conAdjusted[rem] = rawCon + consistencyAdd
+    conAdjusted[rem] = rawCon + (consistencyAdd > 0 ? consistencyAdd : 0)
+  }
+
+  // Нормализовать consistency к диапазону 0-0.25 (additive к rawCon 0-1)
+  if (maxConsistencyScore > 0) {
+    for (const rem of Object.keys(conAdjusted)) {
+      const rawCon = conScores[rem] ?? 0
+      const conAdd = conAdjusted[rem] - rawCon
+      if (conAdd > 0) {
+        conAdjusted[rem] = rawCon + (conAdd / maxConsistencyScore) * 0.25
+      }
+    }
   }
 
   // === Этап 5: Polarity (только при близких top-2) ===
