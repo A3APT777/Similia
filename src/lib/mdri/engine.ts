@@ -1011,6 +1011,27 @@ export function analyzePipeline(
   }
 
   // ===================================================================
+  // STAGE 2.5: CONSTELLATION OVERRIDE
+  // Если препарат имеет strong constellation match (>=3 full matches)
+  // но не прошёл Selection — принудительно добавляем в candidates.
+  // Это решает разрыв: constellation знает что Gels подходит,
+  // но findRubrics не находит рубрики → Selection не пропускает.
+  // ===================================================================
+  const preConScores = constellationScore(data, symptoms)
+  for (const [remedy, cs] of Object.entries(preConScores)) {
+    if (cs < 0.3) continue // Только сильные совпадения
+    // remedy = lowercase (из constellations), нужно найти формат из реперториума
+    // Ищем среди allRemedies
+    for (const rem of allRemedies) {
+      const remNorm = rem.toLowerCase().replace(/\.$/, '')
+      if (remNorm === remedy && !candidates.has(rem) && !excluded.has(rem)) {
+        candidates.add(rem)
+      }
+    }
+    // Также добавляем прямо в lowercase формате — Stage 3 нормализует ключи
+  }
+
+  // ===================================================================
   // STAGE 3: RANKING — текущий scoring среди кандидатов
   // Вход: 20-50 кандидатов
   // Выход: top-10 с баллами
@@ -1023,7 +1044,7 @@ export function analyzePipeline(
   // Kent (с IDF и anti-domination) — только для кандидатов
   const kentFull = kentScore(data, symptoms, rubricCache)
   const hierarchyScores = hierarchyScore(data, symptoms, rubricCache)
-  const conScores = constellationScore(data, symptoms)
+  const conScores = preConScores // Уже посчитаны в Stage 2.5
 
   // Coverage bonus — НОВОЕ: препарат покрывающий больше симптомов получает бонус
   const maxCoverage = Math.max(...[...coverage.values()].map(c => c.covered), 1)
@@ -1072,36 +1093,36 @@ export function analyzePipeline(
     const mi = mScores[remNorm] ?? mScores[rem] ?? 0
     const cov = coverage.get(rem)
 
-    // === Ranking v4: adaptive weighting ===
+    // === Ranking v5: constellation усиливает, не перераспределяет ===
     //
-    // Вместо фиксированных весов — адаптивная комбинация:
-    // Чем выше constellation score, тем больше его вес в итоговой формуле.
-    // При cs=0: total = kent/hierarchy (100% реперторий)
-    // При cs=0.5: total = 50% реперторий + 50% constellation
-    // При cs=1.0: total = 30% реперторий + 70% constellation
+    // finalScore = baseScore * (1 + k * cs) * polarityMult
     //
-    // Это автоматически решает проблему полихрестов:
-    // если constellation не подтверждает → вес переходит к kent (где anti-domination работает)
-    // если подтверждает → constellation доминирует (и правильно)
+    // Constellation УСИЛИВАЕТ базовый score, а не забирает его вес.
+    // cs=0 → множитель 1.0 (без усиления)
+    // cs=0.5 → множитель 1.3 (k=0.6)
+    // cs=1.0 → множитель 1.6
+    //
+    // Kent soft cap: sqrt нормализация — убирает доминацию частых препаратов
+    // kent=1.0 → 1.0, kent=0.5 → 0.71, kent=0.25 → 0.50
 
-    const baseScore = 0.5 * kf + 0.5 * hs
+    // Soft cap: pow(0.8) сжимает разрыв мягче чем sqrt
+    // kent=1.0→1.0, kent=0.5→0.57, kent=0.25→0.32 (vs sqrt: 0.71, 0.50)
+    const kfSoft = Math.pow(kf, 0.8)
+    const hsSoft = Math.pow(hs, 0.8)
+    const baseScore = 0.5 * kfSoft + 0.5 * hsSoft
 
-    // Адаптивные веса: wCon = cs^0.7, wBase = 1 - wCon * 0.6
-    // При cs=0: wBase=1.0, wCon=0.0
-    // При cs=0.3: wBase=0.76, wCon=0.40
-    // При cs=0.6: wBase=0.57, wCon=0.72
-    // При cs=1.0: wBase=0.40, wCon=1.0
-    const wCon = Math.pow(cs, 0.7)
-    const wBase = 1.0 - wCon * 0.6
+    // Constellation boost: усиливающий множитель
+    const k = 0.6
+    const constellationMult = 1.0 + k * cs
 
-    // Polarity — мягкий аддитивный
-    const polBonus = (pol - 0.5) * 0.12
+    // Polarity: мягкий множитель 0.94..1.06
+    const polarityMult = 0.94 + pol * 0.12
 
-    let total = wBase * baseScore + wCon * cs * 0.7 + polBonus
+    let total = baseScore * constellationMult * polarityMult
 
     // Miasm
     if (isChronic && mi > 0) {
-      total += 0.06 * mi
+      total += 0.05 * mi
     }
 
     // Acute/Chronic
@@ -1141,6 +1162,23 @@ export function analyzePipeline(
       relationships: data.relationships[rem] ?? null,
       differential: null,
     })
+  }
+
+  // Constellation confidence penalty:
+  // Если есть кандидат с сильным constellation (cs>40%),
+  // препараты с слабым cs (<15%) получают penalty.
+  // Это предотвращает доминацию через чистый kent без подтверждения паттерна.
+  const maxCs = Math.max(...results.map(r => r.lenses.find(l => l.name === 'Constellation')?.score ?? 0))
+  if (maxCs > 40) {
+    for (const r of results) {
+      const rCs = r.lenses.find(l => l.name === 'Constellation')?.score ?? 0
+      if (rCs < 15) {
+        // Слабое/нет подтверждение: penalty пропорционально разрыву
+        // cs=0 → penalty 0.65, cs=10 → penalty 0.88
+        const penaltyFactor = 0.65 + (rCs / 15) * 0.35
+        r.totalScore = Math.round(r.totalScore * penaltyFactor)
+      }
+    }
   }
 
   results.sort((a, b) => b.totalScore - a.totalScore)
