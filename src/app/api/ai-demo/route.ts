@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { analyze } from '@/lib/mdri/engine'
+import { analyzePipeline as analyze } from '@/lib/mdri/engine'
 import { loadMDRIData } from '@/lib/mdri/data-loader'
 import { DEFAULT_PROFILE } from '@/lib/mdri/types'
 import type { MDRISymptom, MDRIModality, MDRIPatientProfile } from '@/lib/mdri/types'

@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { analyze } from '@/lib/mdri/engine'
+import { analyzePipeline as analyze } from '@/lib/mdri/engine'
 import { loadMDRIData } from '@/lib/mdri/data-loader'
 import { HOMEOPATH_SYSTEM_PROMPT } from '@/lib/mdri/homeopath-prompt'
 import Anthropic from '@anthropic-ai/sdk'

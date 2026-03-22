@@ -707,6 +707,275 @@ export function analyze(
   return results.slice(0, 10)
 }
 
+// =============================================================================
+// PIPELINE v1: Filter → Selection → Ranking
+// Новая архитектура. analyze() сохранена для сравнения.
+// =============================================================================
+
+/**
+ * Подсчитать coverage: в скольких симптомах пациента найден каждый препарат
+ */
+function computeCoverage(
+  data: MDRIData,
+  symptoms: MDRISymptom[],
+  cache: Map<string, MDRIRepertoryRubric[]>,
+): Map<string, { covered: number; total: number; rubrics: string[] }> {
+  const present = symptoms.filter(s => s.present)
+  const total = present.length
+  // Для каждого препарата — в скольких симптомах он найден
+  const remedyCoverage = new Map<string, Set<number>>() // remedy → set of symptom indices
+  const remedyRubrics = new Map<string, string[]>()
+
+  for (let i = 0; i < present.length; i++) {
+    const matches = findRubrics(data, present[i].rubric, cache)
+    for (const match of matches) {
+      for (const rem of match.remedies) {
+        if (!remedyCoverage.has(rem.abbrev)) {
+          remedyCoverage.set(rem.abbrev, new Set())
+          remedyRubrics.set(rem.abbrev, [])
+        }
+        remedyCoverage.get(rem.abbrev)!.add(i)
+        remedyRubrics.get(rem.abbrev)!.push(match.rubric)
+      }
+    }
+  }
+
+  const result = new Map<string, { covered: number; total: number; rubrics: string[] }>()
+  for (const [rem, indices] of remedyCoverage) {
+    result.set(rem, {
+      covered: indices.size,
+      total,
+      rubrics: remedyRubrics.get(rem) ?? [],
+    })
+  }
+  return result
+}
+
+/**
+ * Pipeline v1: Filter → Selection → Ranking
+ *
+ * Filter:    бинарное отсечение по модальностям/термике (3096 → ~500)
+ * Selection: кто покрывает ≥ 40% симптомов (500 → 20-50)
+ * Ranking:   текущий scoring среди кандидатов
+ */
+export function analyzePipeline(
+  data: MDRIData,
+  symptoms: MDRISymptom[],
+  modalities: MDRIModality[] = [],
+  familyHistory: string[] = [],
+  profile: MDRIPatientProfile = DEFAULT_PROFILE,
+): MDRIResult[] {
+  const rubricCache = new Map<string, MDRIRepertoryRubric[]>()
+  const presentSymptoms = symptoms.filter(s => s.present)
+  const insufficientData = presentSymptoms.length < 3
+
+  // Извлечь структурированные данные кейса
+  const caseData = extractCaseData(symptoms, modalities)
+
+  // ===================================================================
+  // STAGE 1: FILTER — бинарное отсечение
+  // Вход: все 3096 препаратов
+  // Выход: Set<excluded> (препараты которые ТОЧНО не подходят)
+  // ===================================================================
+  const excluded = new Set<string>()
+
+  // Правило: если данных мало (< 3 симптома) — НЕ фильтруем
+  if (!insufficientData) {
+    // 1a. Термика: зябкий пациент → убрать жаркие
+    if (caseData.thermal === 'chilly') {
+      const hotRemedies = data.clinicalData?.thermal_contradictions ?? {}
+      for (const [rem, t] of Object.entries(hotRemedies)) {
+        if (t === 'hot') excluded.add(rem)
+      }
+    }
+    if (caseData.thermal === 'hot') {
+      const chillyRemedies = data.clinicalData?.thermal_contradictions ?? {}
+      for (const [rem, t] of Object.entries(chillyRemedies)) {
+        if (t === 'chilly') excluded.add(rem)
+      }
+    }
+
+    // 1b. Жажда: жаждущий → убрать безжаждные, и наоборот
+    // (пока мягко — через sine_qua_non)
+
+    // 1c. Consolation: agg → убрать amel-препараты, и наоборот
+    // Через sine_qua_non contradictions
+    if (caseData.consolation === 'agg') {
+      // Препараты с sine_qua_non "consolation amel" → excluded
+      for (const [rem, con] of Object.entries(data.constellations)) {
+        if (con.sine_qua_non?.some(s => s.includes('consolation') && s.includes('amel'))) {
+          excluded.add(rem)
+        }
+      }
+    }
+    if (caseData.consolation === 'amel') {
+      for (const [rem, con] of Object.entries(data.constellations)) {
+        if (con.sine_qua_non?.some(s => s.includes('consolation') && s.includes('agg'))) {
+          excluded.add(rem)
+        }
+      }
+    }
+
+    // 1d. Motion: agg → убрать amel, и наоборот
+    if (caseData.modalities.has('motion_agg')) {
+      for (const [rem, con] of Object.entries(data.constellations)) {
+        if (con.sine_qua_non?.some(s => s.includes('motion') && s.includes('amel'))) {
+          excluded.add(rem)
+        }
+      }
+    }
+    if (caseData.modalities.has('motion_amel')) {
+      for (const [rem, con] of Object.entries(data.constellations)) {
+        if (con.sine_qua_non?.some(s => s.includes('motion') && s.includes('agg'))) {
+          excluded.add(rem)
+        }
+      }
+    }
+
+    // 1e. Excluders из constellations
+    const presentRubrics = presentSymptoms.map(s => s.rubric.toLowerCase())
+    for (const [rem, con] of Object.entries(data.constellations)) {
+      if (excluded.has(rem)) continue
+      if (con.excluders?.length) {
+        for (const excl of con.excluders) {
+          if (presentRubrics.some(p => symMatch(p, excl))) {
+            excluded.add(rem)
+          }
+        }
+      }
+    }
+  }
+
+  // ===================================================================
+  // STAGE 2: SELECTION — кто покрывает достаточно симптомов
+  // Вход: ~3000 препаратов (минус excluded)
+  // Выход: кандидаты с coverage ≥ 40%
+  // ===================================================================
+  const coverage = computeCoverage(data, symptoms, rubricCache)
+  const COVERAGE_THRESHOLD = insufficientData ? 0.20 : 0.40
+  const candidates = new Set<string>()
+
+  for (const [rem, cov] of coverage) {
+    if (excluded.has(rem)) continue
+    const ratio = cov.total > 0 ? cov.covered / cov.total : 0
+    if (ratio >= COVERAGE_THRESHOLD) {
+      candidates.add(rem)
+    }
+  }
+
+  // Гарантировать минимум 10 кандидатов (если отсечение слишком жёсткое)
+  if (candidates.size < 10) {
+    const sorted = [...coverage.entries()]
+      .filter(([rem]) => !excluded.has(rem))
+      .sort((a, b) => b[1].covered - a[1].covered)
+    for (const [rem] of sorted) {
+      candidates.add(rem)
+      if (candidates.size >= 20) break
+    }
+  }
+
+  // ===================================================================
+  // STAGE 3: RANKING — текущий scoring среди кандидатов
+  // Вход: 20-50 кандидатов
+  // Выход: top-10 с баллами
+  // Используем СУЩЕСТВУЮЩУЮ логику scoring (kentFull + hierarchy + constellation)
+  // но ТОЛЬКО для кандидатов из Stage 2
+  // ===================================================================
+  const isChronic = familyHistory.length > 0
+  const isAcute = symptoms.some(s => s.present && ['sudden onset', 'sudden'].includes(s.rubric.toLowerCase()))
+
+  // Kent (с IDF и anti-domination) — только для кандидатов
+  const kentFull = kentScore(data, symptoms, rubricCache)
+  const hierarchyScores = hierarchyScore(data, symptoms, rubricCache)
+  const conScores = constellationScore(data, symptoms)
+
+  // Coverage bonus — НОВОЕ: препарат покрывающий больше симптомов получает бонус
+  const maxCoverage = Math.max(...[...coverage.values()].map(c => c.covered), 1)
+
+  // Polarity и Miasm
+  const polScores = polarityScore(data, modalities)
+  let mScores: Record<string, number> = {}
+  let dominantMiasm = ''
+  if (isChronic && familyHistory.length > 0) {
+    const [ms, dm] = miasmScore(familyHistory)
+    mScores = ms
+    dominantMiasm = dm
+  }
+
+  const results: MDRIResult[] = []
+  for (const rem of candidates) {
+    const kf = kentFull[rem] ?? 0
+    const hs = hierarchyScores[rem] ?? 0
+    const cs = conScores[rem] ?? 0
+    const pol = polScores[rem] ?? 0.35
+    const mi = mScores[rem] ?? 0
+    const cov = coverage.get(rem)
+    const coverageRatio = cov ? cov.covered / Math.max(cov.total, 1) : 0
+    const coverageBonus = coverageRatio * 0.20 // до +0.20 за полное покрытие
+
+    // Ranking formula (временная — текущий scoring + coverage bonus)
+    let total = 0.30 * (0.4 * kf + 0.6 * hs) // kent+hierarchy
+      + 0.35 * cs                              // constellation
+      + 0.15 * pol                             // polarity
+      + coverageBonus                          // НОВОЕ: coverage bonus
+
+    if (isChronic && mi > 0) {
+      total += 0.10 * mi
+    }
+
+    // Acute/Chronic
+    if (isAcute && CHRONIC_REMEDIES.has(rem)) total *= 0.90
+    if (isChronic && ACUTE_REMEDIES.has(rem)) total *= 0.90
+
+    // Confidence
+    let confidence: MDRIResult['confidence']
+    if (insufficientData) {
+      confidence = total < 0.50 ? 'insufficient' : 'low'
+    } else {
+      confidence = total >= 0.80 ? 'high' : total >= 0.60 ? 'medium' : total >= 0.40 ? 'low' : 'insufficient'
+    }
+
+    const name = data.constellations[rem]?.name ?? rem
+    const isNosode = NOSODES.has(rem)
+    const potency = selectPotency(profile, total * 100, isNosode)
+
+    results.push({
+      remedy: rem,
+      remedyName: name,
+      totalScore: Math.round(total * 100),
+      confidence,
+      lenses: [
+        { name: 'Kent', score: Math.round(kf * 100), details: `${Math.round(kf * 100)}%` },
+        { name: 'Coverage', score: Math.round(coverageRatio * 100), details: `${cov?.covered ?? 0}/${cov?.total ?? 0}` },
+        { name: 'Hierarchy', score: Math.round(hs * 100), details: `${Math.round(hs * 100)}%` },
+        { name: 'Constellation', score: Math.round(cs * 100), details: `${Math.round(cs * 100)}%` },
+        { name: 'Polarity', score: Math.round(pol * 100), details: `${Math.round(pol * 100)}%` },
+        { name: 'Miasm', score: Math.round(mi * 100), details: mi > 0 ? `${Math.round(mi * 100)}% (${dominantMiasm})` : '-' },
+      ],
+      potency,
+      miasm: dominantMiasm || null,
+      relationships: data.relationships[rem] ?? null,
+      differential: null,
+    })
+  }
+
+  results.sort((a, b) => b.totalScore - a.totalScore)
+
+  // Differential
+  if (results.length >= 2) {
+    const diff = results[0].totalScore - results[1].totalScore
+    if (diff < 8 && results[0].totalScore > 30) {
+      results[0].differential = {
+        rivalRemedy: results[1].remedy,
+        rivalScore: results[1].totalScore,
+        differentiatingQuestion: `Уточните симптомы для различения ${results[0].remedy} и ${results[1].remedy}`,
+      }
+    }
+  }
+
+  return results.slice(0, 10)
+}
+
 // --- Вспомогательные функции ---
 
 function getWeights(hasMiasm: boolean) {
