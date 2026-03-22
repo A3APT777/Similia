@@ -847,126 +847,178 @@ export function analyzePipeline(
   }
 
   // ===================================================================
-  // STAGE 2: SELECTION — decision rules, не фиксированный порог
+  // STAGE 2: SELECTION v3 — трёхуровневая классификация + decision rules
   //
   // Вход: ~3000 препаратов (минус excluded)
   // Выход: кандидаты (20-50)
   //
-  // Логика: разделить симптомы на KEY и SUPPORTING.
-  // Препарат проходит если:
-  //   Rule A: покрывает ≥1 key symptom + ≥1 supporting
-  //   Rule B: покрывает ≥3 supporting (даже без key)
-  //   Rule C: покрывает key symptom с grade 3 (один сильный = достаточно)
+  // Уровни KEY:
+  //   CRITICAL: модальности, polarity (самые надёжные дифференциаторы)
+  //   STRONG:   термика, жажда, strong generals, characteristic mental (w>=2)
+  //   WEAK_KEY: desire, consolation, time, side
+  //   SUPPORTING: particular complaints, weak generals
+  //
+  // Decision rules:
+  //   Rule 1: ≥1 CRITICAL → candidate
+  //   Rule 2: ≥2 STRONG → candidate
+  //   Rule 3: ≥1 STRONG + ≥2 supporting (из разных domains) → candidate
+  //   Rule 4: ≥3 WEAK_KEY → candidate
+  //   Rule 5: ≥4 supporting из ≥3 разных domains → candidate (broad diverse)
   // ===================================================================
 
-  // --- Классификация симптомов ---
-  // Key symptoms: модальности, peculiar, strong general, characteristic mental
-  // Supporting: остальные (particular complaints, weak generals)
+  type SymptomLevel = 'critical' | 'strong' | 'weak_key' | 'supporting'
+  type SymptomDomain = 'mind' | 'general' | 'particular' | 'modality' | 'thermal' | 'food' | 'sleep' | 'time'
 
-  type SymptomClass = 'key' | 'supporting'
-  const symptomClasses: SymptomClass[] = presentSymptoms.map(s => {
+  const symptomLevels: SymptomLevel[] = presentSymptoms.map(s => {
     const r = s.rubric.toLowerCase()
 
-    // KEY: модальности (хуже/лучше от чего-то)
-    if (r.includes('agg') || r.includes('amel') || r.includes('worse') || r.includes('better')) return 'key'
+    // CRITICAL: модальности (хуже/лучше от конкретного фактора)
+    if (r.includes('agg') || r.includes('amel') || r.includes('worse') || r.includes('better')) return 'critical'
+    if (r.includes('first motion')) return 'critical'
+    if (r.includes('rest agg') || r.includes('rest amel')) return 'critical'
 
-    // KEY: термика
-    if (r.includes('chill') || r.includes('hot patient') || r.includes('cold') || r.includes('warm')) return 'key'
+    // STRONG: термика
+    if (r.includes('chill') || r.includes('hot patient') || r.includes('froz')) return 'strong'
+    // STRONG: жажда
+    if (r.includes('thirst') || r.includes('thirstless')) return 'strong'
+    // STRONG: characteristic mental (врач дал weight >= 2)
+    if (s.category === 'mental' && s.weight >= 2) return 'strong'
+    // STRONG: peculiar (weight 3)
+    if (s.weight >= 3) return 'strong'
 
-    // KEY: жажда (strong general)
-    if (r.includes('thirst') || r.includes('thirstless')) return 'key'
+    // WEAK_KEY: desire/aversion
+    if (r.includes('desire') || r.includes('aversion')) return 'weak_key'
+    // WEAK_KEY: consolation, company
+    if (r.includes('consolat') || r.includes('company')) return 'weak_key'
+    // WEAK_KEY: time aggravation
+    if ((r.includes('2') && r.includes('4') && (r.includes('am') || r.includes('night')))
+     || (r.includes('4') && r.includes('8') && r.includes('pm'))
+     || r.includes('after sleep')) return 'weak_key'
+    // WEAK_KEY: side
+    if (r.includes('right side') || r.includes('left side')) return 'weak_key'
+    // WEAK_KEY: sleep position
+    if (r.includes('sleep') && r.includes('position') || r.includes('sleep') && r.includes('abdomen')) return 'weak_key'
 
-    // KEY: characteristic mental
-    if (s.category === 'mental' && s.weight >= 2) return 'key'
-
-    // KEY: peculiar / strange (weight 3 = врач отметил как важное)
-    if (s.weight >= 3) return 'key'
-
-    // KEY: desire/aversion (strong general)
-    if (r.includes('desire') || r.includes('aversion')) return 'key'
-
-    // KEY: sleep position, consolation, company
-    if (r.includes('consolat') || r.includes('company') || r.includes('sleep') && r.includes('position')) return 'key'
-
-    // KEY: time aggravation (2-4am, 4-8pm)
-    if (r.includes('2') && r.includes('4') || r.includes('4') && r.includes('8')) return 'key'
-
-    // KEY: side (right/left)
-    if (r.includes('right side') || r.includes('left side')) return 'key'
-
-    // Всё остальное — supporting
     return 'supporting'
   })
 
-  const keyIndices = new Set<number>()
+  // Domain каждого симптома (для проверки разнообразия в Rule 5)
+  const symptomDomains: SymptomDomain[] = presentSymptoms.map(s => {
+    const r = s.rubric.toLowerCase()
+    if (s.category === 'mental') return 'mind'
+    if (r.includes('agg') || r.includes('amel') || r.includes('worse') || r.includes('better') || r.includes('motion') || r.includes('rest')) return 'modality'
+    if (r.includes('chill') || r.includes('hot') || r.includes('cold') || r.includes('warm') || r.includes('thirst') || r.includes('perspir')) return 'thermal'
+    if (r.includes('desire') || r.includes('aversion') || r.includes('appetite') || r.includes('food')) return 'food'
+    if (r.includes('sleep') || r.includes('dream') || r.includes('waking')) return 'sleep'
+    if (r.includes('2') && r.includes('4') || r.includes('4') && r.includes('8') || r.includes('morning') || r.includes('evening') || r.includes('night')) return 'time'
+    if (s.category === 'general') return 'general'
+    return 'particular'
+  })
+
+  // Индексы по уровню
+  const criticalIndices = new Set<number>()
+  const strongIndices = new Set<number>()
+  const weakKeyIndices = new Set<number>()
   const supportingIndices = new Set<number>()
-  for (let i = 0; i < symptomClasses.length; i++) {
-    if (symptomClasses[i] === 'key') keyIndices.add(i)
-    else supportingIndices.add(i)
+
+  for (let i = 0; i < symptomLevels.length; i++) {
+    switch (symptomLevels[i]) {
+      case 'critical': criticalIndices.add(i); break
+      case 'strong': strongIndices.add(i); break
+      case 'weak_key': weakKeyIndices.add(i); break
+      case 'supporting': supportingIndices.add(i); break
+    }
   }
 
-  const totalKey = keyIndices.size
-  const totalSupporting = supportingIndices.size
-
-  // --- Coverage с разделением на key/supporting ---
+  // --- Coverage по уровням для каждого препарата ---
   const coverage = computeCoverage(data, symptoms, rubricCache)
   const candidates = new Set<string>()
 
-  // Для каждого препарата — посчитать key и supporting coverage отдельно
-  // computeCoverage возвращает covered (кол-во симптомов), но не какие именно
-  // Нужна детальная версия — посчитаем здесь
-  const remedyKeyHits = new Map<string, number>()    // сколько key симптомов покрыто
-  const remedySuppHits = new Map<string, number>()   // сколько supporting покрыто
-  const remedyGrade3Key = new Map<string, boolean>()  // есть ли grade 3 в key симптоме
+  type RemedyHits = {
+    critical: number
+    strong: number
+    weakKey: number
+    supporting: number
+    supportingDomains: Set<SymptomDomain>
+    hasGrade3Critical: boolean
+  }
+
+  const remedyHits = new Map<string, RemedyHits>()
 
   for (let i = 0; i < presentSymptoms.length; i++) {
     const sym = presentSymptoms[i]
-    const isKey = keyIndices.has(i)
+    const level = symptomLevels[i]
+    const domain = symptomDomains[i]
     const matches = findRubrics(data, sym.rubric, rubricCache)
 
     for (const match of matches) {
       for (const rem of match.remedies) {
         if (excluded.has(rem.abbrev)) continue
 
-        if (isKey) {
-          remedyKeyHits.set(rem.abbrev, (remedyKeyHits.get(rem.abbrev) ?? 0) + 1)
-          if (rem.grade >= 3) remedyGrade3Key.set(rem.abbrev, true)
-        } else {
-          remedySuppHits.set(rem.abbrev, (remedySuppHits.get(rem.abbrev) ?? 0) + 1)
+        if (!remedyHits.has(rem.abbrev)) {
+          remedyHits.set(rem.abbrev, {
+            critical: 0, strong: 0, weakKey: 0, supporting: 0,
+            supportingDomains: new Set(), hasGrade3Critical: false,
+          })
+        }
+        const h = remedyHits.get(rem.abbrev)!
+
+        switch (level) {
+          case 'critical':
+            h.critical++
+            if (rem.grade >= 3) h.hasGrade3Critical = true
+            break
+          case 'strong':
+            h.strong++
+            break
+          case 'weak_key':
+            h.weakKey++
+            break
+          case 'supporting':
+            h.supporting++
+            h.supportingDomains.add(domain)
+            break
         }
       }
     }
   }
 
   // --- Decision rules ---
-  const allRemedies = new Set([...remedyKeyHits.keys(), ...remedySuppHits.keys()])
-
-  for (const rem of allRemedies) {
+  for (const [rem, h] of remedyHits) {
     if (excluded.has(rem)) continue
-    const keyHits = remedyKeyHits.get(rem) ?? 0
-    const suppHits = remedySuppHits.get(rem) ?? 0
-    const hasGrade3Key = remedyGrade3Key.get(rem) ?? false
 
-    // Rule A: ≥1 key + ≥1 supporting → candidate
-    if (keyHits >= 1 && suppHits >= 1) {
+    // Rule 1: ≥1 CRITICAL hit → candidate (модальность совпала = серьёзный кандидат)
+    if (h.critical >= 1) {
       candidates.add(rem)
       continue
     }
 
-    // Rule B: ≥3 supporting (broad coverage without key) → candidate
-    if (suppHits >= 3) {
+    // Rule 2: ≥2 STRONG → candidate (термика + жажда, или 2 mental)
+    if (h.strong >= 2) {
       candidates.add(rem)
       continue
     }
 
-    // Rule C: grade 3 в key symptom (одно сильное совпадение) → candidate
-    if (hasGrade3Key) {
+    // Rule 3: ≥1 STRONG + ≥2 supporting из разных domains
+    if (h.strong >= 1 && h.supporting >= 2 && h.supportingDomains.size >= 2) {
       candidates.add(rem)
       continue
     }
 
-    // Rule D: ≥2 key symptoms (даже без supporting) → candidate
-    if (keyHits >= 2) {
+    // Rule 4: ≥3 WEAK_KEY → candidate (desire+consolation+time = достаточно специфично)
+    if (h.weakKey >= 3) {
+      candidates.add(rem)
+      continue
+    }
+
+    // Rule 5: ≥4 supporting из ≥3 разных domains (broad diverse coverage)
+    if (h.supporting >= 4 && h.supportingDomains.size >= 3) {
+      candidates.add(rem)
+      continue
+    }
+
+    // Rule 6: ≥1 STRONG + ≥2 WEAK_KEY → candidate
+    if (h.strong >= 1 && h.weakKey >= 2) {
       candidates.add(rem)
       continue
     }
