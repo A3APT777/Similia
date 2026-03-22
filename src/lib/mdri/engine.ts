@@ -870,31 +870,39 @@ export function analyzePipeline(
   // COMMON = симптом который НЕ сужает (есть у многих):
   //   - headache, nausea, weakness, cough, pain, fever...
 
-  const isCharacteristic = (s: MDRISymptom): boolean => {
+  // Внутренний вес characteristic симптома:
+  //   2 = peculiar (w=3), strong mental (w>=2) — один такой = два обычных
+  //   1 = модальности, термика, жажда, desire и т.д. — базовый
+  //   0 = common (не characteristic)
+  const charWeight = (s: MDRISymptom): number => {
     const r = s.rubric.toLowerCase()
-    // Модальности
-    if (r.includes('agg') || r.includes('amel') || r.includes('worse') || r.includes('better')) return true
-    if (r.includes('first motion') || r.includes('rest agg') || r.includes('rest amel')) return true
+
+    // Вес 2: peculiar / strong mental — самые ценные
+    if (s.weight >= 3) return 2
+    if (s.category === 'mental' && s.weight >= 2) return 2
+
+    // Вес 1: модальности
+    if (r.includes('agg') || r.includes('amel') || r.includes('worse') || r.includes('better')) return 1
+    if (r.includes('first motion') || r.includes('rest agg') || r.includes('rest amel')) return 1
     // Термика
-    if (r.includes('chill') || r.includes('hot patient') || r.includes('froz')) return true
+    if (r.includes('chill') || r.includes('hot patient') || r.includes('froz')) return 1
     // Жажда
-    if (r.includes('thirst') || r.includes('thirstless')) return true
-    // Characteristic mental или peculiar
-    if (s.category === 'mental' && s.weight >= 2) return true
-    if (s.weight >= 3) return true
+    if (r.includes('thirst') || r.includes('thirstless')) return 1
     // Consolation, company
-    if (r.includes('consolat') || r.includes('company')) return true
+    if (r.includes('consolat') || r.includes('company')) return 1
     // Desire/aversion
-    if (r.includes('desire') || r.includes('aversion')) return true
+    if (r.includes('desire') || r.includes('aversion')) return 1
     // Time
-    if (r.includes('after sleep')) return true
-    if (r.includes('2') && r.includes('4') && (r.includes('am') || r.includes('night'))) return true
-    if (r.includes('4') && r.includes('8') && r.includes('pm')) return true
+    if (r.includes('after sleep')) return 1
+    if (r.includes('2') && r.includes('4') && (r.includes('am') || r.includes('night'))) return 1
+    if (r.includes('4') && r.includes('8') && r.includes('pm')) return 1
     // Side
-    if (r.includes('right side') || r.includes('left side')) return true
+    if (r.includes('right side') || r.includes('left side')) return 1
     // Sleep position
-    if (r.includes('sleep') && (r.includes('position') || r.includes('abdomen'))) return true
-    return false
+    if (r.includes('sleep') && (r.includes('position') || r.includes('abdomen'))) return 1
+
+    // Вес 0: common
+    return 0
   }
 
   // --- Подсчёт hits для каждого препарата ---
@@ -907,7 +915,7 @@ export function analyzePipeline(
 
   for (let i = 0; i < presentSymptoms.length; i++) {
     const sym = presentSymptoms[i]
-    const isChar = isCharacteristic(sym)
+    const cw = charWeight(sym)
     const domain = sym.category // mind / general / particular
     const matches = findRubrics(data, sym.rubric, rubricCache)
 
@@ -915,8 +923,9 @@ export function analyzePipeline(
       for (const rem of match.remedies) {
         if (excluded.has(rem.abbrev)) continue
 
-        if (isChar) {
-          remedyCharHits.set(rem.abbrev, (remedyCharHits.get(rem.abbrev) ?? 0) + 1)
+        if (cw > 0) {
+          // Weighted: peculiar/strong mental = 2, остальные characteristic = 1
+          remedyCharHits.set(rem.abbrev, (remedyCharHits.get(rem.abbrev) ?? 0) + cw)
         } else {
           remedyCommonHits.set(rem.abbrev, (remedyCommonHits.get(rem.abbrev) ?? 0) + 1)
           if (!remedyCommonDomains.has(rem.abbrev)) remedyCommonDomains.set(rem.abbrev, new Set())
