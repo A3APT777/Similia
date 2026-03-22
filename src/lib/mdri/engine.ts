@@ -1121,8 +1121,210 @@ function getWeights(hasMiasm: boolean) {
   return { kent: 0.14, polarity: 0.134, hierarchy: 0.12, constellation: 0.26, negative: 0.096, outcome: 0.048, miasm: 0.061 }
 }
 
-// Semantic mapping: клинический термин → точные рубрики реперториума
-// Один симптом → несколько возможных рубрик, приоритет generals/mental/modalities
+// =============================================================================
+// SEMANTIC LAYER: Taxonomy Parser + Fallback Mapping
+//
+// Слой 1: Taxonomy Parser
+//   симптом → parse(subject, qualifier, modality) → resolve(category) → rubric paths
+//   Сохраняет связи: "burning pain stomach" → Stomach, pain, burning (не отдельно)
+//
+// Слой 2: Fallback Mapping (edge cases, peculiar symptoms)
+//   Для симптомов которые не парсятся — прямой маппинг
+// =============================================================================
+
+// --- Taxonomy: 20 категорий → chapter + rubric pattern ---
+
+type ParsedSymptom = {
+  subject: string | null     // что: pain, eruption, perspiration, cough...
+  location: string | null    // где: head, stomach, chest, extremities...
+  qualifier: string | null   // какой: burning, stitching, throbbing, profuse...
+  modality: string | null    // когда/от чего: agg, amel, morning, night, motion...
+  category: 'mental' | 'modality' | 'thermal' | 'thirst' | 'desire' | 'aversion'
+    | 'sensation' | 'discharge' | 'sleep' | 'perspiration' | 'consolation'
+    | 'company' | 'time' | 'side' | 'onset' | 'general' | 'particular' | 'unknown'
+}
+
+// Маппинг ключевых слов → category
+const CATEGORY_KEYWORDS: Record<string, ParsedSymptom['category']> = {
+  // Mental
+  'grief': 'mental', 'anxiety': 'mental', 'fear': 'mental', 'anger': 'mental',
+  'irritab': 'mental', 'jealous': 'mental', 'weep': 'mental', 'restless': 'mental',
+  'indifferen': 'mental', 'suicid': 'mental', 'loquac': 'mental', 'sighing': 'mental',
+  'mood': 'mental', 'haughti': 'mental', 'contempt': 'mental', 'hurry': 'mental',
+  'timid': 'mental', 'bashful': 'mental', 'suppress': 'mental', 'humiliat': 'mental',
+  'secret': 'mental', 'violen': 'mental', 'stammer': 'mental', 'sympathy': 'mental',
+  'perfect': 'mental', 'fastidious': 'mental', 'globus': 'mental',
+  // Thermal
+  'chill': 'thermal', 'hot patient': 'thermal', 'froz': 'thermal', 'warm': 'thermal',
+  // Thirst
+  'thirst': 'thirst', 'thirstless': 'thirst',
+  // Desire/Aversion
+  'desire': 'desire', 'aversion': 'aversion', 'craving': 'desire',
+  // Modality
+  'agg': 'modality', 'amel': 'modality', 'worse': 'modality', 'better': 'modality',
+  'motion': 'modality', 'rest': 'modality',
+  // Consolation/Company
+  'consolat': 'consolation', 'company': 'company',
+  // Time
+  'morning': 'time', 'evening': 'time', 'night': 'time', 'afternoon': 'time',
+  'after sleep': 'time', '2-4': 'time', '4-8': 'time',
+  // Side
+  'right side': 'side', 'left side': 'side', 'right': 'side', 'left': 'side',
+  // Sleep
+  'sleep': 'sleep', 'insomnia': 'sleep', 'dream': 'sleep',
+  // Onset
+  'sudden': 'onset', 'gradual': 'onset',
+  // Perspiration
+  'perspir': 'perspiration', 'sweat': 'perspiration',
+}
+
+// Маппинг location keywords → chapter
+const LOCATION_TO_CHAPTER: Record<string, string> = {
+  'head': 'Head', 'headache': 'Head',
+  'eye': 'Eye', 'pupil': 'Eye', 'vision': 'Vision',
+  'ear': 'Ear', 'nose': 'Nose',
+  'face': 'Face', 'cheek': 'Face',
+  'mouth': 'Mouth', 'tongue': 'Mouth', 'teeth': 'Teeth',
+  'throat': 'Throat', 'larynx': 'Larynx',
+  'stomach': 'Stomach', 'abdomen': 'Abdomen',
+  'rectum': 'Rectum', 'stool': 'Stool',
+  'bladder': 'Bladder', 'urethra': 'Urethra', 'urin': 'Bladder',
+  'chest': 'Chest', 'heart': 'Chest', 'lung': 'Chest',
+  'back': 'Back', 'spine': 'Back',
+  'extremit': 'Extremities', 'joint': 'Extremities', 'knee': 'Extremities',
+  'feet': 'Extremities', 'sole': 'Extremities', 'hand': 'Extremities',
+  'skin': 'Skin', 'erupt': 'Skin', 'eczema': 'Skin', 'wart': 'Skin',
+  'cough': 'Cough', 'respir': 'Respiration',
+  'fever': 'Fever', 'chill': 'Chill', 'perspir': 'Perspiration',
+}
+
+// Qualifier → rubric fragment
+const QUALIFIER_MAP: Record<string, string> = {
+  'burning': 'burning', 'stitching': 'stitching', 'stinging': 'stinging',
+  'throbbing': 'pulsating', 'pressing': 'pressing', 'tearing': 'tearing',
+  'cramping': 'cramping', 'splinter': 'splinter', 'sore': 'sore',
+  'sharp': 'sharp', 'dull': 'dull', 'intolerable': 'intolerable',
+  'profuse': 'profuse', 'offensive': 'offensive', 'acrid': 'acrid',
+  'sticky': 'sticky', 'oozing': 'oozing', 'dry': 'dry',
+  'sudden': 'sudden', 'gradual': 'gradual', 'paroxysm': 'paroxysmal',
+  'alternating': 'alternating',
+}
+
+function parseSymptom(raw: string): ParsedSymptom {
+  const s = raw.toLowerCase().trim()
+
+  // Определить category
+  let category: ParsedSymptom['category'] = 'unknown'
+  for (const [kw, cat] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (s.includes(kw)) { category = cat; break }
+  }
+
+  // Определить location
+  let location: string | null = null
+  for (const [kw, chapter] of Object.entries(LOCATION_TO_CHAPTER)) {
+    if (s.includes(kw)) { location = chapter; break }
+  }
+
+  // Определить qualifier
+  let qualifier: string | null = null
+  for (const [kw, qf] of Object.entries(QUALIFIER_MAP)) {
+    if (s.includes(kw)) { qualifier = qf; break }
+  }
+
+  // Определить modality
+  let modality: string | null = null
+  if (s.includes('agg')) modality = 'agg'
+  else if (s.includes('amel')) modality = 'amel'
+  else if (s.includes('worse')) modality = 'agg'
+  else if (s.includes('better')) modality = 'amel'
+
+  // Subject — основное существительное
+  let subject: string | null = null
+  if (s.includes('pain')) subject = 'pain'
+  else if (s.includes('cough')) subject = 'cough'
+  else if (s.includes('erupt')) subject = 'eruptions'
+  else if (s.includes('discharg')) subject = 'discharge'
+  else if (s.includes('hemorrhage') || s.includes('bleed')) subject = 'hemorrhage'
+  else if (s.includes('swell') || s.includes('edema')) subject = 'swelling'
+  else if (s.includes('nausea')) subject = 'nausea'
+  else if (s.includes('vertigo') || s.includes('dizzin')) subject = 'vertigo'
+  else if (s.includes('paralys')) subject = 'paralysis'
+  else if (s.includes('suppurat')) subject = 'suppuration'
+  else if (s.includes('indurat')) subject = 'induration'
+  else if (s.includes('crack')) subject = 'cracks'
+  else if (s.includes('itch')) subject = 'itching'
+  else if (s.includes('salivat')) subject = 'salivation'
+  else if (s.includes('bruis')) subject = 'sore, bruised'
+
+  // Если нет location — по category определить chapter
+  if (!location) {
+    if (category === 'mental') location = 'Mind'
+    else if (category === 'thermal' || category === 'modality' || category === 'onset') location = 'Generalities'
+    else if (category === 'thirst' || category === 'desire' || category === 'aversion') location = 'Stomach'
+    else if (category === 'perspiration') location = 'Perspiration'
+    else if (category === 'sleep') location = 'Sleep'
+  }
+
+  return { subject, location, qualifier, modality, category }
+}
+
+// Построить rubric paths из parsed компонентов (сохраняя связи)
+function buildRubricPaths(parsed: ParsedSymptom): string[] {
+  const paths: string[] = []
+  const chapter = parsed.location ?? 'Generalities'
+
+  if (parsed.category === 'mental') {
+    // Mental: Mind, [keyword]
+    // Связь: grief + suppressed → Mind, grief, silent
+    paths.push(`mind`)
+  }
+
+  if (parsed.category === 'modality' || parsed.modality) {
+    // Modality: Generalities, [factor], [agg/amel]
+    paths.push(`generalities`)
+    if (parsed.modality === 'agg') paths.push('agg')
+    if (parsed.modality === 'amel') paths.push('amel')
+  }
+
+  if (parsed.category === 'thermal') {
+    paths.push('generalities')
+  }
+
+  if (parsed.category === 'thirst') {
+    paths.push('stomach', 'thirst')
+  }
+
+  if (parsed.category === 'desire') {
+    paths.push('stomach', 'desire')
+  }
+
+  if (parsed.category === 'aversion') {
+    paths.push('stomach', 'aversion')
+  }
+
+  if (parsed.subject) {
+    // Subject + location → конкретная рубрика
+    // "burning pain stomach" → Stomach, pain, burning
+    if (parsed.location && parsed.qualifier) {
+      paths.push(`${chapter.toLowerCase()}, ${parsed.subject}, ${parsed.qualifier}`)
+    } else if (parsed.location) {
+      paths.push(`${chapter.toLowerCase()}, ${parsed.subject}`)
+    }
+    // Generalities fallback
+    if (chapter !== 'Generalities') {
+      paths.push(`generalities, ${parsed.subject}`)
+    }
+  }
+
+  if (parsed.qualifier && !parsed.subject) {
+    // Qualifier without subject → pain with qualifier
+    paths.push(`generalities, pain, ${parsed.qualifier}`)
+  }
+
+  return paths.length > 0 ? paths : [chapter.toLowerCase()]
+}
+
+// Fallback mapping для edge cases и peculiar symptoms
 const SEMANTIC_MAP: Record<string, string[]> = {
   // Термика
   'chilly': ['generalities, cold, agg', 'generalities, warm, amel', 'generalities, cold, tendency to take'],
@@ -1232,138 +1434,140 @@ function findRubrics(data: MDRIData, query: string, cache: Map<string, MDRIReper
   const q = query.toLowerCase()
   if (cache.has(q)) return cache.get(q)!
 
-  // === Semantic layer: проверить mapping ===
-  const semanticKeys = Object.keys(SEMANTIC_MAP).filter(k => q.includes(k) || k.includes(q))
-  if (semanticKeys.length > 0) {
-    // Найти рубрики по точным путям из mapping
-    const semanticResults: [MDRIRepertoryRubric, number][] = []
-    for (const key of semanticKeys) {
-      const paths = SEMANTIC_MAP[key]
-      for (const path of paths) {
-        const pathLower = path.toLowerCase()
-        const pathWords = pathLower.split(/[,\s]+/).filter(w => w.length > 2)
+  // === Слой 1: Taxonomy Parser — parse → resolve → search ===
+  const parsed = parseSymptom(q)
+  const searchTerms = buildRubricPaths(parsed)
 
-        // Искать в wordIndex по первому уникальному слову пути
-        for (const pw of pathWords) {
-          const idx = data.wordIndex.get(pw)
-          if (!idx) continue
-          for (const i of idx) {
-            const r = data.repertory[i]
-            const rl = r.rubric.toLowerCase()
-            // Проверить что рубрика содержит ВСЕ слова из пути
-            if (pathWords.every(w => rl.includes(w))) {
-              // Приоритет: generals/mind > particular
-              const chapterBonus = rl.startsWith('generalities') ? 20
-                : rl.startsWith('mind') ? 15
-                : rl.startsWith('sleep') ? 10
-                : rl.startsWith('stomach') ? 8
-                : 0
-              // Приоритет: средние рубрики (5-100 препаратов)
-              const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 10
-                : r.remedies.length > 100 ? 5
-                : 3
-              semanticResults.push([r, 50 + chapterBonus + sizeBonus])
-            }
-          }
-          break // Один слово достаточно для поиска
+  // Искать по всем search terms, сохраняя связи
+  const allResults: [MDRIRepertoryRubric, number][] = []
+
+  // 1a. Taxonomy search — по parsed компонентам
+  if (searchTerms.length > 0) {
+    for (const term of searchTerms) {
+      const termWords = term.split(/[,\s]+/).map(w => w.trim()).filter(w => w.length > 2)
+      if (termWords.length === 0) continue
+
+      // Найти кандидаты через wordIndex
+      let termCandidates: Set<number> | null = null
+      for (const tw of termWords) {
+        const idx = data.wordIndex.get(tw)
+        if (!idx) continue
+        if (!termCandidates) {
+          termCandidates = new Set(idx)
+        } else {
+          const inter = new Set(idx.filter(i => termCandidates!.has(i)))
+          if (inter.size > 0) termCandidates = inter
         }
       }
-    }
 
-    if (semanticResults.length > 0) {
-      semanticResults.sort((a, b) => b[1] - a[1])
-      // Дедупликация
-      const seen = new Set<string>()
-      const deduped: MDRIRepertoryRubric[] = []
-      for (const [r] of semanticResults) {
-        if (!seen.has(r.rubric)) {
-          seen.add(r.rubric)
-          deduped.push(r)
+      if (termCandidates) {
+        for (const i of termCandidates) {
+          if (allResults.length > 200) break // Лимит
+          const r = data.repertory[i]
+          const rl = r.rubric.toLowerCase()
+
+          // Score: сколько слов из term нашлось + chapter bonus + size bonus
+          const matchedWords = termWords.filter(w => rl.includes(w)).length
+          if (matchedWords < Math.max(1, termWords.length * 0.5)) continue
+
+          const chapterBonus = rl.startsWith('generalities') ? 20
+            : rl.startsWith('mind') ? 15
+            : rl.startsWith('sleep') ? 12
+            : rl.startsWith('stomach') ? 10
+            : rl.startsWith('perspiration') ? 10
+            : 0
+          const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 10
+            : r.remedies.length > 100 ? 5
+            : 3
+          const precisionBonus = matchedWords === termWords.length ? 15 : 0
+
+          allResults.push([r, matchedWords * 10 + chapterBonus + sizeBonus + precisionBonus])
         }
-        if (deduped.length >= 5) break
       }
-      cache.set(q, deduped)
-      return deduped
     }
   }
 
-  // === Fallback: оригинальный keyword matching ===
-
+  // 1b. Добавить результаты из оригинальных слов запроса (полный query)
+  // Это ловит специфичные рубрики которые taxonomy пропустил
   const qWords = q.replace(/,/g, ' ').replace(/;/g, ' ')
-    .split(' ')
-    .map(w => w.replace(/[.,;()]/g, ''))
-    .filter(w => w.length > 2)
-  if (qWords.length === 0) return []
+    .split(' ').map(w => w.replace(/[.,;()]/g, '')).filter(w => w.length > 2)
 
-  let candidates = new Set<number>()
-  for (const qw of qWords) {
-    const idx = data.wordIndex.get(qw)
-    if (idx) {
-      if (candidates.size === 0) {
-        candidates = new Set(idx)
-      } else {
-        const intersection = new Set(idx.filter(i => candidates.has(i)))
-        candidates = intersection.size > 0 ? intersection : new Set([...candidates, ...idx])
-      }
-    }
-  }
-
-  if (candidates.size > 500) {
-    candidates = new Set<number>()
-    for (const qw of qWords.slice(0, 2)) {
+  if (qWords.length > 0) {
+    let candidates = new Set<number>()
+    for (const qw of qWords) {
       const idx = data.wordIndex.get(qw)
       if (idx) {
-        if (candidates.size === 0) {
-          candidates = new Set(idx)
-        } else {
+        if (candidates.size === 0) candidates = new Set(idx)
+        else {
           const inter = new Set(idx.filter(i => candidates.has(i)))
-          if (inter.size > 0) {
-            candidates = inter
-            break
+          candidates = inter.size > 0 ? inter : new Set([...candidates, ...idx])
+        }
+      }
+    }
+    if (candidates.size > 500) {
+      candidates = new Set<number>()
+      for (const qw of qWords.slice(0, 2)) {
+        const idx = data.wordIndex.get(qw)
+        if (idx) {
+          if (candidates.size === 0) candidates = new Set(idx)
+          else {
+            const inter = new Set(idx.filter(i => candidates.has(i)))
+            if (inter.size > 0) { candidates = inter; break }
           }
         }
       }
     }
-  }
-
-  const scored: [MDRIRepertoryRubric, number][] = []
-  for (const idx of candidates) {
-    const r = data.repertory[idx]
-    const rl = r.rubric.toLowerCase()
-    const parts = rl.replace(/;/g, ',').split(',').map(p => p.trim())
-
-    if (rl.includes(q)) {
-      const posBonus = 10 - Math.min(rl.indexOf(q) / Math.max(rl.length, 1) * 10, 9)
-      scored.push([r, 100 + posBonus])
-      continue
-    }
-
-    let matchCount = 0
-    let positionScore = 0
-    for (const qw of qWords) {
-      for (let i = 0; i < parts.length; i++) {
-        if (parts[i].includes(qw)) {
-          matchCount++
-          positionScore += Math.max(0, 5 - i)
-          break
-        }
+    for (const idx of candidates) {
+      const r = data.repertory[idx]
+      const rl = r.rubric.toLowerCase()
+      let matchCount = 0
+      for (const qw of qWords) {
+        if (rl.includes(qw)) matchCount++
+      }
+      if (matchCount >= Math.max(1, qWords.length * 0.5)) {
+        const chapterBonus = rl.startsWith('generalities') ? 15 : rl.startsWith('mind') ? 12 : 0
+        const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 8 : 3
+        allResults.push([r, matchCount * 8 + chapterBonus + sizeBonus])
       }
     }
+  }
 
-    if (matchCount >= Math.max(1, qWords.length * 0.5)) {
-      const precisionBonus = matchCount === qWords.length ? 20 : 0
-      const remCount = r.remedies.length
-      const sizeBonus = remCount >= 5 && remCount <= 100 ? 5 : remCount > 100 ? 2 : 8
-      const pathPenalty = Math.max(0, parts.length - 4) * 2
-      scored.push([r, matchCount * 20 + positionScore + precisionBonus + sizeBonus - pathPenalty])
+  // === Слой 2: Fallback SEMANTIC_MAP для edge cases ===
+  const semanticKeys = Object.keys(SEMANTIC_MAP).filter(k => q.includes(k) || k.includes(q))
+  for (const key of semanticKeys) {
+    for (const path of SEMANTIC_MAP[key]) {
+      const pathWords = path.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2)
+      for (const pw of pathWords) {
+        const idx = data.wordIndex.get(pw)
+        if (!idx) continue
+        for (const i of idx) {
+          const r = data.repertory[i]
+          if (pathWords.every(w => r.rubric.toLowerCase().includes(w))) {
+            allResults.push([r, 60]) // Высокий score для прямого маппинга
+          }
+        }
+        break
+      }
     }
   }
 
-  scored.sort((a, b) => b[1] - a[1])
-  const result = scored.slice(0, 5).map(s => s[0])
+  // === Сортировка, дедупликация, top-5 ===
+  allResults.sort((a, b) => b[1] - a[1])
+  const seen = new Set<string>()
+  const result: MDRIRepertoryRubric[] = []
+  for (const [r] of allResults) {
+    if (!seen.has(r.rubric)) {
+      seen.add(r.rubric)
+      result.push(r)
+    }
+    if (result.length >= 5) break
+  }
+
   cache.set(q, result)
   return result
 }
+
+// (старый keyword matching удалён — заменён taxonomy parser выше)
 
 function kentScore(data: MDRIData, symptoms: MDRISymptom[], cache: Map<string, MDRIRepertoryRubric[]>): Record<string, number> {
   const scores: Record<string, number> = {}
