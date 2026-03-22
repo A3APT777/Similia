@@ -946,11 +946,25 @@ export function analyzePipeline(
     const commonHits = remedyCommonHits.get(rem) ?? 0
     const commonDomains = remedyCommonDomains.get(rem)?.size ?? 0
 
-    // Rule 1: ≥1 characteristic + любой common → candidate
-    // Есть хотя бы один решающий симптом + подтверждение
+    // Rule 1: ≥1 characteristic + ≥1 common → candidate
+    // Усиление: characteristic должен быть весомым (≥2) ИЛИ подтверждён general рубрикой
     if (charHits >= 1 && commonHits >= 1) {
-      candidates.add(rem)
-      continue
+      if (charHits >= 2) {
+        // Сильный characteristic (strong mental или peculiar, или 2+ base) — пропускаем
+        candidates.add(rem)
+        continue
+      }
+      // charHits = 1 (один base) — нужно подтверждение через general
+      const cov = coverage.get(rem)
+      const hasGeneral = cov?.rubrics.some(r => {
+        const rl = r.toLowerCase()
+        return rl.startsWith('generalities') || rl.startsWith('mind') || rl.startsWith('sleep')
+      }) ?? false
+      if (hasGeneral) {
+        candidates.add(rem)
+        continue
+      }
+      // Один слабый characteristic + common без general → не пропускаем
     }
 
     // Rule 2: ≥2 characteristic (без common) → candidate
