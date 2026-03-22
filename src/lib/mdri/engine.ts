@@ -1428,139 +1428,434 @@ const SEMANTIC_MAP: Record<string, string[]> = {
   'paralysis': ['generalities, paralysis', 'extremities, paralysis'],
   // Onset
   'sudden onset': ['generalities, sudden, manifestation', 'fever, sudden'],
+  // === Дополнительные маппинги для recall ===
+  // Dentition/Teeth
+  'dentition': ['teeth, dentition difficult', 'clinical, convulsions, dentition'],
+  'teething': ['teeth, dentition difficult'],
+  'one cheek red': ['face, discoloration, red, one-sided', 'fever, remittent, redness, cheek'],
+  'cheek red pale': ['face, discoloration, red, one-sided, one pale the other red'],
+  'capricious': ['mind, capriciousness', 'appetite, capricious'],
+  'carried desires': ['mind, carried, desires to be'],
+  'wants carried': ['mind, carried, desires to be'],
+  'stool green': ['stool, mucous, green', 'stool, watery, green'],
+  'oversensitive': ['mind, sensitive, oversensitive', 'mind, speech, shrieking, pain'],
+  'pain intolerance': ['mind, speech, shrieking, pain', 'mind, sensitive, pain, to'],
+  // Injuries/Trauma
+  'bruises': ['clinical, injuries', 'generalities, injuries, bruises', 'generalities, pain, sore, bruised'],
+  'contusions': ['clinical, injuries', 'generalities, injuries'],
+  'injury': ['clinical, injuries', 'generalities, injuries'],
+  'trauma': ['clinical, injuries', 'generalities, injuries, bruises'],
+  'bed hard': ['generalities, hard bed, sensation of'],
+  'hard bed': ['generalities, hard bed, sensation of'],
+  'refuses help': ['mind, well, says he is, when very sick'],
+  'says well': ['mind, well, says he is, when very sick'],
+  'fear touch': ['mind, fear, touch', 'mind, fear, approaching'],
+  // Drowsiness/Eyelids
+  'drowsiness': ['sleep, sleepiness', 'sleep, drowsiness', 'generalities, lassitude'],
+  'heaviness eyelids': ['eye, heaviness, lids', 'eye, open, unable to'],
+  'eyelids heavy': ['eye, heaviness, lids'],
+  'trembling': ['generalities, trembling', 'extremities, trembling'],
+  'tremor': ['generalities, trembling', 'extremities, trembling'],
+  'stage fright': ['mind, anticipation', 'mind, anxiety, anticipation', 'mind, fear, stage'],
+  // Vomiting/Diarrhea
+  'vomiting diarrhea': ['stomach, vomiting, diarrhea', 'rectum, diarrhea'],
+  'cholera': ['generalities, cholera', 'clinical, cholera', 'stool, watery, rice water'],
+  'cold sweat': ['face, perspiration, cold', 'head, perspiration, forehead, cold', 'perspiration, cold'],
+  'cramps calves': ['extremities, cramps, calf'],
+  'cramps legs': ['extremities, cramps, calf', 'extremities, cramps, lower limbs'],
+  // Dysmenorrhea
+  'dysmenorrhea': ['genitalia female, pain, menses, during', 'abdomen, pain, menses, during'],
+  'menstrual cramps': ['genitalia female, pain, menses, during', 'abdomen, pain, cramping, menses'],
+  'menstrual spasms': ['genitalia female, pain, menses, during', 'abdomen, pain, cramping, menses'],
+  'spasms': ['generalities, convulsions', 'abdomen, pain, cramping'],
+  'doubling up': ['abdomen, pain, bending double, amel'],
+  'bending double': ['abdomen, pain, bending double, amel'],
+  // Coryza/Nasal
+  'coryza': ['nose, coryza', 'nose, discharge'],
+  'acrid discharge nose': ['nose, discharge, acrid', 'nose, discharge, excoriating'],
+  'burning nose discharge': ['nose, discharge, acrid', 'nose, discharge, burning'],
+  'lachrymation bland': ['eye, lachrymation', 'nose, discharge, acrid'],
+  'lachrymation': ['eye, lachrymation'],
+  'sneezing': ['nose, sneezing'],
+  // Anemia/Face
+  'anemia': ['generalities, anemia', 'face, pale', 'clinical, anemia'],
+  'false plethora': ['face, discoloration, red, flushing easily', 'generalities, anemia'],
+  'flushing': ['face, discoloration, red, flushing easily', 'face, heat, flushes'],
+  'face flushes': ['face, discoloration, red, flushing easily', 'face, heat, flushes'],
+  // Grinding teeth/Worms
+  'grinding teeth': ['teeth, grinding', 'sleep, teeth, grinding'],
+  'bruxism': ['teeth, grinding', 'sleep, teeth, grinding'],
+  'picking nose': ['nose, boring, picks at', 'nose, boring'],
+  'boring nose': ['nose, boring, picks at'],
+  'worms': ['abdomen, worms', 'rectum, worms', 'clinical, worms'],
+  'parasites': ['abdomen, worms', 'clinical, worms'],
+  'pallor mouth': ['face, pale, around mouth', 'face, discoloration, pale, mouth, around'],
+  // Haughtiness
+  'haughty': ['mind, haughtiness', 'mind, contemptuous'],
+  'arrogant': ['mind, haughtiness', 'mind, contemptuous'],
+  'objects small': ['mind, delusions, diminished, everything is', 'mind, delusions, small'],
+  'appear small': ['mind, delusions, diminished', 'mind, delusions, small'],
+  // Motion sickness / Travel
+  'motion sickness': ['stomach, nausea, riding, carriage, in a', 'generalities, riding, in a carriage, agg'],
+  'car sick': ['stomach, nausea, riding, carriage', 'generalities, riding, in a carriage, agg'],
+  'sea sick': ['stomach, nausea, riding, at sea', 'stomach, nausea, sailing'],
+  'nausea travel': ['stomach, nausea, riding, carriage', 'generalities, riding, in a carriage, agg'],
+  // Barking/Croup
+  'barking cough': ['cough, barking', 'cough, hoarse'],
+  'croup': ['cough, barking', 'cough, croupy', 'larynx, croup'],
+  'croupy': ['cough, croupy', 'larynx, croup'],
+  // Whooping/Paroxysmal cough
+  'paroxysmal cough': ['cough, paroxysmal', 'cough, whooping'],
+  'spasmodic cough': ['cough, spasmodic', 'cough, paroxysmal'],
+  // Concussion / Head injury
+  'concussion': ['head, injuries, concussion', 'clinical, concussion', 'head, pain, injuries, after'],
+  'head injury': ['head, injuries', 'head, pain, injuries, after'],
+  // Damp/Wet weather
+  'damp weather': ['generalities, wet, agg', 'generalities, cold, wet weather, agg'],
+  'wet weather': ['generalities, wet, agg', 'generalities, cold, wet weather, agg'],
+  // Desire travel
+  'desire travel': ['mind, travel, desire to', 'mind, restlessness, desire for change'],
+  'travel desire': ['mind, travel, desire to'],
+  // Loose/Tonsils/Glands
+  'tonsils enlarged': ['throat, swelling, tonsils', 'throat, hypertrophy, tonsils'],
+  'bashful': ['mind, timidity', 'mind, bashful'],
+  'shy hides': ['mind, timidity', 'mind, bashful', 'mind, hiding'],
+  // Menses/Climacteric
+  'menopause': ['generalities, climacteric period', 'genitalia female, menopause'],
+  'climacteric': ['generalities, climacteric period', 'genitalia female, menopause'],
+  'hot flushes': ['generalities, flushes of heat', 'face, heat, flushes'],
+  // Clothing intolerance
+  'tight clothing': ['generalities, clothing, intolerance of', 'throat, clothing, sensitive to'],
+  'clothing neck': ['throat, clothing, sensitive to', 'throat, constriction, collar, agg'],
+  // After sleep
+  'after sleep worse': ['sleep, after, agg', 'generalities, sleep, after, agg'],
+  // Alternating sides - throat
+  'throat alternating': ['throat, pain, alternating sides'],
+  // Ptosis
+  'ptosis': ['eye, paralysis, upper lid', 'eye, drooping, upper lid'],
+  'drooping eyelid': ['eye, paralysis, upper lid'],
+  // Hoarseness
+  'hoarseness': ['larynx, voice, hoarseness'],
+  'loss voice': ['larynx, voice, lost', 'larynx, voice, hoarseness'],
+  // Emaciation specifics
+  'emaciation despite': ['appetite, ravenous, emaciation, with', 'generalities, emaciation'],
+  // Despair recovery
+  'despair': ['mind, despair', 'mind, despair, recovery', 'mind, hopeless'],
+  'hopeless': ['mind, despair', 'mind, hopeless'],
+  'despair recovery': ['mind, despair, recovery'],
+  // Obstinate
+  'obstinate': ['mind, obstinate'],
+  // Offensive smell
+  'offensive smell': ['perspiration, odor, offensive', 'generalities, odor, body, offensive'],
+  'offensive body': ['perspiration, odor, offensive'],
+  // Moles
+  'moles naevi': ['skin, moles'],
+  // Perfectionism
+  'perfectionism': ['mind, conscientious, about trifles', 'mind, fastidious'],
+  // Styes
+  'styes': ['eye, styes'],
+  'stye': ['eye, styes'],
+  // Cystitis coition
+  'cystitis': ['bladder, inflammation', 'bladder, pain'],
+  'cystitis coition': ['bladder, pain, coition, after'],
+  // Tongue
+  'tongue imprint': ['mouth, tongue, indented', 'mouth, teeth, imprints, tongue'],
+  'tongue clean nausea': ['stomach, nausea, tongue, clean, with'],
+  // Edema
+  'edema': ['eye, swollen, lids, edematous', 'generalities, dropsy, edema'],
+  'puffiness eyelids': ['eye, swollen, lids, edematous'],
+  'upper eyelid swelling': ['eye, swollen, lids, edematous', 'eye, swollen, lids, upper'],
+  // Stitching pain
+  'stitching': ['generalities, pain, stitching', 'chest, pain, stitching'],
+  // Startled easily
+  'startled': ['mind, starting, easily', 'mind, startled'],
+  // Prostration
+  'prostration': ['generalities, weakness', 'generalities, lassitude', 'generalities, faintness'],
+  // Better slow walking
+  'slow walking better': ['generalities, walking, slowly, amel'],
+  // Diarrhea morning
+  'diarrhea morning': ['rectum, diarrhea, morning'],
+  // Suicidal specific
+  'suicidal jump': ['mind, suicidal, jumping, from height', 'mind, suicidal disposition'],
+  // Vaccination
+  'after vaccination': ['generalities, vaccination, after', 'skin, warts, vaccination, after'],
+  // Perspiration head night
+  'perspiration head': ['head, perspiration', 'head, perspiration, sleep, during'],
+  'head perspiration': ['head, perspiration', 'head, perspiration, sleep, during'],
+  // Feet perspiration offensive
+  'feet perspiration': ['extremities, perspiration, foot', 'extremities, perspiration, foot, offensive'],
+  'perspiration feet offensive': ['extremities, perspiration, foot, offensive'],
+  // === NOT FOUND кейсы — дополнительные маппинги ===
+  // Gelsemium: drowsiness + eyelids + trembling
+  'drowsiness heaviness': ['sleep, sleepiness', 'eye, heaviness, lids', 'generalities, lassitude'],
+  'eyelids heaviness': ['eye, heaviness, lids'],
+  'weakness trembling': ['extremities, trembling', 'generalities, trembling, externally'],
+  'anticipation exam': ['mind, anticipation', 'mind, anxiety, anticipation'],
+  'thirstless fever': ['stomach, thirstless'],
+  // Conium: vertigo turning head + induration glands
+  'vertigo turning head': ['vertigo, turning, in bed', 'vertigo, turning'],
+  'vertigo head': ['vertigo, turning', 'vertigo, motion, head'],
+  'induration glands': ['external throat, induration of glands', 'generalities, induration'],
+  'induration breast': ['chest, induration, mammae', 'generalities, induration'],
+  'breast hard': ['chest, induration, mammae'],
+  'memory weak': ['mind, memory, weakness of', 'mind, forgetful'],
+  'memory forgetful': ['mind, memory, weakness of', 'mind, forgetful'],
+  'watching moving': ['vertigo, looking at, moving objects'],
+  // Kali-carb: 2-3am + stitching + puffiness eyelids
+  'waking 2am': ['sleep, waking, 2 a.m.', 'generalities, night, 2 a.m.'],
+  'waking 3am': ['sleep, waking, 3 a.m.', 'generalities, night, 3 a.m.'],
+  '2am 3am': ['generalities, night, 2 a.m.', 'generalities, night, 3 a.m.', 'sleep, waking, 2 a.m.'],
+  'stitching pain': ['generalities, pain, stitching', 'chest, pain, stitching'],
+  'puffiness': ['eye, swollen, lids, edematous', 'face, swelling'],
+  'rigid duty': ['mind, conscientious, about trifles'],
+  'anxiety stomach': ['mind, anxiety, stomach, felt in'],
+  // Lac caninum: throat + alternating sides + self-contempt
+  'sore throat alternating': ['throat, pain, alternating sides', 'head, pain, sides, one side, alternating'],
+  'headache alternating': ['head, pain, sides, one side, alternating'],
+  'self contempt': ['mind, contemptuous, of self', 'mind, confidence, want of'],
+  'worthlessness': ['mind, confidence, want of', 'mind, contemptuous, of self'],
+  'fear snakes': ['mind, fear, snakes'],
+  'constriction throat': ['throat, constriction', 'throat, narrow, sensation'],
+  // Spongia: barking cough + croup + larynx
+  'barking': ['cough, barking', 'cough, hoarse', 'cough, croupy'],
+  'wheezing': ['respiration, wheezing', 'respiration, whistling'],
+  'larynx sensitive': ['larynx, sensitive, touch', 'larynx, pain'],
+  'before midnight': ['generalities, night, before midnight', 'larynx, croup, night, before midnight'],
+  'warm drinks': ['stomach, warm drinks, amel', 'generalities, warm, drinks, amel'],
+  // Drosera: whooping cough + paroxysmal + vomiting from cough
+  'cough vomiting': ['cough, paroxysmal, ending vomiting', 'stomach, vomiting, cough, during'],
+  'cough worse lying': ['cough, lying, agg', 'cough, lying down, agg'],
+  'cough talking': ['cough, talking', 'cough, speaking'],
+  'cough laughing': ['cough, laughing'],
+  // Tabacum: motion sickness + pallor + cold sweat
+  'deathly pale': ['face, discoloration, pale, deathly', 'face, pale'],
+  'pallor': ['face, discoloration, pale', 'face, pale'],
+  'worse opening eyes': ['vertigo, opening eyes, on', 'generalities, eyes, opening, agg'],
+  'nausea deathly': ['stomach, nausea, deathly', 'stomach, nausea'],
+  'riding carriage': ['stomach, nausea, riding, carriage', 'generalities, riding, in a carriage, agg'],
+  // Medorrhinum: sleep abdomen + sea + worse morning
+  'sleep abdomen prone': ['sleep, position, abdomen', 'sleep, position, stomach'],
+  'prone sleep': ['sleep, position, abdomen', 'sleep, position, stomach'],
+  'sea amel': ['generalities, sea, amel', 'generalities, seaside, amel'],
+  'seashore': ['generalities, sea, amel', 'generalities, seaside, amel'],
+  'better sea': ['generalities, sea, amel', 'generalities, seaside, amel'],
+  'worse morning better evening': ['generalities, morning, agg', 'generalities, evening, amel'],
+  // Tuberculinum: travel desire + emaciation + catches cold
+  'desire travel change': ['mind, travel, desire to', 'mind, restlessness'],
+  'catches cold easily': ['generalities, cold, taking cold, tendency', 'generalities, cold, tendency to take'],
+  'emaciation appetite': ['appetite, ravenous, emaciation, with', 'generalities, emaciation'],
+  'glands enlarged': ['external throat, induration of glands', 'external throat, swelling, cervical glands'],
+  'glands swollen': ['external throat, swelling, cervical glands', 'generalities, swelling, glands'],
+  // Mag-p: cramps spasms + warmth amel + bending double
+  'cramps spasms': ['stomach, pain, cramping', 'abdomen, pain, cramping', 'extremities, cramps'],
+  'cramps menstrual': ['genitalia female, pain, menses, during', 'abdomen, pain, cramping, menses'],
+  'warmth amel': ['generalities, warm, amel', 'generalities, heat, amel'],
+  'hot applications': ['generalities, heat, amel', 'generalities, warm, applications, amel'],
+  'lightning pain': ['generalities, pain, shooting', 'extremities, pain, shooting'],
+  'shooting pain': ['generalities, pain, shooting', 'extremities, pain, shooting'],
+  // Ferrum: anemia + face flushing + slow walking
+  'face flushing': ['face, discoloration, red, flushing easily', 'face, discoloration, red, exertion, after'],
+  'face red exertion': ['face, discoloration, red, exertion, after'],
+  'slow walking': ['generalities, walking, slowly, amel'],
+  'anemia pale': ['head, anemia of the brain', 'face, discoloration, pale', 'clinical, anemia'],
+  'vomiting after eating': ['stomach, vomiting, eating, after'],
+  // Carc — нет в реперториуме, но constellation даст бонус через miasm
+  'perfectionist others': ['mind, conscientious, about trifles', 'mind, fastidious'],
+  'suppressed emotions': ['mind, ailments from, emotions, suppressed'],
+  'always smiling': ['mind, cheerfulness, alternating with sadness'],
 }
 
 function findRubrics(data: MDRIData, query: string, cache: Map<string, MDRIRepertoryRubric[]>): MDRIRepertoryRubric[] {
   const q = query.toLowerCase()
   if (cache.has(q)) return cache.get(q)!
 
-  // === Слой 1: Taxonomy Parser — parse → resolve → search ===
-  const parsed = parseSymptom(q)
-  const searchTerms = buildRubricPaths(parsed)
+  // Скоринг кандидатов: rubric index → score
+  const scores = new Map<number, number>()
 
-  // Искать по всем search terms, сохраняя связи
-  const allResults: [MDRIRepertoryRubric, number][] = []
+  // Стоп-слова — общие слова которые не несут диагностической информации
+  const STOP_WORDS = new Set(['the', 'and', 'for', 'from', 'with', 'has', 'not', 'but', 'does', 'any', 'all', 'are', 'was', 'been', 'have', 'will', 'can', 'his', 'her', 'she', 'him', 'its', 'that', 'this', 'what', 'when', 'where', 'who', 'how', 'very', 'much', 'more', 'also', 'like', 'just', 'even', 'well', 'too', 'than', 'only', 'then', 'they', 'them', 'some', 'into', 'over', 'such', 'does', 'did', 'had', 'way'])
 
-  // 1a. Taxonomy search — по parsed компонентам
-  if (searchTerms.length > 0) {
-    for (const term of searchTerms) {
-      const termWords = term.split(/[,\s]+/).map(w => w.trim()).filter(w => w.length > 2)
-      if (termWords.length === 0) continue
+  // === Собрать все слова запроса ===
+  const rawWords = q.replace(/[,;()]/g, ' ').split(/\s+/).map(w => w.replace(/[.,;()]/g, '')).filter(w => w.length > 2 && !STOP_WORDS.has(w))
+  // Уникальные слова
+  const qWords = [...new Set(rawWords)]
 
-      // Найти кандидаты через wordIndex
-      let termCandidates: Set<number> | null = null
-      for (const tw of termWords) {
-        const idx = data.wordIndex.get(tw)
-        if (!idx) continue
-        if (!termCandidates) {
-          termCandidates = new Set(idx)
-        } else {
-          const inter = new Set(idx.filter(i => termCandidates!.has(i)))
-          if (inter.size > 0) termCandidates = inter
-        }
-      }
+  // === Слой 1: SEMANTIC_MAP — прямой маппинг (высший приоритет) ===
+  // Проверяем все ключи SEMANTIC_MAP — и полное совпадение, и частичное
+  for (const [key, paths] of Object.entries(SEMANTIC_MAP)) {
+    // Проверяем: query содержит ключ ИЛИ ключ содержит query ИЛИ значимые слова совпадают
+    const keyWords = key.split(/\s+/)
+    const keyMatch = q.includes(key) || key.includes(q)
+      || (keyWords.length <= 2 && keyWords.every(kw => qWords.some(qw => qw.includes(kw) || kw.includes(qw))))
+    if (!keyMatch) continue
 
-      if (termCandidates) {
-        for (const i of termCandidates) {
-          if (allResults.length > 200) break // Лимит
-          const r = data.repertory[i]
-          const rl = r.rubric.toLowerCase()
-
-          // Score: сколько слов из term нашлось + chapter bonus + size bonus
-          const matchedWords = termWords.filter(w => rl.includes(w)).length
-          if (matchedWords < Math.max(1, termWords.length * 0.5)) continue
-
-          const chapterBonus = rl.startsWith('generalities') ? 20
-            : rl.startsWith('mind') ? 15
-            : rl.startsWith('sleep') ? 12
-            : rl.startsWith('stomach') ? 10
-            : rl.startsWith('perspiration') ? 10
-            : 0
-          const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 10
-            : r.remedies.length > 100 ? 5
-            : 3
-          const precisionBonus = matchedWords === termWords.length ? 15 : 0
-
-          allResults.push([r, matchedWords * 10 + chapterBonus + sizeBonus + precisionBonus])
-        }
-      }
-    }
-  }
-
-  // 1b. Добавить результаты из оригинальных слов запроса (полный query)
-  // Это ловит специфичные рубрики которые taxonomy пропустил
-  const qWords = q.replace(/,/g, ' ').replace(/;/g, ' ')
-    .split(' ').map(w => w.replace(/[.,;()]/g, '')).filter(w => w.length > 2)
-
-  if (qWords.length > 0) {
-    let candidates = new Set<number>()
-    for (const qw of qWords) {
-      const idx = data.wordIndex.get(qw)
-      if (idx) {
-        if (candidates.size === 0) candidates = new Set(idx)
-        else {
-          const inter = new Set(idx.filter(i => candidates.has(i)))
-          candidates = inter.size > 0 ? inter : new Set([...candidates, ...idx])
-        }
-      }
-    }
-    if (candidates.size > 500) {
-      candidates = new Set<number>()
-      for (const qw of qWords.slice(0, 2)) {
-        const idx = data.wordIndex.get(qw)
-        if (idx) {
-          if (candidates.size === 0) candidates = new Set(idx)
-          else {
-            const inter = new Set(idx.filter(i => candidates.has(i)))
-            if (inter.size > 0) { candidates = inter; break }
-          }
-        }
-      }
-    }
-    for (const idx of candidates) {
-      const r = data.repertory[idx]
-      const rl = r.rubric.toLowerCase()
-      let matchCount = 0
-      for (const qw of qWords) {
-        if (rl.includes(qw)) matchCount++
-      }
-      if (matchCount >= Math.max(1, qWords.length * 0.5)) {
-        const chapterBonus = rl.startsWith('generalities') ? 15 : rl.startsWith('mind') ? 12 : 0
-        const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 8 : 3
-        allResults.push([r, matchCount * 8 + chapterBonus + sizeBonus])
-      }
-    }
-  }
-
-  // === Слой 2: Fallback SEMANTIC_MAP для edge cases ===
-  const semanticKeys = Object.keys(SEMANTIC_MAP).filter(k => q.includes(k) || k.includes(q))
-  for (const key of semanticKeys) {
-    for (const path of SEMANTIC_MAP[key]) {
+    for (const path of paths) {
       const pathWords = path.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2)
+      if (pathWords.length === 0) continue
+
+      // Найти рубрики через wordIndex, ищем пересечение слов пути
+      let pathCandidates: Set<number> | null = null
       for (const pw of pathWords) {
         const idx = data.wordIndex.get(pw)
         if (!idx) continue
-        for (const i of idx) {
+        if (!pathCandidates) {
+          pathCandidates = new Set(idx)
+        } else {
+          const inter = new Set<number>()
+          for (const i of idx) { if (pathCandidates.has(i)) inter.add(i) }
+          if (inter.size > 0) pathCandidates = inter
+          // Если пересечение пустое — оставляем предыдущий набор
+        }
+      }
+      if (pathCandidates) {
+        for (const i of pathCandidates) {
           const r = data.repertory[i]
-          if (pathWords.every(w => r.rubric.toLowerCase().includes(w))) {
-            allResults.push([r, 60]) // Высокий score для прямого маппинга
+          const rl = r.rubric.toLowerCase()
+          // Проверяем что все слова пути есть в рубрике
+          const matched = pathWords.filter(w => rl.includes(w)).length
+          if (matched >= Math.ceil(pathWords.length * 0.7)) {
+            const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 15
+              : r.remedies.length > 100 ? 8 : 5
+            const precision = matched === pathWords.length ? 20 : 0
+            const s = 80 + sizeBonus + precision // Высокий базовый score для SEMANTIC_MAP
+            scores.set(i, Math.max(scores.get(i) ?? 0, s))
           }
         }
-        break
       }
     }
   }
 
-  // === Сортировка, дедупликация, top-5 ===
-  allResults.sort((a, b) => b[1] - a[1])
+  // === Слой 2: Union word search — каждое слово вносит кандидатов ===
+  // Собираем ВСЕ рубрики где есть хотя бы одно слово запроса, ранжируем по overlap
+  const wordHits = new Map<number, number>() // rubric index → count of matched words
+  for (const qw of qWords) {
+    const idx = data.wordIndex.get(qw)
+    if (!idx) continue
+    for (const i of idx) {
+      wordHits.set(i, (wordHits.get(i) ?? 0) + 1)
+    }
+  }
+
+  // Ранжирование кандидатов по overlap
+  for (const [i, hitCount] of wordHits) {
+    // Минимум 1 слово совпало — пропускаем только если query длинный и совпало мало
+    if (qWords.length > 3 && hitCount === 1) continue
+
+    const r = data.repertory[i]
+    const rl = r.rubric.toLowerCase()
+
+    // Точный подсчёт: сколько слов запроса реально есть в тексте рубрики (не только wordIndex)
+    let realMatch = 0
+    for (const qw of qWords) {
+      if (rl.includes(qw)) realMatch++
+    }
+    if (realMatch === 0) continue
+
+    // Scoring
+    const overlap = realMatch / qWords.length // 0..1
+    const wordScore = realMatch * 12
+
+    // Бонус за размер рубрики: специфичные рубрики (3-30) гораздо ценнее общих (100+)
+    const remCount = r.remedies.length
+    const sizeBonus = remCount >= 3 && remCount <= 15 ? 20   // Очень специфичная
+      : remCount > 15 && remCount <= 50 ? 15                 // Специфичная
+      : remCount > 50 && remCount <= 100 ? 10                // Средняя
+      : remCount > 100 && remCount <= 200 ? 5                // Общая
+      : remCount > 200 ? 2                                   // Слишком общая
+      : 8                                                    // 1-2 препарата
+
+    // Бонус за релевантный chapter
+    const chapterBonus = rl.startsWith('mind') ? 8
+      : rl.startsWith('generalities') ? 8
+      : rl.startsWith('stomach') ? 5
+      : rl.startsWith('sleep') ? 5
+      : rl.startsWith('perspiration') ? 5
+      : rl.startsWith('skin') ? 4
+      : 0
+
+    // Бонус за высокий overlap
+    const overlapBonus = overlap >= 0.8 ? 20 : overlap >= 0.5 ? 10 : 0
+
+    const s = wordScore + sizeBonus + chapterBonus + overlapBonus
+    scores.set(i, Math.max(scores.get(i) ?? 0, s))
+  }
+
+  // === Слой 3: Synonym expansion — расширяем через SYNONYM_MAP ===
+  // Находим подходящие ключи синонимов
+  const matchedSynKeys = new Set<string>()
+  for (const qw of qWords) {
+    const keys = SYNONYM_WORD_INDEX.get(qw)
+    if (keys) {
+      for (const k of keys) matchedSynKeys.add(k)
+    }
+  }
+  // Для каждого ключа синонимов — добавляем его синонимы как дополнительные поисковые запросы
+  for (const synKey of matchedSynKeys) {
+    // Проверяем что ключ действительно релевантен (хотя бы 1 ключевое слово из query)
+    const keyWords = synKey.split(/\s+/)
+    const relevance = keyWords.filter(kw => qWords.some(qw => qw.includes(kw) || kw.includes(qw))).length
+    if (relevance === 0) continue
+
+    const synonyms = SYNONYM_MAP[synKey]
+    if (!synonyms) continue
+
+    for (const syn of synonyms) {
+      const synWords = syn.split(/\s+/).filter(w => w.length > 2)
+      // Ищем рубрики через первое слово синонима
+      for (const sw of synWords) {
+        const idx = data.wordIndex.get(sw)
+        if (!idx) continue
+        for (const i of idx) {
+          const r = data.repertory[i]
+          const rl = r.rubric.toLowerCase()
+          // Считаем сколько слов синонима нашлось в рубрике
+          const matched = synWords.filter(w => rl.includes(w)).length
+          if (matched >= Math.max(1, Math.ceil(synWords.length * 0.5))) {
+            const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 8 : 3
+            const s = 40 + matched * 8 + sizeBonus // Ниже чем SEMANTIC_MAP, но добавляет кандидатов
+            scores.set(i, Math.max(scores.get(i) ?? 0, s))
+          }
+        }
+        break // Только первое слово для поиска, остальные для фильтрации
+      }
+    }
+  }
+
+  // === Слой 4: Taxonomy Parser — как дополнительный источник ===
+  const parsed = parseSymptom(q)
+  const searchTerms = buildRubricPaths(parsed)
+  for (const term of searchTerms) {
+    const termWords = term.split(/[,\s]+/).map(w => w.trim()).filter(w => w.length > 2)
+    if (termWords.length === 0) continue
+
+    // Union search по словам терма
+    for (const tw of termWords) {
+      const idx = data.wordIndex.get(tw)
+      if (!idx) continue
+      for (const i of idx) {
+        const r = data.repertory[i]
+        const rl = r.rubric.toLowerCase()
+        const matched = termWords.filter(w => rl.includes(w)).length
+        if (matched >= 1) {
+          const sizeBonus = r.remedies.length >= 5 && r.remedies.length <= 100 ? 8 : 3
+          const s = 30 + matched * 8 + sizeBonus
+          scores.set(i, Math.max(scores.get(i) ?? 0, s))
+        }
+      }
+    }
+  }
+
+  // === Сортировка, дедупликация, top-10 ===
+  const sorted = [...scores.entries()].sort((a, b) => b[1] - a[1])
   const seen = new Set<string>()
   const result: MDRIRepertoryRubric[] = []
-  for (const [r] of allResults) {
+  for (const [i] of sorted) {
+    const r = data.repertory[i]
     if (!seen.has(r.rubric)) {
       seen.add(r.rubric)
       result.push(r)
     }
-    if (result.length >= 5) break
+    if (result.length >= 10) break
   }
 
   cache.set(q, result)
@@ -1577,7 +1872,13 @@ function kentScore(data: MDRIData, symptoms: MDRISymptom[], cache: Map<string, M
     for (const match of matches) {
       const rubricSize = match.remedies.length
       const totalRemedies = 2432
-      const idf = Math.log2(Math.max(totalRemedies, 1) / Math.max(rubricSize, 1))
+      // Усиленный IDF: степень 1.8 для большего разброса
+      // Маленькая рубрика (10 rems): 7.9^1.8 = 46 → вес x46
+      // Средняя рубрика (50 rems): 5.6^1.8 = 22 → вес x22
+      // Большая рубрика (200 rems): 3.6^1.8 = 10 → вес x10
+      // Это даёт 4.6x разницу между 10 и 200, вместо 2.2x при линейном IDF
+      const rawIdf = Math.log2(Math.max(totalRemedies, 1) / Math.max(rubricSize, 1))
+      const idf = Math.pow(rawIdf, 1.8)
       for (const rem of match.remedies) {
         scores[rem.abbrev] = (scores[rem.abbrev] ?? 0) + rem.grade * sym.weight * idf
       }
@@ -1585,17 +1886,16 @@ function kentScore(data: MDRIData, symptoms: MDRISymptom[], cache: Map<string, M
   }
   if (Object.keys(scores).length === 0) return scores
 
-  // Anti-domination + Frequency Prior
-  const avgScore = Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length
+  // Anti-domination: чем больше рубрик у препарата, тем сильнее штраф
+  // Полихресты (Sulph 12k, Phos 10k) появляются в каждой рубрике и доминируют без этого
   for (const remAbbrev of Object.keys(scores)) {
     const count = data.remedyRubricCount.get(remAbbrev) ?? 0
-    if (count > 10000) scores[remAbbrev] *= 0.75
-    else if (count > 5000) scores[remAbbrev] *= 0.85
-    else if (count > 3000) scores[remAbbrev] *= 0.92
-
-    if (count < 30 && scores[remAbbrev] < avgScore) {
-      scores[remAbbrev] *= 0.70
-    }
+    if (count > 10000) scores[remAbbrev] *= 0.55       // Sulph, Phos
+    else if (count > 8000) scores[remAbbrev] *= 0.65   // Lyc, Sep, Calc, Puls, Ars, Nat-m, Nux-v, Rhus-t
+    else if (count > 6000) scores[remAbbrev] *= 0.75   // Bell, Merc, Sil, Lach, Thuj, Caust, Kali-c, Bry
+    else if (count > 4000) scores[remAbbrev] *= 0.85   // Cham, Verat, Arn, Con, Bar-c, Ferr
+    else if (count > 2000) scores[remAbbrev] *= 0.92   // Gels, Spong, Dros, Tab, Cina
+    // Мелкие (<2000) — без штрафа: Lac-c, All-c, Med, Mag-p, Tub
   }
 
   const maxS = Math.max(...Object.values(scores))
