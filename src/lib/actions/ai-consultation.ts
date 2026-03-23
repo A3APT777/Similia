@@ -646,16 +646,20 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     input.text, parseResult.symptoms, parseResult.modalities,
   )
 
-  // Приоритет: high (characteristic, strong modality, mental w≥2), medium (useful), low (общий)
-  function assignPriority(type: string, weight: number, source: string): 'high' | 'medium' | 'low' {
+  const hasConflicts = conflicts.length > 0
+
+  // Базовый приоритет до ограничений
+  function basePriority(type: string, weight: number, source: string): 'high' | 'medium' | 'low' {
+    // keyword-only с низким весом → не доверяем
+    if (source === 'keyword' && weight <= 1) return 'low'
     // weight=3 или mental с weight≥2 → high
     if (weight >= 3) return 'high'
     if (type === 'mental' && weight >= 2) return 'high'
-    if (type === 'modality') return 'high'
+    // modality → medium (не high по умолчанию, только weight=3 модальности → high)
+    if (type === 'modality') return 'medium'
     // weight=2 или general → medium
     if (weight >= 2) return 'medium'
     if (type === 'general') return 'medium'
-    // weight=1, particular → low
     return 'low'
   }
 
@@ -670,7 +674,7 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     const type = sym.category === 'mental' ? 'mental' : sym.category === 'general' ? 'general' : 'particular'
     const weight = sym.weight as 1 | 2 | 3
     const source = isFromFallback ? 'keyword' as const : 'sonnet' as const
-    const priority = assignPriority(type, weight, source)
+    const priority = basePriority(type, weight, source)
     suggestions.push({
       id: `s-${idCounter++}`,
       rubric: sym.rubric,
@@ -678,25 +682,48 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
       type,
       weight,
       priority,
-      confirmed: priority === 'high', // Только high auto-confirmed
+      confirmed: false, // Проставим после ограничений
       source,
     })
   }
 
-  // Модальности как suggestions (всегда high)
+  // Модальности → medium по умолчанию (high только при weight=3)
   for (const mod of modalities) {
     const key = `${mod.pairId}_${mod.value}`
+    const modSource = parseResult.modalities.some(m => m.pairId === mod.pairId) ? 'sonnet' as const : 'keyword' as const
     suggestions.push({
       id: `m-${idCounter++}`,
       rubric: `${mod.pairId}:${mod.value}`,
       label: MODALITY_RU[key] ?? `${mod.pairId} ${mod.value === 'agg' ? 'хуже' : 'лучше'}`,
       type: 'modality',
       weight: 2,
-      priority: 'high',
-      confirmed: true,
-      source: parseResult.modalities.some(m => m.pairId === mod.pairId) ? 'sonnet' : 'keyword',
+      priority: modSource === 'sonnet' ? 'medium' : 'low',
+      confirmed: false,
+      source: modSource,
     })
   }
+
+  // === Post-processing: ограничения и safety ===
+
+  // 1. Cap: максимум 5 high, остальные → medium
+  const MAX_HIGH = 5
+  let highCount = 0
+  for (const s of suggestions) {
+    if (s.priority === 'high') {
+      highCount++
+      if (highCount > MAX_HIGH) {
+        s.priority = 'medium'
+      }
+    }
+  }
+
+  // 2. Safety: при конфликтах → никакого auto-confirm
+  if (!hasConflicts) {
+    for (const s of suggestions) {
+      if (s.priority === 'high') s.confirmed = true
+    }
+  }
+  // При конфликтах все confirmed=false, врач подтверждает вручную
 
   return {
     suggestions,
