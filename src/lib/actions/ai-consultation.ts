@@ -933,6 +933,54 @@ export async function logDoctorChoice(consultationId: string, chosenRemedy: stri
   } catch { /* silent */ }
 }
 
+/**
+ * Генерация дифференциальных вопросов через Sonnet.
+ * Вызывается ТОЛЬКО когда shouldClarify() == true.
+ * AI не выбирает препарат — только различает top-1 vs top-2 vs top-3.
+ */
+export async function generateDifferentialClarifying(input: {
+  results: MDRIResult[]
+  symptoms: MDRISymptom[]
+  modalities: MDRIModality[]
+}): Promise<AIQuestion[]> {
+  const { shouldClarify: shouldClarifyFn, buildDifferentialContext, buildDifferentialPrompt, parseDifferentialResponse } = await import('@/lib/mdri/differential')
+  const { checkHypothesisConflict, computeConfidence, validateInput } = await import('@/lib/mdri/product-layer')
+
+  const conflict = checkHypothesisConflict(input.results)
+  const confidence = computeConfidence(input.symptoms, input.modalities, input.results, validateInput(input.symptoms, input.modalities))
+
+  if (!shouldClarifyFn(confidence, input.results, conflict)) {
+    return [] // Уточнение не нужно
+  }
+
+  try {
+    const ctx = buildDifferentialContext(input.results, input.symptoms, input.modalities, conflict)
+    const prompt = buildDifferentialPrompt(ctx)
+
+    const client = getAnthropicClient()
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      temperature: 0.3,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : '[]'
+    const diffQuestions = parseDifferentialResponse(text)
+
+    // Конвертируем в формат AIQuestion для UI
+    return diffQuestions.map(dq => ({
+      key: dq.key,
+      label: dq.question,
+      type: 'chips' as const,
+      options: dq.options,
+      hint: dq.why_it_matters,
+    }))
+  } catch {
+    return getFallbackClarifying()
+  }
+}
+
 function getFallbackClarifying(): AIQuestion[] {
   return [
     { key: 'clarify_modality', label: 'Что конкретно ухудшает основную жалобу?', type: 'chips-multi', options: ['Холод', 'Тепло', 'Движение', 'Покой', 'Ночью', 'После еды', 'Стресс'], hint: 'Выберите все подходящие' },
