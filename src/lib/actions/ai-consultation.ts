@@ -177,6 +177,13 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       type: (s.category === 'mental' ? 'mental' : s.category === 'general' ? 'general' : 'particular') as 'mental' | 'general' | 'modality' | 'particular',
     }))
 
+    // Перевод matchedRubrics на русский
+    for (const r of mdriResults) {
+      if (r.matchedRubrics) {
+        r.matchedRubrics = r.matchedRubrics.map(rubricToRussian)
+      }
+    }
+
     // Результат
     const topRemedy = mdriResults[0]?.remedy ?? ''
     const result: ConsensusResult = {
@@ -607,34 +614,127 @@ function getFallbackQuestions(): AIQuestion[] {
 // === HYBRID PARSING: parse → suggest → confirm → analyze ===
 
 // Словарь перевода rubric → русский (для UI)
+// Словарь перевода симптомов (ключевое слово → русский)
 const RUBRIC_RU: Record<string, string> = {
-  'chilly': 'Зябкий', 'hot patient': 'Жаркий',
-  'thirstless': 'Нет жажды', 'thirst large quantities': 'Сильная жажда', 'thirst small sips frequently': 'Пьёт мелкими глотками',
+  // Термика
+  'chilly': 'Зябкий', 'hot patient': 'Жаркий', 'frozen': 'Ледяной',
+  // Жажда
+  'thirstless': 'Нет жажды', 'thirst large quantities': 'Сильная жажда',
+  'thirst small sips frequently': 'Пьёт мелкими глотками', 'thirst moderate': 'Умеренная жажда',
+  // Утешение
   'consolation aggravates': 'Утешение хуже', 'consolation ameliorates': 'Утешение лучше',
+  // Слёзы
   'weeping easily': 'Плаксивость', 'weeping alone': 'Плачет одна',
-  'irritability': 'Раздражительность', 'anxiety': 'Тревога',
-  'fear death': 'Страх смерти', 'fear dark': 'Страх темноты', 'fear alone': 'Страх одиночества',
-  'jealousy suspicious': 'Ревность', 'indifference': 'Безразличие',
+  // Психика
+  'irritability': 'Раздражительность', 'irritability trifles': 'Раздражительность по мелочам',
+  'anxiety': 'Тревога', 'anxiety anticipation': 'Тревога ожидания',
+  'anxiety health': 'Тревога о здоровье', 'anxiety night': 'Тревога ночью',
+  'fear death': 'Страх смерти', 'fear dark': 'Страх темноты',
+  'fear alone': 'Страх одиночества', 'fear disease': 'Страх болезни',
+  'fear thunderstorm': 'Страх грозы', 'fear poverty': 'Страх бедности',
+  'jealousy': 'Ревность', 'jealousy suspicious': 'Ревность с подозрительностью',
+  'indifference': 'Безразличие', 'indifference family': 'Безразличие к семье',
   'grief': 'Горе', 'grief suppressed': 'Подавленное горе',
-  'desire salt': 'Любит солёное', 'desire sweets': 'Любит сладкое',
-  'worse night': 'Хуже ночью', 'worse morning': 'Хуже утром',
-  'worse after sleep': 'Хуже после сна', 'worse sun': 'Хуже на солнце',
-  'better at sea seashore': 'Лучше на море',
-  'perspiration head night': 'Потеет голова ночью',
+  'anger violent': 'Вспышки гнева', 'anger suppressed': 'Подавленный гнев',
   'restlessness': 'Беспокойство', 'fastidious orderly': 'Педантичность',
-  'loquacity talkative': 'Болтливость',
-  'indifference family': 'Безразличие к семье',
+  'loquacity': 'Болтливость', 'loquacity talkative': 'Болтливость',
+  'sympathetic compassionate': 'Сочувствие', 'obstinate': 'Упрямство',
+  'dictatorial domineering': 'Властность', 'mildness': 'Мягкость',
   'emaciation': 'Худеет', 'insomnia': 'Бессонница',
+  'theorizing philosophizing': 'Склонность к философствованию',
+  // Желания / отвращения
+  'desire salt': 'Любит солёное', 'desire sweets': 'Любит сладкое',
+  'desire sour': 'Любит кислое', 'desire fat': 'Любит жирное',
+  'desire eggs': 'Любит яйца', 'desire ice cream': 'Любит мороженое',
+  'desire cold drinks': 'Любит холодные напитки',
+  'aversion fat': 'Отвращение к жирному', 'aversion milk': 'Отвращение к молоку',
+  'aversion meat': 'Отвращение к мясу',
+  // Модальности
+  'worse night': 'Хуже ночью', 'worse morning': 'Хуже утром',
+  'worse evening': 'Хуже вечером', 'worse after sleep': 'Хуже после сна',
+  'worse sun': 'Хуже на солнце', 'worse motion': 'Хуже от движения',
+  'worse rest': 'Хуже в покое', 'worse cold': 'Хуже от холода',
+  'worse heat': 'Хуже от тепла', 'worse damp': 'Хуже в сырости',
+  'worse 4pm 8pm': 'Хуже в 16-20ч', 'worse 2am 4am': 'Хуже в 2-4ч',
+  'worse after eating': 'Хуже после еды', 'worse before menses': 'Хуже перед месячными',
+  'better motion': 'Лучше от движения', 'better rest': 'Лучше в покое',
+  'better warmth': 'Лучше от тепла', 'better cold': 'Лучше от холода',
+  'better open air': 'Лучше на свежем воздухе', 'better pressure': 'Лучше от давления',
+  'better at sea seashore': 'Лучше на море',
+  'first motion aggravates then ameliorates': 'Первое движение хуже, потом лучше',
+  'standing aggravates': 'Хуже стоя',
+  // Потоотделение
+  'perspiration head night': 'Потеет голова ночью', 'perspiration profuse': 'Обильный пот',
+  'perspiration cold': 'Холодный пот', 'perspiration feet': 'Потеют стопы',
+  // Общее
+  'right side': 'Правая сторона', 'left side': 'Левая сторона',
+  'burning': 'Жжение', 'pulsating': 'Пульсация',
+  'periodicity': 'Периодичность', 'alternating sides': 'Чередование сторон',
+  // Сон
+  'sleep abdomen': 'Спит на животе', 'sleeplessness': 'Бессонница',
+  // Физиология
+  'constipation': 'Запор', 'diarrhea': 'Понос',
+  'distension abdomen': 'Вздутие живота', 'flatulence': 'Метеоризм',
+  'nausea': 'Тошнота', 'vomiting': 'Рвота',
+  'headache': 'Головная боль', 'vertigo': 'Головокружение',
+  'cough': 'Кашель', 'epistaxis': 'Носовое кровотечение',
+  'itching': 'Зуд', 'eczema': 'Экзема', 'urticaria': 'Крапивница',
+}
+
+// Перевод структурных частей рубрик (разделы реперторий)
+const CHAPTER_RU: Record<string, string> = {
+  'mind': 'Психика', 'generalities': 'Общее', 'head': 'Голова',
+  'eye': 'Глаза', 'ear': 'Уши', 'nose': 'Нос', 'face': 'Лицо',
+  'mouth': 'Рот', 'teeth': 'Зубы', 'throat': 'Горло',
+  'stomach': 'Желудок', 'abdomen': 'Живот', 'rectum': 'Прямая кишка',
+  'stool': 'Стул', 'bladder': 'Мочевой пузырь', 'kidneys': 'Почки',
+  'urethra': 'Уретра', 'genitalia': 'Половые органы',
+  'larynx': 'Гортань', 'respiration': 'Дыхание', 'chest': 'Грудь',
+  'back': 'Спина', 'extremities': 'Конечности', 'sleep': 'Сон',
+  'dreams': 'Сны', 'chill': 'Озноб', 'fever': 'Лихорадка',
+  'perspiration': 'Потоотделение', 'skin': 'Кожа',
+  'appetite': 'Аппетит', 'vertigo': 'Головокружение',
+}
+
+// Перевод общих слов внутри рубрик
+const WORD_RU: Record<string, string> = {
+  'pain': 'боль', 'burning': 'жгучая', 'pressing': 'давящая',
+  'stitching': 'колющая', 'tearing': 'рвущая', 'cramping': 'судорожная',
+  'right': 'справа', 'left': 'слева', 'aggravates': 'хуже',
+  'ameliorates': 'лучше', 'worse': 'хуже', 'better': 'лучше',
+  'after': 'после', 'before': 'до', 'during': 'во время',
+  'morning': 'утром', 'evening': 'вечером', 'night': 'ночью',
+  'cold': 'холод', 'heat': 'тепло', 'warmth': 'тепло',
+  'motion': 'движение', 'rest': 'покой', 'eating': 'еда',
+  'walking': 'ходьба', 'sitting': 'сидя', 'standing': 'стоя',
+  'lying': 'лёжа', 'stooping': 'наклон', 'exertion': 'нагрузка',
+  'swelling': 'отёк', 'inflammation': 'воспаление',
+  'discharge': 'выделения', 'offensive': 'зловонный',
+  'itching': 'зуд', 'redness': 'покраснение', 'dryness': 'сухость',
 }
 
 function rubricToRussian(rubric: string): string {
   const r = rubric.toLowerCase()
-  // Точное совпадение
+  // 1. Точное совпадение по ключу
   for (const [key, val] of Object.entries(RUBRIC_RU)) {
     if (r.includes(key)) return val
   }
-  // Fallback: capitalize first word
-  return rubric.split(' ').slice(0, 3).join(' ')
+  // 2. Пословный перевод: раздел + ключевые слова
+  const parts = r.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+  if (parts.length > 0) {
+    const translated = parts.map(part => {
+      const words = part.split(/\s+/)
+      return words.map(w => CHAPTER_RU[w] ?? WORD_RU[w] ?? null).filter(Boolean).join(' ')
+    }).filter(p => p.length > 0)
+    if (translated.length > 0) return translated.join(', ')
+  }
+  // 3. Хотя бы раздел
+  const firstWord = r.split(/[\s,]/)[0]
+  if (CHAPTER_RU[firstWord]) {
+    return CHAPTER_RU[firstWord] + ': ' + r.split(',').slice(1).join(',').trim()
+  }
+  // 4. Fallback: оригинал (лучше чем обрезка)
+  return rubric
 }
 
 const MODALITY_RU: Record<string, string> = {
@@ -848,6 +948,11 @@ export async function analyzeConfirmed(input: {
   const data = await loadMDRIData()
   const mdriResults = analyze(data, symptoms, modalities, input.familyHistory, profile)
 
+  // Перевод matchedRubrics на русский
+  for (const r of mdriResults) {
+    if (r.matchedRubrics) r.matchedRubrics = r.matchedRubrics.map(rubricToRussian)
+  }
+
   const productConfidence = computeConfidence(symptoms, modalities, mdriResults,
     validateInput(symptoms, modalities))
 
@@ -1053,6 +1158,9 @@ export async function rerunWithClarifications(input: {
   // Rerun engine
   const data = await loadMDRIData()
   const mdriResults = analyze(data, allSymptoms, allModalities, input.familyHistory, DEFAULT_PROFILE)
+  for (const r of mdriResults) {
+    if (r.matchedRubrics) r.matchedRubrics = r.matchedRubrics.map(rubricToRussian)
+  }
   const productConfidence = computeConfidence(allSymptoms, allModalities, mdriResults, validateInput(allSymptoms, allModalities))
 
   // Explainability
