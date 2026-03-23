@@ -15,7 +15,7 @@ import type { AIQuestion } from '@/lib/actions/ai-consultation'
 import AIResultPanel from '@/components/AIResultPanel'
 import AIOnboarding from '@/components/AIOnboarding'
 import type { Patient, Consultation, IntakeForm } from '@/types'
-import type { MDRIPatientProfile, ConsensusResult } from '@/lib/mdri/types'
+import type { ConsensusResult } from '@/lib/mdri/types'
 import type { Lang } from '@/hooks/useLanguage'
 
 // === Типы ===
@@ -57,13 +57,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
   const [questionsLoading, setQuestionsLoading] = useState(false)
 
-  // Профиль
-  const [profile, setProfile] = useState<MDRIPatientProfile>({
-    acuteOrChronic: 'chronic',
-    vitality: 'medium',
-    sensitivity: 'medium',
-    age: 'adult',
-  })
+  // Профиль определяется автоматически (inferPatientProfile)
 
   // AI результат
   const [loading, setLoading] = useState(false)
@@ -183,7 +177,6 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
 
       const aiResult = await analyzeText({
         text: fullText,
-        profile,
       })
 
       setResult(aiResult)
@@ -206,7 +199,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
     } finally {
       setLoading(false)
     }
-  }, [mode, patient.id, profile, freeText, additions, summary, lang])
+  }, [mode, patient.id, freeText, additions, summary, lang])
 
   // Обработка уточняющих вопросов
   const handleClarify = useCallback(async () => {
@@ -309,92 +302,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
     </div>
   )
 
-  // === Рендер профиля пациента ===
-  const renderProfile = () => (
-    <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-4 space-y-3">
-      <h3 className="text-xs font-semibold text-[#3a3020]">{s.profile}</h3>
-
-      {/* Тип случая */}
-      <div className="space-y-1">
-        <span className="text-[10px] text-[#9a8a6a] uppercase tracking-wider">{s.acuteChronic}</span>
-        <div className="flex gap-1">
-          {(['acute', 'chronic'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setProfile(p => ({ ...p, acuteOrChronic: v }))}
-              className={`text-[11px] px-3 py-1 rounded-full border transition-all ${
-                profile.acuteOrChronic === v
-                  ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-[#2d6a4f]'
-              }`}
-            >
-              {v === 'acute' ? s.acute : s.chronic}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Витальность */}
-      <div className="space-y-1">
-        <span className="text-[10px] text-[#9a8a6a] uppercase tracking-wider">{s.vitality}</span>
-        <div className="flex gap-1">
-          {(['high', 'medium', 'low'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setProfile(p => ({ ...p, vitality: v }))}
-              className={`text-[11px] px-3 py-1 rounded-full border transition-all ${
-                profile.vitality === v
-                  ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-[#2d6a4f]'
-              }`}
-            >
-              {v === 'high' ? s.high : v === 'medium' ? s.medium : s.low}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Чувствительность */}
-      <div className="space-y-1">
-        <span className="text-[10px] text-[#9a8a6a] uppercase tracking-wider">{s.sensitivity}</span>
-        <div className="flex gap-1">
-          {(['high', 'medium', 'low'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setProfile(p => ({ ...p, sensitivity: v }))}
-              className={`text-[11px] px-3 py-1 rounded-full border transition-all ${
-                profile.sensitivity === v
-                  ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-[#2d6a4f]'
-              }`}
-            >
-              {v === 'high' ? s.high : v === 'medium' ? s.medium : s.low}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Возраст */}
-      <div className="space-y-1">
-        <span className="text-[10px] text-[#9a8a6a] uppercase tracking-wider">{s.age}</span>
-        <div className="flex gap-1">
-          {(['child', 'adult', 'elderly'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setProfile(p => ({ ...p, age: v }))}
-              className={`text-[11px] px-3 py-1 rounded-full border transition-all ${
-                profile.age === v
-                  ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-[#2d6a4f]'
-              }`}
-            >
-              {v === 'child' ? s.child : v === 'adult' ? s.adult : s.elderly}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  // Профиль убран из UI — определяется автоматически на сервере
 
   // Текущий шаг
   const currentStep = mode === 'K' ? stepK : stepI
@@ -480,9 +388,6 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                     <p className="text-xs text-[#9a8a6a]">{s.noConsultations}</p>
                   </div>
                 )}
-
-                {/* Профиль */}
-                {renderProfile()}
 
                 <button
                   onClick={() => setStepK('additions')}
@@ -624,9 +529,6 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                     className="w-full text-sm px-3 py-2 rounded-2xl bg-[#faf7f2] border border-[rgba(0,0,0,0.08)] text-[#1a1a0a] placeholder:text-[#9a8a6a] resize-none focus:outline-none focus:border-[#2d6a4f] leading-relaxed"
                   />
                 </div>
-
-                {/* Профиль */}
-                {renderProfile()}
 
                 <button
                   onClick={() => handleGenerateQuestions(freeText, '')}

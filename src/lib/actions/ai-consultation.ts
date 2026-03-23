@@ -15,6 +15,7 @@ import type {
 } from '@/lib/mdri/types'
 import { DEFAULT_PROFILE } from '@/lib/mdri/types'
 import { mergeWithFallback, computeConfidence, validateInput } from '@/lib/mdri/product-layer'
+import { inferPatientProfile, toEngineProfile } from '@/lib/mdri/infer-profile'
 
 // --- Валидация ---
 
@@ -48,7 +49,7 @@ const analyzeSchema = z.object({
 const analyzeTextSchema = z.object({
   consultationId: z.string().uuid().optional(),
   text: z.string().min(10).max(10000),
-  profile: profileSchema.default(DEFAULT_PROFILE),
+  profile: profileSchema.optional(), // Убран из UI, теперь определяется автоматически
 })
 
 // --- Anthropic клиент ---
@@ -157,8 +158,13 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       throw new Error('AI не смог извлечь симптомы из текста. Попробуйте описать подробнее.')
     }
 
+    // Шаг 2.7: Автоматическое определение профиля пациента
+    const inferredProfile = inferPatientProfile(parsed.text, symptoms)
+    const profile = parsed.profile ?? toEngineProfile(inferredProfile)
+    log(`profile inferred: ${profile.acuteOrChronic}/${profile.vitality}/${profile.sensitivity}/${profile.age}`)
+
     // Шаг 3: MDRI Engine v5 (НЕ МЕНЯТЬ — заблокирован)
-    const mdriResults = analyze(data, symptoms, modalities, familyHistory, parsed.profile as MDRIPatientProfile)
+    const mdriResults = analyze(data, symptoms, modalities, familyHistory, profile)
     log(`MDRI v5 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
 
     // Шаг 4: Confidence Layer — независимая оценка уверенности
