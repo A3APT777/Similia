@@ -64,6 +64,11 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
   )
   const [suggestions, setSuggestions] = useState<import('@/lib/mdri/types').ParseSuggestionsResult | null>(null)
   const [analyzingConfirmed, setAnalyzingConfirmed] = useState(false)
+  // Differential clarify flow
+  const [clarifyQuestions, setClarifyQuestions] = useState<import('@/lib/actions/ai-consultation').AIQuestion[]>([])
+  const [clarifyLoading, setClarifyLoading] = useState(false)
+  const [lastConfirmed, setLastConfirmed] = useState<import('@/lib/mdri/types').ParsedSuggestion[]>([])
+  const [lastFamilyHistory, setLastFamilyHistory] = useState<string[]>([])
 
   useEffect(() => {
     localStorage.setItem('hc-last-consultation', window.location.pathname)
@@ -131,8 +136,10 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
     familyHistory: string[],
   ) {
     setAnalyzingConfirmed(true)
+    setLastConfirmed(confirmed)
+    setLastFamilyHistory(familyHistory)
     try {
-      const { analyzeConfirmed } = await import('@/lib/actions/ai-consultation')
+      const { analyzeConfirmed, generateDifferentialClarifying } = await import('@/lib/actions/ai-consultation')
       const result = await analyzeConfirmed({
         consultationId: consultation.id,
         suggestions: confirmed,
@@ -140,6 +147,29 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
       })
       setAIResult(result)
       setSuggestions(null)
+
+      // Проверяем нужен ли clarify
+      if (result.productConfidence && (result.productConfidence.level === 'clarify' || result.productConfidence.showDiff)) {
+        try {
+          const confirmedSymptoms = confirmed.filter(s => s.confirmed && s.type !== 'modality').map(s => ({
+            rubric: s.rubric, category: (s.type === 'mental' ? 'mental' : s.type === 'general' ? 'general' : 'particular') as import('@/lib/mdri/types').MDRISymptomCategory,
+            present: true, weight: s.weight as 1 | 2 | 3,
+          }))
+          const confirmedModalities = confirmed.filter(s => s.confirmed && s.type === 'modality').map(s => {
+            const [pairId, value] = s.rubric.split(':')
+            return { pairId, value: value as 'agg' | 'amel' }
+          })
+          const questions = await generateDifferentialClarifying({
+            results: result.mdriResults,
+            symptoms: confirmedSymptoms,
+            modalities: confirmedModalities,
+          })
+          if (questions.length > 0) {
+            setClarifyQuestions(questions)
+          }
+        } catch { /* clarify не критичен */ }
+      }
+
       toast(lang === 'ru'
         ? `AI: ${result.finalRemedy.toUpperCase()}`
         : `AI: ${result.finalRemedy.toUpperCase()}`)
@@ -148,6 +178,34 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
     } finally {
       setAnalyzingConfirmed(false)
     }
+  }
+
+  // Обработка ответов на clarify вопросы → rerun engine
+  async function handleClarifySubmit(answers: Record<string, string>) {
+    setClarifyLoading(true)
+    try {
+      const { rerunWithClarifications } = await import('@/lib/actions/ai-consultation')
+      const result = await rerunWithClarifications({
+        consultationId: consultation.id,
+        originalSuggestions: lastConfirmed,
+        familyHistory: lastFamilyHistory,
+        clarifyAnswers: answers,
+        clarifyQuestions,
+      })
+      setAIResult(result)
+      setClarifyQuestions([])
+      toast(lang === 'ru'
+        ? `AI (уточнено): ${result.finalRemedy.toUpperCase()}`
+        : `AI (clarified): ${result.finalRemedy.toUpperCase()}`)
+    } catch {
+      toast(lang === 'ru' ? 'Ошибка пересчёта' : 'Rerun error', 'error')
+    } finally {
+      setClarifyLoading(false)
+    }
+  }
+
+  function handleClarifySkip() {
+    setClarifyQuestions([])
   }
 
   async function doFinish() {
@@ -249,38 +307,38 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
   if (isCompleted && !consultation.status?.startsWith('in')) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--sim-green)' }}>
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        <div className="text-center max-w-sm">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
+            <svg className="w-5 h-5" style={{ color: 'var(--sim-green)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-cormorant)', color: 'var(--sim-forest)' }}>
+          <h2 className="text-[28px] font-light mb-1" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)' }}>
             {lang === 'ru' ? 'Приём завершён' : 'Consultation completed'}
           </h2>
           {savedRx?.remedy && (
-            <p className="text-sm mb-6" style={{ color: 'var(--sim-text-sec)' }}>
+            <p className="text-sm mb-8" style={{ color: 'var(--sim-text-muted)' }}>
               {savedRx.remedy} {savedRx.potency}
             </p>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {savedRx?.remedy && (
               <SharePrescriptionButton consultationId={consultation.id} />
             )}
             <button
               onClick={() => router.push(`/patients/${consultation.patient_id}`)}
-              className="w-full px-5 py-3 rounded-2xl text-sm font-medium transition-colors"
-              style={{ border: '1px solid var(--sim-border)', color: 'var(--sim-forest)' }}
+              className="w-full px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 hover:bg-black/[0.03]"
+              style={{ border: '1px solid var(--sim-border)', color: 'var(--sim-text)' }}
             >
-              {lang === 'ru' ? 'Вернуться к пациенту' : 'Back to patient'}
+              {lang === 'ru' ? 'К пациенту' : 'Back to patient'}
             </button>
             {patient.is_demo && (
               <button
                 onClick={() => router.push('/patients/new')}
                 className="btn btn-primary w-full py-3"
               >
-                {lang === 'ru' ? 'Добавить своего пациента →' : 'Add your own patient →'}
+                {lang === 'ru' ? 'Добавить своего пациента →' : 'Add your patient →'}
               </button>
             )}
           </div>
@@ -295,7 +353,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
       {/* Zero sessions warning */}
       {showZeroWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true" aria-label={lang === 'ru' ? 'Предупреждение об оплате' : 'Payment warning'}>
-          <div className="relative rounded-2xl p-6 w-[calc(100%-2rem)] max-w-[340px] shadow-2xl" style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid #c8a035' }}>
+          <div className="relative rounded-xl p-6 w-[calc(100%-2rem)] max-w-[340px] shadow-2xl" style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid #c8a035' }}>
             <div className="flex items-start gap-3 mb-4">
               <svg className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--sim-amber)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
@@ -355,8 +413,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
           </div>
 
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto min-h-[60vh] lg:min-h-0" style={{ backgroundColor: '#f8f7f4' }}>
-            <div className="px-6 lg:px-8 py-6 space-y-6">
+          <div className="flex-1 overflow-y-auto min-h-[60vh] lg:min-h-0" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
+            <div className="px-5 lg:px-7 py-5 space-y-5">
 
               {/* Dynamics from previous visit */}
               {previousConsultation && (
@@ -383,7 +441,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
 
               {/* Plan */}
               <section>
-                <label className="block mb-2" style={{ fontSize: '14px', fontWeight: 500, color: '#3d342b' }}>
+                <label className="block mb-1.5 text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
                   {lang === 'ru' ? 'Контроль и план' : 'Plan & follow-up'}
                 </label>
                 <input
@@ -391,27 +449,27 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
                   value={state.recommendations}
                   onChange={e => updateField('recommendations', e.target.value)}
                   placeholder={lang === 'ru' ? 'Контроль через 4 нед · Отправить опрос самочувствия' : 'Follow-up in 4 weeks · Send wellbeing survey'}
-                  className="w-full px-3 py-2.5 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300"
-                  style={{ fontSize: '15px', borderColor: 'rgba(0,0,0,0.08)' }}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border transition-all duration-200 focus:outline-none text-sm"
+                  style={{ backgroundColor: 'var(--sim-bg-card)', borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--sim-green)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,106,79,0.08)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--sim-border)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </section>
 
-              {/* Notes — optional free text */}
+              {/* Notes */}
               <section>
-                <label className="block mb-2" style={{ fontSize: '13px', color: '#a09080' }}>
-                  {lang === 'ru' ? 'Заметки (необязательно)' : 'Notes (optional)'}
+                <label className="block mb-1.5 text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
+                  {lang === 'ru' ? 'Заметки' : 'Notes'}
                 </label>
                 <textarea
                   value={state.notes}
                   onChange={e => updateField('notes', e.target.value)}
-                  placeholder={lang === 'ru' ? 'DD: Sulphur vs Lycopodium · дополнительные наблюдения...' : 'DD: Sulphur vs Lycopodium · additional observations...'}
+                  placeholder={lang === 'ru' ? 'DD: Sulphur vs Lycopodium · наблюдения...' : 'DD: Sulphur vs Lycopodium · observations...'}
                   rows={3}
-                  className="w-full px-3 py-2.5 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300 resize-none"
-                  style={{ fontSize: '14px', borderColor: 'rgba(0,0,0,0.08)', lineHeight: '1.6' }}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border transition-all duration-200 focus:outline-none text-sm resize-none leading-relaxed"
+                  style={{ backgroundColor: 'var(--sim-bg-card)', borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--sim-green)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,106,79,0.08)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--sim-border)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </section>
 
@@ -419,8 +477,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
             </div>
           </div>
 
-          {/* Footer: save status + finish button */}
-          <div className="shrink-0 px-6 lg:px-8 py-3 flex items-center gap-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', backgroundColor: '#f8f7f4' }}>
+          {/* Footer */}
+          <div className="shrink-0 px-5 lg:px-7 py-3 flex items-center gap-3" style={{ borderTop: '1px solid var(--sim-border)', backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
             <button
               data-tour="finish-btn"
               onClick={handleFinish}
@@ -494,6 +552,10 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
                 onConfirmSuggestions={handleConfirmSuggestions}
                 onCancelSuggestions={() => setSuggestions(null)}
                 analyzingConfirmed={analyzingConfirmed}
+                clarifyQuestions={clarifyQuestions}
+                onClarifySubmit={handleClarifySubmit}
+                onClarifySkip={handleClarifySkip}
+                clarifyLoading={clarifyLoading}
                 onAssignRemedy={(abbrev) => {
                   setRepertoryAssignedRemedy(abbrev)
                   setPendingPrescription({ abbrev, potency: '30C', dosage: '' })

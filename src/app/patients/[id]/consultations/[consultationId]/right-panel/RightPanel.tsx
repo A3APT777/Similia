@@ -6,8 +6,10 @@ import PreviousVisitSummary from './PreviousVisitSummary'
 import PreVisitSurveyPanel from './PreVisitSurveyPanel'
 import AIResultPanel from './AIResultPanel'
 import SuggestionReview from './SuggestionReview'
+import DifferentialClarify from './DifferentialClarify'
 import { getAge } from '@/lib/utils'
 import type { ConsensusResult, ParsedSuggestion, ParseSuggestionsResult } from '@/lib/mdri/types'
+import type { AIQuestion } from '@/lib/actions/ai-consultation'
 
 type Props = {
   previousConsultation: Consultation | null
@@ -27,9 +29,14 @@ type Props = {
   onConfirmSuggestions?: (confirmed: ParsedSuggestion[], familyHistory: string[]) => void
   onCancelSuggestions?: () => void
   analyzingConfirmed?: boolean
+  // Differential clarify
+  clarifyQuestions?: AIQuestion[]
+  onClarifySubmit?: (answers: Record<string, string>) => void
+  onClarifySkip?: () => void
+  clarifyLoading?: boolean
 }
 
-export default function RightPanel({ previousConsultation, patient, lang, preVisitSurvey, onAssignRemedy, aiResult, suggestions, onConfirmSuggestions, onCancelSuggestions, analyzingConfirmed }: Props) {
+export default function RightPanel({ previousConsultation, patient, lang, preVisitSurvey, onAssignRemedy, aiResult, suggestions, onConfirmSuggestions, onCancelSuggestions, analyzingConfirmed, clarifyQuestions, onClarifySubmit, onClarifySkip, clarifyLoading }: Props) {
   const handleAIAssign = onAssignRemedy
     ? (abbrev: string, _potency: string) => onAssignRemedy(abbrev)
     : undefined
@@ -50,6 +57,9 @@ export default function RightPanel({ previousConsultation, patient, lang, preVis
         <FirstVisitContext patient={patient} lang={lang} />
         {suggestionPanel}
         {aiResult && !suggestions && <AIResultPanel aiResult={aiResult} lang={lang} onAssignRemedy={handleAIAssign} />}
+      {clarifyQuestions && clarifyQuestions.length > 0 && onClarifySubmit && onClarifySkip && (
+        <DifferentialClarify questions={clarifyQuestions} onSubmit={onClarifySubmit} onSkip={onClarifySkip} loading={clarifyLoading} />
+      )}
         {preVisitSurvey && <PreVisitSurveyPanel survey={preVisitSurvey} lang={lang} />}
       </div>
     )
@@ -59,6 +69,9 @@ export default function RightPanel({ previousConsultation, patient, lang, preVis
     <div className="p-4 space-y-3">
       {suggestionPanel}
       {aiResult && !suggestions && <AIResultPanel aiResult={aiResult} lang={lang} onAssignRemedy={handleAIAssign} />}
+      {clarifyQuestions && clarifyQuestions.length > 0 && onClarifySubmit && onClarifySkip && (
+        <DifferentialClarify questions={clarifyQuestions} onSubmit={onClarifySubmit} onSkip={onClarifySkip} loading={clarifyLoading} />
+      )}
       {preVisitSurvey && <PreVisitSurveyPanel survey={preVisitSurvey} lang={lang} />}
 
       {previousConsultation.remedy && (

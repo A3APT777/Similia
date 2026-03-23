@@ -988,3 +988,102 @@ function getFallbackClarifying(): AIQuestion[] {
     { key: 'clarify_sleep', label: 'Как пациент спит?', type: 'chips-multi', options: ['Хорошо', 'Трудно засыпает', 'Просыпается ночью', 'Кошмары', 'Спит на животе'] },
   ]
 }
+
+/**
+ * Пересчёт после clarify: merge ответов с текущими симптомами → rerun engine
+ */
+export async function rerunWithClarifications(input: {
+  consultationId?: string
+  originalSuggestions: ParsedSuggestion[]
+  familyHistory: string[]
+  clarifyAnswers: Record<string, string>
+  clarifyQuestions: AIQuestion[]
+}): Promise<ConsensusResult & { clarifyAdded: { symptoms: number; modalities: number }; clarifyExplain: string[] }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Не авторизован')
+
+  const { convertAnswersToSymptoms } = await import('@/lib/mdri/differential')
+  const { checkHypothesisConflict } = await import('@/lib/mdri/product-layer')
+
+  const confirmed = input.originalSuggestions.filter(s => s.confirmed)
+  const PW: Record<string, number> = { high: 1.0, medium: 0.5, low: 0.2 }
+
+  const originalSymptoms: MDRISymptom[] = confirmed
+    .filter(s => s.type !== 'modality')
+    .map(s => ({
+      rubric: s.rubric,
+      category: (s.type === 'mental' ? 'mental' : s.type === 'general' ? 'general' : 'particular') as MDRISymptomCategory,
+      present: true,
+      weight: Math.max(1, Math.min(3, Math.round(s.weight * (PW[s.priority] ?? 0.5)))) as 1 | 2 | 3,
+    }))
+
+  const originalModalities: MDRIModality[] = confirmed
+    .filter(s => s.type === 'modality')
+    .map(s => { const [pairId, value] = s.rubric.split(':'); return { pairId, value: value as 'agg' | 'amel' } })
+
+  // Конвертируем clarify ответы
+  const diffQ = input.clarifyQuestions.map(q => ({
+    question: q.label, why_it_matters: q.hint ?? '',
+    supports: [] as string[], weakens: [] as string[],
+    options: q.options ?? [], key: q.key,
+  }))
+  const { symptoms: clarifySymptoms, modalities: clarifyModalities } = convertAnswersToSymptoms(diffQ, input.clarifyAnswers)
+
+  // Merge (не затираем исходные)
+  const allSymptoms = [...originalSymptoms, ...clarifySymptoms]
+  const allModalities = [...originalModalities]
+  for (const cm of clarifyModalities) {
+    if (!allModalities.some(m => m.pairId === cm.pairId)) allModalities.push(cm)
+  }
+
+  if (allSymptoms.length === 0) throw new Error('Нет симптомов')
+
+  // Rerun engine
+  const data = await loadMDRIData()
+  const mdriResults = analyze(data, allSymptoms, allModalities, input.familyHistory, DEFAULT_PROFILE)
+  const productConfidence = computeConfidence(allSymptoms, allModalities, mdriResults, validateInput(allSymptoms, allModalities))
+
+  // Explainability
+  const clarifyExplain: string[] = []
+  for (const [key, answer] of Object.entries(input.clarifyAnswers)) {
+    const q = input.clarifyQuestions.find(cq => cq.key === key)
+    if (q) clarifyExplain.push(`${q.label} → ${answer}`)
+  }
+
+  const topRemedy = mdriResults[0]?.remedy ?? ''
+  const usedSymptoms = allSymptoms.map(s => ({
+    label: rubricToRussian(s.rubric),
+    type: (s.category === 'mental' ? 'mental' : s.category === 'general' ? 'general' : 'particular') as 'mental' | 'general' | 'modality' | 'particular',
+  }))
+
+  const result = {
+    method: 'consensus' as const,
+    finalRemedy: topRemedy, sonnetRemedy: topRemedy, mdriRemedy: topRemedy,
+    mdriResults, aiResult: null, cost: 0.02,
+    productConfidence, warnings: validateInput(allSymptoms, allModalities),
+    usedSymptoms,
+    clarifyAdded: { symptoms: clarifySymptoms.length, modalities: clarifyModalities.length },
+    clarifyExplain,
+  }
+
+  if (input.consultationId) {
+    await supabase.from('consultations')
+      .update({ ai_result: result as unknown as Record<string, unknown>, source: 'ai' })
+      .eq('id', input.consultationId)
+  }
+
+  try {
+    await supabase.from('ai_analysis_log').insert({
+      user_id: user.id, consultation_id: input.consultationId ?? null,
+      confirmed_input: [...confirmed.map(s => ({ rubric: s.rubric, type: s.type, priority: s.priority, weight: s.weight })),
+        ...clarifySymptoms.map(s => ({ rubric: s.rubric, type: s.category, priority: 'clarify', weight: s.weight }))],
+      engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+      confidence_level: productConfidence?.level ?? null,
+      warnings: null, symptom_count: allSymptoms.length, modality_count: allModalities.length,
+      has_conflict: checkHypothesisConflict(mdriResults).hasConflict,
+    })
+  } catch { /* не ломаем flow */ }
+
+  return result
+}
