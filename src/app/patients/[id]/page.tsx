@@ -61,7 +61,6 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
   const lastCompleted = consultations?.find(c => c.status === 'completed')
   const pendingPrescription = lastCompleted && !lastCompleted.remedy
 
-  // Анкеты пациента (последняя первичная и последняя острая)
   const { data: photos } = await supabase
     .from('patient_photos')
     .select('*')
@@ -77,6 +76,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
 
   const completedPrimaryIntake = (intakeForms || []).find(f => f.type === 'primary') || null
   const completedAcuteIntake = (intakeForms || []).find(f => f.type === 'acute') || null
+  const completedMemoIntake = (intakeForms || []).find(f => f.type === 'memo') || null
 
   const { paid_sessions_enabled } = await getDoctorSettings()
   const lang = await getLang()
@@ -86,40 +86,35 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
     await createConsultation(id, 'chronic')
   }
 
-
-  // Вычисляемые данные для новых блоков
-  const lastVisitDate = consultations?.[0]?.date || null
+  // Вычисляемые данные
   const currentPrescription = lastCompleted && lastCompleted.remedy ? lastCompleted : null
   const lastComplaints = lastCompleted?.complaints || ''
   const lastFollowup = lastCompleted ? followupByConsultation[lastCompleted.id] : null
-
-  // Статус пациента — из case_state или fallback
   const caseState = lastCompleted?.case_state
   const assessment = lastCompleted?.clinical_assessment as { summary?: string } | null
   const hasAcute = consultations?.some(c => c.type === 'acute' && c.status !== 'completed')
 
-  const STATE_CONFIG: Record<string, { label: { ru: string; en: string }; color: string; bg: string }> = {
-    improving: { label: { ru: 'УЛУЧШЕНИЕ', en: 'IMPROVING' }, color: '#059669', bg: '#ecfdf5' },
-    aggravation: { label: { ru: 'ОБОСТРЕНИЕ', en: 'AGGRAVATION' }, color: '#d97706', bg: '#fffbeb' },
-    no_effect: { label: { ru: 'НЕТ ЭФФЕКТА', en: 'NO EFFECT' }, color: '#6b7280', bg: '#f9fafb' },
-    deterioration: { label: { ru: 'УХУДШЕНИЕ', en: 'WORSENING' }, color: '#dc2626', bg: '#fef2f2' },
-    relapse: { label: { ru: 'РЕЦИДИВ', en: 'RELAPSE' }, color: '#ea580c', bg: '#fff7ed' },
-    unclear: { label: { ru: 'НА НАБЛЮДЕНИИ', en: 'MONITORING' }, color: '#6b7280', bg: '#f3f4f6' },
+  const STATE_CONFIG: Record<string, { label: { ru: string; en: string }; color: string }> = {
+    improving:     { label: { ru: 'Улучшение',    en: 'Improving' },     color: '#059669' },
+    aggravation:   { label: { ru: 'Обострение',   en: 'Aggravation' },   color: '#d97706' },
+    no_effect:     { label: { ru: 'Нет эффекта',  en: 'No effect' },     color: '#6b7280' },
+    deterioration: { label: { ru: 'Ухудшение',    en: 'Worsening' },     color: '#dc2626' },
+    relapse:       { label: { ru: 'Рецидив',      en: 'Relapse' },       color: '#ea580c' },
+    unclear:       { label: { ru: 'Наблюдение',   en: 'Monitoring' },    color: '#6b7280' },
   }
 
   const patientStatus = hasAcute
-    ? { label: lang === 'ru' ? 'ОСТРЫЙ СЛУЧАЙ' : 'ACUTE', color: '#dc2626', bg: '#fef2f2' }
+    ? { label: lang === 'ru' ? 'Острый случай' : 'Acute', color: '#dc2626' }
     : caseState && STATE_CONFIG[caseState]
-      ? { label: STATE_CONFIG[caseState].label[lang], color: STATE_CONFIG[caseState].color, bg: STATE_CONFIG[caseState].bg }
+      ? { label: STATE_CONFIG[caseState].label[lang], color: STATE_CONFIG[caseState].color }
       : lastFollowup?.status === 'better'
-        ? { label: lang === 'ru' ? 'УЛУЧШЕНИЕ' : 'IMPROVING', color: '#059669', bg: '#ecfdf5' }
+        ? { label: lang === 'ru' ? 'Улучшение' : 'Improving', color: '#059669' }
         : lastFollowup?.status === 'worse'
-          ? { label: lang === 'ru' ? 'УХУДШЕНИЕ' : 'WORSENING', color: '#dc2626', bg: '#fef2f2' }
+          ? { label: lang === 'ru' ? 'Ухудшение' : 'Worsening', color: '#dc2626' }
           : consultations && consultations.length > 0
-            ? { label: lang === 'ru' ? 'НА НАБЛЮДЕНИИ' : 'MONITORING', color: '#6b7280', bg: '#f3f4f6' }
-            : { label: lang === 'ru' ? 'НОВЫЙ' : 'NEW', color: '#2563eb', bg: '#eff6ff' }
+            ? { label: lang === 'ru' ? 'Наблюдение' : 'Monitoring', color: '#6b7280' }
+            : { label: lang === 'ru' ? 'Новый' : 'New', color: '#2563eb' }
 
-  // Динамика
   const dynamicsInfo = caseState === 'improving' || lastFollowup?.status === 'better'
     ? { arrow: '↑', text: lang === 'ru' ? 'Улучшение' : 'Improvement', color: '#059669' }
     : caseState === 'deterioration' || lastFollowup?.status === 'worse'
@@ -130,43 +125,26 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
           ? { arrow: '~', text: lang === 'ru' ? 'Обострение' : 'Aggravation', color: '#d97706' }
           : null
 
-  // Clinical summary — из assessment или собираем из текста
   const assessmentSummary = assessment?.summary || null
-
-  // Клиническая формулировка состояния (не сырые симптомы)
-  const lastType = lastCompleted?.type
   const rawComplaint = lastComplaints
     ? lastComplaints.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !/^(ЖАЛОБЫ|COMPLAINTS|—)/i.test(l))[0]?.substring(0, 80) || ''
     : ''
 
   const clinicalSummary = (() => {
     if (!lastCompleted) return ''
-    const isAcuteCase = lastType === 'acute'
+    const isAcuteCase = lastCompleted.type === 'acute'
     const hasDynamics = lastFollowup?.status
-    if (isAcuteCase && rawComplaint) {
-      return lang === 'ru' ? `Острое состояние: ${rawComplaint.toLowerCase()}` : `Acute: ${rawComplaint.toLowerCase()}`
-    }
-    if (hasDynamics === 'better' && rawComplaint) {
-      return lang === 'ru' ? `${rawComplaint}. Положительная динамика` : `${rawComplaint}. Improving`
-    }
-    if (hasDynamics === 'worse' && rawComplaint) {
-      return lang === 'ru' ? `${rawComplaint}. Ухудшение` : `${rawComplaint}. Worsening`
-    }
-    if (hasDynamics === 'same' && rawComplaint) {
-      return lang === 'ru' ? `${rawComplaint}. Без динамики` : `${rawComplaint}. No change`
-    }
+    if (isAcuteCase && rawComplaint) return lang === 'ru' ? `Острое состояние: ${rawComplaint.toLowerCase()}` : `Acute: ${rawComplaint.toLowerCase()}`
+    if (hasDynamics === 'better' && rawComplaint) return lang === 'ru' ? `${rawComplaint}. Положительная динамика` : `${rawComplaint}. Improving`
+    if (hasDynamics === 'worse' && rawComplaint) return lang === 'ru' ? `${rawComplaint}. Ухудшение` : `${rawComplaint}. Worsening`
+    if (hasDynamics === 'same' && rawComplaint) return lang === 'ru' ? `${rawComplaint}. Без динамики` : `${rawComplaint}. No change`
     return rawComplaint
   })()
 
-  // Доп. факты — только если >1 строки жалоб
   const symptomBullets = lastComplaints
-    ? lastComplaints.split('\n')
-        .map((l: string) => l.trim())
-        .filter((l: string) => l && !/^(ЖАЛОБЫ|COMPLAINTS|—)/i.test(l))
-        .slice(1, 4)
+    ? lastComplaints.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !/^(ЖАЛОБЫ|COMPLAINTS|—)/i.test(l)).slice(1, 4)
     : []
 
-  // Цель лечения — из recommendations последнего назначения
   const treatmentGoal = currentPrescription?.recommendations || ''
 
   return (
@@ -177,316 +155,321 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
         remedy={currentPrescription?.remedy}
         potency={currentPrescription?.potency}
       />
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-        {/* Welcome-баннер — ПЕРВОЕ что видит новичок */}
+        {/* ── Welcome ── */}
         {isWelcome && (
-          <div className="rounded-2xl px-5 py-5 mb-5" style={{ backgroundColor: 'var(--sim-green-light)', border: '1px solid rgba(45,106,79,0.25)' }}>
-            <p className="text-lg font-semibold mb-1" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-green)' }}>
-              {lang === 'ru' ? 'Добро пожаловать в Similia!' : 'Welcome to Similia!'}
-            </p>
-            <p className="text-sm" style={{ color: 'var(--sim-text-sec)' }}>
+          <div className="mb-6 px-5 py-4 rounded-xl" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.12)' }}>
+            <p className="text-sm" style={{ color: 'var(--sim-text-muted)' }}>
               {lang === 'ru'
-                ? 'Это демо-пациент — попробуйте провести консультацию. Нажмите зелёную кнопку «Начать приём» ниже.'
-                : 'This is a demo patient — try running a consultation. Click the green "Start appointment" button below.'}
+                ? 'Это демо-пациент. Нажмите «Начать приём» ниже, чтобы попробовать.'
+                : 'Demo patient. Click "Start appointment" below to try it.'}
             </p>
           </div>
         )}
 
-        {/* ═══ 1. HERO — чистый информационный блок ═══ */}
-        <div data-tour="patient-hero" className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid var(--sim-border)' }}>
-          <div style={{ height: '3px', backgroundColor: patientStatus.color, borderRadius: '3px 3px 0 0' }} />
-          <div className="p-4 sm:p-5" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
-
-            {/* Статус + кнопки (скрыты при welcome) */}
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[12px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ color: patientStatus.color, backgroundColor: patientStatus.bg }}>
+        {/* ═══ HERO ═══ */}
+        <div data-tour="patient-hero" className="mb-8">
+          {/* Статус + тулбар */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: patientStatus.color }}
+              />
+              <span className="text-[12px] font-medium uppercase tracking-[0.08em]" style={{ color: patientStatus.color }}>
                 {patientStatus.label}
               </span>
-              {!isWelcome && (
-              <div className="flex items-center gap-1.5">
-                <a href={`/patients/${id}/export`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
-                  PDF
+            </div>
+            {!isWelcome && (
+              <div className="flex items-center gap-1">
+                <a
+                  href={`/patients/${id}/export`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2.5 rounded-lg transition-colors duration-200 hover:bg-black/[0.04]"
+                  title="PDF"
+                >
+                  <svg className="w-4 h-4" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
                 </a>
-                <Link href={`/patients/${id}/edit`} className="btn btn-ghost btn-sm">
-                  {t(lang).patientCard.edit}
+                <Link
+                  href={`/patients/${id}/edit`}
+                  className="p-2.5 rounded-lg transition-colors duration-200 hover:bg-black/[0.04]"
+                  title={t(lang).patientCard.edit}
+                >
+                  <svg className="w-4 h-4" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+                  </svg>
                 </Link>
                 <DeletePatientButton patientId={id} patientName={patient.name} />
               </div>
-              )}
-            </div>
+            )}
+          </div>
 
-            {/* ФИО + конституция как бейдж */}
-            <h1 className="text-xl sm:text-2xl font-semibold leading-tight" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-text)' }}>
-              {patient.name}
-              {patient.birth_date && <span className="text-sm font-normal ml-2" style={{ color: 'var(--sim-text-hint)' }}>{getAge(patient.birth_date)}</span>}
-            </h1>
+          {/* Имя */}
+          <h1
+            className="text-[28px] sm:text-[36px] font-light leading-[1.15] tracking-[-0.01em]"
+            style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)' }}
+          >
+            {patient.name}
+          </h1>
+
+          {/* Мета-строка */}
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            {patient.birth_date && (
+              <span className="text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>{getAge(patient.birth_date)}</span>
+            )}
             {patient.constitutional_type && (
-              <span className="inline-block mt-1.5 text-[12px] font-semibold px-2.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: 'var(--sim-green)' }}>
+              <span className="text-[12px] font-medium px-2.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(45,106,79,0.06)', color: 'var(--sim-green)' }}>
                 {patient.constitutional_type}
               </span>
             )}
-
-            {/* Клиническая формулировка */}
-            {clinicalSummary && (
-              <p className="text-[15px] font-semibold mt-2 leading-snug" style={{ color: 'var(--sim-forest)' }}>
-                {clinicalSummary}
-              </p>
-            )}
-
-            {/* Доп. факты */}
-            {symptomBullets.length > 0 && (
-              <ul className="mt-1.5 space-y-0.5">
-                {symptomBullets.map((s: string, i: number) => (
-                  <li key={i} className="flex items-start gap-1.5 text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>
-                    <span className="shrink-0 mt-[7px] w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--sim-text-hint)' }} />
-                    <span className="leading-snug">{s}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {/* Динамика */}
-            {dynamicsInfo && (
-              <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: dynamicsInfo.color + '10' }}>
-                <span className="text-base font-bold" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.arrow}</span>
-                <span className="text-[13px] font-semibold" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.text}</span>
-                {assessmentSummary && (
-                  <span className="text-[12px] truncate" style={{ color: dynamicsInfo.color + 'aa' }}>— {assessmentSummary}</span>
-                )}
-                {!assessmentSummary && lastFollowup?.comment && (
-                  <span className="text-[12px] truncate" style={{ color: dynamicsInfo.color + 'aa' }}>— {lastFollowup.comment.substring(0, 60)}</span>
-                )}
-              </div>
-            )}
-
-            {/* Мета — телефон */}
             {patient.phone && (
-              <div className="mt-2 text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>
-                <a href={`tel:${patient.phone}`} className="hover:text-emerald-700 transition-colors">{patient.phone}</a>
-              </div>
+              <a href={`tel:${patient.phone}`} className="text-[13px] transition-colors hover:underline" style={{ color: 'var(--sim-text-muted)' }}>{patient.phone}</a>
             )}
+          </div>
 
-            {/* Одна CTA-кнопка */}
-            <div className={`mt-4 pt-3 ${isWelcome ? 'animate-pulse' : ''}`} style={{ borderTop: '1px solid var(--sim-border)', animationDuration: '2s' }}>
-              <StartConsultationButton
-                action={newChronicConsultation}
-                label={consultations && consultations.filter(c => c.status === 'completed').length > 0
-                  ? (lang === 'ru' ? 'Начать повторный приём' : 'Start follow-up')
-                  : isWelcome
-                    ? (lang === 'ru' ? '▶ Попробовать — начать приём' : '▶ Try it — start appointment')
-                    : (lang === 'ru' ? 'Начать первый приём' : 'Start first appointment')
-                }
-              />
+          {/* Клиническая формулировка */}
+          {clinicalSummary && (
+            <p className="text-[15px] mt-3 leading-relaxed" style={{ color: 'var(--sim-text)' }}>
+              {clinicalSummary}
+            </p>
+          )}
+
+          {/* Симптомы */}
+          {symptomBullets.length > 0 && (
+            <div className="mt-2 space-y-0.5">
+              {symptomBullets.map((s: string, i: number) => (
+                <p key={i} className="text-[13px] leading-relaxed" style={{ color: 'var(--sim-text-muted)' }}>
+                  {s}
+                </p>
+              ))}
             </div>
+          )}
+
+          {/* Динамика */}
+          {dynamicsInfo && (
+            <div className="flex items-center gap-2 mt-3">
+              <span className="text-sm font-medium" style={{ color: dynamicsInfo.color }}>{dynamicsInfo.arrow} {dynamicsInfo.text}</span>
+              {assessmentSummary && (
+                <span className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>— {assessmentSummary}</span>
+              )}
+              {!assessmentSummary && lastFollowup?.comment && (
+                <span className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>— {lastFollowup.comment.substring(0, 60)}</span>
+              )}
+            </div>
+          )}
+
+          {/* CTA */}
+          <div className={`mt-6 ${isWelcome ? 'animate-pulse' : ''}`} style={{ animationDuration: '2.5s' }}>
+            <StartConsultationButton
+              action={newChronicConsultation}
+              label={consultations && consultations.filter(c => c.status === 'completed').length > 0
+                ? (lang === 'ru' ? 'Начать повторный приём' : 'Start follow-up')
+                : isWelcome
+                  ? (lang === 'ru' ? 'Попробовать — начать приём' : 'Try — start appointment')
+                  : (lang === 'ru' ? 'Начать первый приём' : 'Start first appointment')
+              }
+            />
           </div>
         </div>
 
         {isWelcome ? (
-          <p className="text-center text-xs py-4" style={{ color: 'var(--sim-text-hint)' }}>
-            {lang === 'ru' ? 'Остальные функции откроются после первого приёма' : 'More features will appear after your first appointment'}
+          <p className="text-center text-[12px] py-6" style={{ color: 'var(--sim-text-muted)' }}>
+            {lang === 'ru' ? 'Остальные функции откроются после первого приёма' : 'More features after first appointment'}
           </p>
         ) : (
           <>
           <FirstTimeHint id="patient_card">
             {lang === 'ru'
-              ? 'Это карточка пациента — вся история в одном месте. Нажмите «Начать приём» для консультации.'
-              : 'This is the patient card — full history in one place. Click "Start appointment" for consultation.'}
+              ? 'Карточка пациента — вся история в одном месте. Нажмите «Начать приём» для консультации.'
+              : 'Patient card — full history. Click "Start appointment" for consultation.'}
           </FirstTimeHint>
 
-        {/* ═══ 2. ДЕЙСТВИЯ — dropdown ═══ */}
-        <div data-tour="action-buttons" className="mb-5 flex flex-wrap gap-2">
-          <div data-tour="intake-link">
-            <IntakeLinkButton
-              patientId={id}
-              patientName={patient.name}
-              type={completedPrimaryIntake ? 'acute' : 'primary'}
-              hasCompleted={!!completedPrimaryIntake}
-            />
-          </div>
-          <div data-tour="schedule-btn">
-            <ScheduleButton patientId={id} />
-          </div>
-          {(completedPrimaryIntake || lastCompleted) && (
-            <SendSurveyButton patientId={id} patientName={patient.name} />
-          )}
-        </div>
-
-        {/* Запланированные приёмы */}
-        {consultations?.some(c => c.status === 'scheduled') && (
-          <div className="mb-4 space-y-1.5">
-            {consultations.filter(c => c.status === 'scheduled').map(consultation => (
-              <div key={consultation.id} className="flex items-center justify-between rounded-2xl px-4 py-2.5 text-sm" style={{ backgroundColor: 'rgba(45,106,79,0.06)', border: '1px solid rgba(45,106,79,0.15)' }}>
-                <span className="font-medium" style={{ color: 'var(--sim-green)' }}>
-                  {t(lang).patientCard.scheduled}{' '}
-                  {consultation.scheduled_at
-                    ? new Date(consultation.scheduled_at).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                    : ''}
-                </span>
-                <CancelAppointmentButton consultationId={consultation.id} patientId={id} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ═══ 3. ТЕКУЩЕЕ ЛЕЧЕНИЕ + FOLLOW-UP — связанный блок ═══ */}
-        {currentPrescription && (
-          <div data-tour="treatment" className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(45,106,79,0.3)' }}>
-            <div className="flex items-center justify-between px-4 py-2.5" style={{ backgroundColor: 'var(--sim-green)' }}>
-              <h2 className="text-[12px] font-bold uppercase tracking-widest text-white">
-                {lang === 'ru' ? 'Текущее лечение' : 'Current treatment'}
-              </h2>
-              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>
-                {lang === 'ru' ? '● активно' : '● active'}
-              </span>
+          {/* ── Действия ── */}
+          <div data-tour="action-buttons" className="mb-6 flex flex-wrap gap-2">
+            <div data-tour="intake-link">
+              <IntakeLinkButton patientId={id} patientName={patient.name} type={completedPrimaryIntake ? 'acute' : 'primary'} hasCompleted={!!completedPrimaryIntake} />
             </div>
-            <div className="p-4 sm:p-5" style={{ backgroundColor: 'var(--sim-green-light)' }}>
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-3xl font-bold" style={{ fontFamily: 'var(--sim-font-serif)', color: 'var(--sim-forest)', letterSpacing: '-0.01em' }}>
+            <div>
+              <IntakeLinkButton patientId={id} patientName={patient.name} type="memo" />
+            </div>
+            <div data-tour="schedule-btn">
+              <ScheduleButton patientId={id} />
+            </div>
+            {(completedPrimaryIntake || lastCompleted) && (
+              <SendSurveyButton patientId={id} patientName={patient.name} />
+            )}
+          </div>
+
+          {/* Запланированные */}
+          {consultations?.some(c => c.status === 'scheduled') && (
+            <div className="mb-5 space-y-2">
+              {consultations.filter(c => c.status === 'scheduled').map(consultation => (
+                <div
+                  key={consultation.id}
+                  className="flex items-center justify-between rounded-xl px-4 py-3 text-sm"
+                  style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--sim-green)' }} />
+                    <span className="font-medium" style={{ color: 'var(--sim-text)' }}>
+                      {t(lang).patientCard.scheduled}{' '}
+                      {consultation.scheduled_at
+                        ? new Date(consultation.scheduled_at).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                        : ''}
+                    </span>
+                  </div>
+                  <CancelAppointmentButton consultationId={consultation.id} patientId={id} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Лечение ── */}
+          {currentPrescription && (
+            <div data-tour="treatment" className="mb-6 rounded-xl p-5" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
+                  {lang === 'ru' ? 'Текущее лечение' : 'Current treatment'}
+                </p>
+                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--sim-green)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--sim-green)' }} />
+                  {lang === 'ru' ? 'активно' : 'active'}
+                </span>
+              </div>
+
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="text-[28px] sm:text-[32px] font-light tracking-[-0.02em]"
+                  style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)' }}
+                >
                   {currentPrescription.remedy}
                 </span>
-                <span className="text-xl font-bold" style={{ color: 'var(--sim-green)' }}>
+                <span className="text-lg font-light" style={{ color: 'var(--sim-green)' }}>
                   {currentPrescription.potency}
                 </span>
               </div>
+
               {currentPrescription.dosage && (
-                <div className="flex items-start gap-2 mt-3 text-[13px]" style={{ color: 'var(--sim-text-sec)' }}>
-                  <span className="shrink-0 mt-0.5 font-semibold" style={{ color: 'var(--sim-green)' }}>Rx</span>
-                  <span>{currentPrescription.dosage}</span>
-                </div>
+                <p className="text-[13px] mt-2" style={{ color: 'var(--sim-text-muted)' }}>
+                  {currentPrescription.dosage}
+                </p>
               )}
+
               {treatmentGoal && (
-                <div className="mt-3 pt-2.5" style={{ borderTop: '1px solid rgba(45,106,79,0.15)' }}>
-                  <p className="text-[12px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--sim-green)' }}>
-                    {lang === 'ru' ? 'Цель' : 'Goal'}
-                  </p>
-                  <p className="text-[13px] leading-snug" style={{ color: 'var(--sim-text-sec)' }}>{treatmentGoal}</p>
-                </div>
+                <p className="text-[13px] mt-2 pt-2" style={{ borderTop: '1px solid var(--sim-border)', color: 'var(--sim-text-muted)' }}>
+                  {treatmentGoal}
+                </p>
               )}
-              <p className="text-[12px] mt-2.5" style={{ color: 'var(--sim-border)' }}>{formatDate(currentPrescription.date)}</p>
-              <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(45,106,79,0.15)' }}>
+
+              <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid var(--sim-border)' }}>
+                <p className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>{formatDate(currentPrescription.date)}</p>
                 <SharePrescriptionButton consultationId={currentPrescription.id} />
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Follow-up — сразу после лечения */}
-        {lastCompleted && (
-          <div className="mb-5">
-            <FollowupSection latestConsultationId={lastCompleted.id} patientId={id} existingFollowup={followupByConsultation[lastCompleted.id] || null} />
-          </div>
-        )}
-
-        {/* Баннер о невыписанном назначении */}
-        {pendingPrescription && (
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
-            <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
-            </svg>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-amber-800">{t(lang).patientCard.noPrescription}</p>
+          {/* Follow-up */}
+          {lastCompleted && (
+            <div className="mb-6">
+              <FollowupSection latestConsultationId={lastCompleted.id} patientId={id} existingFollowup={followupByConsultation[lastCompleted.id] || null} />
             </div>
-            <a href={`/patients/${id}/consultations/${lastCompleted!.id}`} className="btn btn-sm" style={{ color: 'var(--sim-amber)', borderColor: 'var(--sim-amber)' }}>
-              {t(lang).patientCard.prescribe}
-            </a>
-          </div>
-        )}
+          )}
 
-        {/* Оплаченные сессии */}
-        {paid_sessions_enabled && (
-          <PaidSessionsBlock patientId={id} initialCount={patient.paid_sessions ?? 0} />
-        )}
+          {/* Назначение не выписано */}
+          {pendingPrescription && (
+            <div className="flex items-center gap-3 rounded-xl px-4 py-3 mb-5" style={{ backgroundColor: 'rgba(180,83,9,0.04)', border: '1px solid rgba(180,83,9,0.15)' }}>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#b45309' }} />
+              <p className="text-sm flex-1" style={{ color: 'var(--sim-text)' }}>{t(lang).patientCard.noPrescription}</p>
+              <a href={`/patients/${id}/consultations/${lastCompleted!.id}`} className="text-[12px] font-medium transition-colors hover:underline" style={{ color: '#b45309' }}>
+                {t(lang).patientCard.prescribe}
+              </a>
+            </div>
+          )}
 
-        {/* ═══ 4. АНКЕТЫ — collapsible ═══ */}
-        <details className="mb-5 rounded-2xl overflow-hidden group" style={{ border: '1px solid var(--sim-border)' }}>
-          <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
-            <div className="flex items-center gap-2">
-              <h2 className="text-[12px] font-bold uppercase tracking-widest" style={{ color: 'var(--sim-text-muted)' }}>
-                {t(lang).patientCard.intakes}
-              </h2>
-              {(completedPrimaryIntake || completedAcuteIntake) && (
-                <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#ecfdf5', color: '#059669' }}>
-                  ✓ {lang === 'ru' ? 'заполнена' : 'filled'}
-                </span>
+          {/* Оплаченные сессии */}
+          {paid_sessions_enabled && (
+            <PaidSessionsBlock patientId={id} initialCount={patient.paid_sessions ?? 0} />
+          )}
+
+          {/* ── Анкеты ── */}
+          <details className="mb-5 group">
+            <summary className="flex items-center justify-between py-3 cursor-pointer select-none" style={{ borderBottom: '1px solid var(--sim-border)' }}>
+              <div className="flex items-center gap-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
+                  {t(lang).patientCard.intakes}
+                </p>
+                {(completedPrimaryIntake || completedAcuteIntake || completedMemoIntake) && (
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#059669' }} />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <a href={`/patients/${id}/intake-edit`} className="text-[12px] font-medium transition-colors hover:underline" style={{ color: 'var(--sim-green)' }}>
+                  {lang === 'ru' ? 'Заполнить' : 'Fill'}
+                </a>
+                <svg className="w-3.5 h-3.5 transition-transform duration-200 group-open:rotate-180" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
+            </summary>
+            <div className="pt-4 space-y-3">
+              {completedMemoIntake?.answers && <IntakeView answers={completedMemoIntake.answers} completedAt={completedMemoIntake.completed_at} type="memo" patientId={id} />}
+              {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" patientId={id} />}
+              {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" patientId={id} />}
+              {!completedPrimaryIntake && !completedAcuteIntake && !completedMemoIntake && (
+                <p className="text-[13px] py-2" style={{ color: 'var(--sim-text-muted)' }}>
+                  {lang === 'ru' ? 'Анкета не заполнена. Отправьте ссылку пациенту.' : 'No intake. Send link to patient.'}
+                </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <a
-                href={`/patients/${id}/intake-edit`}
-                className="btn btn-ghost btn-sm"
-              >
-                {lang === 'ru' ? '📋 Заполнить' : '📋 Fill'}
-              </a>
-              <svg className="w-4 h-4 transition-transform" data-details-arrow style={{ color: 'var(--sim-text-hint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </div>
-          </summary>
-          <div className="px-4 pb-4 space-y-3">
-            {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" patientId={id} />}
-            {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" patientId={id} />}
-            {!completedPrimaryIntake && !completedAcuteIntake && (
-              <p className="text-[13px] py-2" style={{ color: 'var(--sim-text-hint)' }}>
-                {lang === 'ru' ? 'Анкета не заполнена. Отправьте ссылку пациенту — кнопка выше.' : 'No intake data. Send a link to the patient — button above.'}
-              </p>
-            )}
-          </div>
-        </details>
+          </details>
 
-        {/* ═══ 5. ИСТОРИЯ ПРИЁМОВ ═══ */}
-        {(!consultations || consultations.length === 0) ? (
-          <div className="mb-5 rounded-2xl p-5" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1.5px dashed rgba(45,106,79,0.25)' }}>
-            <p className="text-sm font-semibold mb-3" style={{ color: 'var(--sim-forest)' }}>
-              {lang === 'ru' ? 'Как начать работу с пациентом' : 'How to get started'}
-            </p>
-            <div className="space-y-2">
-              {[
-                lang === 'ru' ? '1. Нажмите «Начать первый приём» — откроется редактор' : '1. Click "Start first appointment" — editor will open',
-                lang === 'ru' ? '2. Запишите жалобы и ключевые симптомы' : '2. Write down complaints and key symptoms',
-                lang === 'ru' ? '3. Назначьте препарат в блоке «Назначение»' : '3. Prescribe a remedy in the "Prescription" block',
-                lang === 'ru' ? '4. Нажмите «Завершить приём» — история появится здесь' : '4. Click "Finish" — history will appear here',
-              ].map((step, i) => (
-                <p key={i} className="text-[13px]" style={{ color: 'var(--sim-text-hint)' }}>{step}</p>
-              ))}
+          {/* ── История ── */}
+          {(!consultations || consultations.length === 0) ? (
+            <div className="mb-5 py-8 text-center">
+              <p className="text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>
+                {lang === 'ru' ? 'Нажмите «Начать приём» выше — история появится здесь' : 'Click "Start appointment" — history will appear here'}
+              </p>
             </div>
-          </div>
-        ) : (
-          <details className="mb-5 rounded-2xl overflow-hidden group" style={{ border: '1px solid var(--sim-border)' }}>
-            <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
-              <h2 className="text-[12px] font-bold uppercase tracking-widest" style={{ color: 'var(--sim-text-muted)' }}>
-                {t(lang).patientCard.timeline}
-                <span className="ml-1.5 font-normal">({consultations.length})</span>
-              </h2>
-              <svg className="w-4 h-4 transition-transform group-open:rotate-180" style={{ color: 'var(--sim-text-hint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          ) : (
+            <details className="mb-5 group" open>
+              <summary className="flex items-center justify-between py-3 cursor-pointer select-none" style={{ borderBottom: '1px solid var(--sim-border)' }}>
+                <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
+                  {t(lang).patientCard.timeline}
+                  <span className="ml-1.5 font-normal">({consultations.length})</span>
+                </p>
+                <svg className="w-3.5 h-3.5 transition-transform duration-200 group-open:rotate-180" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </summary>
+              <div className="pt-4">
+                <TreatmentProgress consultations={consultations} followupByConsultation={followupByConsultation} />
+                <TimelineWithFilter patientId={id} consultations={consultations} followupByConsultation={followupByConsultation} />
+              </div>
+            </details>
+          )}
+
+          {/* ── Фото ── */}
+          <details className="mb-5 group">
+            <summary className="flex items-center justify-between py-3 cursor-pointer select-none" style={{ borderBottom: '1px solid var(--sim-border)' }}>
+              <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
+                {lang === 'ru' ? 'Фотографии' : 'Photos'}
+                {photos && photos.length > 0 && <span className="ml-1.5 font-normal">({photos.length})</span>}
+              </p>
+              <svg className="w-3.5 h-3.5 transition-transform duration-200 group-open:rotate-180" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </summary>
-            <div className="p-4">
-              <TreatmentProgress consultations={consultations} followupByConsultation={followupByConsultation} />
-              <TimelineWithFilter patientId={id} consultations={consultations} followupByConsultation={followupByConsultation} />
+            <div className="pt-4">
+              <PhotoSection patientId={id} photos={photos || []} />
             </div>
           </details>
-        )}
 
-        {/* ═══ 6. ФОТО — collapsible ═══ */}
-        <details className="mb-5 rounded-2xl overflow-hidden" style={{ border: '1px solid var(--sim-border)' }}>
-          <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
-            <h2 className="text-[12px] font-bold uppercase tracking-widest" style={{ color: 'var(--sim-text-muted)' }}>
-              {lang === 'ru' ? 'Фотографии' : 'Photos'}
-              {photos && photos.length > 0 && <span className="ml-1.5 font-normal">({photos.length})</span>}
-            </h2>
-            <svg className="w-4 h-4 transition-transform group-open:rotate-180" style={{ color: 'var(--sim-text-hint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-            </svg>
-          </summary>
-          <div className="p-4">
-            <PhotoSection patientId={id} photos={photos || []} />
-          </div>
-        </details>
-
-        <div className="h-8" />
-        </>
+          <div className="h-10" />
+          </>
         )}
       </div>
     </AppShell>

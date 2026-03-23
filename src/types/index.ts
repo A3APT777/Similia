@@ -108,7 +108,7 @@ export type ConsultationMode = 'quick' | 'deep'
 
 export type IntakeAnswers = Record<string, string>
 
-export type IntakeType = 'primary' | 'acute'
+export type IntakeType = 'primary' | 'acute' | 'memo'
 
 export type IntakeForm = {
   id: string

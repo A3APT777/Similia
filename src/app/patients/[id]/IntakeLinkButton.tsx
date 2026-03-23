@@ -25,6 +25,7 @@ export default function IntakeLinkButton({
   const [copied, setCopied] = useState(false)
 
   const isAcute = type === 'acute'
+  const isMemo = type === 'memo'
 
   async function getToken() {
     return await createIntakeLinkForPatient(patientId, type)
@@ -62,11 +63,13 @@ export default function IntakeLinkButton({
         >
           {loadingLink
             ? t(lang).intake.creating
-            : isAcute
-              ? `⚡ ${t(lang).intake.acuteIntake}`
-              : hasCompleted
-                ? t(lang).intake.newIntake
-                : `📋 ${t(lang).intake.sendBtn}`}
+            : isMemo
+              ? '📝 Памятка к консультации'
+              : isAcute
+                ? `⚡ ${t(lang).intake.acuteIntake}`
+                : hasCompleted
+                  ? t(lang).intake.newIntake
+                  : `📋 ${t(lang).intake.sendBtn}`}
         </button>
       </div>
     )
@@ -75,7 +78,7 @@ export default function IntakeLinkButton({
   return (
     <div data-tour="intake-link-result" className="border rounded-2xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
       <p className="text-xs font-semibold" style={{ color: isAcute ? 'var(--color-amber)' : 'var(--color-primary)' }}>
-        {isAcute ? `⚡ ${t(lang).intake.acuteLink}` : t(lang).intake.patientLink}
+        {isMemo ? '📝 Памятка к консультации' : isAcute ? `⚡ ${t(lang).intake.acuteLink}` : t(lang).intake.patientLink}
       </p>
       <div className="flex items-center gap-2">
         <p

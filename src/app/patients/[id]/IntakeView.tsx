@@ -144,6 +144,51 @@ const ACUTE_SECTIONS: Section[] = [
   },
 ]
 
+const MEMO_SECTIONS: Section[] = [
+  {
+    title: 'Жалобы и история',
+    fields: [
+      { key: 'memo_complaints', label: 'Жалобы', multiline: true },
+      { key: 'memo_timeline', label: 'Хронология', multiline: true },
+      { key: 'memo_time_aggravation', label: 'Время ухудшений', multiline: true },
+    ],
+  },
+  {
+    title: 'Характер и эмоции',
+    fields: [
+      { key: 'memo_character', label: 'Характер', multiline: true },
+      { key: 'memo_fears', label: 'Страхи и тревоги', multiline: true },
+      { key: 'memo_sleep_behavior', label: 'Сон', multiline: true },
+    ],
+  },
+  {
+    title: 'Термика и чувствительность',
+    fields: [
+      { key: 'memo_thermal', label: 'Термика' },
+      { key: 'memo_heat_cold', label: 'Жара/холод', multiline: true },
+      { key: 'memo_allergies', label: 'Аллергии', multiline: true },
+      { key: 'memo_sea', label: 'Море' },
+    ],
+  },
+  {
+    title: 'Питание и здоровье',
+    fields: [
+      { key: 'memo_food', label: 'Пищевые пристрастия', multiline: true },
+      { key: 'memo_immunity', label: 'Иммунитет', multiline: true },
+      { key: 'memo_treatments', label: 'Лечение', multiline: true },
+      { key: 'memo_surgeries', label: 'Операции и травмы', multiline: true },
+    ],
+  },
+  {
+    title: 'Наследственность и прививки',
+    fields: [
+      { key: 'memo_perspiration', label: 'Потоотделение' },
+      { key: 'memo_heredity', label: 'Наследственность', multiline: true },
+      { key: 'memo_vaccines', label: 'Прививки', multiline: true },
+    ],
+  },
+]
+
 type Props = {
   answers: IntakeAnswers
   completedAt: string | null
@@ -158,8 +203,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
   const [localAnswers, setLocalAnswers] = useState<IntakeAnswers>(answers)
   const [saving, setSaving] = useState(false)
 
-  const isAcute = type === 'acute'
-  const sections = isAcute ? ACUTE_SECTIONS : PRIMARY_SECTIONS
+  const sections = type === 'memo' ? MEMO_SECTIONS : type === 'acute' ? ACUTE_SECTIONS : PRIMARY_SECTIONS
 
   const dateStr = completedAt
     ? new Date(completedAt).toLocaleDateString('ru-RU', {
@@ -170,8 +214,8 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
       })
     : ''
 
-  const accentColor = isAcute ? '#f97316' : '#c8a035'
-  const accentBg = isAcute ? 'rgba(249,115,22,0.08)' : 'rgba(200,160,53,0.08)'
+  const accentColor = type === 'acute' ? '#f97316' : type === 'memo' ? '#6366f1' : '#c8a035'
+  const accentBg = type === 'acute' ? 'rgba(249,115,22,0.08)' : type === 'memo' ? 'rgba(99,102,241,0.08)' : 'rgba(200,160,53,0.08)'
 
   const displayAnswers = editMode ? localAnswers : answers
   const totalFilled = sections.flatMap(s => s.fields).filter(f => answers[f.key]?.trim()).length
@@ -218,18 +262,18 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
           className="flex items-center gap-2 flex-1 min-w-0"
         >
           <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor }}>
-            {isAcute ? (
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {type === 'acute' ? (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-              </svg>
-            ) : (
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              ) : type === 'memo' ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              ) : (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            )}
+              )}
+            </svg>
           </div>
           <span className="font-semibold truncate" style={{ fontSize: '15px', color: '#1a1a0a' }}>
-            {isAcute ? t(lang).intake.acuteIntakeTitle : t(lang).intake.primaryIntake}
+            {type === 'memo' ? 'Памятка к консультации' : type === 'acute' ? t(lang).intake.acuteIntakeTitle : t(lang).intake.primaryIntake}
           </span>
           {dateStr && <span className="shrink-0" style={{ fontSize: '13px', color: 'var(--sim-text-hint)' }}>{dateStr}</span>}
           <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0" style={{ backgroundColor: accentColor + '20', color: accentColor }}>
