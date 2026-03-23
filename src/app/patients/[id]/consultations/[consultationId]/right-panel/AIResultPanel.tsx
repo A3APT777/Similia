@@ -92,8 +92,6 @@ function CaseUnderstanding({ profile }: { profile: NonNullable<ConsensusResult['
   }
   const confDot = (c: number) =>
     c >= 0.7 ? 'bg-[#2d6a4f]' : c >= 0.4 ? 'bg-[#5a7a5c]' : 'bg-amber-400'
-  const confText = (c: number) =>
-    c >= 0.7 ? 'высокая' : c >= 0.4 ? 'средняя' : 'низкая'
 
   const items = [
     { label: 'Тип', value: LABELS[profile.caseType.value] ?? profile.caseType.value, conf: profile.caseType.confidence },
@@ -143,6 +141,15 @@ function HeroRemedy({ result, onAssign, onCompare }: {
 }) {
   const factors = extractFactors(result)
 
+  // Какие подходы использованы (из линз с ненулевым score)
+  const approachNames: Record<string, string> = {
+    Kent: 'классический реперторий', Constellation: 'анализ паттернов',
+    Polarity: 'полярностный анализ', Hierarchy: 'иерархия симптомов',
+  }
+  const usedApproaches = result.lenses
+    .filter(l => l.score >= 20 && approachNames[l.name])
+    .map(l => approachNames[l.name])
+
   return (
     <div className="ai-fade-in px-4 py-4">
       {/* Название — крупно, как единственный фокус */}
@@ -160,9 +167,9 @@ function HeroRemedy({ result, onAssign, onCompare }: {
 
       {/* Факторы */}
       {factors.length > 0 && (
-        <div className="mb-4">
-          <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
-            Выбран на основе
+        <div className="mb-3">
+          <div className="text-[11px] text-[#6a5a4a] mb-1.5">
+            Выбор основан на ключевых симптомах пациента:
           </div>
           <div className="space-y-1">
             {factors.map((f, i) => (
@@ -172,6 +179,18 @@ function HeroRemedy({ result, onAssign, onCompare }: {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Методология — компактно */}
+      {usedApproaches.length > 0 && (
+        <div className="mb-4 text-[10px] text-[#9a8a6a] flex items-center gap-1 flex-wrap">
+          <span className="uppercase tracking-[0.06em] font-medium">Использованы:</span>
+          {usedApproaches.map((a, i) => (
+            <span key={i}>
+              {a}{i < usedApproaches.length - 1 ? ' · ' : ''}
+            </span>
+          ))}
         </div>
       )}
 
@@ -218,9 +237,12 @@ function AlternativesBlock({ alternatives, top, onAssign }: {
 
   return (
     <div className="px-4 py-3">
-      <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-2">
+      <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1">
         Альтернативы
       </div>
+      <p className="text-[10px] text-[#9a8a6a] mb-2">
+        Также рассмотрены, но уступают по ключевым признакам
+      </p>
       <div className="space-y-2">
         {alternatives.slice(0, 3).map((alt, idx) => {
           const weaknesses = extractWeaknesses(alt, top)
