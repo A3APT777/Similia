@@ -21,6 +21,7 @@ import { DEFAULT_PROFILE } from '@/lib/mdri/types'
 import type { MDRISymptom, MDRIModality, MDRIPatientProfile } from '@/lib/mdri/types'
 import { mergeWithFallback, computeConfidence } from '@/lib/mdri/product-layer'
 import { symMatch } from '@/lib/mdri/synonyms'
+import { PARSING_SYSTEM_PROMPT } from '@/lib/mdri/parsing-prompt'
 import Anthropic from '@anthropic-ai/sdk'
 
 // Rate limit: 10 запросов в час по IP
@@ -170,14 +171,7 @@ async function parseSonnet(text: string): Promise<{
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 2000,
-    system: `Ты — парсер гомеопатического случая. Извлеки из текста симптомы, модальности и семейный анамнез.
-Верни ТОЛЬКО JSON без обёрток:
-{
-  "symptoms": [{"rubric": "symptom in English repertory format", "category": "mental|general|particular", "present": true, "weight": 1-3}],
-  "modalities": [{"pairId": "heat_cold|motion_rest|open_air|sea|morning_evening|company_alone|consolation|pressure|eating|menses", "value": "agg|amel"}],
-  "familyHistory": ["disease1", "disease2"]
-}
-Переводи симптомы на английский в формат реперториума. weight: 1=обычный, 2=выраженный, 3=peculiar/яркий. present=false для отсутствующих симптомов.`,
+    system: PARSING_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: text }],
   })
 
