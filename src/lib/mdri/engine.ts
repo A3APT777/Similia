@@ -675,6 +675,7 @@ export function analyze(
       miasm: dominantMiasm || null,
       relationships: data.relationships[rem] ?? null,
       differential: null,
+      matchedRubrics: [],
     })
   }
 
@@ -1144,6 +1145,9 @@ export function analyzePipeline(
     const isNosode = NOSODES.has(rem)
     const potency = selectPotency(profile, total * 100, isNosode)
 
+    // Deduplicate и ограничить рубрики (для UI — max 10)
+    const uniqueRubrics = [...new Set(cov?.rubrics ?? [])].slice(0, 10)
+
     results.push({
       remedy: rem,
       remedyName: name,
@@ -1161,6 +1165,7 @@ export function analyzePipeline(
       miasm: dominantMiasm || null,
       relationships: data.relationships[rem] ?? null,
       differential: null,
+      matchedRubrics: uniqueRubrics,
     })
   }
 

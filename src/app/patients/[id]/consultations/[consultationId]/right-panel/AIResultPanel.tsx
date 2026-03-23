@@ -196,8 +196,34 @@ function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
         {confExplanation[result.confidence] ?? ''}
       </p>
 
-      {/* Ключевые совпадения */}
-      {keyMatches.length > 0 && (
+      {/* Совпавшие рубрики из реперторий */}
+      {result.matchedRubrics && result.matchedRubrics.length > 0 && (
+        <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
+          <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
+            Совпавшие рубрики
+          </div>
+          <div className="space-y-0.5">
+            {result.matchedRubrics.slice(0, 6).map((rubric, i) => {
+              // Определяем тип по первому слову рубрики
+              const lower = rubric.toLowerCase()
+              const icon = lower.startsWith('mind') ? '🧠'
+                : lower.startsWith('generalities') ? '🌡'
+                : lower.startsWith('sleep') ? '💤'
+                : lower.startsWith('stomach') || lower.startsWith('appetite') ? '🍽'
+                : '📍'
+              return (
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-[#3a3020]">
+                  <span className="text-[10px] shrink-0 mt-px">{icon}</span>
+                  <span className="font-mono text-[10px] text-[#6a5a4a]">{rubric}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Использованные симптомы (русские) */}
+      {(!result.matchedRubrics || result.matchedRubrics.length === 0) && keyMatches.length > 0 && (
         <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
           <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
             Ключевые совпадения

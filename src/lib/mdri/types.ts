@@ -67,6 +67,8 @@ export type MDRIResult = {
   miasm: string | null
   relationships: MDRIRemedyRelationships | null
   differential: MDRIDifferentialNote | null
+  // Explainability: совпавшие рубрики из реперторий
+  matchedRubrics?: string[]
 }
 
 export type MDRIRemedyRelationships = {
