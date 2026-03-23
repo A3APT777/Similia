@@ -151,18 +151,15 @@ export function keywordFallback(
       }
     }
 
-    // Модальность: при конфликте — keyword с high certainty побеждает
+    // Модальность: при конфликте — НЕ выбираем сторону, помечаем uncertainty
     if (rule.modality) {
       const existing = sonnetModalities.find(m => m.pairId === rule.modality!.pairId)
       if (!existing) {
         added.modalities.push(rule.modality)
       } else if (existing.value !== rule.modality.value) {
+        // Конфликт: НЕ перезаписываем. Оставляем Sonnet, помечаем конфликт.
+        // Confidence layer снизит уверенность. UI покажет предупреждение.
         conflicts.push(`${rule.modality.pairId}: текст→${rule.modality.value}, AI→${existing.value}`)
-        if (rule.certainty === 'high') {
-          // Keyword побеждает: заменяем Sonnet модальность
-          existing.value = rule.modality.value
-        }
-        // certainty=medium: оставляем Sonnet, только warning
       }
     }
   }
@@ -296,49 +293,55 @@ export function computeConfidence(
   const hasGeneral = present.some(s => s.category === 'general')
   const hasModalities = modalities.length > 0
 
-  // Есть ли CHARACTERISTIC симптомы? (не просто "головная боль")
-  // weight >= 2 на mental, или любая модальность, или weight=3 peculiar
-  const hasCharacteristic = present.some(s =>
-    (s.category === 'mental' && s.weight >= 2) ||
-    s.weight >= 3
-  ) || hasModalities
+  // Сила characteristic: 0 = нет, 1 = слабый, 2 = сильный
+  // 0: только банальные particular (головная боль, кашель)
+  // 1: есть modalities ИЛИ mental weight=1 ИЛИ general weight>=2
+  // 2: есть mental weight>=2 ИЛИ peculiar weight=3 ИЛИ modalities + mental
+  let charStrength = 0
+  const hasMentalW2 = present.some(s => s.category === 'mental' && s.weight >= 2)
+  const hasPeculiar = present.some(s => s.weight >= 3)
+  const hasAnyMental = present.some(s => s.category === 'mental')
+  if (hasMentalW2 || hasPeculiar) charStrength = 2
+  else if (hasModalities || hasAnyMental || hasGeneral) charStrength = 1
 
   const top1 = results[0]?.totalScore ?? 0
   const top2 = results[1]?.totalScore ?? 0
   const gap = top1 - top2
 
-  // Warnings как penalty: каждый warning снижает "потолок" confidence
-  const warningPenalty = warnings.length // 0..5+
+  const warningPenalty = warnings.length
   const hasConflict = warnings.some(w => w.type === 'uncertain_parse')
+  // Количество категорий покрытых: mental + general + particular + modalities
+  const categoryCoverage = [hasMental, hasGeneral, present.some(s => s.category === 'particular'), hasModalities].filter(Boolean).length
 
   // === INSUFFICIENT ===
-  // <3 симптомов ИЛИ нет ни mental ни general ИЛИ нет результатов
   if (present.length < 3 || (!hasMental && !hasGeneral) || results.length === 0) {
     return { level: 'insufficient', label: 'Недостаточно данных', color: 'gray', showDiff: false, showAsEqual: false }
   }
 
   // === CLARIFY (showAsEqual) ===
-  // Gap < 3% — фактический tie
-  // ИЛИ конфликт парсинга + gap < 10%
+  // Фактический tie ИЛИ конфликт парсинга при близких scores
   if (gap < 3 || (hasConflict && gap < 10)) {
     return { level: 'clarify', label: 'Требует уточнения', color: 'yellow', showDiff: true, showAsEqual: true }
   }
 
   // === CLARIFY ===
-  // Gap < 10%
-  // ИЛИ нет characteristic симптомов (всё банально)
-  // ИЛИ 3+ warnings
-  if (gap < 10 || !hasCharacteristic || warningPenalty >= 3) {
+  // Gap маленький ИЛИ нет characteristic (charStrength=0) ИЛИ слишком много warnings
+  if (gap < 10 || charStrength === 0 || warningPenalty >= 3) {
     return { level: 'clarify', label: 'Уточните для точности', color: 'yellow', showDiff: true, showAsEqual: false }
   }
 
   // === HIGH ===
-  // Gap >= 15% И есть characteristic И modalities И mental И general
-  // И не больше 1 warning И нет конфликтов
-  if (gap >= 15 && hasCharacteristic && hasModalities && hasMental && hasGeneral && warningPenalty <= 1 && !hasConflict) {
+  // Все условия одновременно:
+  // 1) gap >= 15%
+  // 2) strong characteristic (charStrength=2: mental w>=2 ИЛИ peculiar)
+  // 3) modalities есть
+  // 4) >=3 категории покрыты (mental + general + particular/modalities)
+  // 5) <=1 warning, нет конфликтов
+  if (gap >= 15 && charStrength >= 2 && hasModalities && categoryCoverage >= 3 && warningPenalty <= 1 && !hasConflict) {
     return { level: 'high', label: 'Высокая уверенность', color: 'green', showDiff: false, showAsEqual: false }
   }
 
-  // === GOOD (default) ===
-  return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: gap < 12, showAsEqual: false }
+  // === GOOD ===
+  // charStrength=1 (слабый) → всё ещё GOOD, но showDiff чаще
+  return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: gap < 12 || charStrength < 2, showAsEqual: false }
 }
