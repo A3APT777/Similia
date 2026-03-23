@@ -54,16 +54,26 @@ function extractWeaknesses(result: MDRIResult, top: MDRIResult): string[] {
     const thisLens = result.lenses.find(l => l.name === topLens.name)
     if (!thisLens) continue
     const gap = topLens.score - thisLens.score
-    if (gap < 15) continue
+    if (gap < 10) continue
 
-    if (topLens.name === 'Constellation' && thisLens.score < 30) w.push('не подтверждён характерный паттерн')
-    else if (topLens.name === 'Hierarchy' && thisLens.score < 40) w.push('слабое совпадение по ключевым уровням')
-    else if (topLens.name === 'Kent' && thisLens.score < 40) w.push('меньше совпадений в реперторий')
+    if (topLens.name === 'Constellation') {
+      if (thisLens.score < 20) w.push('характерный паттерн не совпал')
+      else if (gap >= 20) w.push('паттерн совпал слабее')
+    }
+    else if (topLens.name === 'Kent') {
+      if (thisLens.score < 30) w.push('мало совпадений в реперторий')
+      else if (gap >= 15) w.push('меньше реперторных совпадений')
+    }
+    else if (topLens.name === 'Hierarchy' && thisLens.score < 40) w.push('слабее по ключевым уровням симптомов')
     else if (topLens.name === 'Polarity' && thisLens.score < 30) w.push('не подтверждён полярностным анализом')
     else if (topLens.name === 'Negative' && thisLens.score < 50) w.push('есть противоречащие признаки')
   }
+  // Differential question — если engine дал конкретный вопрос
+  if (result.differential?.differentiatingQuestion) {
+    w.push(result.differential.differentiatingQuestion)
+  }
   if (w.length === 0) w.push('менее выраженное общее совпадение')
-  return w.slice(0, 2)
+  return w.slice(0, 3)
 }
 
 // Уверенность текстом
@@ -304,7 +314,7 @@ function AlternativesBlock({ alternatives, top, onAssign }: {
                 <div className="mt-0.5 space-y-0.5">
                   {weaknesses.map((w, i) => (
                     <div key={i} className="text-[11px] text-[#9a8a6a] flex items-start gap-1">
-                      <span className="text-amber-400 shrink-0 mt-px">—</span>
+                      <span className="text-amber-500/70 shrink-0 text-[10px]">✗</span>
                       <span>{w}</span>
                     </div>
                   ))}
@@ -533,29 +543,32 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
 
       {/* Мини-контроль */}
       {(onEditSymptoms || onReanalyze) && (
-        <div className="px-4 py-2.5 border-t border-[rgba(0,0,0,0.06)] flex items-center gap-2">
-          {onEditSymptoms && (
-            <button
-              onClick={onEditSymptoms}
-              className="text-[11px] text-[#6a5a4a] hover:text-[#3a3020] transition-colors flex items-center gap-1"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-              </svg>
-              Изменить симптомы
-            </button>
-          )}
-          {onReanalyze && (
-            <button
-              onClick={onReanalyze}
-              className="text-[11px] text-[#6a5a4a] hover:text-[#3a3020] transition-colors flex items-center gap-1"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-              </svg>
-              Пересчитать
-            </button>
-          )}
+        <div className="px-4 py-2.5 border-t border-[rgba(0,0,0,0.06)]">
+          <div className="flex items-center gap-3">
+            {onEditSymptoms && (
+              <button
+                onClick={onEditSymptoms}
+                className="text-[11px] text-[#6a5a4a] hover:text-[#3a3020] transition-colors flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                </svg>
+                Изменить симптомы и пересчитать
+              </button>
+            )}
+            {onReanalyze && !onEditSymptoms && (
+              <button
+                onClick={onReanalyze}
+                className="text-[11px] text-[#6a5a4a] hover:text-[#3a3020] transition-colors flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                </svg>
+                Пересчитать анализ
+              </button>
+            )}
+          </div>
+          <p className="text-[9px] text-[#9a8a6a] mt-1">Результат зависит от выбранных симптомов</p>
         </div>
       )}
     </div>
