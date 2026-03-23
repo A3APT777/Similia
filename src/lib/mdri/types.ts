@@ -165,3 +165,24 @@ export type ConsensusResult = {
   warnings?: { type: string; message: string; hint: string }[]
   fallbackAdded?: { symptoms: number; modalities: number; conflicts: number }
 }
+
+// === Suggestions (hybrid parsing) ===
+
+export type ParsedSuggestion = {
+  id: string                    // уникальный id для UI toggle
+  rubric: string                // английский rubric
+  label: string                 // русский текст для врача
+  type: 'mental' | 'general' | 'modality' | 'particular'
+  weight: 1 | 2 | 3
+  confirmed: boolean            // по умолчанию true (opt-out)
+  source: 'sonnet' | 'keyword'  // откуда пришёл
+}
+
+export type ParseSuggestionsResult = {
+  suggestions: ParsedSuggestion[]
+  modalities: MDRIModality[]
+  familyHistory: string[]
+  warnings: { type: string; message: string; hint: string }[]
+  rawSymptomCount: number       // сколько Sonnet нашёл
+  fallbackCount: number         // сколько keyword добавил
+}

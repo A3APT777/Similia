@@ -5,8 +5,9 @@ import ActiveRemedy from './ActiveRemedy'
 import PreviousVisitSummary from './PreviousVisitSummary'
 import PreVisitSurveyPanel from './PreVisitSurveyPanel'
 import AIResultPanel from './AIResultPanel'
+import SuggestionReview from './SuggestionReview'
 import { getAge } from '@/lib/utils'
-import type { ConsensusResult } from '@/lib/mdri/types'
+import type { ConsensusResult, ParsedSuggestion, ParseSuggestionsResult } from '@/lib/mdri/types'
 
 type Props = {
   previousConsultation: Consultation | null
@@ -21,19 +22,34 @@ type Props = {
   onAssignRemedy?: (abbrev: string) => void
   // AI-результат из консультации
   aiResult?: ConsensusResult | null
+  // Hybrid parsing
+  suggestions?: ParseSuggestionsResult | null
+  onConfirmSuggestions?: (confirmed: ParsedSuggestion[], familyHistory: string[]) => void
+  onCancelSuggestions?: () => void
+  analyzingConfirmed?: boolean
 }
 
-export default function RightPanel({ previousConsultation, patient, lang, preVisitSurvey, onAssignRemedy, aiResult }: Props) {
-  // Обёртка для onAssignRemedy — AI передаёт (abbrev, potency), RightPanel принимает (abbrev)
+export default function RightPanel({ previousConsultation, patient, lang, preVisitSurvey, onAssignRemedy, aiResult, suggestions, onConfirmSuggestions, onCancelSuggestions, analyzingConfirmed }: Props) {
   const handleAIAssign = onAssignRemedy
     ? (abbrev: string, _potency: string) => onAssignRemedy(abbrev)
     : undefined
+
+  // Suggestion review (шаг 1 hybrid parsing)
+  const suggestionPanel = suggestions && onConfirmSuggestions && onCancelSuggestions ? (
+    <SuggestionReview
+      data={suggestions}
+      onConfirm={onConfirmSuggestions}
+      onCancel={onCancelSuggestions}
+      loading={analyzingConfirmed}
+    />
+  ) : null
 
   if (!previousConsultation) {
     return (
       <div className="p-4 space-y-3">
         <FirstVisitContext patient={patient} lang={lang} />
-        {aiResult && <AIResultPanel aiResult={aiResult} lang={lang} onAssignRemedy={handleAIAssign} />}
+        {suggestionPanel}
+        {aiResult && !suggestions && <AIResultPanel aiResult={aiResult} lang={lang} onAssignRemedy={handleAIAssign} />}
         {preVisitSurvey && <PreVisitSurveyPanel survey={preVisitSurvey} lang={lang} />}
       </div>
     )
@@ -41,7 +57,8 @@ export default function RightPanel({ previousConsultation, patient, lang, preVis
 
   return (
     <div className="p-4 space-y-3">
-      {aiResult && <AIResultPanel aiResult={aiResult} lang={lang} onAssignRemedy={handleAIAssign} />}
+      {suggestionPanel}
+      {aiResult && !suggestions && <AIResultPanel aiResult={aiResult} lang={lang} onAssignRemedy={handleAIAssign} />}
       {preVisitSurvey && <PreVisitSurveyPanel survey={preVisitSurvey} lang={lang} />}
 
       {previousConsultation.remedy && (

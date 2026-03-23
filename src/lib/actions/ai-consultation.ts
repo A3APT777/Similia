@@ -11,9 +11,10 @@ import Anthropic from '@anthropic-ai/sdk'
 import type {
   MDRISymptom, MDRIModality, MDRIPatientProfile, MDRIResult,
   AIHomeopathResult, ConsensusResult, MDRISymptomCategory,
+  ParsedSuggestion, ParseSuggestionsResult,
 } from '@/lib/mdri/types'
 import { DEFAULT_PROFILE } from '@/lib/mdri/types'
-import { mergeWithFallback, computeConfidence } from '@/lib/mdri/product-layer'
+import { mergeWithFallback, computeConfidence, validateInput } from '@/lib/mdri/product-layer'
 
 // --- Валидация ---
 
@@ -587,6 +588,174 @@ function getFallbackQuestions(): AIQuestion[] {
     { key: 'thirst', label: 'Жажда', type: 'chips', options: ['Сильная', 'Умеренная', 'Слабая', 'Маленькими глотками'] },
     { key: 'additional', label: 'Что ещё важно знать?', type: 'textarea' },
   ]
+}
+
+// === HYBRID PARSING: parse → suggest → confirm → analyze ===
+
+// Словарь перевода rubric → русский (для UI)
+const RUBRIC_RU: Record<string, string> = {
+  'chilly': 'Зябкий', 'hot patient': 'Жаркий',
+  'thirstless': 'Нет жажды', 'thirst large quantities': 'Сильная жажда', 'thirst small sips frequently': 'Пьёт мелкими глотками',
+  'consolation aggravates': 'Утешение хуже', 'consolation ameliorates': 'Утешение лучше',
+  'weeping easily': 'Плаксивость', 'weeping alone': 'Плачет одна',
+  'irritability': 'Раздражительность', 'anxiety': 'Тревога',
+  'fear death': 'Страх смерти', 'fear dark': 'Страх темноты', 'fear alone': 'Страх одиночества',
+  'jealousy suspicious': 'Ревность', 'indifference': 'Безразличие',
+  'grief': 'Горе', 'grief suppressed': 'Подавленное горе',
+  'desire salt': 'Любит солёное', 'desire sweets': 'Любит сладкое',
+  'worse night': 'Хуже ночью', 'worse morning': 'Хуже утром',
+  'worse after sleep': 'Хуже после сна', 'worse sun': 'Хуже на солнце',
+  'better at sea seashore': 'Лучше на море',
+  'perspiration head night': 'Потеет голова ночью',
+  'restlessness': 'Беспокойство', 'fastidious orderly': 'Педантичность',
+  'loquacity talkative': 'Болтливость',
+  'indifference family': 'Безразличие к семье',
+  'emaciation': 'Худеет', 'insomnia': 'Бессонница',
+}
+
+function rubricToRussian(rubric: string): string {
+  const r = rubric.toLowerCase()
+  // Точное совпадение
+  for (const [key, val] of Object.entries(RUBRIC_RU)) {
+    if (r.includes(key)) return val
+  }
+  // Fallback: capitalize first word
+  return rubric.split(' ').slice(0, 3).join(' ')
+}
+
+const MODALITY_RU: Record<string, string> = {
+  'heat_cold_agg': 'Тепло хуже', 'heat_cold_amel': 'Тепло лучше (зябкий)',
+  'motion_rest_agg': 'Движение хуже', 'motion_rest_amel': 'Движение лучше',
+  'open_air_agg': 'Свежий воздух хуже', 'open_air_amel': 'Свежий воздух лучше',
+  'consolation_agg': 'Утешение хуже', 'consolation_amel': 'Утешение лучше',
+  'company_alone_agg': 'Компания хуже', 'company_alone_amel': 'Компания лучше',
+  'pressure_agg': 'Давление хуже', 'pressure_amel': 'Давление лучше',
+  'sea_amel': 'Море лучше',
+}
+
+/**
+ * Шаг 1: Парсинг текста → suggestions для подтверждения
+ */
+export async function parseAndSuggest(input: { text: string }): Promise<ParseSuggestionsResult> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Не авторизован')
+
+  const parseResult = await parseTextWithSonnet(input.text)
+  const { symptoms, modalities, warnings, conflicts } = mergeWithFallback(
+    input.text, parseResult.symptoms, parseResult.modalities,
+  )
+
+  // Конвертируем в suggestions
+  let idCounter = 0
+  const suggestions: ParsedSuggestion[] = []
+
+  for (const sym of symptoms) {
+    const isFromFallback = !parseResult.symptoms.some(s =>
+      s.rubric.toLowerCase().includes(sym.rubric.split(' ')[0].toLowerCase())
+    )
+    suggestions.push({
+      id: `s-${idCounter++}`,
+      rubric: sym.rubric,
+      label: rubricToRussian(sym.rubric),
+      type: sym.category === 'mental' ? 'mental' : sym.category === 'general' ? 'general' : 'particular',
+      weight: sym.weight as 1 | 2 | 3,
+      confirmed: true, // По умолчанию подтверждено (opt-out)
+      source: isFromFallback ? 'keyword' : 'sonnet',
+    })
+  }
+
+  // Модальности как suggestions
+  for (const mod of modalities) {
+    const key = `${mod.pairId}_${mod.value}`
+    suggestions.push({
+      id: `m-${idCounter++}`,
+      rubric: `${mod.pairId}:${mod.value}`,
+      label: MODALITY_RU[key] ?? `${mod.pairId} ${mod.value === 'agg' ? 'хуже' : 'лучше'}`,
+      type: 'modality',
+      weight: 2,
+      confirmed: true,
+      source: parseResult.modalities.some(m => m.pairId === mod.pairId) ? 'sonnet' : 'keyword',
+    })
+  }
+
+  return {
+    suggestions,
+    modalities,
+    familyHistory: parseResult.familyHistory,
+    warnings,
+    rawSymptomCount: parseResult.symptoms.length,
+    fallbackCount: symptoms.length - parseResult.symptoms.length,
+  }
+}
+
+/**
+ * Шаг 2: Анализ с подтверждёнными suggestions
+ */
+export async function analyzeConfirmed(input: {
+  consultationId?: string
+  suggestions: ParsedSuggestion[]
+  familyHistory: string[]
+  profile?: MDRIPatientProfile
+}): Promise<ConsensusResult> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Не авторизован')
+  await checkAIAccess(supabase, user.id)
+
+  const confirmed = input.suggestions.filter(s => s.confirmed)
+
+  // Собираем symptoms из confirmed (исключая modalities)
+  const symptoms: MDRISymptom[] = confirmed
+    .filter(s => s.type !== 'modality')
+    .map(s => ({
+      rubric: s.rubric,
+      category: (s.type === 'mental' ? 'mental' : s.type === 'general' ? 'general' : 'particular') as MDRISymptomCategory,
+      present: true,
+      weight: s.weight,
+    }))
+
+  // Собираем modalities из confirmed
+  const modalities: MDRIModality[] = confirmed
+    .filter(s => s.type === 'modality')
+    .map(s => {
+      const [pairId, value] = s.rubric.split(':')
+      return { pairId, value: value as 'agg' | 'amel' }
+    })
+
+  if (symptoms.length === 0) {
+    throw new Error('Нет подтверждённых симптомов')
+  }
+
+  const profile = input.profile ?? DEFAULT_PROFILE
+  const data = await loadMDRIData()
+  const mdriResults = analyze(data, symptoms, modalities, input.familyHistory, profile)
+
+  const productConfidence = computeConfidence(symptoms, modalities, mdriResults,
+    validateInput(symptoms, modalities))
+
+  const topRemedy = mdriResults[0]?.remedy ?? ''
+  const result: ConsensusResult = {
+    method: 'consensus',
+    finalRemedy: topRemedy,
+    sonnetRemedy: topRemedy,
+    mdriRemedy: topRemedy,
+    mdriResults,
+    aiResult: null,
+    cost: 0.01,
+    productConfidence,
+    warnings: validateInput(symptoms, modalities),
+  }
+
+  if (input.consultationId) {
+    await supabase
+      .from('consultations')
+      .update({ ai_result: result as unknown as Record<string, unknown>, source: 'ai' })
+      .eq('id', input.consultationId)
+  }
+
+  await deductAICredit(supabase, user.id)
+  return result
 }
 
 function getFallbackClarifying(): AIQuestion[] {

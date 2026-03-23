@@ -29,17 +29,18 @@ type Props = {
   paidSessionsEnabled: boolean
   visitNumber: number
   preVisitSurvey?: PreVisitSurvey | null
+  showAI?: boolean
 }
 
-export default function ConsultationEditor({ consultation, patient, previousConsultation, paidSessionsEnabled, visitNumber, preVisitSurvey }: Props) {
+export default function ConsultationEditor({ consultation, patient, previousConsultation, paidSessionsEnabled, visitNumber, preVisitSurvey, showAI = true }: Props) {
   return (
     <ConsultationProvider consultation={consultation} patient={patient} previousConsultation={previousConsultation}>
-      <EditorInner paidSessionsEnabled={paidSessionsEnabled} visitNumber={visitNumber} preVisitSurvey={preVisitSurvey} />
+      <EditorInner paidSessionsEnabled={paidSessionsEnabled} visitNumber={visitNumber} preVisitSurvey={preVisitSurvey} showAI={showAI} />
     </ConsultationProvider>
   )
 }
 
-function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { paidSessionsEnabled: boolean; visitNumber: number; preVisitSurvey?: PreVisitSurvey | null }) {
+function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI = true }: { paidSessionsEnabled: boolean; visitNumber: number; preVisitSurvey?: PreVisitSurvey | null; showAI?: boolean }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -61,6 +62,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
   const [aiResult, setAIResult] = useState<import('@/lib/mdri/types').ConsensusResult | null>(
     consultation.ai_result as import('@/lib/mdri/types').ConsensusResult | null
   )
+  const [suggestions, setSuggestions] = useState<import('@/lib/mdri/types').ParseSuggestionsResult | null>(null)
+  const [analyzingConfirmed, setAnalyzingConfirmed] = useState(false)
 
   useEffect(() => {
     localStorage.setItem('hc-last-consultation', window.location.pathname)
@@ -99,17 +102,18 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
     }
 
     setAILoading(true)
+    setSuggestions(null)
+    setAIResult(null)
     try {
       await saveAll()
-      const { analyzeText } = await import('@/lib/actions/ai-consultation')
-      const result = await analyzeText({
-        consultationId: consultation.id,
-        text: parts.join('\n'),
-      })
-      setAIResult(result)
+      // Шаг 1: парсинг → suggestions
+      const { parseAndSuggest } = await import('@/lib/actions/ai-consultation')
+      const result = await parseAndSuggest({ text: parts.join('\n') })
+      setSuggestions(result)
+      setAILoading(false)
       toast(lang === 'ru'
-        ? `AI: ${result.finalRemedy.toUpperCase()} (${result.method})`
-        : `AI: ${result.finalRemedy.toUpperCase()} (${result.method})`)
+        ? `Распознано ${result.suggestions.length} симптомов — проверьте`
+        : `Found ${result.suggestions.length} symptoms — review`)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''
       if (msg === 'NO_AI_ACCESS') {
@@ -117,8 +121,32 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
       } else {
         toast(lang === 'ru' ? 'Ошибка AI-анализа' : 'AI analysis error', 'error')
       }
-    } finally {
       setAILoading(false)
+    }
+  }
+
+  // Шаг 2: анализ с подтверждёнными symptoms
+  async function handleConfirmSuggestions(
+    confirmed: import('@/lib/mdri/types').ParsedSuggestion[],
+    familyHistory: string[],
+  ) {
+    setAnalyzingConfirmed(true)
+    try {
+      const { analyzeConfirmed } = await import('@/lib/actions/ai-consultation')
+      const result = await analyzeConfirmed({
+        consultationId: consultation.id,
+        suggestions: confirmed,
+        familyHistory,
+      })
+      setAIResult(result)
+      setSuggestions(null)
+      toast(lang === 'ru'
+        ? `AI: ${result.finalRemedy.toUpperCase()}`
+        : `AI: ${result.finalRemedy.toUpperCase()}`)
+    } catch {
+      toast(lang === 'ru' ? 'Ошибка анализа' : 'Analysis error', 'error')
+    } finally {
+      setAnalyzingConfirmed(false)
     }
   }
 
@@ -135,11 +163,14 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
 
     await saveAll()
 
-    // Если препарат уже назначен — завершаем без модала
-    if (savedRx?.remedy) {
+    // Если препарат уже назначен (через InlineRx или autosave) — завершаем без модала
+    const hasRemedy = savedRx?.remedy || consultation.remedy
+    if (hasRemedy) {
+      const rxName = savedRx?.remedy || consultation.remedy || ''
+      const rxPot = savedRx?.potency || consultation.potency || ''
       toast(lang === 'ru'
-        ? `Приём завершён · ${savedRx.remedy}${savedRx.potency ? ' ' + savedRx.potency : ''} назначен`
-        : `Consultation done · ${savedRx.remedy}${savedRx.potency ? ' ' + savedRx.potency : ''} prescribed`)
+        ? `Приём завершён · ${rxName}${rxPot ? ' ' + rxPot : ''} назначен`
+        : `Consultation done · ${rxName}${rxPot ? ' ' + rxPot : ''} prescribed`)
       await handleConsultationDone()
       return
     }
@@ -244,6 +275,14 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
             >
               {lang === 'ru' ? 'Вернуться к пациенту' : 'Back to patient'}
             </button>
+            {patient.is_demo && (
+              <button
+                onClick={() => router.push('/patients/new')}
+                className="btn btn-primary w-full py-3"
+              >
+                {lang === 'ru' ? 'Добавить своего пациента →' : 'Add your own patient →'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -305,13 +344,13 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
         <div className={`${mobileTab === 'editor' ? 'flex' : 'hidden'} lg:flex flex-col min-h-0`} style={{ borderRight: '1px solid var(--sim-border-light)' }}>
 
           <EditorHeader visitNumber={visitNumber} />
-          <EditorToolbar onOpenRepertory={handleOpenRepertory} onRunAI={handleRunAI} aiLoading={aiLoading} hasAIResult={!!aiResult} />
+          <EditorToolbar onOpenRepertory={handleOpenRepertory} onRunAI={showAI ? handleRunAI : undefined} aiLoading={aiLoading} hasAIResult={!!aiResult} />
 
           <div className="px-4">
             <FirstTimeHint id="consultation">
               {lang === 'ru'
-                ? 'Заполните жалобы, модальности и психику. Для острого случая — переключите тип вверху. Кнопка «Реперторий» откроет мини-реперторий Кента прямо здесь. Кнопка «📚 Обучение» — пошаговый тур.'
-                : 'Fill in complaints, modalities, mentals. For acute — switch type above. "Repertory" opens Kent\'s mini-repertory right here. "📚 Tutorial" — step-by-step tour.'}
+                ? 'Запишите жалобы пациента. Раскройте «Модальности, психика» для подробностей. Реперторий — кнопка справа. Назначение — внизу.'
+                : 'Record patient complaints. Expand "Modalities, mentals" for details. Repertory — button on the right. Prescription — below.'}
             </FirstTimeHint>
           </div>
 
@@ -353,9 +392,9 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
                   onChange={e => updateField('recommendations', e.target.value)}
                   placeholder={lang === 'ru' ? 'Контроль через 4 нед · Отправить опрос самочувствия' : 'Follow-up in 4 weeks · Send wellbeing survey'}
                   className="w-full px-3 py-2.5 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300"
-                  style={{ fontSize: '15px', borderColor: '#e5e0d8' }}
+                  style={{ fontSize: '15px', borderColor: 'rgba(0,0,0,0.08)' }}
                   onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = '#e5e0d8'; e.currentTarget.style.boxShadow = 'none' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </section>
 
@@ -370,9 +409,9 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
                   placeholder={lang === 'ru' ? 'DD: Sulphur vs Lycopodium · дополнительные наблюдения...' : 'DD: Sulphur vs Lycopodium · additional observations...'}
                   rows={3}
                   className="w-full px-3 py-2.5 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300 resize-none"
-                  style={{ fontSize: '14px', borderColor: '#e5e0d8', lineHeight: '1.6' }}
+                  style={{ fontSize: '14px', borderColor: 'rgba(0,0,0,0.08)', lineHeight: '1.6' }}
                   onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = '#e5e0d8'; e.currentTarget.style.boxShadow = 'none' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </section>
 
@@ -381,7 +420,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
           </div>
 
           {/* Footer: save status + finish button */}
-          <div className="shrink-0 px-6 lg:px-8 py-3 flex items-center gap-3" style={{ borderTop: '1px solid #ede8e0', backgroundColor: '#f8f7f4' }}>
+          <div className="shrink-0 px-6 lg:px-8 py-3 flex items-center gap-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', backgroundColor: '#f8f7f4' }}>
             <button
               data-tour="finish-btn"
               onClick={handleFinish}
@@ -451,6 +490,10 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey }: { pai
                 lang={lang}
                 preVisitSurvey={preVisitSurvey}
                 aiResult={aiResult}
+                suggestions={suggestions}
+                onConfirmSuggestions={handleConfirmSuggestions}
+                onCancelSuggestions={() => setSuggestions(null)}
+                analyzingConfirmed={analyzingConfirmed}
                 onAssignRemedy={(abbrev) => {
                   setRepertoryAssignedRemedy(abbrev)
                   setPendingPrescription({ abbrev, potency: '30C', dosage: '' })
