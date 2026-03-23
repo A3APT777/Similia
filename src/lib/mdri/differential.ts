@@ -45,10 +45,11 @@ function calcAvgPressure(results: MDRIResult[]): number {
   return Math.round((avg / results[0].totalScore) * 100) / 100
 }
 
-// Максимальное давление — top-2 / top-1
+// Максимальное давление — max(top-2, top-3, top-4) / top-1
 function calcMaxPressure(results: MDRIResult[]): number {
   if (results.length < 2 || results[0].totalScore === 0) return 0
-  return Math.round((results[1].totalScore / results[0].totalScore) * 100) / 100
+  const maxAlt = Math.max(...results.slice(1, 4).map(r => r.totalScore))
+  return Math.round((maxAlt / results[0].totalScore) * 100) / 100
 }
 
 export function measureClarifyEffectiveness(
@@ -73,10 +74,15 @@ export function measureClarifyEffectiveness(
   const avgPressureA = calcAvgPressure(afterResults)
   const maxPressureB = calcMaxPressure(beforeResults)
   const maxPressureA = calcMaxPressure(afterResults)
-  const avgPressureDrop = avgPressureB - avgPressureA
-  const maxPressureDrop = maxPressureB - maxPressureA
+  // Явные дельты
+  const avgPressureDelta = avgPressureB - avgPressureA  // >0 = давление снизилось
+  const maxPressureDelta = maxPressureB - maxPressureA  // >0 = давление снизилось
+  const top1Delta = top1ScoreA - top1ScoreB             // >0 = top-1 усилился
 
-  const top1NotWeaker = top1ScoreA >= top1ScoreB
+  const top1NotWeaker = top1Delta >= 0
+  const gapGrew = deltaGap > 0
+  const pressureDropped = avgPressureDelta > 0 || maxPressureDelta > 0
+
   const confImproved = (
     (confidenceBefore === 'insufficient' && confidenceAfter !== 'insufficient') ||
     (confidenceBefore === 'clarify' && (confidenceAfter === 'good' || confidenceAfter === 'high')) ||
@@ -87,41 +93,50 @@ export function measureClarifyEffectiveness(
   let level: ClarifyEffectivenessLevel = 'not_effective'
   let reason = ''
 
-  // top-1 ослаб → not_effective (всегда)
+  // not_effective: top-1 ослаб (безусловно)
   if (!top1NotWeaker) {
     reason = `top-1 ослаб: ${top1ScoreB}% → ${top1ScoreA}%`
   }
-  // Смена лидера — оцениваем по устойчивости нового
+  // not_effective: gap не вырос И давление не снизилось
+  else if (!gapGrew && !pressureDropped) {
+    reason = 'gap не вырос и давление не снизилось'
+  }
+  // Смена лидера
   else if (top1B !== top1A) {
-    if (deltaGap >= 5 && (avgPressureDrop >= 0.05 || maxPressureDrop >= 0.05)) {
+    if (deltaGap >= 5 && (avgPressureDelta >= 0.05 || maxPressureDelta >= 0.05)) {
       level = 'strong_effective'
       reason = `смена лидера ${top1B} → ${top1A}, gap +${deltaGap}%`
-    } else if (deltaGap >= 2) {
+    } else if (deltaGap >= 2 || pressureDropped) {
       level = 'weak_effective'
-      reason = `смена лидера ${top1B} → ${top1A}, gap +${deltaGap}% (устойчивость слабая)`
+      reason = `смена лидера ${top1B} → ${top1A}` + (deltaGap >= 2 ? `, gap +${deltaGap}%` : ', давление снизилось')
     } else {
       reason = `смена лидера ${top1B} → ${top1A}, устойчивость не подтверждена`
     }
   }
-  // top-1 стабилен — оцениваем по gap + давлению
-  else if (deltaGap >= 5 && (avgPressureDrop >= 0.05 || maxPressureDrop >= 0.05)) {
+  // top-1 стабилен — strong
+  else if (deltaGap >= 5 && (avgPressureDelta >= 0.05 || maxPressureDelta >= 0.05)) {
     level = 'strong_effective'
     reason = `gap +${deltaGap}%, давление снизилось`
-  } else if (deltaGap >= 2 && top1NotWeaker) {
+  }
+  // top-1 стабилен — weak: gap≥2% ИЛИ давление снизилось ≥2-3%
+  else if (deltaGap >= 2 || avgPressureDelta >= 0.02 || maxPressureDelta >= 0.03) {
     level = 'weak_effective'
-    reason = avgPressureDrop > 0 || maxPressureDrop > 0
-      ? `gap +${deltaGap}%, давление немного снизилось`
-      : `gap +${deltaGap}%, давление сохраняется`
-  } else if (conflictResolved && top1NotWeaker) {
+    const parts: string[] = []
+    if (deltaGap >= 2) parts.push(`gap +${deltaGap}%`)
+    if (avgPressureDelta >= 0.02) parts.push(`среднее давление −${Math.round(avgPressureDelta * 100)}%`)
+    if (maxPressureDelta >= 0.03) parts.push(`макс. давление −${Math.round(maxPressureDelta * 100)}%`)
+    reason = parts.join(', ')
+  }
+  // Конфликт разрешён
+  else if (conflictResolved) {
     level = 'weak_effective'
     reason = 'конфликт разрешён'
-  } else if (deltaGap <= 0) {
-    reason = 'gap не вырос'
-  } else {
+  }
+  else {
     reason = 'недостаточно изменений'
   }
 
-  // confidence — дополнительный сигнал (не самостоятельный критерий)
+  // confidence — дополнительный сигнал: повышает weak → strong
   if (confImproved && level === 'weak_effective') {
     level = 'strong_effective'
     reason += ' + confidence вырос'
