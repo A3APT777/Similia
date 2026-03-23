@@ -32,18 +32,18 @@ function translateHint(hint: string): string {
   return r
 }
 
-// Генерация факторов "почему выбран" из линз
+// Генерация факторов — клинический язык
 function extractFactors(result: MDRIResult): string[] {
   const f: string[] = []
   for (const l of result.lenses) {
-    if (l.name === 'Kent' && l.score >= 50) f.push('высокое совпадение в классическом реперторий')
-    if (l.name === 'Constellation' && l.score >= 60) f.push('характерный паттерн полностью совпал')
-    else if (l.name === 'Constellation' && l.score >= 30) f.push('частичное совпадение характерных паттернов')
-    if (l.name === 'Hierarchy' && l.score >= 60) f.push('совпадение по ключевым уровням симптомов')
-    if (l.name === 'Polarity' && l.score >= 50) f.push('подтверждено полярностным анализом')
-    if (l.name === 'Negative' && l.score >= 70) f.push('нет противоречащих признаков')
+    if (l.name === 'Kent' && l.score >= 50) f.push('соответствует реперторным данным')
+    if (l.name === 'Constellation' && l.score >= 60) f.push('характерный клинический паттерн совпадает')
+    else if (l.name === 'Constellation' && l.score >= 30) f.push('частичное соответствие характерному паттерну')
+    if (l.name === 'Hierarchy' && l.score >= 60) f.push('подтверждён на уровне психики и общих симптомов')
+    if (l.name === 'Polarity' && l.score >= 50) f.push('модальности соответствуют профилю препарата')
+    if (l.name === 'Negative' && l.score >= 70) f.push('нет противоречащих клинических данных')
   }
-  if (result.miasm) f.push(`миазматическое соответствие: ${result.miasm}`)
+  if (result.miasm) f.push(`миазматическая картина: ${result.miasm}`)
   return f.slice(0, 5)
 }
 
@@ -57,22 +57,22 @@ function extractWeaknesses(result: MDRIResult, top: MDRIResult): string[] {
     if (gap < 10) continue
 
     if (topLens.name === 'Constellation') {
-      if (thisLens.score < 20) w.push('характерный паттерн не совпал')
-      else if (gap >= 20) w.push('паттерн совпал слабее')
+      if (thisLens.score < 20) w.push('характерный клинический паттерн не прослеживается')
+      else if (gap >= 20) w.push('паттерн выражен слабее')
     }
     else if (topLens.name === 'Kent') {
-      if (thisLens.score < 30) w.push('мало совпадений в реперторий')
-      else if (gap >= 15) w.push('меньше реперторных совпадений')
+      if (thisLens.score < 30) w.push('слабое соответствие реперторным данным')
+      else if (gap >= 15) w.push('реперторное соответствие ниже')
     }
-    else if (topLens.name === 'Hierarchy' && thisLens.score < 40) w.push('слабее по ключевым уровням симптомов')
-    else if (topLens.name === 'Polarity' && thisLens.score < 30) w.push('не подтверждён полярностным анализом')
-    else if (topLens.name === 'Negative' && thisLens.score < 50) w.push('есть противоречащие признаки')
+    else if (topLens.name === 'Hierarchy' && thisLens.score < 40) w.push('недостаточно подтверждён на уровне психики и общих')
+    else if (topLens.name === 'Polarity' && thisLens.score < 30) w.push('модальности не соответствуют профилю')
+    else if (topLens.name === 'Negative' && thisLens.score < 50) w.push('есть противоречащие клинические данные')
   }
   // Differential question — если engine дал конкретный вопрос
   if (result.differential?.differentiatingQuestion) {
     w.push(result.differential.differentiatingQuestion)
   }
-  if (w.length === 0) w.push('менее выраженное общее совпадение')
+  if (w.length === 0) w.push('общая клиническая картина соответствует слабее')
   return w.slice(0, 3)
 }
 
@@ -248,12 +248,12 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
     .filter(l => l.score >= 20 && approachNames[l.name])
     .map(l => approachNames[l.name])
 
-  // Пояснение уверенности — основано на количестве и значимости совпадений
+  // Пояснение уверенности — клинический язык
   const confExplanation: Record<string, { text: string; action: string }> = {
-    high: { text: 'Значимые совпадения по ключевым симптомам и модальностям', action: 'можно опираться на результат' },
-    medium: { text: 'Основные признаки совпали, но важные данные неполные', action: 'желательно уточнить' },
-    low: { text: 'Мало значимых совпадений для уверенного выбора', action: 'результат ориентировочный' },
-    insufficient: { text: 'Недостаточно симптомов для полноценного анализа', action: 'результат ориентировочный' },
+    high: { text: 'Препарат соответствует совокупности ключевых симптомов и модальностей', action: 'можно опираться на результат' },
+    medium: { text: 'Основные признаки соответствуют, но картина неполная', action: 'желательно уточнить' },
+    low: { text: 'Клиническая картина недостаточна для уверенного назначения', action: 'результат ориентировочный' },
+    insufficient: { text: 'Данных недостаточно для полноценной дифференциации', action: 'результат ориентировочный' },
   }
 
   // Ключевые совпадения: берём high-priority симптомы (max 5)
@@ -338,7 +338,7 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
                 return (
                   <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
                     <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
-                    <span>лучше покрывает ключевые симптомы пациента</span>
+                    <span>наиболее соответствует совокупности ключевых симптомов пациента</span>
                   </div>
                 )
               }
@@ -346,7 +346,7 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
                 return (
                   <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
                     <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
-                    <span>имеет больше значимых совпадений по ключевым рубрикам</span>
+                    <span>полнее отражает клиническую картину пациента</span>
                   </div>
                 )
               }
@@ -415,7 +415,7 @@ function AlternativesBlock({ alternatives, top, onAssign }: {
         Альтернативы
       </div>
       <p className="text-[10px] text-[#9a8a6a] mb-2">
-        Также рассмотрены, но уступают по ключевым признакам
+        Рассматривались, но уступают по соответствию ключевым симптомам
       </p>
       <div className="space-y-2">
         {alternatives.slice(0, 3).map((alt, idx) => {
