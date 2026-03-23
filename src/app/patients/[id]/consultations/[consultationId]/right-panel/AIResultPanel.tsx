@@ -143,14 +143,7 @@ function CaseUnderstanding({ profile }: { profile: NonNullable<ConsensusResult['
   )
 }
 
-// Классификация рубрик по иерархии Геринга
-// Mind, Generalities = ключевые; остальные = второстепенные
-function isKeyRubric(rubric: string): boolean {
-  const l = rubric.toLowerCase()
-  return l.startsWith('mind') || l.startsWith('generalities') || l.startsWith('sleep')
-    || l.includes('agg') || l.includes('amel') || l.includes('desire') || l.includes('aversion')
-}
-
+// Иконка рубрики по разделу
 function rubricIcon(rubric: string): string {
   const l = rubric.toLowerCase()
   if (l.startsWith('mind')) return '🧠'
@@ -163,9 +156,43 @@ function rubricIcon(rubric: string): string {
   return '📍'
 }
 
+// Динамическая иерархия: ключевые определяются по частоте появления
+// Рубрика, которая появляется >1 раза = более важна (подтверждена из нескольких симптомов)
+// Дополнительно: уникальные рубрики (специфичные) важнее частых общих
 function RubricHierarchy({ rubrics }: { rubrics: string[] }) {
-  const key = rubrics.filter(isKeyRubric)
-  const secondary = rubrics.filter(r => !isKeyRubric(r))
+  // Подсчёт частоты: сколько раз каждая рубрика встречается
+  const freq = new Map<string, number>()
+  for (const r of rubrics) {
+    freq.set(r, (freq.get(r) ?? 0) + 1)
+  }
+
+  // Уникальные рубрики, отсортированные по частоте (desc), затем по длине (длиннее = специфичнее)
+  const unique = [...freq.entries()]
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+
+  // Ключевые: частота > 1 ИЛИ топ-40% по длине (специфичность)
+  const medianLen = unique.length > 0
+    ? unique.map(e => e[0].length).sort((a, b) => a - b)[Math.floor(unique.length * 0.6)]
+    : 30
+
+  const key: string[] = []
+  const secondary: string[] = []
+
+  for (const [r, count] of unique) {
+    if (count > 1 || r.length > medianLen) {
+      key.push(r)
+    } else {
+      secondary.push(r)
+    }
+  }
+
+  // Если нет чёткого разделения — первые 40% = ключевые
+  if (key.length === 0 && unique.length > 0) {
+    const cutoff = Math.max(1, Math.ceil(unique.length * 0.4))
+    key.push(...unique.slice(0, cutoff).map(e => e[0]))
+    secondary.length = 0
+    secondary.push(...unique.slice(cutoff).map(e => e[0]))
+  }
 
   return (
     <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
@@ -173,7 +200,7 @@ function RubricHierarchy({ rubrics }: { rubrics: string[] }) {
         Совпавшие рубрики
       </div>
 
-      {/* Ключевые — ● полный маркер */}
+      {/* Ключевые — жирный */}
       {key.length > 0 && (
         <div className="space-y-0.5 mb-1">
           {key.slice(0, 4).map((r, i) => (
@@ -185,7 +212,7 @@ function RubricHierarchy({ rubrics }: { rubrics: string[] }) {
         </div>
       )}
 
-      {/* Второстепенные — ○ пустой маркер, приглушённые */}
+      {/* Второстепенные — приглушённые */}
       {secondary.length > 0 && (
         <div className="space-y-0.5">
           {secondary.slice(0, 3).map((r, i) => (
@@ -203,8 +230,9 @@ function RubricHierarchy({ rubrics }: { rubrics: string[] }) {
 // ═══════════════════════════════════════════
 // Блок: Главный препарат (TOP-1)
 // ═══════════════════════════════════════════
-function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
+function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }: {
   result: MDRIResult
+  alternatives: MDRIResult[]
   usedSymptoms?: ConsensusResult['usedSymptoms']
   onAssign?: () => void
   onCompare: () => void
@@ -220,12 +248,12 @@ function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
     .filter(l => l.score >= 20 && approachNames[l.name])
     .map(l => approachNames[l.name])
 
-  // Пояснение уверенности
-  const confExplanation: Record<string, string> = {
-    high: 'Достаточно совпадений по ключевым симптомам',
-    medium: 'Основные признаки совпали, но есть пробелы',
-    low: 'Мало данных для уверенного выбора',
-    insufficient: 'Недостаточно симптомов для анализа',
+  // Пояснение уверенности — с рекомендацией врачу
+  const confExplanation: Record<string, { text: string; action: string }> = {
+    high: { text: 'Достаточно совпадений по ключевым симптомам', action: 'можно опираться на результат' },
+    medium: { text: 'Основные признаки совпали, но есть пробелы', action: 'желательно уточнить' },
+    low: { text: 'Мало данных для уверенного выбора', action: 'результат ориентировочный' },
+    insufficient: { text: 'Недостаточно симптомов для анализа', action: 'результат ориентировочный' },
   }
 
   // Ключевые совпадения: берём high-priority симптомы (max 5)
@@ -249,9 +277,11 @@ function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
           </span>
         </div>
       </div>
-      <p className="text-[10px] text-[#9a8a6a] mb-3">
-        {confExplanation[result.confidence] ?? ''}
-      </p>
+      {confExplanation[result.confidence] && (
+        <p className="text-[10px] text-[#9a8a6a] mb-3">
+          {confExplanation[result.confidence].text} — <span className="font-medium">{confExplanation[result.confidence].action}</span>
+        </p>
+      )}
 
       {/* Совпавшие рубрики — с иерархией */}
       {result.matchedRubrics && result.matchedRubrics.length > 0 && (
@@ -285,7 +315,6 @@ function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
             Выбран, потому что
           </div>
           <div className="space-y-1">
-            {/* Покрытие — из реальных данных */}
             {result.matchedRubrics && result.matchedRubrics.length > 0 && (
               <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
                 <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
@@ -298,6 +327,20 @@ function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
                 <span>{f}</span>
               </div>
             ))}
+            {/* Сравнение с альтернативами — реальные данные */}
+            {alternatives.length > 0 && (() => {
+              const topRubrics = result.matchedRubrics?.length ?? 0
+              const altMax = Math.max(...alternatives.map(a => a.matchedRubrics?.length ?? 0))
+              if (topRubrics > altMax && altMax > 0) {
+                return (
+                  <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
+                    <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
+                    <span>больше совпадений по ключевым рубрикам, чем альтернативы</span>
+                  </div>
+                )
+              }
+              return null
+            })()}
           </div>
         </div>
       )}
@@ -583,6 +626,7 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
       <div className="border-b border-[rgba(0,0,0,0.06)]">
         <HeroRemedy
           result={top}
+          alternatives={alternatives}
           usedSymptoms={aiResult.usedSymptoms}
           onAssign={onAssignRemedy ? () => onAssignRemedy(top.remedy, top.potency?.potency ?? '30C') : undefined}
           onCompare={() => setShowComparison(!showComparison)}
