@@ -248,12 +248,12 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
     .filter(l => l.score >= 20 && approachNames[l.name])
     .map(l => approachNames[l.name])
 
-  // Пояснение уверенности — с рекомендацией врачу
+  // Пояснение уверенности — основано на количестве и значимости совпадений
   const confExplanation: Record<string, { text: string; action: string }> = {
-    high: { text: 'Достаточно совпадений по ключевым симптомам', action: 'можно опираться на результат' },
-    medium: { text: 'Основные признаки совпали, но есть пробелы', action: 'желательно уточнить' },
-    low: { text: 'Мало данных для уверенного выбора', action: 'результат ориентировочный' },
-    insufficient: { text: 'Недостаточно симптомов для анализа', action: 'результат ориентировочный' },
+    high: { text: 'Значимые совпадения по ключевым симптомам и модальностям', action: 'можно опираться на результат' },
+    medium: { text: 'Основные признаки совпали, но важные данные неполные', action: 'желательно уточнить' },
+    low: { text: 'Мало значимых совпадений для уверенного выбора', action: 'результат ориентировочный' },
+    insufficient: { text: 'Недостаточно симптомов для полноценного анализа', action: 'результат ориентировочный' },
   }
 
   // Ключевые совпадения: берём high-priority симптомы (max 5)
@@ -315,27 +315,38 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
             Выбран, потому что
           </div>
           <div className="space-y-1">
-            {result.matchedRubrics && result.matchedRubrics.length > 0 && (
-              <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
-                <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
-                <span>присутствует в {result.matchedRubrics.length} совпавших рубриках</span>
-              </div>
-            )}
             {factors.map((f, i) => (
               <div key={i} className="flex items-start gap-2 text-[12px] text-[#3a3020]">
                 <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
                 <span>{f}</span>
               </div>
             ))}
-            {/* Сравнение с альтернативами — реальные данные */}
+            {/* Сравнение с альтернативами — учитывает значимость */}
             {alternatives.length > 0 && (() => {
-              const topRubrics = result.matchedRubrics?.length ?? 0
-              const altMax = Math.max(...alternatives.map(a => a.matchedRubrics?.length ?? 0))
-              if (topRubrics > altMax && altMax > 0) {
+              const rubrics = result.matchedRubrics ?? []
+              const keyCount = rubrics.filter(r => {
+                const l = r.toLowerCase()
+                return l.startsWith('mind') || l.startsWith('generalities') || l.includes('agg') || l.includes('amel')
+              }).length
+              const altKeyMax = Math.max(...alternatives.map(a => {
+                return (a.matchedRubrics ?? []).filter(r => {
+                  const l = r.toLowerCase()
+                  return l.startsWith('mind') || l.startsWith('generalities') || l.includes('agg') || l.includes('amel')
+                }).length
+              }))
+              if (keyCount > altKeyMax && altKeyMax > 0) {
                 return (
                   <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
                     <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
-                    <span>больше совпадений по ключевым рубрикам, чем альтернативы</span>
+                    <span>лучше покрывает ключевые симптомы пациента</span>
+                  </div>
+                )
+              }
+              if (rubrics.length > 0 && rubrics.length > (alternatives[0]?.matchedRubrics?.length ?? 0)) {
+                return (
+                  <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
+                    <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
+                    <span>имеет больше значимых совпадений по ключевым рубрикам</span>
                   </div>
                 )
               }
