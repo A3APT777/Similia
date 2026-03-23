@@ -143,6 +143,63 @@ function CaseUnderstanding({ profile }: { profile: NonNullable<ConsensusResult['
   )
 }
 
+// Классификация рубрик по иерархии Геринга
+// Mind, Generalities = ключевые; остальные = второстепенные
+function isKeyRubric(rubric: string): boolean {
+  const l = rubric.toLowerCase()
+  return l.startsWith('mind') || l.startsWith('generalities') || l.startsWith('sleep')
+    || l.includes('agg') || l.includes('amel') || l.includes('desire') || l.includes('aversion')
+}
+
+function rubricIcon(rubric: string): string {
+  const l = rubric.toLowerCase()
+  if (l.startsWith('mind')) return '🧠'
+  if (l.startsWith('generalities')) return '🌡'
+  if (l.startsWith('sleep')) return '💤'
+  if (l.startsWith('stomach') || l.startsWith('appetite')) return '🍽'
+  if (l.startsWith('extremities')) return '🦴'
+  if (l.startsWith('head') || l.startsWith('vertigo')) return '🤕'
+  if (l.startsWith('chest') || l.startsWith('respiration')) return '🫁'
+  return '📍'
+}
+
+function RubricHierarchy({ rubrics }: { rubrics: string[] }) {
+  const key = rubrics.filter(isKeyRubric)
+  const secondary = rubrics.filter(r => !isKeyRubric(r))
+
+  return (
+    <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
+      <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
+        Совпавшие рубрики
+      </div>
+
+      {/* Ключевые — ● полный маркер */}
+      {key.length > 0 && (
+        <div className="space-y-0.5 mb-1">
+          {key.slice(0, 4).map((r, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-[11px]">
+              <span className="text-[10px] shrink-0 mt-px">{rubricIcon(r)}</span>
+              <span className="font-mono text-[10px] text-[#3a3020] font-medium">{r}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Второстепенные — ○ пустой маркер, приглушённые */}
+      {secondary.length > 0 && (
+        <div className="space-y-0.5">
+          {secondary.slice(0, 3).map((r, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-[11px]">
+              <span className="text-[10px] shrink-0 mt-px text-[#9a8a6a]">{rubricIcon(r)}</span>
+              <span className="font-mono text-[10px] text-[#9a8a6a]">{r}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ═══════════════════════════════════════════
 // Блок: Главный препарат (TOP-1)
 // ═══════════════════════════════════════════
@@ -196,37 +253,16 @@ function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
         {confExplanation[result.confidence] ?? ''}
       </p>
 
-      {/* Совпавшие рубрики из реперторий */}
+      {/* Совпавшие рубрики — с иерархией */}
       {result.matchedRubrics && result.matchedRubrics.length > 0 && (
-        <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
-          <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
-            Совпавшие рубрики
-          </div>
-          <div className="space-y-0.5">
-            {result.matchedRubrics.slice(0, 6).map((rubric, i) => {
-              // Определяем тип по первому слову рубрики
-              const lower = rubric.toLowerCase()
-              const icon = lower.startsWith('mind') ? '🧠'
-                : lower.startsWith('generalities') ? '🌡'
-                : lower.startsWith('sleep') ? '💤'
-                : lower.startsWith('stomach') || lower.startsWith('appetite') ? '🍽'
-                : '📍'
-              return (
-                <div key={i} className="flex items-start gap-1.5 text-[11px] text-[#3a3020]">
-                  <span className="text-[10px] shrink-0 mt-px">{icon}</span>
-                  <span className="font-mono text-[10px] text-[#6a5a4a]">{rubric}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        <RubricHierarchy rubrics={result.matchedRubrics} />
       )}
 
-      {/* Использованные симптомы (русские) */}
+      {/* Fallback: русские labels если нет рубрик */}
       {(!result.matchedRubrics || result.matchedRubrics.length === 0) && keyMatches.length > 0 && (
         <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
           <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
-            Ключевые совпадения
+            Недостаточно данных для полной оценки
           </div>
           <div className="space-y-0.5">
             {keyMatches.map((s, i) => {
@@ -242,13 +278,20 @@ function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
         </div>
       )}
 
-      {/* Факторы */}
+      {/* Почему TOP-1 */}
       {factors.length > 0 && (
         <div className="mb-3">
-          <div className="text-[11px] text-[#6a5a4a] mb-1.5">
-            Выбор основан на ключевых симптомах пациента:
+          <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
+            Выбран, потому что
           </div>
           <div className="space-y-1">
+            {/* Покрытие — из реальных данных */}
+            {result.matchedRubrics && result.matchedRubrics.length > 0 && (
+              <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
+                <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
+                <span>присутствует в {result.matchedRubrics.length} совпавших рубриках</span>
+              </div>
+            )}
             {factors.map((f, i) => (
               <div key={i} className="flex items-start gap-2 text-[12px] text-[#3a3020]">
                 <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
