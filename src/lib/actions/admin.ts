@@ -192,6 +192,35 @@ export async function adminAddAICredits(doctorId: string, credits: number) {
   }
 }
 
+// AI Analysis Logs — просмотр для аналитики
+export async function getAIAnalysisLogs(limit = 50) {
+  await requireAdmin()
+  const service = createServiceClient()
+
+  const { data } = await service
+    .from('ai_analysis_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  return data || []
+}
+
+export type AIAnalysisLog = {
+  id: string
+  user_id: string
+  consultation_id: string | null
+  created_at: string
+  confirmed_input: Array<{ rubric: string; type: string; priority: string; weight: number }>
+  engine_top3: Array<{ remedy: string; score: number }>
+  doctor_choice: string | null
+  confidence_level: string | null
+  warnings: Array<{ type: string; message: string }> | null
+  symptom_count: number
+  modality_count: number
+  has_conflict: boolean
+}
+
 // Смена пароля (для настроек, не админки)
 export async function changePassword(currentPassword: string, newPassword: string) {
   const supabase = await createClient()
