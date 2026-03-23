@@ -36,12 +36,12 @@ function translateHint(hint: string): string {
 function extractFactors(result: MDRIResult): string[] {
   const f: string[] = []
   for (const l of result.lenses) {
-    if (l.name === 'Kent' && l.score >= 50) f.push('соответствует реперторным данным')
-    if (l.name === 'Constellation' && l.score >= 60) f.push('характерный клинический паттерн совпадает')
+    if (l.name === 'Kent' && l.score >= 50) f.push('в значительной степени соответствует реперторным данным')
+    if (l.name === 'Constellation' && l.score >= 60) f.push('характерный клинический паттерн прослеживается')
     else if (l.name === 'Constellation' && l.score >= 30) f.push('частичное соответствие характерному паттерну')
-    if (l.name === 'Hierarchy' && l.score >= 60) f.push('подтверждён на уровне психики и общих симптомов')
-    if (l.name === 'Polarity' && l.score >= 50) f.push('модальности соответствуют профилю препарата')
-    if (l.name === 'Negative' && l.score >= 70) f.push('нет противоречащих клинических данных')
+    if (l.name === 'Hierarchy' && l.score >= 60) f.push('прослеживается на уровне психики и общих симптомов')
+    if (l.name === 'Polarity' && l.score >= 50) f.push('модальности указывают на соответствие профилю')
+    if (l.name === 'Negative' && l.score >= 70) f.push('противоречащих клинических данных не выявлено')
   }
   if (result.miasm) f.push(`миазматическая картина: ${result.miasm}`)
   return f.slice(0, 5)
@@ -57,16 +57,16 @@ function extractWeaknesses(result: MDRIResult, top: MDRIResult): string[] {
     if (gap < 10) continue
 
     if (topLens.name === 'Constellation') {
-      if (thisLens.score < 20) w.push('характерный клинический паттерн не прослеживается')
-      else if (gap >= 20) w.push('паттерн выражен слабее')
+      if (thisLens.score < 20) w.push('характерный паттерн выражен недостаточно')
+      else if (gap >= 20) w.push('паттерн прослеживается слабее')
     }
     else if (topLens.name === 'Kent') {
       if (thisLens.score < 30) w.push('слабое соответствие реперторным данным')
       else if (gap >= 15) w.push('реперторное соответствие ниже')
     }
     else if (topLens.name === 'Hierarchy' && thisLens.score < 40) w.push('недостаточно подтверждён на уровне психики и общих')
-    else if (topLens.name === 'Polarity' && thisLens.score < 30) w.push('модальности не соответствуют профилю')
-    else if (topLens.name === 'Negative' && thisLens.score < 50) w.push('есть противоречащие клинические данные')
+    else if (topLens.name === 'Polarity' && thisLens.score < 30) w.push('модальности указывают на меньшее соответствие')
+    else if (topLens.name === 'Negative' && thisLens.score < 50) w.push('выявлены частично противоречащие данные')
   }
   // Differential question — если engine дал конкретный вопрос
   if (result.differential?.differentiatingQuestion) {
@@ -248,10 +248,10 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
     .filter(l => l.score >= 20 && approachNames[l.name])
     .map(l => approachNames[l.name])
 
-  // Пояснение уверенности — клинический язык
+  // Пояснение уверенности — клинический язык, без избыточной уверенности
   const confExplanation: Record<string, { text: string; action: string }> = {
-    high: { text: 'Препарат соответствует совокупности ключевых симптомов и модальностей', action: 'можно опираться на результат' },
-    medium: { text: 'Основные признаки соответствуют, но картина неполная', action: 'желательно уточнить' },
+    high: { text: 'В значительной степени соответствует ключевым симптомам и модальностям', action: 'результат требует клинической интерпретации' },
+    medium: { text: 'Основные признаки указывают на соответствие, но картина неполная', action: 'может быть уточнён при дополнительной информации' },
     low: { text: 'Клиническая картина недостаточна для уверенного назначения', action: 'результат ориентировочный' },
     insufficient: { text: 'Данных недостаточно для полноценной дифференциации', action: 'результат ориентировочный' },
   }
@@ -338,7 +338,7 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
                 return (
                   <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
                     <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
-                    <span>наиболее соответствует совокупности ключевых симптомов пациента</span>
+                    <span>в большей степени соответствует совокупности ключевых симптомов</span>
                   </div>
                 )
               }
@@ -346,7 +346,7 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
                 return (
                   <div className="flex items-start gap-2 text-[12px] text-[#3a3020]">
                     <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
-                    <span>полнее отражает клиническую картину пациента</span>
+                    <span>в большей степени отражает клиническую картину</span>
                   </div>
                 )
               }
@@ -415,7 +415,7 @@ function AlternativesBlock({ alternatives, top, onAssign }: {
         Альтернативы
       </div>
       <p className="text-[10px] text-[#9a8a6a] mb-2">
-        Рассматривались, но уступают по соответствию ключевым симптомам
+        Частично соответствуют, но уступают по ключевым признакам
       </p>
       <div className="space-y-2">
         {alternatives.slice(0, 3).map((alt, idx) => {
