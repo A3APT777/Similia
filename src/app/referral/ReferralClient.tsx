@@ -37,11 +37,11 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
           <input
             readOnly
             value={link}
-            className="flex-1 text-sm bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white truncate focus:outline-none"
+            className="flex-1 text-sm bg-white/10 border border-white/20 rounded-2xl px-4 py-3 text-white truncate focus:outline-none"
           />
           <button
             onClick={handleCopy}
-            className="shrink-0 px-5 py-3 rounded-xl text-sm font-semibold transition-all"
+            className="shrink-0 px-5 py-3 rounded-2xl text-sm font-semibold transition-all"
             style={{ backgroundColor: copied ? '#16a34a' : '#c8a035', color: 'var(--sim-forest)' }}
           >
             {copied ? '✓ Скопировано' : 'Копировать'}

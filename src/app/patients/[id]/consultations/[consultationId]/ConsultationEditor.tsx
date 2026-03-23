@@ -270,7 +270,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
             )}
             <button
               onClick={() => router.push(`/patients/${consultation.patient_id}`)}
-              className="w-full px-5 py-3 rounded-xl text-sm font-medium transition-colors"
+              className="w-full px-5 py-3 rounded-2xl text-sm font-medium transition-colors"
               style={{ border: '1px solid var(--sim-border)', color: 'var(--sim-forest)' }}
             >
               {lang === 'ru' ? 'Вернуться к пациенту' : 'Back to patient'}

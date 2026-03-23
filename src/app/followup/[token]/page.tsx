@@ -17,7 +17,7 @@ export default async function FollowupPage({ params }: { params: Promise<{ token
   // Уже ответили
   if (followup.responded_at) {
     return (
-      <div className="min-h-screen bg-green-50 flex items-center justify-center px-6">
+      <div className="min-h-screen flex items-center justify-center px-6 bg-[#f7f3ed]">
         <div className="bg-white rounded-2xl shadow-sm p-8 w-full max-w-sm text-center">
           <div className="text-4xl mb-4">✓</div>
           <h1 className="text-lg font-medium text-gray-900">Вы уже ответили</h1>
@@ -30,7 +30,7 @@ export default async function FollowupPage({ params }: { params: Promise<{ token
   const patientName = (followup.patients as { name: string } | null)?.name || 'Пациент'
 
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center px-6">
+    <div className="min-h-screen flex items-center justify-center px-6 bg-[#f7f3ed]">
       <div className="bg-white rounded-2xl shadow-sm p-8 w-full max-w-sm">
         <h1 className="text-xl font-semibold text-gray-900 mb-1">
           Как вы себя чувствуете?

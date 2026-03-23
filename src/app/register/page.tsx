@@ -80,7 +80,7 @@ export default function RegisterPage() {
 
   const getInputStyle = (field: string): React.CSSProperties => ({
     ...inputStyle,
-    borderColor: focusedField === field ? '#2d6a4f' : '#d4c9b8',
+    borderColor: focusedField === field ? '#2d6a4f' : 'var(--sim-border)',
     boxShadow: focusedField === field ? '0 0 0 3px rgba(45,106,79,0.3)' : 'none',
   })
 
@@ -333,8 +333,8 @@ export default function RegisterPage() {
                 backgroundColor: loading ? '#5a7060' : '#1a3020',
                 color: '#f7f3ed',
                 border: 'none',
-                borderRadius: '8px',
-                padding: '13px 20px',
+                borderRadius: '100px',
+                padding: '14px 24px',
                 fontSize: '15px',
                 fontWeight: 500,
                 cursor: loading ? 'default' : 'pointer',

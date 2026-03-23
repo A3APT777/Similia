@@ -14,10 +14,8 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
     .eq('token', token)
     .single()
 
-  if (!intake) notFound()
-
-  // Ссылка просрочена
-  if (intake.expires_at && new Date(intake.expires_at) < new Date()) {
+  // Токен не найден или ссылка просрочена
+  if (!intake || (intake.expires_at && new Date(intake.expires_at) < new Date())) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center px-4">
         <div className="text-center max-w-sm">

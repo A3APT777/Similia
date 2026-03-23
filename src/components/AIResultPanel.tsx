@@ -74,7 +74,7 @@ function RemedyCard({ result, rank, expanded, onToggle, onAssign, idx }: {
 }) {
   return (
     <div
-      className={`ai-fade-in rounded-xl border transition-all ${rank === 0 ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 bg-white'}`}
+      className={`ai-fade-in rounded-2xl border transition-all ${rank === 0 ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 bg-white'}`}
       style={{ animationDelay: `${idx * 0.1}s` }}
     >
       {/* Заголовок */}
@@ -171,7 +171,7 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
   const visible = showAll ? results : results.slice(0, 3)
 
   return (
-    <div className="ai-glass ai-slide-up rounded-xl overflow-hidden">
+    <div className="ai-glass ai-slide-up rounded-2xl overflow-hidden">
       {/* Заголовок */}
       <div className="px-3 py-2.5 border-b border-indigo-100">
         <div className="flex items-center justify-between">
@@ -241,7 +241,7 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
         const isClose = second && (top.totalScore - second.totalScore) < 5
         if (!isLow && !isClose) return null
         return (
-          <div className="mx-2 mb-2 p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
+          <div className="mx-2 mb-2 p-3 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
             <div className="flex items-center gap-1.5">
               <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />

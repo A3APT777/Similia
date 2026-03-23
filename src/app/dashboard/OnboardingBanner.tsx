@@ -108,7 +108,7 @@ export default function OnboardingBanner(props: Props) {
           return (
             <div
               key={step.key}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+              className="flex items-center gap-3 rounded-2xl px-3 py-2.5"
               style={{ opacity: done ? 0.5 : 1, backgroundColor: done ? 'transparent' : 'var(--color-muted-bg)' }}
             >
               <div

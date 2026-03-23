@@ -77,7 +77,7 @@ export default async function SettingsPage() {
                 <p className="text-sm mb-3" style={{ color: 'var(--sim-text-sec)' }}>
                   {lang === 'ru' ? 'Напоминания доступны на тарифе Стандарт' : 'Reminders available on Standard plan'}
                 </p>
-                <Link href="/pricing" className="text-sm font-semibold px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}>
+                <Link href="/pricing" className="text-sm font-semibold px-4 py-2 rounded-full" style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}>
                   {lang === 'ru' ? 'Подключить' : 'Upgrade'}
                 </Link>
               </div>
@@ -98,7 +98,7 @@ export default async function SettingsPage() {
                 <p className="text-sm mb-3" style={{ color: 'var(--sim-text-sec)' }}>
                   {lang === 'ru' ? 'Онлайн-запись доступна на тарифе Стандарт' : 'Online booking available on Standard plan'}
                 </p>
-                <Link href="/pricing" className="text-sm font-semibold px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}>
+                <Link href="/pricing" className="text-sm font-semibold px-4 py-2 rounded-full" style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}>
                   {lang === 'ru' ? 'Подключить' : 'Upgrade'}
                 </Link>
               </div>
@@ -107,13 +107,13 @@ export default async function SettingsPage() {
 
           {/* AI Pro */}
           <section>
-            <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#6366f1' }}>
+            <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--sim-green)' }}>
               {lang === 'ru' ? 'AI-анализ' : 'AI Analysis'}
             </h2>
             <div className="rounded-2xl p-5" style={{ backgroundColor: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.15)' }}>
               {isAIPro ? (
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                     </svg>
@@ -141,14 +141,14 @@ export default async function SettingsPage() {
                   <div className="flex gap-2">
                     <Link
                       href="/pricing"
-                      className="flex-1 text-center text-xs font-semibold px-3 py-2 rounded-lg text-white transition-colors"
+                      className="flex-1 text-center text-xs font-semibold px-3 py-2 rounded-full text-white transition-colors"
                       style={{ backgroundColor: '#6366f1' }}
                     >
                       {lang === 'ru' ? 'AI Pro — 1 990 ₽/мес' : 'AI Pro — $19.90/mo'}
                     </Link>
                     <Link
                       href="/pricing#packages"
-                      className="flex-1 text-center text-xs font-semibold px-3 py-2 rounded-lg border transition-colors"
+                      className="flex-1 text-center text-xs font-semibold px-3 py-2 rounded-full border transition-colors"
                       style={{ borderColor: 'rgba(99,102,241,0.3)', color: '#6366f1' }}
                     >
                       {lang === 'ru' ? 'Пакет 5 шт — 299 ₽' : 'Pack of 5 — $2.99'}

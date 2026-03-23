@@ -52,7 +52,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Исполнитель</h2>
-            <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm space-y-1.5">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 text-sm space-y-1.5">
               <p><span className="text-gray-600">Исполнитель:</span> Назаретян Кнарик Давидовна, плательщик налога на профессиональный доход (422-ФЗ)</p>
               <p><span className="text-gray-600">ИНН:</span> 500717175199</p>
               <p><span className="text-gray-600">Сайт:</span> <a href="https://simillia.ru" className="text-emerald-700 hover:underline">simillia.ru</a></p>
@@ -81,7 +81,7 @@ export default function TermsPage() {
               Сервис работает по модели подписки (Freemium). Доступны следующие тарифы:
             </p>
 
-            <div className="mt-4 overflow-hidden rounded-xl border border-gray-200">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ backgroundColor: '#f0ebe3' }}>

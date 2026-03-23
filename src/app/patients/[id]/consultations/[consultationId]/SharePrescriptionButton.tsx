@@ -30,7 +30,7 @@ export default function SharePrescriptionButton({ consultationId }: { consultati
 
   if (link) {
     return (
-      <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: '#f4f9f5', border: '1px solid #c6e5cc' }}>
+      <div className="rounded-2xl p-3 space-y-2" style={{ backgroundColor: '#f4f9f5', border: '1px solid #c6e5cc' }}>
         <p className="text-xs font-medium" style={{ color: 'var(--sim-green)' }}>Ссылка на назначение:</p>
         <div className="flex items-center gap-2">
           <input
@@ -59,7 +59,7 @@ export default function SharePrescriptionButton({ consultationId }: { consultati
           onChange={e => setNote(e.target.value)}
           placeholder="Дополнительный комментарий для пациента (необязательно)"
           rows={2}
-          className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20"
+          className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20"
         />
       )}
       <div className="flex gap-2">
@@ -76,7 +76,7 @@ export default function SharePrescriptionButton({ consultationId }: { consultati
         {!showNote && (
           <button
             onClick={() => setShowNote(true)}
-            className="px-3 py-2.5 rounded-xl text-xs text-gray-500 hover:text-gray-700 transition-colors"
+            className="px-3 py-2.5 rounded-2xl text-xs text-gray-500 hover:text-gray-700 transition-colors"
             style={{ border: '1px solid var(--sim-border)' }}
             title="Добавить комментарий"
           >

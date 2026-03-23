@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
       setError(t(lang).auth.passwordsMismatch)
       return
     }
-    if (password.length < 6) {
+    if (password.length < 8) {
       setError(t(lang).auth.passwordTooShort)
       return
     }
@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            style={{ width: '100%', backgroundColor: loading ? '#5a7060' : '#1a3020', color: '#f7f3ed', border: 'none', borderRadius: '8px', padding: '13px 20px', fontSize: '15px', fontWeight: 500, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}
+            style={{ width: '100%', backgroundColor: loading ? '#5a7060' : '#1a3020', color: '#f7f3ed', border: 'none', borderRadius: '100px', padding: '14px 24px', fontSize: '15px', fontWeight: 500, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}
           >
             {loading ? t(lang).common.saving : t(lang).auth.savePassword}
           </button>

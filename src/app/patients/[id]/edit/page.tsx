@@ -38,7 +38,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           <h1 className="text-xl font-semibold text-gray-900">{t(lang).patientCard.editPatient}</h1>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-xl p-6">
+        <div className="bg-white border border-gray-100 rounded-2xl p-6">
           <PatientForm patient={patient} action={update} submitLabel={t(lang).patientCard.save} />
         </div>
       </div>

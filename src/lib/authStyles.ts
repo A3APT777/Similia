@@ -2,15 +2,15 @@
 
 export const authInputStyle: React.CSSProperties = {
   width: '100%',
-  backgroundColor: '#faf7f2',
-  border: '1px solid var(--sim-border)',
-  borderRadius: '8px',
-  padding: '12px 16px',
-  fontSize: '16px',
-  color: '#3a2e1a',
+  backgroundColor: 'rgba(255,255,255,0.6)',
+  border: '1px solid rgba(0,0,0,0.08)',
+  borderRadius: '12px',
+  padding: '14px 18px',
+  fontSize: '15px',
+  color: '#1a1a0a',
   outline: 'none',
   boxSizing: 'border-box',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
 }
 
 export const authLabelStyle: React.CSSProperties = {
@@ -18,7 +18,7 @@ export const authLabelStyle: React.CSSProperties = {
   fontSize: '12px',
   fontWeight: 500,
   letterSpacing: '0.08em',
-  color: '#5a7060',
+  color: '#8a7e6c',
   marginBottom: '6px',
   textTransform: 'uppercase',
 }
@@ -26,7 +26,7 @@ export const authLabelStyle: React.CSSProperties = {
 export function getAuthInputFocusStyle(field: string, focusedField: string | null): React.CSSProperties {
   return {
     ...authInputStyle,
-    borderColor: focusedField === field ? 'var(--sim-green)' : 'var(--sim-border)',
-    boxShadow: focusedField === field ? '0 0 0 3px rgba(45,106,79,0.12)' : 'none',
+    borderColor: focusedField === field ? '#2d6a4f' : 'rgba(0,0,0,0.08)',
+    boxShadow: focusedField === field ? '0 0 0 3px rgba(45,106,79,0.1)' : 'none',
   }
 }

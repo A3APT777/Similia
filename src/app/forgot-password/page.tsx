@@ -166,7 +166,7 @@ export default function ForgotPasswordPage() {
                 placeholder="doctor@example.com"
                 style={{
                   ...inputStyle,
-                  borderColor: focused ? '#2d6a4f' : '#d4c9b8',
+                  borderColor: focused ? '#2d6a4f' : 'var(--sim-border)',
                   boxShadow: focused ? '0 0 0 3px rgba(45,106,79,0.1)' : 'none',
                 }}
               />
@@ -186,8 +186,8 @@ export default function ForgotPasswordPage() {
                 backgroundColor: loading ? '#5a7060' : '#1a3020',
                 color: '#f7f3ed',
                 border: 'none',
-                borderRadius: '8px',
-                padding: '13px 20px',
+                borderRadius: '100px',
+                padding: '14px 24px',
                 fontSize: '15px',
                 fontWeight: 500,
                 cursor: loading ? 'default' : 'pointer',

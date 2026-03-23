@@ -60,7 +60,7 @@ export default function PhotoUploadForm({ token }: Props) {
             setNote('')
             if (fileRef.current) fileRef.current.value = ''
           }}
-          className="mt-5 text-sm text-emerald-700 hover:text-emerald-900 border border-emerald-200 hover:border-emerald-400 px-4 py-2 rounded-xl transition-all"
+          className="mt-5 text-sm text-emerald-700 hover:text-emerald-900 border border-emerald-200 hover:border-emerald-400 px-4 py-2 rounded-2xl transition-all"
         >
           Загрузить ещё одно фото
         </button>
@@ -87,7 +87,7 @@ export default function PhotoUploadForm({ token }: Props) {
             <img
               src={preview}
               alt="preview"
-              className="w-full rounded-xl object-cover max-h-72"
+              className="w-full rounded-2xl object-cover max-h-72"
             />
             <button
               type="button"
@@ -101,7 +101,7 @@ export default function PhotoUploadForm({ token }: Props) {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="w-full border-2 border-dashed border-gray-200 rounded-xl py-12 flex flex-col items-center gap-3 hover:border-emerald-300 hover:bg-emerald-50/30 transition-all"
+            className="w-full border-2 border-dashed border-gray-200 rounded-2xl py-12 flex flex-col items-center gap-3 hover:border-emerald-300 hover:bg-emerald-50/30 transition-all"
           >
             <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
@@ -124,7 +124,7 @@ export default function PhotoUploadForm({ token }: Props) {
           value={takenAt}
           onChange={e => setTakenAt(e.target.value)}
           required
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+          className="w-full border border-gray-200 rounded-2xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
         />
       </div>
 
@@ -139,12 +139,12 @@ export default function PhotoUploadForm({ token }: Props) {
           value={note}
           onChange={e => setNote(e.target.value)}
           placeholder="Состояние кожи, что изменилось..."
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+          className="w-full border border-gray-200 rounded-2xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
         />
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl px-3 py-2">
           {error}
         </p>
       )}
@@ -152,7 +152,7 @@ export default function PhotoUploadForm({ token }: Props) {
       <button
         type="submit"
         disabled={pending || !preview}
-        className="w-full bg-[#2d6a4f] text-white font-medium py-3 rounded-xl hover:bg-[#1a3020] disabled:opacity-50 transition-colors text-sm"
+        className="w-full bg-[#2d6a4f] text-white font-medium py-3 rounded-2xl hover:bg-[#1a3020] disabled:opacity-50 transition-colors text-sm"
       >
         {pending ? 'Отправляю...' : 'Отправить фото'}
       </button>

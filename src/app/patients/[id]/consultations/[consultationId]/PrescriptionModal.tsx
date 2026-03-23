@@ -114,7 +114,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
         {/* Шапка */}
         <div className="px-6 pt-5 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
               <svg className="w-4.5 h-4.5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -143,7 +143,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                 onChange={e => handleRemedyChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Аконит, Sulphur, Pulsatilla, сера..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+                className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
               />
               {/* Индикатор поиска */}
               {searching && (
@@ -155,7 +155,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               {showSuggestions && suggestions.length > 0 && (
                 <div
                   ref={suggestionsRef}
-                  className="absolute top-full left-0 right-0 mt-1 bg-[#ede7dd] border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden"
+                  className="absolute top-full left-0 right-0 mt-1 bg-[#ede7dd] border border-gray-200 rounded-2xl shadow-lg z-10 overflow-hidden"
                 >
                   {suggestions.map((r, i) => (
                     <button
@@ -210,7 +210,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               value={potency}
               onChange={e => setPotency(e.target.value)}
               placeholder={t(lang).prescription.schemeManual}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+              className="w-full border border-gray-200 rounded-2xl px-4 py-2 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
             />
           </div>
 
@@ -225,7 +225,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                   key={n}
                   type="button"
                   onClick={() => setPellets(pellets === n ? null : n)}
-                  className={`w-9 h-9 rounded-xl border text-sm font-semibold transition-all ${
+                  className={`w-9 h-9 rounded-2xl border text-sm font-semibold transition-all ${
                     pellets === n
                       ? 'bg-[#2d6a4f] text-white border-[#2d6a4f] shadow-sm'
                       : 'border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
@@ -247,7 +247,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               onChange={e => setDosage(e.target.value)}
               rows={2}
               placeholder={t(lang).prescription.schemePlaceholder}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 resize-none focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+              className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 resize-none focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
             />
           </div>
         </div>
@@ -257,13 +257,13 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
           <button
             onClick={handleSave}
             disabled={saving || !remedy.trim()}
-            className="flex-1 bg-[#2d6a4f] text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-[#1a3020] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="flex-1 bg-[#2d6a4f] text-white text-sm font-semibold py-2.5 rounded-2xl hover:bg-[#1a3020] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {saving ? t(lang).prescription.saving : t(lang).prescription.prescribeAndFinish}
           </button>
           <button
             onClick={onSkip}
-            className="text-sm text-gray-400 hover:text-gray-700 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-all"
+            className="text-sm text-gray-400 hover:text-gray-700 px-4 py-2.5 rounded-2xl hover:bg-gray-50 transition-all"
           >
             {t(lang).prescription.later}
           </button>

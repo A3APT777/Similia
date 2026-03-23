@@ -16,7 +16,7 @@ export default function SubscriptionBadge({ subscription, patientCount, lang = '
   return (
     <Link
       href="/pricing"
-      className="block rounded-xl px-3 py-2 transition-colors hover:opacity-80"
+      className="block rounded-2xl px-3 py-2 transition-colors hover:opacity-80"
       style={{
         backgroundColor: isFree ? 'rgba(200,160,53,0.1)' : 'rgba(45,106,79,0.1)',
         border: `1px solid ${isFree ? 'rgba(200,160,53,0.2)' : 'rgba(45,106,79,0.2)'}`,

@@ -28,7 +28,7 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="inline-flex items-center gap-1 text-xs transition-colors border px-2.5 py-1.5 rounded-lg"
+        className="inline-flex items-center gap-1 text-xs transition-colors border px-2.5 py-1.5 rounded-full"
         style={{ color: '#c0392b', borderColor: '#f5c6c6', backgroundColor: 'transparent' }}
         onMouseEnter={e => {
           e.currentTarget.style.backgroundColor = '#fef0f0'
@@ -54,10 +54,10 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
             aria-label="Подтверждение удаления пациента"
             onClick={e => e.stopPropagation()}
             className="relative rounded-2xl p-6 w-[340px] mx-4 shadow-2xl"
-            style={{ backgroundColor: 'var(--sim-bg)', border: '0.5px solid #d4c9b8' }}
+            style={{ backgroundColor: 'var(--sim-bg)', border: '0.5px solid var(--sim-border)' }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#fef0f0' }}>
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#fef0f0' }}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#c0392b" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
                 </svg>
@@ -76,7 +76,7 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
               <button
                 onClick={handleConfirm}
                 disabled={isPending}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                className="flex-1 py-2.5 rounded-2xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{ backgroundColor: '#c0392b' }}
               >
                 {isPending ? t(lang).deletePatient.deleting : t(lang).deletePatient.delete}
@@ -84,7 +84,7 @@ export default function DeletePatientButton({ patientId, patientName }: { patien
               <button
                 onClick={() => setShowModal(false)}
                 disabled={isPending}
-                className="px-5 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
+                className="px-5 py-2.5 rounded-2xl text-sm transition-colors hover:opacity-70"
                 style={{ color: 'var(--sim-text-hint)' }}
               >
                 {t(lang).deletePatient.cancel}

@@ -20,7 +20,7 @@ export default function TourMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-all border"
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-full text-[13px] transition-all border"
         style={{ color: 'rgba(125,212,168,0.85)', borderColor: 'rgba(125,212,168,0.2)', backgroundColor: 'rgba(125,212,168,0.05)' }}
       >
         <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -37,7 +37,7 @@ export default function TourMenu() {
           {/* Клик за пределами — закрыть */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="absolute bottom-full left-0 right-0 mb-1 rounded-xl overflow-hidden z-50"
+            className="absolute bottom-full left-0 right-0 mb-1 rounded-2xl overflow-hidden z-50"
             style={{ backgroundColor: 'var(--sim-forest)', border: '1px solid rgba(125,212,168,0.2)', boxShadow: '0 -8px 32px rgba(0,0,0,0.3)' }}
           >
             {TOUR_BLOCKS.map(block => (

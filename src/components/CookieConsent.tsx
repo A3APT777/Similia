@@ -54,32 +54,29 @@ export default function CookieConsent() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-0"
+      className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-auto sm:right-6 z-50"
       role="dialog"
       aria-label="Согласие на использование cookies"
     >
       <div
-        className="max-w-xl mx-auto sm:mb-6 rounded-2xl border shadow-lg px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3"
+        className="sm:max-w-md rounded-2xl border shadow-lg px-4 py-3 flex items-center gap-3"
         style={{
           backgroundColor: 'rgba(247, 243, 237, 0.97)',
           backdropFilter: 'blur(12px)',
           borderColor: 'rgba(0,0,0,0.08)',
         }}
       >
-        <p className="text-sm text-gray-700 leading-relaxed flex-1">
-          Мы используем файлы cookie и Яндекс.Метрику для улучшения работы сайта.{' '}
-          <Link href="/privacy" className="text-emerald-700 underline underline-offset-2 hover:text-emerald-800">
+        <p className="text-xs sm:text-sm text-gray-700 leading-snug flex-1">
+          Cookie и Метрика для улучшения сайта.{' '}
+          <Link href="/privacy" className="text-emerald-700 underline underline-offset-2">
             Подробнее
           </Link>
         </p>
         <button
           onClick={accept}
-          className="shrink-0 px-5 py-2 rounded-xl text-sm font-medium text-white transition-colors cursor-pointer"
-          style={{ backgroundColor: 'var(--sim-green)' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#245a42')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#2d6a4f')}
+          className="btn btn-primary btn-sm shrink-0"
         >
-          Принять
+          Ок
         </button>
       </div>
     </div>

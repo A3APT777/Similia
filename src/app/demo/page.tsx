@@ -16,7 +16,7 @@ export default function DemoPage() {
         style={{
           backgroundColor: 'rgba(240,235,227,0.85)',
           backdropFilter: 'blur(12px)',
-          borderColor: '#d4c9b8',
+          borderColor: 'var(--sim-border)',
         }}
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
@@ -69,7 +69,7 @@ export default function DemoPage() {
           </p>
           <Link
             href="/pricing"
-            className="btn btn-ai inline-flex text-sm font-semibold px-6 py-2.5 rounded-xl"
+            className="btn btn-ai inline-flex text-sm font-semibold px-6 py-2.5 rounded-2xl"
           >
             Подключить AI Pro →
           </Link>

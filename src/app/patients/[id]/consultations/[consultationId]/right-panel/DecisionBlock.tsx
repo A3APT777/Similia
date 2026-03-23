@@ -40,7 +40,7 @@ export default function DecisionBlock({ assessment, onConfirm, lang }: Props) {
               onClick={() => handleSelect(d)}
               className="px-2.5 py-1 rounded-[20px] text-xs leading-snug transition-all duration-[120ms] cursor-pointer"
               style={{
-                border: isSelected ? '1.5px solid var(--color-garden)' : isSuggested ? '1.5px dashed #b0c4b0' : '1px solid #e5e0d8',
+                border: isSelected ? '1.5px solid var(--color-garden)' : isSuggested ? '1.5px dashed #b0c4b0' : '1px solid rgba(0,0,0,0.08)',
                 backgroundColor: isSelected ? 'var(--color-garden)' : isSuggested ? '#f0f7f0' : 'transparent',
                 color: isSelected ? '#fff' : '#374151',
                 fontWeight: isSelected ? 600 : 400,

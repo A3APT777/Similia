@@ -337,7 +337,7 @@ export default function TemplateMenu({ onInsertStructured, onInsertText, consult
                       <button
                         key={tpl.id}
                         onClick={() => handleFullTemplate(tpl.fields)}
-                        className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors group ${
+                        className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-colors group ${
                           isRecommended ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'hover:bg-gray-50'
                         }`}
                       >

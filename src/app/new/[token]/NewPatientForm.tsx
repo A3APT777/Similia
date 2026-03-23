@@ -155,8 +155,8 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
       {/* Progress bar */}
       <div className="flex items-center gap-3 mb-8">
         <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--sim-forest)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f7f3ed', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>1</div>
-        <div style={{ flex: 1, height: '2px', backgroundColor: step >= 2 ? '#1a3020' : '#d4c9b8' }} />
-        <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: step >= 2 ? '#1a3020' : '#f0ebe3', border: step >= 2 ? 'none' : '2px solid #d4c9b8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: step >= 2 ? '#f7f3ed' : '#9a8a6a', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>2</div>
+        <div style={{ flex: 1, height: '2px', backgroundColor: step >= 2 ? '#1a3020' : 'var(--sim-border)' }} />
+        <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: step >= 2 ? '#1a3020' : '#f0ebe3', border: step >= 2 ? 'none' : '2px solid var(--sim-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: step >= 2 ? '#f7f3ed' : '#9a8a6a', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>2</div>
         <p style={{ fontSize: '13px', color: 'var(--sim-text-hint)', flexShrink: 0 }}>Шаг {step} из 2</p>
       </div>
 
@@ -243,7 +243,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
           <button
             type="submit"
             disabled={!consent}
-            style={{ width: '100%', marginTop: '28px', backgroundColor: consent ? '#1a3020' : '#d4c9b8', color: consent ? '#f7f3ed' : '#9a8a6a', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '16px', fontWeight: 600, cursor: consent ? 'pointer' : 'default' }}
+            style={{ width: '100%', marginTop: '28px', backgroundColor: consent ? '#1a3020' : 'var(--sim-border)', color: consent ? '#f7f3ed' : '#9a8a6a', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '16px', fontWeight: 600, cursor: consent ? 'pointer' : 'default' }}
           >
             Далее — выбрать время →
           </button>
@@ -301,7 +301,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
               </p>
               {loadingSlots ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--sim-text-hint)', fontSize: '14px' }}>
-                  <span style={{ width: 16, height: 16, border: '2px solid #d4c9b8', borderTopColor: '#2d6a4f', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+                  <span style={{ width: 16, height: 16, border: '2px solid var(--sim-border)', borderTopColor: '#2d6a4f', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
                   Загружаю слоты...
                 </div>
               ) : slots.length === 0 ? (
@@ -315,7 +315,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
                       style={{
                         padding: '8px 16px',
                         borderRadius: '8px',
-                        border: selectedTime === slot ? '2px solid #1a3020' : '1px solid #d4c9b8',
+                        border: selectedTime === slot ? '2px solid #1a3020' : '1px solid var(--sim-border)',
                         backgroundColor: selectedTime === slot ? '#1a3020' : '#faf7f2',
                         color: selectedTime === slot ? '#f7f3ed' : '#3a2e1a',
                         fontSize: '15px',
@@ -338,7 +338,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
             disabled={!selectedDate || !selectedTime || submitting}
             style={{
               width: '100%',
-              backgroundColor: selectedDate && selectedTime ? '#1a3020' : '#d4c9b8',
+              backgroundColor: selectedDate && selectedTime ? '#1a3020' : 'var(--sim-border)',
               color: selectedDate && selectedTime ? '#f7f3ed' : '#9a8a6a',
               border: 'none', borderRadius: '10px', padding: '14px',
               fontSize: '16px', fontWeight: 600,

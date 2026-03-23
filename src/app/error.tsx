@@ -40,14 +40,14 @@ export default function Error({
         <div className="flex gap-3 justify-center">
           <button
             onClick={reset}
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'var(--sim-forest)' }}
           >
             {t(lang).error.tryAgain}
           </button>
           <a
             href="/dashboard"
-            className="px-5 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
+            className="px-5 py-2.5 rounded-2xl text-sm transition-colors hover:opacity-70"
             style={{ color: 'var(--sim-text-hint)', border: '1px solid var(--sim-border)' }}
           >
             {t(lang).error.goHome}

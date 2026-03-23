@@ -53,7 +53,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
         >
           <div className="flex items-center gap-2.5">
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 rounded-2xl flex items-center justify-center shrink-0"
               style={{ backgroundColor: 'rgba(125,212,168,0.15)' }}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} style={{ color: '#7dd4a8' }}>
@@ -72,7 +72,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
             style={{ color: 'rgba(247,243,237,0.35)' }}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -90,7 +90,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
 
           {/* Email-блок */}
           <div
-            className="rounded-xl px-4 py-3.5"
+            className="rounded-2xl px-4 py-3.5"
             style={{ backgroundColor: '#e8e0d4', border: '1px solid var(--sim-border)' }}
           >
             <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--sim-text-hint)' }}>
@@ -121,7 +121,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
           {/* Кнопка */}
           <a
             href={mailtoHref}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold transition-all"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-semibold transition-all"
             style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

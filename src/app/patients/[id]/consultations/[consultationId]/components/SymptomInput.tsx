@@ -311,9 +311,9 @@ export default function SymptomInput({ symptoms, onChange, autoFocus = false }: 
           onKeyDown={e => handleKeyDown(e, section.id)}
           placeholder={placeholder}
           className="w-full px-3 py-2 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300"
-          style={{ fontSize: '15px', borderColor: '#e5e0d8' }}
+          style={{ fontSize: '15px', borderColor: 'rgba(0,0,0,0.08)' }}
           onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
-          onBlur={e => { e.currentTarget.style.borderColor = '#e5e0d8'; e.currentTarget.style.boxShadow = 'none' }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
         />
 
         {/* One-time shortcut hint */}
@@ -483,9 +483,9 @@ export default function SymptomInput({ symptoms, onChange, autoFocus = false }: 
             onKeyDown={e => handleKeyDown(e, sec.id)}
             placeholder={lang === 'ru' ? sec.placeholderRu : sec.placeholderEn}
             className="w-full px-3 py-2.5 bg-white rounded-lg border transition-all focus:outline-none placeholder-gray-300"
-            style={{ fontSize: '15px', borderColor: '#e5e0d8' }}
+            style={{ fontSize: '15px', borderColor: 'rgba(0,0,0,0.08)' }}
             onFocus={e => { e.currentTarget.style.borderColor = '#6ee7b7'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(110,231,183,0.1)' }}
-            onBlur={e => { e.currentTarget.style.borderColor = '#e5e0d8'; e.currentTarget.style.boxShadow = 'none' }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'; e.currentTarget.style.boxShadow = 'none' }}
           />
 
           {hintSection === sec.id && (

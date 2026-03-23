@@ -1,23 +1,36 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { seedDemoData } from '@/lib/actions/seed'
 
 export default function WelcomeScreen() {
   const [visible, setVisible] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
-    if (!localStorage.getItem('welcome_shown')) {
-      // Показываем с небольшой задержкой для плавности
+    if (!localStorage.getItem('welcome_shown') && !localStorage.getItem('tour_completed')) {
       setTimeout(() => setVisible(true), 500)
     }
   }, [])
 
-  function handleStart() {
+  function handleAddPatient() {
     localStorage.setItem('welcome_shown', '1')
     setVisible(false)
-    // Запускаем интерактивный тур
-    localStorage.setItem('onboarding_step', '0')
-    window.location.reload()
+    router.push('/patients/new')
+  }
+
+  async function handleDemo() {
+    setLoading(true)
+    try {
+      await seedDemoData()
+      localStorage.setItem('welcome_shown', '1')
+      setVisible(false)
+      window.location.reload()
+    } catch {
+      setLoading(false)
+    }
   }
 
   function handleSkip() {
@@ -33,7 +46,7 @@ export default function WelcomeScreen() {
       style={{ backgroundColor: 'rgba(26,48,32,0.85)', backdropFilter: 'blur(8px)' }}
     >
       <div
-        className="max-w-md w-full rounded-2xl p-8 text-center"
+        className="max-w-sm w-full rounded-2xl p-8 text-center"
         style={{
           backgroundColor: 'var(--sim-bg)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
@@ -55,36 +68,37 @@ export default function WelcomeScreen() {
           className="text-2xl mb-3"
           style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-forest)', fontWeight: 400 }}
         >
-          Добро пожаловать!
+          Ваш кабинет готов!
         </h1>
 
-        <p className="text-sm mb-2 leading-relaxed" style={{ color: 'var(--sim-text-sec)' }}>
-          Similia — ваш цифровой кабинет гомеопата.
-        </p>
-        <p className="text-sm mb-8 leading-relaxed" style={{ color: 'var(--sim-text-hint)' }}>
-          Карточки пациентов, реперторий Кента, анкеты и опросы — всё в одном месте. Давайте покажем как это работает.
+        <p className="text-sm mb-8 leading-relaxed" style={{ color: 'var(--sim-text-sec)' }}>
+          Начните с добавления первого пациента или потренируйтесь на примерах.
         </p>
 
         <div className="space-y-3">
           <button
-            onClick={handleStart}
-            className="w-full py-3.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-            style={{ backgroundColor: 'var(--sim-green)' }}
+            onClick={handleAddPatient}
+            className="btn btn-primary w-full py-3.5"
           >
-            Начать знакомство →
+            Добавить первого пациента
           </button>
           <button
-            onClick={handleSkip}
-            className="w-full py-2.5 text-sm transition-colors"
-            style={{ color: 'var(--sim-text-hint)' }}
+            onClick={handleDemo}
+            disabled={loading}
+            className="w-full py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
+            style={{ color: 'var(--sim-green)' }}
           >
-            Пропустить
+            {loading ? 'Создаю примеры...' : 'Потренироваться на примере →'}
           </button>
         </div>
 
-        <p className="text-xs mt-6" style={{ color: '#c4b89a' }}>
-          Вы сможете повторить обучение в любой момент
-        </p>
+        <button
+          onClick={handleSkip}
+          className="text-xs mt-6 transition-colors"
+          style={{ color: '#c4b89a' }}
+        >
+          Пропустить
+        </button>
       </div>
 
       <style>{`

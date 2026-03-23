@@ -38,7 +38,7 @@ export default function EditorToolbar({ onOpenRepertory, onStartMiniTour, onRunA
         onClick={toggleType}
         title={t(lang).consultation.changeTypeHint}
         aria-label={lang === 'ru' ? `Тип: ${typeLabel}. Нажмите для переключения` : `Type: ${typeLabel}. Click to toggle`}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all shrink-0"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shrink-0"
         style={badgeStyle}
       >
         {type === 'acute' ? (
@@ -68,7 +68,7 @@ export default function EditorToolbar({ onOpenRepertory, onStartMiniTour, onRunA
           type="button"
           onClick={onRunAI}
           disabled={aiLoading}
-          className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all shrink-0 ${
+          className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shrink-0 ${
             hasAIResult
               ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
               : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'

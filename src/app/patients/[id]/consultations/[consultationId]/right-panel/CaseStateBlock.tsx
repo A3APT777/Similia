@@ -15,7 +15,7 @@ export default function CaseStateBlock({ caseState, lang }: Props) {
   return (
     <div className="mb-3">
       <span
-        className="inline-block px-3 py-1 rounded-xl text-[13px] font-medium leading-snug"
+        className="inline-block px-3 py-1 rounded-2xl text-[13px] font-medium leading-snug"
         style={{ color: colors.color, backgroundColor: colors.bg, border: `1px solid ${colors.border}` }}
       >
         {label}

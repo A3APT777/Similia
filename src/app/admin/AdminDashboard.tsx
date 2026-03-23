@@ -28,12 +28,26 @@ type Doctor = {
   aiCredits: number
 }
 
+// Тестовые email — скрываем по умолчанию
+const TEST_EMAILS = ['123123123@mail.ru', 'nnn@mail.ru', 'ss@mail.ru', '333@mail.ru', '444@mail.ru', 'qwerty@mail.ru', 't12@mail.ru', '66666666@mail.ru']
+
 export default function AdminDashboard({ stats, doctors }: { stats: Stats; doctors: Doctor[] }) {
   const [tab, setTab] = useState<'overview' | 'doctors' | 'payments' | 'referrals'>('overview')
   const [editSub, setEditSub] = useState<string | null>(null)
   const [newPlan, setNewPlan] = useState('standard')
   const [newEnd, setNewEnd] = useState('')
   const [saving, setSaving] = useState(false)
+  const [hideTest, setHideTest] = useState(true)
+  const [search, setSearch] = useState('')
+
+  const filteredDoctors = (hideTest
+    ? doctors.filter(d => !TEST_EMAILS.includes(d.email || ''))
+    : doctors
+  ).filter(d => !search || (d.name + ' ' + d.email).toLowerCase().includes(search.toLowerCase()))
+
+  const filteredUsers = hideTest
+    ? stats.users.filter(u => !TEST_EMAILS.includes(u.email || ''))
+    : stats.users
 
   const tabs = [
     { id: 'overview' as const, label: 'Обзор' },
@@ -96,12 +110,12 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
         </div>
 
         {/* Табы */}
-        <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+        <div className="flex gap-1 mb-6 p-1 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 rounded-full text-sm font-medium transition-colors"
               style={{
                 backgroundColor: tab === t.id ? 'var(--sim-bg-card)' : 'transparent',
                 color: tab === t.id ? 'var(--sim-green)' : 'var(--sim-text-muted)',
@@ -121,13 +135,13 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
             <div className="space-y-6">
               <h2 className="text-lg font-semibold" style={{ color: 'var(--sim-text)' }}>Последние регистрации</h2>
               <div className="space-y-2">
-                {stats.users
+                {filteredUsers
                   .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                   .slice(0, 10)
                   .map(user => {
                     const sub = getSubscription(user.id)
                     return (
-                      <div key={user.id} className="flex items-center justify-between py-3 px-4 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+                      <div key={user.id} className="flex items-center justify-between py-3 px-4 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
                         <div>
                           <div className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>
                             {user.user_metadata?.name || user.user_metadata?.full_name || 'Без имени'}
@@ -155,11 +169,27 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
           {/* Врачи */}
           {tab === 'doctors' && (
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--sim-text)' }}>Все врачи</h2>
-              {doctors
+              <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                <h2 className="text-lg font-semibold" style={{ color: 'var(--sim-text)' }}>Врачи ({filteredDoctors.length})</h2>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    placeholder="Поиск..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="text-sm rounded-lg px-3 py-1.5 w-40"
+                    style={{ border: '1px solid var(--sim-border)', backgroundColor: 'var(--sim-bg-input)' }}
+                  />
+                  <label className="flex items-center gap-2 text-xs cursor-pointer whitespace-nowrap" style={{ color: 'var(--sim-text-muted)' }}>
+                    <input type="checkbox" checked={hideTest} onChange={e => setHideTest(e.target.checked)} />
+                    Скрыть тестовых
+                  </label>
+                </div>
+              </div>
+              {filteredDoctors
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map(doc => (
-                    <div key={doc.id} className="p-4 rounded-xl" style={{ border: '1px solid var(--sim-border)' }}>
+                    <div key={doc.id} className="p-4 rounded-2xl" style={{ border: '1px solid var(--sim-border)' }}>
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="font-medium" style={{ color: 'var(--sim-text)' }}>
@@ -268,7 +298,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
               ) : (
                 <div className="space-y-2">
                   {stats.recentPayments.map(p => (
-                    <div key={p.id} className="flex items-center justify-between py-3 px-4 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+                    <div key={p.id} className="flex items-center justify-between py-3 px-4 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
                       <div>
                         <div className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{getUserEmail(p.doctor_id)}</div>
                         <div className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>
@@ -297,7 +327,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
               ) : (
                 <div className="space-y-2">
                   {stats.referrals.map(r => (
-                    <div key={r.id} className="flex items-center justify-between py-3 px-4 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+                    <div key={r.id} className="flex items-center justify-between py-3 px-4 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
                       <div>
                         <div className="text-sm" style={{ color: 'var(--sim-text)' }}>
                           {getUserEmail(r.referrer_id)} → {getUserEmail(r.invitee_id)}

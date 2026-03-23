@@ -8,6 +8,7 @@ export type Patient = {
   notes: string | null
   constitutional_type: string | null
   gender: string | null
+  is_demo: boolean
   first_visit_date: string
   paid_sessions: number
   created_at: string

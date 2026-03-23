@@ -50,11 +50,11 @@ export default function FollowupReminderSetting({ initial }: { initial: number }
             disabled={saving}
             aria-pressed={days === opt}
             aria-label={`Напоминание через ${opt} дней`}
-            className="text-xs px-3 py-2 rounded-lg border transition-all font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+            className="text-xs px-3 py-2 rounded-full border transition-all font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
             style={{
               backgroundColor: days === opt ? '#1a3020' : 'transparent',
               color: days === opt ? '#f7f3ed' : '#5a5040',
-              borderColor: days === opt ? '#1a3020' : '#d4c9b8',
+              borderColor: days === opt ? '#1a3020' : 'var(--sim-border)',
             }}
           >
             {opt} дн.

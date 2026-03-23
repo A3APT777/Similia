@@ -26,7 +26,7 @@ export default async function NewPatientPage({ params }: { params: Promise<{ tok
         </div>
 
         {/* Карточка */}
-        <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '32px 28px', border: '0.5px solid #d4c9b8', boxShadow: '0 2px 20px rgba(0,0,0,0.06)' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '32px 28px', border: '0.5px solid var(--sim-border)', boxShadow: '0 2px 20px rgba(0,0,0,0.06)' }}>
           {isInvalid ? (
             <div style={{ textAlign: 'center', padding: '24px 0' }}>
               <div style={{ fontSize: '40px', marginBottom: '16px' }}>🍂</div>

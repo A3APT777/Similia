@@ -73,7 +73,7 @@ export default function IntakeLinkButton({
   }
 
   return (
-    <div data-tour="intake-link-result" className="border rounded-xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
+    <div data-tour="intake-link-result" className="border rounded-2xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
       <p className="text-xs font-semibold" style={{ color: isAcute ? 'var(--color-amber)' : 'var(--color-primary)' }}>
         {isAcute ? `⚡ ${t(lang).intake.acuteLink}` : t(lang).intake.patientLink}
       </p>

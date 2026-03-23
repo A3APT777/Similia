@@ -34,7 +34,7 @@ export default function SettingsToggle({ initialEnabled }: { initialEnabled: boo
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5"
             style={{ backgroundColor: enabled ? 'rgba(45,106,79,0.12)' : 'rgba(0,0,0,0.05)' }}
           >
             <svg className="w-5 h-5" style={{ color: enabled ? '#2d6a4f' : '#6b5f4f' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -65,7 +65,7 @@ export default function SettingsToggle({ initialEnabled }: { initialEnabled: boo
         >
           <div
             className="absolute inset-0 rounded-full transition-colors duration-200"
-            style={{ backgroundColor: enabled ? '#2d6a4f' : '#d4c9b8' }}
+            style={{ backgroundColor: enabled ? '#2d6a4f' : 'var(--sim-border)' }}
           />
           <div
             className="absolute top-0.5 rounded-full bg-white shadow transition-transform duration-200"
@@ -78,7 +78,7 @@ export default function SettingsToggle({ initialEnabled }: { initialEnabled: boo
         </button>
       </div>
 
-      <p className="text-[12px] mt-4 pt-4" style={{ color: '#6b5f4f', borderTop: '1px solid #d4c9b8' }}>
+      <p className="text-[12px] mt-4 pt-4" style={{ color: '#6b5f4f', borderTop: '1px solid var(--sim-border)' }}>
         {enabled
           ? `● ${t(lang).settings.paymentEnabled} — ${lang === 'ru' ? 'изменение сохраняется автоматически' : 'changes saved automatically'}`
           : `○ ${t(lang).settings.paymentDisabled} — ${lang === 'ru' ? 'изменение сохраняется автоматически' : 'changes saved automatically'}`}

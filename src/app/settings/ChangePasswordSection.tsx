@@ -53,7 +53,7 @@ export default function ChangePasswordSection() {
           value={currentPwd}
           onChange={e => { setCurrentPwd(e.target.value); setStatus('idle') }}
           placeholder="Введите текущий пароль"
-          className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
+          className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
           style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', color: 'var(--sim-text)' }}
         />
       </div>
@@ -66,7 +66,7 @@ export default function ChangePasswordSection() {
           value={password}
           onChange={e => { setPassword(e.target.value); setStatus('idle') }}
           placeholder="Минимум 8 символов"
-          className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
+          className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
           style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', color: 'var(--sim-text)' }}
         />
       </div>
@@ -79,7 +79,7 @@ export default function ChangePasswordSection() {
           value={confirm}
           onChange={e => { setConfirm(e.target.value); setStatus('idle') }}
           placeholder="Повторите новый пароль"
-          className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
+          className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2"
           style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', color: 'var(--sim-text)' }}
         />
       </div>

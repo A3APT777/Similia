@@ -254,7 +254,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
                     rows={3}
                     value={(answers[q.id] as string) || ''}
                     onChange={e => updateAnswer(q.id, e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
                     placeholder="Ваш ответ..."
                   />
                 )}
@@ -352,7 +352,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
                         const current = answers[q.id] as { scale: number; comment: string } | undefined
                         updateAnswer(q.id, { scale: current?.scale ?? 0, comment: e.target.value })
                       }}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
+                      className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
                       placeholder="Опишите подробнее..."
                     />
                   </div>
@@ -367,7 +367,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
                           key={opt}
                           type="button"
                           onClick={() => updateAnswer(q.id, { choice: opt, comment: current?.comment || '' })}
-                          className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors ${
+                          className={`w-full text-left px-4 py-3 rounded-2xl text-sm transition-colors ${
                             current?.choice === opt
                               ? 'text-white'
                               : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
@@ -387,7 +387,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
                           const current = answers[q.id] as { choice: string; comment: string }
                           updateAnswer(q.id, { ...current, comment: e.target.value })
                         }}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
+                        className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
                         placeholder="Уточните..."
                       />
                     )}
@@ -404,7 +404,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
                             key={opt}
                             type="button"
                             onClick={() => updateAnswer(q.id, { choice: opt, comment: current?.comment || '' })}
-                            className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors ${
+                            className={`px-4 py-2 rounded-2xl text-xs font-medium transition-colors ${
                               current?.choice === opt
                                 ? 'text-white'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -428,7 +428,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
                           const current = answers[q.id] as { choice: string; comment: string }
                           updateAnswer(q.id, { ...current, comment: e.target.value })
                         }}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
+                        className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
                         placeholder="Опишите подробнее..."
                       />
                     )}
@@ -446,7 +446,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
                             key={opt}
                             type="button"
                             onClick={() => updateAnswer(q.id, { value: opt === 'Да', comment: current?.comment || '' })}
-                            className={`px-6 py-2 rounded-xl text-sm font-medium transition-colors ${
+                            className={`px-6 py-2 rounded-2xl text-sm font-medium transition-colors ${
                               isSelected ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                             style={isSelected ? { backgroundColor: 'var(--sim-green)' } : undefined}
@@ -461,7 +461,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
                         rows={2}
                         value={(answers[q.id] as { value: boolean; comment: string })?.comment || ''}
                         onChange={e => updateAnswer(q.id, { value: true, comment: e.target.value })}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
+                        className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20 resize-none"
                         placeholder="Расскажите подробнее..."
                       />
                     )}
@@ -474,7 +474,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
 
         {/* Навигация */}
         {error && (
-          <div className="rounded-xl px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-200 mb-4">{error}</div>
+          <div className="rounded-2xl px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-200 mb-4">{error}</div>
         )}
 
         <div className="flex justify-between">
@@ -482,7 +482,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
             type="button"
             onClick={() => setCurrentSection(s => s - 1)}
             disabled={currentSection === 0}
-            className="px-5 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="px-5 py-3 rounded-2xl text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             ← Назад
           </button>
@@ -492,7 +492,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
               type="button"
               onClick={() => setCurrentSection(s => s + 1)}
               disabled={!canProceed()}
-              className="px-6 py-3 rounded-xl text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 rounded-2xl text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               style={{ backgroundColor: 'var(--sim-green)' }}
             >
               Далее →
@@ -502,7 +502,7 @@ export default function PreVisitSurveyForm({ token, patientName }: { token: stri
               type="button"
               onClick={handleSubmit}
               disabled={!canProceed() || submitting}
-              className="px-6 py-3 rounded-xl text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 rounded-2xl text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               style={{ backgroundColor: 'var(--sim-green)' }}
             >
               {submitting ? 'Отправка...' : 'Отправить ответы'}

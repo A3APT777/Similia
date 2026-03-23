@@ -20,7 +20,7 @@ export default function PaywallOverlay({ current, max, lang = 'ru' }: Props) {
         style={{ backgroundColor: 'var(--sim-bg)' }}
       >
         <div
-          className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4"
+          className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
           style={{ backgroundColor: 'rgba(45,106,79,0.1)' }}
         >
           <svg className="w-7 h-7" style={{ color: 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -44,7 +44,7 @@ export default function PaywallOverlay({ current, max, lang = 'ru' }: Props) {
         <div className="space-y-3">
           <Link
             href="/pricing"
-            className="block w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="block w-full py-3 rounded-2xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'var(--sim-forest)' }}
           >
             {lang === 'ru' ? 'Посмотреть тарифы — от 290 ₽/мес' : 'View plans — from 290 ₽/mo'}
@@ -52,7 +52,7 @@ export default function PaywallOverlay({ current, max, lang = 'ru' }: Props) {
 
           <Link
             href="/dashboard"
-            className="block w-full py-3 rounded-xl text-sm font-medium transition-colors"
+            className="block w-full py-3 rounded-2xl text-sm font-medium transition-colors"
             style={{ color: 'var(--sim-text-sec)' }}
           >
             {lang === 'ru' ? 'Вернуться на главную' : 'Back to dashboard'}

@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import CookieConsent from "@/components/CookieConsent";
 import Script from "next/script";
 import InteractiveTour from "@/components/InteractiveTour";
+import HelpButton from "@/components/HelpButton";
 
 
 const geistSans = Geist({
@@ -87,6 +88,7 @@ export default function RootLayout({
         </ToastProvider>
         <CookieConsent />
         <InteractiveTour />
+        <HelpButton />
 
         {/* Яндекс.Метрика — код с сайта metrika.yandex.ru */}
         <Script id="yandex-metrika" strategy="afterInteractive">

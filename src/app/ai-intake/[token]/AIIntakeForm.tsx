@@ -135,7 +135,7 @@ export default function AIIntakeForm({ token, steps }: Props) {
       <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-indigo-50 via-white to-white">
         <div className="max-w-sm w-full">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shrink-0">
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
               </svg>
@@ -150,7 +150,7 @@ export default function AIIntakeForm({ token, steps }: Props) {
             Эта анкета создана специально для вас — вопросы подобраны с учётом вашей истории болезни и предыдущих назначений.
           </p>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
             <div className="grid grid-cols-2 gap-2">
               {[
                 { icon: '✨', text: `${totalSteps} разделов · 10–15 мин` },
@@ -167,7 +167,7 @@ export default function AIIntakeForm({ token, steps }: Props) {
           </div>
 
           {draftRestored && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs border bg-indigo-50 border-indigo-200 text-indigo-700">
+            <div className="mb-3 flex items-center gap-2 rounded-2xl px-3 py-2.5 text-xs border bg-indigo-50 border-indigo-200 text-indigo-700">
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
@@ -177,7 +177,7 @@ export default function AIIntakeForm({ token, steps }: Props) {
 
           <button
             onClick={() => draftRestored ? setStep(step) : setStep(0)}
-            className="w-full font-semibold text-sm py-3 rounded-xl transition-colors shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="w-full font-semibold text-sm py-3 rounded-2xl transition-colors shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             {draftRestored ? 'Продолжить →' : 'Начать заполнение →'}
           </button>
@@ -251,7 +251,7 @@ export default function AIIntakeForm({ token, steps }: Props) {
                   value={answers[field.key] || ''}
                   onChange={e => setField(field.key, e.target.value)}
                   rows={3}
-                  className="w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-4 focus:border-indigo-400 focus:ring-indigo-500/10 transition-all"
+                  className="w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-2xl px-3 py-2 resize-none focus:outline-none focus:ring-4 focus:border-indigo-400 focus:ring-indigo-500/10 transition-all"
                 />
               )}
 
@@ -260,7 +260,7 @@ export default function AIIntakeForm({ token, steps }: Props) {
                   type="text"
                   value={answers[field.key] || ''}
                   onChange={e => setField(field.key, e.target.value)}
-                  className="w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 focus:border-indigo-400 focus:ring-indigo-500/10 transition-all"
+                  className="w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-2xl px-3 py-2 focus:outline-none focus:ring-4 focus:border-indigo-400 focus:ring-indigo-500/10 transition-all"
                 />
               )}
 
@@ -340,14 +340,14 @@ export default function AIIntakeForm({ token, steps }: Props) {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3">
         <div className="max-w-lg mx-auto space-y-3">
           {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
               <p className="text-sm text-red-600">{submitError}</p>
             </div>
           )}
           <button
             onClick={handleNext}
             disabled={!canProceed() || submitting}
-            className="w-full font-semibold text-sm py-3.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="w-full font-semibold text-sm py-3.5 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             {submitting ? 'Отправляю...' : step === totalSteps - 1 ? 'Отправить анкету' : 'Далее →'}
           </button>

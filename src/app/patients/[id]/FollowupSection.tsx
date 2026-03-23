@@ -46,7 +46,7 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
   // Если есть ответ — показываем результат
   if (followup?.responded_at && followup.status) {
     return (
-      <div className={`rounded-xl px-5 py-4 mb-6 ${statusColor[followup.status]}`}>
+      <div className={`rounded-2xl px-5 py-4 mb-6 ${statusColor[followup.status]}`}>
         <p className="text-sm font-medium">{t(lang).followup.feeling} {t(lang).followup.statusLabels[followup.status]}</p>
         {followup.comment && (
           <p className="text-sm mt-1 opacity-80">{followup.comment}</p>
@@ -62,7 +62,7 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
       : `/followup/${followup.token}`
 
     return (
-      <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 mb-6">
+      <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 mb-6">
         <p className="text-sm text-green-800 font-medium mb-2">{t(lang).followup.linkReady}</p>
         <div className="flex items-center gap-2">
           <code className="text-xs text-green-700 bg-[#faf7f2] border border-green-100 rounded px-2 py-1 flex-1 truncate">

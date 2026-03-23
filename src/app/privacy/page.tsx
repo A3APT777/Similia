@@ -52,7 +52,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Оператор персональных данных</h2>
-            <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm space-y-1.5">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 text-sm space-y-1.5">
               <p><span className="text-gray-600">Сервис:</span> Similia</p>
               <p><span className="text-gray-600">Сайт:</span> simillia.ru</p>
               <p><span className="text-gray-600">Оператор:</span> Назаретян Кнарик Давидовна, плательщик налога на профессиональный доход (422-ФЗ)</p>
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
             <p className="leading-relaxed mt-3">
               Пароли хранятся в хешированном виде. Передача данных осуществляется по защищённому протоколу HTTPS.
             </p>
-            <p className="leading-relaxed mt-3 text-sm text-amber-900 bg-amber-50 rounded-xl px-4 py-3 border border-amber-200">
+            <p className="leading-relaxed mt-3 text-sm text-amber-900 bg-amber-50 rounded-2xl px-4 py-3 border border-amber-200">
               ⚠ Обратите внимание: в текущей версии Сервиса серверная инфраструктура расположена за пределами территории РФ. Используя Сервис, вы даёте согласие на трансграничную передачу ваших персональных данных в соответствии со ст. 12 Федерального закона № 152-ФЗ. Если вы работаете с персональными данными граждан РФ в рамках профессиональной деятельности, рекомендуем уточнить требования локализации согласно ч. 5 ст. 18 152-ФЗ.
             </p>
           </section>

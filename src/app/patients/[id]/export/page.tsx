@@ -146,7 +146,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                 primaryIntake && { intake: primaryIntake, sections: PRIMARY_SECTIONS, label: t(lang).export.primaryIntake },
                 acuteIntake && { intake: acuteIntake, sections: ACUTE_SECTIONS, label: t(lang).export.acuteIntake },
               ].filter(Boolean).map(({ intake, sections, label }: any) => (
-                <div key={intake.id} className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
+                <div key={intake.id} className="mb-5 border border-gray-200 rounded-2xl overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
                     <p className="text-sm font-semibold text-gray-700">{label}</p>
                     {intake.completed_at && (
@@ -195,7 +195,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                     : t(lang).timeline.consultationN(chronicIndex)
 
                   return (
-                    <div key={c.id} className="border border-gray-200 rounded-xl overflow-hidden print:break-inside-avoid">
+                    <div key={c.id} className="border border-gray-200 rounded-2xl overflow-hidden print:break-inside-avoid">
                       {/* Заголовок консультации */}
                       <div className={`px-4 py-2.5 border-b flex items-center justify-between ${isAcute ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-200'}`}>
                         <div className="flex items-center gap-2">

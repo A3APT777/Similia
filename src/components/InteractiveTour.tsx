@@ -222,7 +222,7 @@ export default function InteractiveTour() {
           </div>
           <div className="px-5 pb-4 flex items-center justify-between">
             <div>{step > 0 && <button onClick={goBack} className="text-sm" style={{ color: 'var(--sim-text-hint)' }}>← Назад</button>}</div>
-            {!isWaiting && <button onClick={goNext} className="px-5 py-2 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-all" style={{ backgroundColor: 'var(--sim-green)' }}>{isLast ? 'Завершить ✓' : 'Далее →'}</button>}
+            {!isWaiting && <button onClick={goNext} className="px-5 py-2 rounded-2xl text-sm font-medium text-white hover:opacity-90 transition-all" style={{ backgroundColor: 'var(--sim-green)' }}>{isLast ? 'Завершить ✓' : 'Далее →'}</button>}
           </div>
         </div>
       </div>

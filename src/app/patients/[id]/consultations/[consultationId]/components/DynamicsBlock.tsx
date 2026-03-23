@@ -30,11 +30,16 @@ export default function DynamicsBlock({ consultationId, initial, lang }: Props) 
   }
 
   return (
-    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)' }}>
+    <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)' }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">
-          {lang === 'ru' ? 'Динамика с прошлого приёма' : 'Dynamics since last visit'}
-        </p>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">
+            {lang === 'ru' ? 'Динамика с прошлого приёма' : 'Dynamics since last visit'}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--sim-text-hint)' }}>
+            {lang === 'ru' ? 'Как пациент отреагировал на предыдущее назначение?' : 'How did the patient respond to the previous prescription?'}
+          </p>
+        </div>
         {saving && <span className="text-xs text-gray-400">{lang === 'ru' ? 'Сохраняю...' : 'Saving...'}</span>}
       </div>
       <div className="flex flex-wrap gap-2">
@@ -46,7 +51,7 @@ export default function DynamicsBlock({ consultationId, initial, lang }: Props) 
               onClick={() => handleSelect(opt.value)}
               title={lang === 'ru' ? opt.hintRu : opt.hintEn}
               aria-label={lang === 'ru' ? opt.hintRu : opt.hintEn}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all font-medium"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all font-medium"
               style={{
                 backgroundColor: active ? opt.bg : 'transparent',
                 color: active ? opt.color : '#6b7280',

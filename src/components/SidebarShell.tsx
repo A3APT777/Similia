@@ -16,11 +16,12 @@ type Props = {
   initials: string
   subscription?: SubscriptionInfo
   patientCount?: number
+  realPatientCount?: number
   isAdmin?: boolean
   children: React.ReactNode
 }
 
-export default function SidebarShell({ firstName, initials, subscription, patientCount, isAdmin, children }: Props) {
+export default function SidebarShell({ firstName, initials, subscription, patientCount, realPatientCount = 0, isAdmin, children }: Props) {
   const [open, setOpen] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const pathname = usePathname()
@@ -42,10 +43,10 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         href={href}
         onClick={() => setOpen(false)}
         data-tour={tourId}
-        className={`flex items-center gap-3 px-3 py-3 lg:py-2 rounded-lg text-[15px] transition-all group ${
+        className={`flex items-center gap-3 px-4 py-2.5 lg:py-2 rounded-full text-[14px] transition-all group ${
           isActive
-            ? 'bg-white/[0.10] text-white'
-            : 'text-white/50 hover:text-white/90 hover:bg-white/[0.07]'
+            ? 'bg-white/[0.12] text-white'
+            : 'text-white/40 hover:text-white/90 hover:bg-white/[0.06]'
         }`}
       >
         <span className={`shrink-0 transition-colors ${isActive ? 'text-white/80' : 'text-white/30 group-hover:text-white/60'}`}>
@@ -83,7 +84,7 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         {/* Кнопка закрытия — только мобильный */}
         <button
           onClick={() => setOpen(false)}
-          className="lg:hidden p-1.5 text-white/30 hover:text-white/60 rounded-lg transition-colors"
+          className="lg:hidden p-1.5 text-white/30 hover:text-white/60 rounded-full transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -102,13 +103,15 @@ export default function SidebarShell({ firstName, initials, subscription, patien
           </svg>,
           'nav-dashboard'
         )}
-        {navLink('/repertory', lang === 'ru' ? 'Реперторий' : 'Repertory',
+        {/* Реперторий — показываем если есть хоть один пациент (включая демо) */}
+        {(patientCount ?? 0) >= 1 && navLink('/repertory', lang === 'ru' ? 'Реперторий' : 'Repertory',
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
           </svg>,
           'nav-repertory'
         )}
-        {navLink('/ai-consultation', lang === 'ru' ? '✨ AI-анализ' : '✨ AI Analysis',
+        {/* AI-анализ — показываем с 3+ пациентов (включая демо) */}
+        {(patientCount ?? 0) >= 3 && navLink('/ai-consultation', lang === 'ru' ? '✨ AI-анализ' : '✨ AI Analysis',
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>,
@@ -129,7 +132,7 @@ export default function SidebarShell({ firstName, initials, subscription, patien
       </nav>
 
       {/* Цитата */}
-      <div className="px-4 py-3 mx-2 my-2 rounded-xl bg-white/[0.06] border border-white/[0.08]">
+      <div className="px-4 py-3 mx-2 my-2 rounded-2xl bg-white/[0.06] border border-white/[0.08]">
         <p className="text-[17px] italic leading-relaxed" style={{ color: 'rgba(255,255,255,0.88)', fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
           «Similia similibus curantur»
         </p>
@@ -140,7 +143,7 @@ export default function SidebarShell({ firstName, initials, subscription, patien
       <div className="px-2 pb-1 border-t border-white/[0.07] pt-1">
         <button
           onClick={() => setShowFeedback(true)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-all"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-full text-[13px] transition-all"
           style={{ color: 'rgba(255,255,255,0.45)' }}
           onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -163,15 +166,15 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         )}
       </div>
 
-      {/* Рефералы */}
-      <div className="px-2 pb-1">
+      {/* Рефералы — показываем с 5+ пациентов */}
+      {(patientCount ?? 0) >= 5 && <div className="px-2 pb-1">
         {navLink('/referral', lang === 'ru' ? 'Рефералы' : 'Referrals',
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
           </svg>,
           'nav-referral'
         )}
-      </div>
+      </div>}
 
       {/* Админ-панель (только для админов) */}
       {isAdmin && (
@@ -204,7 +207,7 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         <div className="flex items-center justify-center mb-2">
           <button
             onClick={toggle}
-            className="flex items-center text-xs font-semibold rounded-lg px-3 py-1.5 transition-colors"
+            className="flex items-center text-xs font-semibold rounded-full px-3 py-1.5 transition-colors"
             style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)' }}
             title={lang === 'ru' ? 'Switch to English' : 'Переключить на русский'}
           >
@@ -220,7 +223,7 @@ export default function SidebarShell({ firstName, initials, subscription, patien
           </div>
         )}
 
-        <div className="flex items-center gap-2.5 px-2.5 py-3 lg:py-2 rounded-lg hover:bg-white/[0.05] transition-colors">
+        <div className="flex items-center gap-2.5 px-2.5 py-3 lg:py-2 rounded-full hover:bg-white/[0.05] transition-colors">
           <div className="w-7 h-7 lg:w-6 lg:h-6 flex items-center justify-center text-xs font-semibold shrink-0" style={{ backgroundColor: 'var(--color-forest)', color: 'var(--color-parchment)', borderRadius: '6px' }}>
             {initials}
           </div>
@@ -259,7 +262,7 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         <header className="lg:hidden flex items-center justify-between px-4 h-12 border-b border-white/[0.07] shrink-0 sticky top-0 z-20" style={{ backgroundColor: 'var(--color-sidebar)' }}>
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center justify-center w-10 h-10 -ml-2 text-white/50 hover:text-white/90 transition-colors rounded-lg"
+            className="flex items-center justify-center w-10 h-10 -ml-2 text-white/50 hover:text-white/90 transition-colors rounded-full"
             aria-label={t(lang).nav.openMenu}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>

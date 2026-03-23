@@ -117,7 +117,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
   }
 
   // Стили текстаря
-  const taBase = 'w-full resize-none rounded-xl border px-3.5 py-2.5 transition-all focus:outline-none placeholder-gray-400'
+  const taBase = 'w-full resize-none rounded-2xl border px-3.5 py-2.5 transition-all focus:outline-none placeholder-gray-400'
   const acuteFocusBorder = '#fbbf24'
   const acuteFocusShadow = '0 0 0 3px rgba(251,191,36,0.12)'
   const chronicFocusBorder = '#6ee7b7'
@@ -130,7 +130,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
     e.currentTarget.style.boxShadow = focusShadow
   }
   function blurStyle(e: React.FocusEvent<HTMLTextAreaElement>) {
-    e.currentTarget.style.borderColor = '#e5e0d8'
+    e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'
     e.currentTarget.style.boxShadow = 'none'
   }
 
@@ -152,7 +152,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
           placeholder={L.chiefPlaceholder}
           rows={3}
           className={taBase}
-          style={{ fontSize: '15px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
+          style={{ fontSize: '15px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
           onFocus={focusStyle}
           onBlur={blurStyle}
         />
@@ -174,7 +174,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
             placeholder={(L as typeof CHRONIC_LABELS.ru).etiologyPlaceholder}
             rows={2}
             className={taBase}
-            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: '#fff' }}
+            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fff' }}
             onFocus={focusStyle}
             onBlur={blurStyle}
           />
@@ -196,12 +196,29 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
             placeholder={(L as typeof ACUTE_LABELS.ru).onsetPlaceholder}
             rows={2}
             className={taBase}
-            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: '#fffbf0' }}
+            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fffbf0' }}
             onFocus={focusStyle}
             onBlur={blurStyle}
           />
         </div>
       )}
+
+      {/* Дополнительные поля — collapsible для новичков */}
+      <details
+        className="group"
+        open={!!(state.modalityWorseText || state.modalityBetterText || state.mentalText || state.generalText || localStorage.getItem('complaints_expanded'))}
+      >
+        <summary
+          className="cursor-pointer text-xs font-semibold uppercase tracking-wider py-2 flex items-center gap-2 select-none"
+          style={{ color: 'var(--sim-text-muted)' }}
+          onClick={() => localStorage.setItem('complaints_expanded', '1')}
+        >
+          <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          {lang === 'ru' ? 'Модальности, психика, общие' : 'Modalities, mentals, generals'}
+        </summary>
+        <div className="space-y-4 pt-2">
 
       {/* Хуже / Лучше в одну строку */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -219,7 +236,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
             placeholder={L.worsePlaceholder}
             rows={2}
             className={taBase}
-            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
+            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
             onFocus={e => { e.currentTarget.style.borderColor = '#fca5a5'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(252,165,165,0.15)' }}
             onBlur={blurStyle}
           />
@@ -238,7 +255,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
             placeholder={L.betterPlaceholder}
             rows={2}
             className={taBase}
-            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
+            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
             onFocus={focusStyle}
             onBlur={blurStyle}
           />
@@ -262,7 +279,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
               placeholder={L.generalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: '#fffbf0' }}
+              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fffbf0' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
@@ -281,7 +298,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
               placeholder={L.mentalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: '#fffbf0' }}
+              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fffbf0' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
@@ -303,7 +320,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
               placeholder={L.mentalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: '#fff' }}
+              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fff' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
@@ -322,13 +339,16 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
               placeholder={L.generalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: '#e5e0d8', backgroundColor: '#fff' }}
+              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fff' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
           </div>
         </>
       )}
+
+        </div>
+      </details>
 
     </div>
   )

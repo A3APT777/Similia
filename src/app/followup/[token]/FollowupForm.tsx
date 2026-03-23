@@ -57,7 +57,7 @@ export default function FollowupForm({ token }: { token: string }) {
         {options.map(option => (
           <label
             key={option.value}
-            className={`flex items-center gap-3 border rounded-xl px-5 py-4 cursor-pointer transition-all ${option.color}`}
+            className={`flex items-center gap-3 border rounded-2xl px-5 py-4 cursor-pointer transition-all ${option.color}`}
           >
             <input
               type="radio"
@@ -75,7 +75,7 @@ export default function FollowupForm({ token }: { token: string }) {
 
       {/* Пояснение при выборе "Новые симптомы" — закон Геринга */}
       {selected === 'new_symptoms' && (
-        <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3.5 space-y-2">
+        <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3.5 space-y-2">
           <p className="text-sm font-semibold text-orange-800">Уточните, пожалуйста</p>
           <p className="text-sm text-orange-700 leading-relaxed">
             Иногда после гомеопатического препарата симптомы появляются на коже или возвращаются
@@ -118,7 +118,7 @@ export default function FollowupForm({ token }: { token: string }) {
           onChange={e => setComment(e.target.value)}
           rows={3}
           placeholder={selected === 'new_symptoms' ? 'Опишите подробнее, что именно появилось...' : 'Комментарий (необязательно)...'}
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30"
+          className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30"
         />
       </div>
 
@@ -127,7 +127,7 @@ export default function FollowupForm({ token }: { token: string }) {
       <button
         type="submit"
         disabled={!selected || loading}
-        className="w-full bg-[#2d6a4f] text-white rounded-xl py-3 font-medium hover:bg-[#1a3020] disabled:opacity-40 transition-colors"
+        className="w-full bg-[#2d6a4f] text-white rounded-full py-3.5 font-medium hover:bg-[#1a3020] disabled:opacity-40 transition-colors"
       >
         {loading ? 'Отправляю...' : 'Отправить'}
       </button>

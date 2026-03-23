@@ -34,8 +34,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .from('patients')
     .select('*', { count: 'exact', head: true })
     .eq('doctor_id', user.id)
+  // Первый вход — создаём демо и сразу редиректим на карточку
   if ((patientCount ?? 0) === 0) {
     await seedDemoData().catch(() => null)
+    // Находим первого демо-пациента для редиректа
+    const { data: demoPatient } = await supabase
+      .from('patients')
+      .select('id')
+      .eq('doctor_id', user.id)
+      .eq('is_demo', true)
+      .limit(1)
+      .single()
+    if (demoPatient) {
+      redirect(`/patients/${demoPatient.id}?welcome=1`)
+    }
   }
 
   const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
@@ -228,22 +240,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <div className="flex-1 min-w-0 w-full">
 
           {/* Hero-баннер */}
-          <div data-tour="stats" className="relative overflow-hidden rounded-2xl mb-5 lg:mb-7" style={{ background: 'linear-gradient(135deg, var(--sim-forest) 0%, var(--sim-green) 100%)' }}>
-            {/* Иллюстрация арники */}
-            <div
-              className="absolute right-0 top-0 h-full w-48 sm:w-64 opacity-20 bg-no-repeat bg-right bg-contain pointer-events-none"
-              style={{ backgroundImage: 'url(/illustrations/arnica.jpg)' }}
-            />
-            <div className="relative z-10 px-5 sm:px-7 py-5 sm:py-6">
+          <div data-tour="stats" className="relative overflow-hidden rounded-2xl mb-5 lg:mb-7" style={{ backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div className="px-5 sm:px-7 py-5 sm:py-6">
               <h1
                 className="text-[20px] sm:text-[24px] font-light leading-tight mb-5"
-                style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.85)', letterSpacing: '0.01em' }}
+                style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)', letterSpacing: '0.01em' }}
               >
                 {t(lang).dashboard.greeting}, {firstName}
               </h1>
 
-              {/* Три равноценных стат-карточки */}
-              <HeroStatCards
+              {/* Три равноценных стат-карточки (с 5+ пациентов) */}
+              {totalPatients >= 3 && <HeroStatCards
                 todayCount={todayCount}
                 totalPatients={totalPatients}
                 pendingCount={pendingCount}
@@ -251,22 +258,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 todayLabel={t(lang).dashboard.todayAppointments(todayCount)}
                 patientsLabel={t(lang).dashboard.patients}
                 noPrescriptionLabel={t(lang).dashboard.noPrescription}
-              />
+              />}
 
               {/* Продающая строка */}
               {insightLine && (
-                <p className="mt-3 text-[13px] font-light italic" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'rgba(255,255,255,0.80)' }}>
+                <p className="mt-3 text-[13px] font-light italic" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text-muted)' }}>
                   {insightLine}
                 </p>
               )}
 
               {/* Строка внимания — показывается только если есть проблемы */}
               {(overdueCount > 0 || pendingFollowupCount > 0) && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                   {overdueCount > 0 && (
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f97316' }} />
-                      <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                      <span className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>
                         {lang === 'ru'
                           ? `${overdueCount} ${overdueCount === 1 ? 'пациент' : overdueCount < 5 ? 'пациента' : 'пациентов'} без повторного приёма`
                           : `${overdueCount} patient${overdueCount > 1 ? 's' : ''} overdue`}
@@ -276,7 +283,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   {pendingFollowupCount > 0 && (
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#facc15' }} />
-                      <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                      <span className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>
                         {lang === 'ru'
                           ? `${pendingFollowupCount} ${pendingFollowupCount === 1 ? 'ожидает' : 'ожидают'} ответа на опросник`
                           : `${pendingFollowupCount} follow-up${pendingFollowupCount > 1 ? 's' : ''} pending`}
@@ -289,38 +296,32 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
 
           <div className="flex items-center gap-2 mb-4">
-            <OnboardingFlow />
+            <OnboardingFlow realPatientCount={realPatientIds.size} />
           </div>
 
-          <OnboardingBanner
-            hasRealPatients={hasRealPatients}
-            hasSentIntake={hasSentIntake}
-            hasScheduled={hasScheduled}
-            lastPatientId={patients?.[0]?.id}
-          />
-
-          {/* AI Pro карточка */}
-          <Link
+          {/* AI Pro карточка — показываем с 5+ реальных пациентов */}
+          {totalPatients >= 3 && <Link
             href="/ai-consultation"
-            className="ai-card-dark block mb-5 px-5 py-4 transition-opacity hover:opacity-95"
+            className="block mb-5 px-5 py-4 rounded-2xl transition-all hover:opacity-95"
+            style={{ backgroundColor: 'var(--sim-forest)', border: '1px solid rgba(45,106,79,0.3)' }}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(99,102,241,0.3)' }}>
-                <svg className="w-5 h-5 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                <svg className="w-5 h-5" style={{ color: 'var(--sim-mint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">{lang === 'ru' ? 'AI-анализ случая' : 'AI Case Analysis'}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'rgba(165,160,255,0.6)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
                   {lang === 'ru' ? '8 линз MDRI · AI-гомеопат · Consensus' : '8 MDRI lenses · AI homeopath · Consensus'}
                 </p>
               </div>
-              <div className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
+              <div className="shrink-0 text-xs font-medium px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
                 {lang === 'ru' ? 'Начать' : 'Start'}
               </div>
             </div>
-          </Link>
+          </Link>}
 
           {/* Активный приём — идёт прямо сейчас */}
           {activeConsultations && activeConsultations.length > 0 && (() => {
@@ -366,8 +367,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
 
-        {/* ─── Правая колонка ─── */}
-        <div className="w-full lg:w-[280px] lg:shrink-0 lg:sticky lg:top-7 space-y-4">
+        {/* ─── Правая колонка (с 5+ пациентов) ─── */}
+        {totalPatients >= 3 && <div className="w-full lg:w-[280px] lg:shrink-0 lg:sticky lg:top-7 space-y-4">
           <LunarPhaseWidget lang={lang} />
           <div id="appointments-section" className="scroll-mt-6">
             <CalendarWidget
@@ -469,7 +470,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
       </div>
     </AppShell>

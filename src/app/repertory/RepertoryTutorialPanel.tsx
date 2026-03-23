@@ -380,7 +380,7 @@ export default function RepertoryTutorialPanel({ step, lang, addedCount, onNext,
           {/* Подсказка-действие */}
           {effectiveAction && (
             <div
-              className="mt-3 px-3 py-2 rounded-xl text-[12px] font-medium"
+              className="mt-3 px-3 py-2 rounded-2xl text-[12px] font-medium"
               style={{
                 backgroundColor: 'rgba(45,106,79,0.08)',
                 color: 'var(--sim-green)',
@@ -400,7 +400,7 @@ export default function RepertoryTutorialPanel({ step, lang, addedCount, onNext,
           {isAutoStep && showSkip && (
             <button
               onClick={onNext}
-              className="mt-3 w-full py-2 rounded-xl text-[13px] font-medium transition-all"
+              className="mt-3 w-full py-2 rounded-2xl text-[13px] font-medium transition-all"
               style={{ color: 'var(--sim-text-sec)', border: '1px solid var(--sim-border)' }}
             >
               {lang === 'ru' ? 'Пропустить →' : 'Skip →'}
@@ -414,7 +414,7 @@ export default function RepertoryTutorialPanel({ step, lang, addedCount, onNext,
             <button
               onClick={effectiveBtnLabel ? onNext : undefined}
               disabled={!effectiveBtnLabel}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-35 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-35 disabled:cursor-not-allowed"
               style={{ backgroundColor: 'var(--sim-green)' }}
               onMouseEnter={e => { if (effectiveBtnLabel) e.currentTarget.style.backgroundColor = '#245c42' }}
               onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#2d6a4f' }}

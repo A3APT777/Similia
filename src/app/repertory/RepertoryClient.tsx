@@ -15,7 +15,7 @@ const C = {
   sidebar: '#f2ece4',
   header: '#1a3020',
   link: '#2d6a4f',
-  border: '#d4c9b8',
+  border: 'var(--sim-border)',
   borderLight: '#e0d8cc',
   text: '#1a1a0a',
   secondary: '#5a5040',
@@ -520,7 +520,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               onChange={e => handleQueryChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t(lang).repertory.searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2.5 text-base rounded-lg focus:outline-none"
+              className="w-full pl-10 pr-4 py-2.5 text-base rounded-full focus:outline-none"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.10)',
                 border: '1px solid rgba(255,255,255,0.15)',
@@ -551,7 +551,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
           {/* Кнопка "В консультацию" / "Вернуться к консультации" */}
           <button
-            className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium rounded-full border transition-all whitespace-nowrap"
             style={{
               borderColor: 'rgba(255,255,255,0.2)',
               color: 'rgba(255,255,255,0.65)',
@@ -580,7 +580,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
         {/* Строка 2: Живые топ-препараты */}
         <div className="px-4 pb-2">
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg overflow-hidden"
+            className="flex items-center gap-2 px-3 py-2 rounded-full overflow-hidden"
             style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
           >
             <span className="shrink-0 text-[12px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
@@ -721,7 +721,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
             {/* Кнопка анализа на мобильном */}
             <button
-              className="lg:hidden flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border"
+              className="lg:hidden flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border"
               style={{ borderColor: C.border, color: analysisEntries.length > 0 ? C.link : C.muted }}
               onPointerDown={() => setShowAnalysis(v => !v)}
             >
@@ -864,7 +864,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           {analysisEntries.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+                className="w-10 h-10 rounded-2xl flex items-center justify-center mb-3"
                 style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}
               >
                 <svg className="w-5 h-5" style={{ color: C.link }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -887,7 +887,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 {analysisEntries.map(ae => (
                   <div
                     key={ae.rubric.id}
-                    className="flex items-start gap-1.5 rounded-lg px-2 py-1.5"
+                    className="flex items-start gap-1.5 rounded-full px-2 py-1.5"
                     style={{
                       backgroundColor: ae.eliminate ? 'rgba(220,38,38,0.06)' : 'rgba(45,106,79,0.05)',
                       borderLeft: `3px solid ${ae.eliminate ? '#dc2626' : C.link}`,
@@ -1105,7 +1105,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               <div className="p-3 border-t shrink-0 space-y-1.5" style={{ borderColor: C.borderLight }}>
                 {/* Сохранить анализ в консультацию — всегда через выбор пациента */}
                 <button
-                  className="w-full py-2 text-sm rounded-lg transition-colors font-medium"
+                  className="w-full py-2 text-sm rounded-full transition-colors font-medium"
                   style={{
                     backgroundColor: saveStatus === 'saved' ? '#16a34a' : saveStatus === 'error' ? '#dc2626' : C.link,
                     color: 'white',
@@ -1123,7 +1123,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     : (lang === 'ru' ? 'Сохранить в консультацию' : 'Save to consultation')}
                 </button>
                 <button
-                  className="w-full py-2 text-sm rounded-lg transition-colors border"
+                  className="w-full py-2 text-sm rounded-full transition-colors border"
                   style={{ borderColor: C.border, color: C.secondary, backgroundColor: 'transparent' }}
                   onPointerDown={() => setAnalysisEntries([])}
                 >
@@ -1177,7 +1177,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     onChange={e => setSavePatientSearch(e.target.value)}
                     placeholder={lang === 'ru' ? 'Поиск по имени...' : 'Search by name...'}
                     autoFocus
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-emerald-400"
+                    className="w-full px-3 py-2 text-sm rounded-full border border-gray-200 focus:outline-none focus:border-emerald-400"
                   />
                 </div>
                 <div className="flex-1 overflow-y-auto">
@@ -1287,7 +1287,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 onChange={e => setPatientSearch(e.target.value)}
                 placeholder={t(lang).repertory.searchByName}
                 autoFocus
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:border-emerald-400"
+                className="w-full px-3 py-2 text-sm rounded-full border border-gray-200 focus:outline-none focus:border-emerald-400"
               />
             </div>
 
@@ -1625,9 +1625,9 @@ function PrescribeModalDialog({
                   key={p}
                   type="button"
                   onPointerDown={() => onChange({ ...modal, potency: p })}
-                  className="px-3 py-1.5 text-xs rounded-lg border transition-all"
+                  className="px-3 py-1.5 text-xs rounded-full border transition-all"
                   style={{
-                    borderColor: modal.potency === p ? '#1a3020' : '#d4c9b8',
+                    borderColor: modal.potency === p ? '#1a3020' : 'var(--sim-border)',
                     backgroundColor: modal.potency === p ? '#1a3020' : 'white',
                     color: modal.potency === p ? 'white' : '#5a5040',
                     fontWeight: modal.potency === p ? 600 : 400,
@@ -1650,9 +1650,9 @@ function PrescribeModalDialog({
                   key={f.value}
                   type="button"
                   onPointerDown={() => onChange({ ...modal, form: f.value })}
-                  className="flex-1 py-2 text-xs rounded-lg border transition-all"
+                  className="flex-1 py-2 text-xs rounded-full border transition-all"
                   style={{
-                    borderColor: modal.form === f.value ? '#1a3020' : '#d4c9b8',
+                    borderColor: modal.form === f.value ? '#1a3020' : 'var(--sim-border)',
                     backgroundColor: modal.form === f.value ? '#1a3020' : 'white',
                     color: modal.form === f.value ? 'white' : '#5a5040',
                     fontWeight: modal.form === f.value ? 600 : 400,
@@ -1674,7 +1674,7 @@ function PrescribeModalDialog({
               value={modal.scheme}
               onChange={e => onChange({ ...modal, scheme: e.target.value })}
               placeholder={L.schemePlaceholder}
-              className="w-full px-3 py-2.5 text-sm rounded-lg"
+              className="w-full px-3 py-2.5 text-sm rounded-full"
               style={{
                 border: '1px solid var(--sim-border)',
                 backgroundColor: 'white',
@@ -1682,7 +1682,7 @@ function PrescribeModalDialog({
                 outline: 'none',
               }}
               onFocus={e => (e.currentTarget.style.borderColor = '#1a3020')}
-              onBlur={e => (e.currentTarget.style.borderColor = '#d4c9b8')}
+              onBlur={e => (e.currentTarget.style.borderColor = 'var(--sim-border)')}
             />
           </div>
 
@@ -1697,9 +1697,9 @@ function PrescribeModalDialog({
                   key={d}
                   type="button"
                   onPointerDown={() => onChange({ ...modal, duration: modal.duration === d ? '' : d })}
-                  className="px-3 py-1.5 text-xs rounded-lg border transition-all"
+                  className="px-3 py-1.5 text-xs rounded-full border transition-all"
                   style={{
-                    borderColor: modal.duration === d ? '#1a3020' : '#d4c9b8',
+                    borderColor: modal.duration === d ? '#1a3020' : 'var(--sim-border)',
                     backgroundColor: modal.duration === d ? '#1a3020' : 'white',
                     color: modal.duration === d ? 'white' : '#5a5040',
                     fontWeight: modal.duration === d ? 600 : 400,
@@ -1718,7 +1718,7 @@ function PrescribeModalDialog({
             <button
               type="button"
               onPointerDown={onSaveToConsultation}
-              className="w-full py-3 text-sm font-semibold text-white rounded-xl transition-colors"
+              className="w-full py-3 text-sm font-semibold text-white rounded-2xl transition-colors"
               style={{ backgroundColor: 'var(--sim-forest)' }}
             >
               {L.saveToConsultation}
@@ -1727,7 +1727,7 @@ function PrescribeModalDialog({
           <button
             type="button"
             onPointerDown={onSelectPatient}
-            className="w-full py-2.5 text-sm font-medium rounded-xl border transition-colors"
+            className="w-full py-2.5 text-sm font-medium rounded-2xl border transition-colors"
             style={{
               borderColor: '#1a3020',
               color: 'var(--sim-forest)',
@@ -1740,7 +1740,7 @@ function PrescribeModalDialog({
           <button
             type="button"
             onPointerDown={onClose}
-            className="w-full py-2 text-sm rounded-xl transition-colors"
+            className="w-full py-2 text-sm rounded-2xl transition-colors"
             style={{ color: 'var(--sim-text-hint)', backgroundColor: 'transparent' }}
           >
             {L.cancelBtn}

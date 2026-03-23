@@ -38,7 +38,7 @@ export default function FirstTimeHint({ id, children, position = 'bottom' }: Pro
       }}
     >
       <div
-        className="flex items-start gap-2.5 px-4 py-3 rounded-xl text-[13px] leading-relaxed"
+        className="flex items-start gap-2.5 px-4 py-3 rounded-2xl text-[13px] leading-relaxed"
         style={{
           backgroundColor: 'rgba(45,106,79,0.07)',
           border: '1px solid rgba(45,106,79,0.2)',

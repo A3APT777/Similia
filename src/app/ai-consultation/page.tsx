@@ -70,7 +70,7 @@ export default async function AIConsultationSelectPage() {
               <Link
                 key={p.id}
                 href={`/ai-consultation/${p.id}`}
-                className="block rounded-xl px-4 py-3 transition-all hover:bg-white/[0.08] bg-white/[0.04] border border-white/[0.08]"
+                className="block rounded-2xl px-4 py-3 transition-all hover:bg-white/[0.08] bg-white/[0.04] border border-white/[0.08]"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-indigo-600/20 flex items-center justify-center shrink-0">

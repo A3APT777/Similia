@@ -121,9 +121,9 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
   }
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+    <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 space-y-3">
       {/* Переключатель типа */}
-      <div className="flex items-center gap-1 bg-[#ede7dd] border border-gray-200 rounded-lg p-0.5 w-fit">
+      <div className="flex items-center gap-1 bg-[#ede7dd] border border-gray-200 rounded-full p-0.5 w-fit">
         <button
           type="button"
           onClick={() => setApptType('chronic')}
@@ -153,20 +153,20 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
             type="date" value={date}
             onChange={e => { setDate(e.target.value); resetConflict() }}
             required
-            className="border border-green-200 rounded-lg px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/25"
+            className="border border-green-200 rounded-full px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/25"
           />
           <div className="flex items-center gap-1">
             <input
               type="time" value={time}
               onChange={e => { setTime(e.target.value); resetConflict() }}
               required
-              className="border border-green-200 rounded-lg px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/25 w-24"
+              className="border border-green-200 rounded-full px-3 py-1.5 text-sm bg-[#faf7f2] focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/25 w-24"
             />
             <span className="text-xs text-green-600 shrink-0">{t(lang).scheduleBtn.msk}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="submit" disabled={loading} className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1a3020] disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={loading} className="bg-[#2d6a4f] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#1a3020] disabled:opacity-50 transition-colors">
             {loading ? t(lang).scheduleBtn.checking : t(lang).scheduleBtn.book}
           </button>
           <button type="button" onClick={() => { setOpen(false); resetConflict() }} className="text-gray-400 hover:text-gray-600 text-sm px-2 py-2">
@@ -188,7 +188,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
                       key={slot}
                       type="button"
                       onClick={() => handleSlotClick(slot)}
-                      className="text-xs bg-[#ede7dd] border border-green-300 text-green-700 px-3 py-1 rounded-lg hover:bg-green-100 transition-colors"
+                      className="text-xs bg-[#ede7dd] border border-green-300 text-green-700 px-3 py-1 rounded-full hover:bg-green-100 transition-colors"
                     >
                       {slot}
                     </button>

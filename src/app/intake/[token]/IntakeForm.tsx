@@ -148,7 +148,7 @@ const PRIMARY_STEPS: Step[] = [
   },
   {
     title: 'Что влияет на симптомы',
-    subtitle: 'Это называется модальности — ключевое в гомеопатии',
+    subtitle: 'Что ухудшает и улучшает ваше состояние — это ключевое для подбора лечения',
     fields: [
       {
         key: 'worse_from',
@@ -606,7 +606,7 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
           <button
             key={d}
             onClick={() => setSelectedDate(d)}
-            className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+            className={`shrink-0 px-3 py-2 rounded-2xl border text-xs font-medium transition-all ${
               selectedDate === d
                 ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
@@ -633,7 +633,7 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
               <button
                 key={t}
                 onClick={() => setSelectedTime(t)}
-                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${
                   selectedTime === t
                     ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
@@ -654,7 +654,7 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
         <button
           onClick={handleBook}
           disabled={!selectedDate || !selectedTime || bookingState === 'booking'}
-          className="flex-1 bg-[#2d6a4f] hover:bg-[#1a3020] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-xl transition-colors"
+          className="flex-1 bg-[#2d6a4f] hover:bg-[#1a3020] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-2xl transition-colors"
         >
           {bookingState === 'booking' ? 'Записываю...' : 'Записаться'}
         </button>
@@ -829,7 +829,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
         <div className="max-w-sm w-full">
           {/* Шапка */}
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-[#0d1f14] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#0d1f14] flex items-center justify-center shrink-0">
               <span className="text-lg leading-none">{cfg.icon}</span>
             </div>
             <div>
@@ -843,7 +843,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
           <p className="text-sm text-gray-500 leading-relaxed mb-4">{cfg.welcomeText}</p>
 
           {prefilled && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs border bg-emerald-50 border-emerald-200 text-emerald-700">
+            <div className="mb-3 flex items-center gap-2 rounded-2xl px-3 py-2.5 text-xs border bg-emerald-50 border-emerald-200 text-emerald-700">
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
@@ -852,7 +852,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
           )}
 
           {/* Инфо-блок */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
             <div className="grid grid-cols-2 gap-2">
               {[
                 { icon: isAcute ? '⚡' : '📋', text: `${totalSteps} разделов · ${isAcute ? '5–7' : '15–20'} мин` },
@@ -884,7 +884,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
           )}
 
           {draftRestored && (
-            <div className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs border ${isAcute ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+            <div className={`mb-3 flex items-center gap-2 rounded-2xl px-3 py-2.5 text-xs border ${isAcute ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
@@ -895,7 +895,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
           <button
             onClick={() => draftRestored ? setStep(step) : setStep(0)}
             disabled={!consentGiven}
-            className={`w-full font-semibold text-sm py-3 rounded-xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
+            className={`w-full font-semibold text-sm py-3 rounded-2xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
           >
             {draftRestored ? 'Продолжить →' : 'Начать заполнение →'}
           </button>
@@ -936,7 +936,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
             </svg>
             Назад
           </button>
-          <span className="text-xs text-gray-400 font-medium">{step + 1} / {totalSteps}</span>
+          <span className="text-xs text-gray-400 font-medium">Шаг {step + 1} из {totalSteps}: {currentStep.title}</span>
         </div>
       </div>
 
@@ -960,7 +960,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
                 {field.required && <span className="text-red-400 ml-1">*</span>}
               </label>
               {field.hint && (
-                <p className="text-[12px] text-gray-400 mb-2 leading-relaxed">{field.hint}</p>
+                <p className="text-[12px] text-gray-500 mb-2 leading-relaxed">{field.hint}</p>
               )}
 
               {field.type === 'textarea' && (
@@ -969,7 +969,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
                   onChange={e => setField(field.key, e.target.value)}
                   rows={3}
                   placeholder={field.placeholder}
-                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-2xl px-3 py-2 resize-none focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
@@ -979,7 +979,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
                   value={answers[field.key] || ''}
                   onChange={e => setField(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-2xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
@@ -988,7 +988,7 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
                   type="date"
                   value={answers[field.key] || ''}
                   onChange={e => setField(field.key, e.target.value)}
-                  className={`w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 border border-gray-200 rounded-2xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
@@ -1067,14 +1067,14 @@ export default function IntakeForm({ token, patientName, type, prefilled, schedu
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3">
         <div className="max-w-lg mx-auto space-y-3">
           {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
               <p className="text-sm text-red-600">{submitError}</p>
             </div>
           )}
           <button
             onClick={handleNext}
             disabled={!canProceed() || submitting}
-            className={`w-full font-semibold text-sm py-3.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm ${btnClass}`}
+            className={`w-full font-semibold text-sm py-3.5 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm ${btnClass}`}
           >
             {submitting ? 'Отправляю...' : step === totalSteps - 1 ? 'Отправить анкету' : 'Далее →'}
           </button>

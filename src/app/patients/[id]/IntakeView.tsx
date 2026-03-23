@@ -331,7 +331,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="text-sm font-semibold px-4 py-2 rounded-xl transition-all disabled:opacity-60"
+                className="text-sm font-semibold px-4 py-2 rounded-2xl transition-all disabled:opacity-60"
                 style={{ backgroundColor: 'var(--sim-green)', color: '#fff' }}
               >
                 {saving ? 'Сохраняю...' : 'Сохранить изменения'}
@@ -339,7 +339,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="text-sm font-medium px-3 py-2 rounded-xl"
+                className="text-sm font-medium px-3 py-2 rounded-2xl"
                 style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--sim-text-sec)' }}
               >
                 Отмена

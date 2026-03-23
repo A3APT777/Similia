@@ -405,7 +405,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                     style={{
                       backgroundColor: ae.eliminate ? '#dc2626' : 'transparent',
                       color: ae.eliminate ? 'white' : '#9a8a6a',
-                      border: `1px solid ${ae.eliminate ? '#dc2626' : '#d4c9b8'}`,
+                      border: `1px solid ${ae.eliminate ? '#dc2626' : 'var(--sim-border)'}`,
                       ...(tutStep === 7 ? { outline: '2px solid #dc2626', outlineOffset: 1, boxShadow: '0 0 10px rgba(220,38,38,0.4)' } : {}),
                     }}
                     title={lang === 'ru' ? 'Элиминация' : 'Elimination'}
@@ -421,7 +421,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                       style={{
                         backgroundColor: ae.weight === w ? '#2d6a4f' : 'transparent',
                         color: ae.weight === w ? 'white' : '#9a8a6a',
-                        border: `1px solid ${ae.weight === w ? '#2d6a4f' : '#d4c9b8'}`,
+                        border: `1px solid ${ae.weight === w ? '#2d6a4f' : 'var(--sim-border)'}`,
                         ...(tutStep === 6 ? { outline: '2px solid #2d6a4f', outlineOffset: 1, boxShadow: '0 0 10px rgba(45,106,79,0.35)' } : {}),
                       }}
                     aria-label={lang === 'ru' ? `Вес ${w}` : `Weight ${w}`}
@@ -481,7 +481,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                         >
                           {abbrev}
                         </span>
-                        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, backgroundColor: '#d4c9b8' }}>
+                        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 3, backgroundColor: 'var(--sim-border)' }}>
                           <div
                             className="h-full rounded-full"
                             style={{ width: `${pct}%`, backgroundColor: rank === 0 ? '#2d6a4f' : rank < 3 ? '#6aad89' : '#b0a898' }}
@@ -509,7 +509,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs sm:text-[12px]" style={{ borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #d4c9b8' }}>
+                      <tr style={{ borderBottom: '1px solid var(--sim-border)' }}>
                         <th className="text-left py-1 pr-1 font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-text-hint)', fontSize: '10px' }}>
                           {repoLang === 'ru' ? 'Преп.' : 'Remedy'}
                         </th>
@@ -593,7 +593,7 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                       className="shrink-0 w-6 h-6 rounded flex items-center justify-center mt-0.5 transition-all"
                       style={{
                         backgroundColor: inAnalysis ? '#2d6a4f' : 'transparent',
-                        border: `1px solid ${inAnalysis ? '#2d6a4f' : '#d4c9b8'}`,
+                        border: `1px solid ${inAnalysis ? '#2d6a4f' : 'var(--sim-border)'}`,
                         color: inAnalysis ? 'white' : '#9a8a6a',
                         ...((tutStep === 3 && !inAnalysis) ? {
                           outline: '2px solid #2d6a4f',

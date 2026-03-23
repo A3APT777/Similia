@@ -267,7 +267,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
   const renderQuestions = (qs: AIQuestion[], ans: Record<string, string | string[]>, isClarify: boolean) => (
     <div className="space-y-4">
       {qs.map(q => (
-        <div key={q.key} className="bg-white border border-[#d4c9b8] rounded-xl p-4 space-y-2">
+        <div key={q.key} className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-4 space-y-2">
           <label className="text-sm font-medium text-[#1a1a0a]">{q.label}</label>
           {q.hint && <p className="text-xs text-[#9a8a6a]">{q.hint}</p>}
 
@@ -301,7 +301,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
               onChange={e => isClarify ? updateClarifyAnswer(q.key, e.target.value) : updateAnswer(q.key, e.target.value)}
               placeholder={s.answerPlaceholder}
               rows={q.type === 'textarea' ? 3 : 1}
-              className="w-full text-sm px-3 py-2 rounded-xl bg-[#faf7f2] border border-[#d4c9b8] text-[#1a1a0a] placeholder:text-[#9a8a6a] resize-none focus:outline-none focus:border-[#2d6a4f]"
+              className="w-full text-sm px-3 py-2 rounded-2xl bg-[#faf7f2] border border-[rgba(0,0,0,0.08)] text-[#1a1a0a] placeholder:text-[#9a8a6a] resize-none focus:outline-none focus:border-[#2d6a4f]"
             />
           )}
         </div>
@@ -311,7 +311,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
 
   // === Рендер профиля пациента ===
   const renderProfile = () => (
-    <div className="bg-white border border-[#d4c9b8] rounded-xl p-4 space-y-3">
+    <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-4 space-y-3">
       <h3 className="text-xs font-semibold text-[#3a3020]">{s.profile}</h3>
 
       {/* Тип случая */}
@@ -405,7 +405,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
       <AIOnboarding />
 
       {/* Шапка */}
-      <div className="border-b border-[#d4c9b8] bg-white">
+      <div className="border-b border-[rgba(0,0,0,0.08)] bg-white">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href={`/patients/${patient.id}`}
@@ -416,7 +416,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
             </svg>
             {s.backToPatient}
           </Link>
-          <span className="text-[#d4c9b8]">|</span>
+          <span className="text-[rgba(0,0,0,0.15)]">|</span>
           <span className="text-xs text-[#9a8a6a] truncate">{patient.name}</span>
         </div>
       </div>
@@ -434,7 +434,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
         </div>
 
         {/* Переключатель K/I */}
-        <div className="flex gap-1 bg-white border border-[#d4c9b8] rounded-xl p-1">
+        <div className="flex gap-1 bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-1">
           <button
             onClick={() => setMode('K')}
             className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
@@ -467,16 +467,16 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
             {stepK === 'summary' && (
               <>
                 {summaryLoading ? (
-                  <div className="bg-white border border-[#d4c9b8] rounded-xl p-6 text-center">
+                  <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6 text-center">
                     <div className="animate-pulse text-[#9a8a6a] text-sm">{s.summaryLoading}</div>
                   </div>
                 ) : summary ? (
-                  <div className="bg-white border border-[#d4c9b8] rounded-xl p-4 space-y-3">
+                  <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-4 space-y-3">
                     <h3 className="text-sm font-semibold text-[#1a1a0a]">{s.summaryTitle}</h3>
                     <p className="text-xs text-[#3a3020] whitespace-pre-line leading-relaxed">{summary}</p>
                   </div>
                 ) : (
-                  <div className="bg-white border border-[#d4c9b8] rounded-xl p-4">
+                  <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-4">
                     <p className="text-xs text-[#9a8a6a]">{s.noConsultations}</p>
                   </div>
                 )}
@@ -486,7 +486,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
 
                 <button
                   onClick={() => setStepK('additions')}
-                  className="btn btn-primary w-full py-3 rounded-xl text-sm font-medium"
+                  className="btn btn-primary w-full py-3 rounded-2xl text-sm font-medium"
                 >
                   {lang === 'ru' ? 'Далее' : 'Next'}
                 </button>
@@ -496,14 +496,14 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
             {/* Шаг 2: Дополнение */}
             {stepK === 'additions' && (
               <>
-                <div className="bg-white border border-[#d4c9b8] rounded-xl p-4 space-y-3">
+                <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-4 space-y-3">
                   <h3 className="text-sm font-semibold text-[#1a1a0a]">{s.anythingToAdd}</h3>
                   <textarea
                     value={additions}
                     onChange={e => setAdditions(e.target.value)}
                     placeholder={s.addPlaceholder}
                     rows={4}
-                    className="w-full text-sm px-3 py-2 rounded-xl bg-[#faf7f2] border border-[#d4c9b8] text-[#1a1a0a] placeholder:text-[#9a8a6a] resize-none focus:outline-none focus:border-[#2d6a4f]"
+                    className="w-full text-sm px-3 py-2 rounded-2xl bg-[#faf7f2] border border-[rgba(0,0,0,0.08)] text-[#1a1a0a] placeholder:text-[#9a8a6a] resize-none focus:outline-none focus:border-[#2d6a4f]"
                   />
                 </div>
 
@@ -511,7 +511,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                   <button
                     onClick={() => handleGenerateQuestions('', summary)}
                     disabled={questionsLoading}
-                    className="flex-1 btn btn-primary py-3 rounded-xl text-sm font-medium"
+                    className="flex-1 btn btn-primary py-3 rounded-2xl text-sm font-medium"
                   >
                     {questionsLoading ? s.questionsLoading : s.noGenerateQuestions}
                   </button>
@@ -519,7 +519,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                     <button
                       onClick={() => handleGenerateQuestions(additions, summary)}
                       disabled={questionsLoading}
-                      className="flex-1 btn btn-primary py-3 rounded-xl text-sm font-medium"
+                      className="flex-1 btn btn-primary py-3 rounded-2xl text-sm font-medium"
                     >
                       {questionsLoading ? s.questionsLoading : s.submitAdditions}
                     </button>
@@ -537,7 +537,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                 <button
                   onClick={() => runAnalysis(buildAnswersText(questions, answers))}
                   disabled={loading}
-                  className="btn btn-primary w-full py-3 rounded-xl text-sm font-medium"
+                  className="btn btn-primary w-full py-3 rounded-2xl text-sm font-medium"
                 >
                   {loading ? s.analyzingAnswers : s.analyzeAnswers}
                 </button>
@@ -546,7 +546,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
 
             {/* Шаг 4: Анализ в процессе */}
             {stepK === 'analyzing' && (
-              <div className="bg-white border border-[#d4c9b8] rounded-xl p-8 text-center space-y-3">
+              <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-8 text-center space-y-3">
                 <div className="w-8 h-8 border-2 border-[#2d6a4f] border-t-transparent rounded-full animate-spin mx-auto" />
                 <p className="text-sm text-[#3a3020]">{s.analyzingAnswers}</p>
               </div>
@@ -567,13 +567,13 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
 
                 {/* Блок уточнений */}
                 {needsClarification && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
                     <h3 className="text-sm font-semibold text-amber-700">{s.clarifyTitle}</h3>
                     <p className="text-xs text-amber-600">{s.clarifyDesc}</p>
                     <button
                       onClick={handleClarify}
                       disabled={clarifyLoading}
-                      className="btn btn-primary w-full py-2.5 rounded-xl text-sm font-medium"
+                      className="btn btn-primary w-full py-2.5 rounded-2xl text-sm font-medium"
                     >
                       {clarifyLoading ? s.questionsLoading : s.getClarifyQuestions}
                     </button>
@@ -596,7 +596,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                 <button
                   onClick={reanalyze}
                   disabled={loading}
-                  className="btn btn-primary w-full py-3 rounded-xl text-sm font-medium"
+                  className="btn btn-primary w-full py-3 rounded-2xl text-sm font-medium"
                 >
                   {loading ? s.analyzingAnswers : s.reanalyze}
                 </button>
@@ -614,14 +614,14 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
             {/* Шаг 1: Ввод текста */}
             {stepI === 'input' && (
               <>
-                <div className="bg-white border border-[#d4c9b8] rounded-xl p-4 space-y-3">
+                <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-4 space-y-3">
                   <h3 className="text-sm font-semibold text-[#1a1a0a]">{s.describeCase}</h3>
                   <textarea
                     value={freeText}
                     onChange={e => setFreeText(e.target.value)}
                     placeholder={s.describeCasePlaceholder}
                     rows={8}
-                    className="w-full text-sm px-3 py-2 rounded-xl bg-[#faf7f2] border border-[#d4c9b8] text-[#1a1a0a] placeholder:text-[#9a8a6a] resize-none focus:outline-none focus:border-[#2d6a4f] leading-relaxed"
+                    className="w-full text-sm px-3 py-2 rounded-2xl bg-[#faf7f2] border border-[rgba(0,0,0,0.08)] text-[#1a1a0a] placeholder:text-[#9a8a6a] resize-none focus:outline-none focus:border-[#2d6a4f] leading-relaxed"
                   />
                 </div>
 
@@ -631,7 +631,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                 <button
                   onClick={() => handleGenerateQuestions(freeText, '')}
                   disabled={freeText.trim().length < 10 || questionsLoading}
-                  className="btn btn-primary w-full py-3 rounded-xl text-sm font-medium disabled:opacity-40"
+                  className="btn btn-primary w-full py-3 rounded-2xl text-sm font-medium disabled:opacity-40"
                 >
                   {questionsLoading ? s.questionsLoading : s.noGenerateQuestions}
                 </button>
@@ -647,7 +647,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                 <button
                   onClick={() => runAnalysis(buildAnswersText(questions, answers))}
                   disabled={loading}
-                  className="btn btn-primary w-full py-3 rounded-xl text-sm font-medium"
+                  className="btn btn-primary w-full py-3 rounded-2xl text-sm font-medium"
                 >
                   {loading ? s.analyzingAnswers : s.analyzeAnswers}
                 </button>
@@ -656,7 +656,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
 
             {/* Шаг 3: Анализ */}
             {stepI === 'analyzing' && (
-              <div className="bg-white border border-[#d4c9b8] rounded-xl p-8 text-center space-y-3">
+              <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-8 text-center space-y-3">
                 <div className="w-8 h-8 border-2 border-[#2d6a4f] border-t-transparent rounded-full animate-spin mx-auto" />
                 <p className="text-sm text-[#3a3020]">{s.analyzingAnswers}</p>
               </div>
@@ -676,13 +676,13 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                 </div>
 
                 {needsClarification && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
                     <h3 className="text-sm font-semibold text-amber-700">{s.clarifyTitle}</h3>
                     <p className="text-xs text-amber-600">{s.clarifyDesc}</p>
                     <button
                       onClick={handleClarify}
                       disabled={clarifyLoading}
-                      className="btn btn-primary w-full py-2.5 rounded-xl text-sm font-medium"
+                      className="btn btn-primary w-full py-2.5 rounded-2xl text-sm font-medium"
                     >
                       {clarifyLoading ? s.questionsLoading : s.getClarifyQuestions}
                     </button>
@@ -705,7 +705,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
                 <button
                   onClick={reanalyze}
                   disabled={loading}
-                  className="btn btn-primary w-full py-3 rounded-xl text-sm font-medium"
+                  className="btn btn-primary w-full py-3 rounded-2xl text-sm font-medium"
                 >
                   {loading ? s.analyzingAnswers : s.reanalyze}
                 </button>
@@ -716,7 +716,7 @@ export default function AIConsultationClient({ patient, consultations, intakeFor
 
         {/* Ошибка */}
         {error && (
-          <div className="text-xs text-red-700 bg-red-50 rounded-xl px-4 py-3 border border-red-200">
+          <div className="text-xs text-red-700 bg-red-50 rounded-2xl px-4 py-3 border border-red-200">
             {error}
           </div>
         )}

@@ -43,9 +43,10 @@ export default async function ConsultationPage({
   ])
 
   const name = user?.user_metadata?.name || user?.email || ''
-  const [{ paid_sessions_enabled }, surveyByConsultation] = await Promise.all([
+  const [{ paid_sessions_enabled }, surveyByConsultation, { count: realPatientCount }] = await Promise.all([
     getDoctorSettings(),
     getPreVisitSurveyByConsultation(consultationId),
+    supabase.from('patients').select('*', { count: 'exact', head: true }).eq('doctor_id', user.id).eq('is_demo', false),
   ])
   // Fallback: если survey не привязан к консультации — берём последний completed для пациента
   const preVisitSurvey = surveyByConsultation || await getLatestPatientSurvey(id)
@@ -76,6 +77,7 @@ export default async function ConsultationPage({
         paidSessionsEnabled={paid_sessions_enabled}
         visitNumber={visitCount ?? 1}
         preVisitSurvey={preVisitSurvey}
+        showAI={(realPatientCount ?? 0) >= 5}
       />
     </div>
   )

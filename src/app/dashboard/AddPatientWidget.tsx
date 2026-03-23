@@ -21,41 +21,60 @@ export default function AddPatientWidget({ patients }: Props) {
   function openFlow(f: Flow) { setFlow(f) }
   function close() { setFlow(null) }
 
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
-    <div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <WidgetButton
-          icon={
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          }
-          label="Первичная анкета"
-          sub="Отправьте ссылку новому пациенту — заполнит дома за 15–20 мин. Данные появятся в карточке автоматически."
-          onClick={() => openFlow('intake')}
-        />
-        <WidgetButton
-          icon={
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3M9 12a3 3 0 100-6 3 3 0 000 6zm-6.75 8.25a6.75 6.75 0 0113.5 0" />
-            </svg>
-          }
-          label="Анкета из базы"
-          sub="Для уже зарегистрированного пациента. ФИО предзаполнены — удобно для повторного визита или острого случая."
-          onClick={() => openFlow('existing')}
-          disabled={patients.length === 0}
-        />
-        <WidgetButton
-          icon={
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-            </svg>
-          }
-          label="Добавить вручную"
-          sub="Создайте карточку сами прямо сейчас — во время звонка или когда пациент уже пришёл на приём."
-          href="/patients/new"
-        />
-      </div>
+    <div className="relative">
+      {/* Одна кнопка */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="btn btn-primary w-full sm:w-auto"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Добавить пациента
+        <svg className={`w-3 h-3 transition-transform ${menuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Dropdown */}
+      {menuOpen && (
+        <div
+          className="absolute top-full left-0 mt-2 w-full sm:w-80 rounded-2xl shadow-lg z-50 overflow-hidden"
+          style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}
+        >
+          <button
+            onClick={() => { setMenuOpen(false); openFlow('intake') }}
+            className="w-full text-left px-4 py-3 transition-colors hover:bg-[var(--sim-bg-muted)]"
+          >
+            <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>Отправить анкету новому</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--sim-text-hint)' }}>Пациент заполнит дома — данные появятся в карточке</p>
+          </button>
+          <button
+            onClick={() => { setMenuOpen(false); openFlow('existing') }}
+            disabled={patients.length === 0}
+            className="w-full text-left px-4 py-3 transition-colors hover:bg-[var(--sim-bg-muted)] disabled:opacity-40"
+            style={{ borderTop: '1px solid var(--sim-border)' }}
+          >
+            <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>Опросник существующему</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--sim-text-hint)' }}>Предконсультационный опросник для повторного визита</p>
+          </button>
+          <Link
+            href="/patients/new"
+            onClick={() => setMenuOpen(false)}
+            className="block w-full text-left px-4 py-3 transition-colors hover:bg-[var(--sim-bg-muted)]"
+            style={{ borderTop: '1px solid var(--sim-border)' }}
+          >
+            <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>Заполнить вручную</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--sim-text-hint)' }}>Создать карточку самому — при звонке или на приёме</p>
+          </Link>
+        </div>
+      )}
+
+      {/* Закрыть при клике вне */}
+      {menuOpen && <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />}
 
       {flow === 'intake' && <PrimaryIntakeModal onClose={close} />}
       {flow === 'existing' && <ExistingPatientModal patients={patients} onClose={close} />}
@@ -75,7 +94,7 @@ function WidgetButton({
   href?: string
   disabled?: boolean
 }) {
-  const cls = `flex items-start gap-3 w-full text-left px-3 py-3 rounded-xl transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed`
+  const cls = `flex items-start gap-3 w-full text-left px-3 py-3 rounded-2xl transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed`
   const style = { backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }
 
   const inner = (
@@ -243,14 +262,14 @@ function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onCl
       {step === 'type' && (
         <div className="space-y-3">
           <div className="space-y-2">
-            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formType === 'survey' ? 'border-[#2d6a4f] bg-[rgba(45,106,79,0.05)]' : 'border-gray-200 hover:bg-gray-50'}`}>
+            <label className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-colors ${formType === 'survey' ? 'border-[#2d6a4f] bg-[rgba(45,106,79,0.05)]' : 'border-gray-200 hover:bg-gray-50'}`}>
               <input type="radio" className="mt-0.5 accent-[#2d6a4f]" checked={formType === 'survey'} onChange={() => setFormType('survey')} />
               <div>
                 <div className="text-sm font-medium text-gray-800">Опросник перед визитом</div>
                 <div className="text-xs text-gray-500 mt-0.5">Реакция на препарат, динамика, сон, аппетит — 10–15 минут</div>
               </div>
             </label>
-            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formType === 'acute' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+            <label className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-colors ${formType === 'acute' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}>
               <input type="radio" className="mt-0.5 accent-orange-500" checked={formType === 'acute'} onChange={() => setFormType('acute')} />
               <div>
                 <div className="text-sm font-medium text-gray-800">⚡ Острый случай</div>
@@ -261,7 +280,7 @@ function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onCl
           <button
             onClick={generateLink}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-60"
             style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}
           >
             {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
@@ -293,7 +312,7 @@ function Modal({ title, subtitle, children, onClose, onBack }: {
     >
       <div
         className="w-full rounded-2xl p-6 shadow-2xl"
-        style={{ maxWidth: 420, backgroundColor: 'var(--sim-bg)', border: '0.5px solid #d4c9b8' }}
+        style={{ maxWidth: 420, backgroundColor: 'var(--sim-bg)', border: '0.5px solid var(--sim-border)' }}
       >
         <div className="flex items-start justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -330,14 +349,14 @@ function LinkResult({ link, copied, onCopy, note }: {
   return (
     <div className="space-y-3">
       <div
-        className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-mono break-all"
+        className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-mono break-all"
         style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)', color: 'var(--sim-text-sec)' }}
       >
         {link}
       </div>
       <button
         onClick={onCopy}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:opacity-90"
         style={{ backgroundColor: copied ? '#2d6a4f' : '#1a3020', color: '#f7f3ed' }}
       >
         {copied ? `✓ Скопировано` : `📋 Скопировать ссылку`}

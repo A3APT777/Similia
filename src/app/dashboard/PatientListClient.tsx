@@ -33,7 +33,7 @@ function EmptyState({ hasSearch, search, lang }: { hasSearch: boolean; search: s
       <div className="flex flex-col sm:flex-row gap-2 justify-center">
         <Link
           href="/patients/new"
-          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-white px-4 py-2.5 rounded-xl transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-white px-4 py-2.5 rounded-2xl transition-colors"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -44,7 +44,7 @@ function EmptyState({ hasSearch, search, lang }: { hasSearch: boolean; search: s
         <a
           href="#intake"
           onClick={(e) => { e.preventDefault(); document.querySelector<HTMLButtonElement>('[data-intake-btn]')?.click() }}
-          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium px-4 py-2.5 rounded-xl transition-colors border"
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium px-4 py-2.5 rounded-2xl transition-colors border"
           style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)', backgroundColor: 'transparent' }}
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -152,7 +152,7 @@ export default function PatientListClient({ patients, filterPending = false, fil
           onChange={e => setSearch(e.target.value)}
           aria-label={lang === 'ru' ? 'Поиск пациента' : 'Search patient'}
           placeholder={t(lang).patientList.search}
-          className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none transition-all"
+          className="w-full rounded-2xl pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none transition-all"
           style={{ backgroundColor: 'var(--sim-bg-input)', border: '1px solid var(--sim-border)', outline: 'none' }}
           onFocus={e => (e.currentTarget.style.borderColor = 'var(--sim-green)')}
           onBlur={e => (e.currentTarget.style.borderColor = 'var(--sim-border)')}
@@ -161,7 +161,7 @@ export default function PatientListClient({ patients, filterPending = false, fil
       {patients.some(p => p.pending_followup_days) && (
         <button
           onClick={() => setFollowupOnly(v => !v)}
-          className="shrink-0 text-xs px-3 py-2.5 rounded-xl border transition-all font-medium"
+          className="shrink-0 text-xs px-3 py-2.5 rounded-2xl border transition-all font-medium"
           style={{
             backgroundColor: followupOnly ? '#eab308' : 'transparent',
             color: followupOnly ? '#fff' : '#854d0e',

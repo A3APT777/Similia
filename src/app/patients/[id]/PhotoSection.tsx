@@ -155,7 +155,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
 
       {/* Ссылка для пациента */}
       {uploadLink && (
-        <div className="mb-4 rounded-xl p-3" style={{ backgroundColor: '#f0ebe3', border: '1px solid #c8a035' }}>
+        <div className="mb-4 rounded-2xl p-3" style={{ backgroundColor: '#f0ebe3', border: '1px solid #c8a035' }}>
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--sim-amber)' }}>{t(lang).photo.linkHint}</p>
           <div className="flex items-center gap-2">
             <input
@@ -181,7 +181,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
         <form onSubmit={handleSubmit} className="mb-5 bg-gray-50 border border-gray-200 rounded-2xl p-4">
           <div className="flex gap-4">
             {/* Превью */}
-            <div className="w-28 h-28 rounded-xl overflow-hidden shrink-0 bg-gray-200">
+            <div className="w-28 h-28 rounded-2xl overflow-hidden shrink-0 bg-gray-200">
               <img src={preview} alt="preview" className="w-full h-full object-cover" />
             </div>
 
@@ -196,7 +196,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   value={takenAt}
                   onChange={e => setTakenAt(e.target.value)}
                   required
-                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+                  className="border border-gray-200 rounded-2xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   value={note}
                   onChange={e => setNote(e.target.value)}
                   placeholder={t(lang).photo.notePlaceholder}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+                  className="w-full border border-gray-200 rounded-2xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
                 />
               </div>
             </div>
@@ -219,14 +219,14 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <button
               type="submit"
               disabled={uploading}
-              className="bg-[#2d6a4f] text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-[#1a3020] disabled:opacity-50 transition-colors"
+              className="bg-[#2d6a4f] text-white text-sm font-medium px-4 py-2 rounded-2xl hover:bg-[#1a3020] disabled:opacity-50 transition-colors"
             >
               {uploading ? t(lang).photo.uploading : t(lang).photo.save}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 transition-all"
+              className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2 rounded-2xl hover:bg-gray-100 transition-all"
             >
               {t(lang).photo.cancel}
             </button>
@@ -252,7 +252,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <div key={photo.id} className="group relative">
               <button
                 onClick={() => setLightbox(photo)}
-                className="block w-full aspect-square rounded-xl overflow-hidden bg-gray-100 hover:ring-2 hover:ring-emerald-400 transition-all"
+                className="block w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 hover:ring-2 hover:ring-emerald-400 transition-all"
               >
                 <img
                   src={photo.url}

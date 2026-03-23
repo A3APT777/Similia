@@ -178,7 +178,7 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy, init
           {showSuggestions && suggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute top-full left-0 right-0 mt-1 rounded-xl z-10 overflow-hidden max-h-[200px] overflow-y-auto"
+              className="absolute top-full left-0 right-0 mt-1 rounded-2xl z-10 overflow-hidden max-h-[200px] overflow-y-auto"
               style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)', boxShadow: 'var(--sim-shadow-md)' }}
             >
               {suggestions.map((r, i) => (
@@ -209,7 +209,7 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy, init
                 key={p}
                 type="button"
                 onClick={() => { setPotency(potency === p ? '' : p); setCustomPotency('') }}
-                className="text-[12px] px-2 py-1.5 rounded-md border font-medium transition-all"
+                className="text-[12px] px-2 py-1.5 rounded-full border font-medium transition-all"
                 style={potency === p
                   ? { backgroundColor: 'var(--sim-green)', color: '#fff', borderColor: 'var(--sim-green)' }
                   : { borderColor: 'var(--sim-border)', color: 'var(--sim-text-muted)' }}
@@ -256,7 +256,7 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy, init
               key={chip}
               type="button"
               onClick={() => setDosage(prev => prev.includes(chip) ? prev.replace(chip, '').trim() : (prev ? prev + ', ' + chip : chip))}
-              className="px-2.5 py-1 text-[12px] rounded-lg border transition-all"
+              className="px-2.5 py-1 text-[12px] rounded-full border transition-all"
               style={{
                 borderColor: dosage.includes(chip) ? 'var(--sim-forest)' : 'var(--sim-border)',
                 backgroundColor: dosage.includes(chip) ? 'var(--sim-forest)' : 'transparent',

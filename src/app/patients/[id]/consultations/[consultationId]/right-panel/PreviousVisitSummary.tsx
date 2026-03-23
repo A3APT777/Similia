@@ -16,7 +16,7 @@ export default function PreviousVisitSummary({ previousConsultation, lang }: Pro
   const headerText = `${formatDate(date)}${remedy ? ` · ${remedy}${potency ? ` ${potency}` : ''}` : ''}`
 
   return (
-    <div className="rounded-md border border-[#e5e0d8] overflow-hidden mb-3">
+    <div className="rounded-md border border-[rgba(0,0,0,0.08)] overflow-hidden mb-3">
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex items-center justify-between w-full px-3 py-2 border-none text-left transition-colors duration-150"
