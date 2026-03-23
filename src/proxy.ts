@@ -23,6 +23,7 @@ const PUBLIC_PATHS = [
   '/demo',
   '/ai-intake',
   '/api/ai-demo',
+  '/api/mdri-staging',
 ]
 
 // Публичные маршруты с rate limiting (защита от спама)
