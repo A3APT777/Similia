@@ -1,0 +1,115 @@
+Загрузка данных MDRI...
+Загружено: 74482 рубрик, 3096 constellations
+Word index: 5639 слов
+
+========================================================================================================================
+ПЕРЕТЕСТ 50 КЕЙСОВ — MDRI Engine (analyzePipeline)
+========================================================================================================================
+  [OK ] Sulphur: философ-грязнуля                     | 100% | sulph    ✓ | sulph(100), lyc(88), mez(82), rhus-t(77), sep(75)
+  [OK ] Calc: зябкий потливый ребёнок                 | 100% | calc     ✓ | calc(100), hep(83), ars(82), phos(75), sil(75)
+  [OK ] Lyc: вздутие справа 16-20                     | 100% | lyc      ✓ | lyc(100), ars(85), phos(75), arg-n(73), nux-v(72)
+  [T3 ] Phos: кровоточивый общительный                | 100% | carc     ✗ exp:phos | carc(100), phos(100), stram(100), bry(72), ars(71)
+  [OK ] Sepia: безразличная мать                      | 100% | sep      ✓ | sep(100), lil-t(70), phos(66), nat-m(53), ph-ac(52)
+  [OK ] Ars: педант в полночь                         | 100% | ars      ✓ | ars(100), rhus-t(95), lyc(90), puls(85), cocc(84)
+  [OK ] Nux-v: нервный бизнесмен                      | 100% | nux-v    ✓ | nux-v(100), lyc(95), nat-m(93), phos(86), ars(80)
+  [T3 ] Puls: плаксивая девочка                       | 100% | carc     ✗ exp:puls | carc(100), puls(83), ars(71), nat-m(60), lyc(55)
+  [OK ] Bell: горячая красная внезапная               | 100% | bell     ✓ | bell(100), stram(46), acon(43), glon(43), op(37)
+  [OK ] Rhus-t: скованность от покоя                  | 100% | rhus-t   ✓ | rhus-t(100), puls(69), ars(68), tarent(66), dulc(65)
+  [OK ] Staph vs Ign: подавленный гнев                | 100% | staph    ✓ | staph(100), carc(100), nat-m(76), puls(63), coloc(58)
+  [T3 ] Aur: депрессия с виной                        | 100% | carc     ✗ exp:aur | carc(100), aur(100), nux-v(81), ars(60), cham(54)
+  [OK ] Cham: невыносимая боль зубы                   | 100% | cham     ✓ | cham(100), cina(77), carc(77), acon(38), chel(38)
+  [OK ] Apis vs Puls: отёк без жажды                  | 100% | apis     ✓ | apis(100), phos(100), mag-p(100), ars(95), bry(85)
+  [XX ] Gels: паралич от страха                       |  75% | arg-n    ✗ exp:gels | arg-n(75), ant-t(68), cocc(65), lec(64), puls(61)
+  [OK ] Merc: нагноение ночью                         | 100% | merc     ✓ | merc(100), sil(89), sulph(80), nit-ac(69), ars(58)
+  [OK ] Con: вертиго при повороте                     | 100% | con      ✓ | con(100), lyc(89), ph-ac(84), phyt(79), iod(75)
+  [OK ] Kali-c: 2 часа ночи                           | 100% | kali-c   ✓ | kali-c(100), ars(99), rhus-t(81), sil(81), lyc(78)
+  [T3 ] Arg-n: тревога ожидания с поносом             | 100% | ars      ✗ exp:arg-n | ars(100), arg-n(100), phos(79), stram(74), lyc(72)
+  [OK ] Petr: экзема зимой трещины                    | 100% | petr     ✓ | petr(100), ip(100), sulph(68), phos(67), nit-ac(64)
+  [OK ] Lac-c: боль меняет сторону                    |  91% | lac-c    ✓ | lac-c(91), lach(72), lyc(71), crot-c(62), nux-v(59)
+  [OK ] Cocc: истощение от ухода                      | 100% | cocc     ✓ | cocc(100), nux-v(72), ip(63), tarent(40), med(36)
+  [OK ] Thuja: бородавки после прививки               | 100% | thuj     ✓ | thuj(100), nit-ac(97), carc(65), dulc(50), lyc(45)
+  [OK ] Spong: лающий кашель круп                     | 100% | spong    ✓ | spong(100), lyc(92), ars(92), dros(75), acon(68)
+  [OK ] Ip: неукротимая тошнота                       | 100% | ip       ✓ | ip(100), verat(82), nux-v(73), lob(64), cocc(46)
+  [T3 ] Dros: коклюшный кашель                        | 100% | spong    ✗ exp:dros | spong(100), dros(92), lyc(73), coc-c(62), cupr(60)
+  [OK ] Coloc: колика от гнева                        | 100% | coloc    ✓ | coloc(100), mag-p(100), cham(91), staph(88), nux-v(85)
+  [T10] Tab: укачивание бледность                     | 100% | verat    ✗ exp:tab | verat(100), ip(100), ars(78), lyc(65), cocc(61)
+  [OK ] Caust: хрипота и справедливость               | 100% | caust    ✓ | caust(100), dulc(100), carc(95), posit(83), phos(79)
+  [OK ] Stram: ужас темноты + насилие                 | 100% | stram    ✓ | stram(100), phos(93), lyc(79), ars(67), acon(63)
+  [XX ] Med: сон на животе + море                     | 100% | sulph    ✗ exp:med | sulph(100), mez(99), psor(96), nux-v(94), lyc(84)
+  [T5 ] Tub: путешественник                           |  99% | iod      ✗ exp:tub | iod(99), ars(98), calc(90), rhus-t(82), tub(81)
+  [OK ] Psor: зябкий отчаявшийся                      | 100% | psor     ✓ | psor(100), sulph(100), graph(91), ars(77), merc(73)
+  [OK ] Carc: перфекционист подавленный               | 100% | carc     ✓ | carc(100), ign(44), nat-m(38), ars(36), phos(35)
+  [OK ] Sil: тонкий упрямый зябкий                    | 100% | sil      ✓ | sil(100), hep(100), calc(93), merc(85), nit-ac(80)
+  [OK ] Graph: толстый + мокнущая экзема              | 100% | graph    ✓ | graph(100), psor(100), petr(92), sil(92), calc(74)
+  [OK ] Hep: крайняя чувствительность                 | 100% | hep      ✓ | hep(100), sil(81), merc(67), nit-ac(61), bry(51)
+  [T3 ] Bar-c: медленный ребёнок                      | 100% | sil      ✗ exp:bar-c | sil(100), bar-c(100), puls(77), rhus-t(71), nux-v(69)
+  [OK ] Lach: менопауза левосторонняя                 | 100% | lach     ✓ | lach(100), lyc(65), glon(62), sulph(56), puls(55)
+  [OK ] Ph-ac: апатия от горя                         | 100% | ph-ac    ✓ | ph-ac(100), cocc(98), sep(94), posit(83), verat(74)
+  [OK ] Bry: артрит, движение хуже                    | 100% | bry      ✓ | bry(100), rhus-t(88), lyc(63), puls(58), nux-v(47)
+  [OK ] Nat-m: горе давнее                            | 100% | nat-m    ✓ | nat-m(100), ign(95), puls(91), carc(84), stram(83)
+  [OK ] Arn: травма — я в порядке                     | 100% | arn      ✓ | arn(100), ruta(88), con(38), cupr(38), sul-ac(33)
+  [OK ] Verat: понос + коллапс                        | 100% | verat    ✓ | verat(100), podo(100), puls(98), calc(95), ip(83)
+  [T3 ] Mag-p: спазмы + тепло лучше                   | 100% | coloc    ✗ exp:mag-p | coloc(100), mag-p(100), bry(97), kali-c(78), lyc(73)
+  [OK ] All-c: насморк жгучий                         | 100% | all-c    ✓ | all-c(100), euphr(100), puls(100), ars(55), sulph(42)
+  [OK ] Ferr: анемия + покраснение                    | 100% | ferr     ✓ | ferr(100), ip(91), rhus-t(81), ars(78), puls(75)
+  [T3 ] Nat-s: голова + сырость                       | 100% | dulc     ✗ exp:nat-s | dulc(100), nat-s(100), calc(90), aur(75), verat(70)
+  [OK ] Cina: скрипит зубами + черви                  | 100% | cina     ✓ | cina(100), sep(85), nux-v(77), ferr(72), hyos(63)
+  [OK ] Plat: высокомерная                            | 100% | plat     ✓ | plat(100), calc(38), stram(35), lyc(32), acon(26)
+
+========================================================================================================================
+ИТОГО:
+  Top-1:  38/50 (76%)
+  Top-3:  46/50 (92%)
+  Top-5:  47/50 (94%)
+  Top-10: 48/50 (96%)
+
+========================================================================================================================
+ПРОМАХИ (12):
+
+  #4 Phos: кровоточивый общительный
+    Expected: phos | Got: carc
+    Top-5: carc(100), phos(100), stram(100), bry(72), ars(71) | expected@2(100) | carc[k:78,cs:57] vs phos[k:94,cs:91]
+
+  #8 Puls: плаксивая девочка
+    Expected: puls | Got: carc
+    Top-5: carc(100), puls(83), ars(71), nat-m(60), lyc(55) | expected@2(83) | carc[k:100,cs:23] vs puls[k:35,cs:100]
+
+  #12 Aur: депрессия с виной
+    Expected: aur | Got: carc
+    Top-5: carc(100), aur(100), nux-v(81), ars(60), cham(54) | expected@2(100) | carc[k:100,cs:20] vs aur[k:70,cs:100]
+
+  #15 Gels: паралич от страха
+    Expected: gels | Got: arg-n
+    Top-5: arg-n(75), ant-t(68), cocc(65), lec(64), puls(61) | NOT FOUND | arg-n[k:46,cs:35] vs gels[k:0,cs:0]
+
+  #19 Arg-n: тревога ожидания с поносом
+    Expected: arg-n | Got: ars
+    Top-5: ars(100), arg-n(100), phos(79), stram(74), lyc(72) | expected@2(100) | ars[k:89,cs:26] vs arg-n[k:100,cs:100]
+
+  #26 Dros: коклюшный кашель
+    Expected: dros | Got: spong
+    Top-5: spong(100), dros(92), lyc(73), coc-c(62), cupr(60) | expected@2(92) | spong[k:77,cs:33] vs dros[k:43,cs:100]
+
+  #28 Tab: укачивание бледность
+    Expected: tab | Got: verat
+    Top-5: verat(100), ip(100), ars(78), lyc(65), cocc(61) | expected@6(59) | verat[k:100,cs:34] vs tab[k:27,cs:100]
+
+  #31 Med: сон на животе + море
+    Expected: med | Got: sulph
+    Top-5: sulph(100), mez(99), psor(96), nux-v(94), lyc(84) | NOT FOUND | sulph[k:77,cs:26] vs med[k:0,cs:0]
+
+  #32 Tub: путешественник
+    Expected: tub | Got: iod
+    Top-5: iod(99), ars(98), calc(90), rhus-t(82), tub(81) | expected@5(81) | iod[k:69,cs:94] vs tub[k:58,cs:100]
+
+  #38 Bar-c: медленный ребёнок
+    Expected: bar-c | Got: sil
+    Top-5: sil(100), bar-c(100), puls(77), rhus-t(71), nux-v(69) | expected@2(100) | sil[k:100,cs:25] vs bar-c[k:73,cs:79]
+
+  #45 Mag-p: спазмы + тепло лучше
+    Expected: mag-p | Got: coloc
+    Top-5: coloc(100), mag-p(100), bry(97), kali-c(78), lyc(73) | expected@2(100) | coloc[k:100,cs:80] vs mag-p[k:91,cs:96]
+
+  #48 Nat-s: голова + сырость
+    Expected: nat-s | Got: dulc
+    Top-5: dulc(100), nat-s(100), calc(90), aur(75), verat(70) | expected@2(100) | dulc[k:89,cs:46] vs nat-s[k:81,cs:100]

@@ -10,6 +10,35 @@ Production: https://simillia.ru | Стек: Next.js 16 + Supabase + TypeScript +
 - `.env*` — ключи и токены
 - `next.config.ts` — конфигурация сборки
 
+## MDRI — ЗАБЛОКИРОВАН (v5-final, tag: mdri-v5-final)
+
+### Engine Core — НЕ МЕНЯТЬ
+- `src/lib/mdri/engine.ts` — ranking v5, findRubrics, constellationScore, kentScore
+- `src/lib/mdri/synonyms.ts` — symMatch (phrase-level, stem, antonym protection)
+- `src/lib/mdri/data-loader.ts` — загрузка данных
+- `src/lib/mdri/data/*.json` — реперторий, constellations, polarities
+
+### Product Safety Layer — НЕ МЕНЯТЬ без тестов
+- `src/lib/mdri/product-layer.ts` — confidence, validation, keyword fallback
+- `src/lib/mdri/types.ts` — ConsensusResult с productConfidence/warnings
+
+### Правила confidence (product-layer.ts):
+- INSUFFICIENT: <3 symptoms ИЛИ нет mental+general
+- CLARIFY (equal): gap<3% ИЛИ конфликт+gap<10%
+- CLARIFY: gap<10% ИЛИ charStrength=0 ИЛИ warnings>=3
+- CONFLICT: потолок GOOD (HIGH невозможен)
+- HIGH: gap>=15% + charStrength=2 + modalities + coverage>=3 + warnings<=1
+- GOOD: всё остальное
+
+### Тесты и результаты
+- `scripts/test-50-cases.ts` — 50 тестовых кейсов (ground truth)
+- `scripts/test-results-v5-final.txt` — результаты: Top-1 76%, Top-3 92%, Top-5 94%
+- `scripts/debug-symMatch.ts` — 55 тестов symMatch (0 false positives)
+
+### Pre-commit hook блокирует engine.ts/synonyms.ts/data-loader.ts
+Для изменений: `MDRI=1 git commit -m "..."`
+После любого изменения: `npx tsx scripts/test-50-cases.ts`
+
 ## Перед деплоем
 Пройти `CHECKLIST.md` в корне проекта.
 
