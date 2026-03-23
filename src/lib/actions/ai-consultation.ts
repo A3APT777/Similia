@@ -1006,7 +1006,12 @@ export async function rerunWithClarifications(input: {
   familyHistory: string[]
   clarifyAnswers: Record<string, string>
   clarifyQuestions: import('@/lib/mdri/differential').DifferentialQuestion[]
-}): Promise<ConsensusResult & { clarifyAdded: { symptoms: number; modalities: number }; clarifyExplain: string[] }> {
+  // Before state для измерения эффективности
+  beforeResults?: MDRIResult[]
+  beforeConfidence?: string
+  beforeConflict?: string
+  clarifyMeta?: { aiUsed: boolean; fallbackUsed: boolean; validCount: number }
+}): Promise<ConsensusResult & { clarifyAdded: { symptoms: number; modalities: number }; clarifyExplain: string[]; clarifyEffectiveness?: import('@/lib/mdri/differential').ClarifyEffectiveness }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Не авторизован')
@@ -1060,6 +1065,26 @@ export async function rerunWithClarifications(input: {
     type: (s.category === 'mental' ? 'mental' : s.category === 'general' ? 'general' : 'particular') as 'mental' | 'general' | 'modality' | 'particular',
   }))
 
+  // Измерение эффективности clarify
+  const afterConflict = checkHypothesisConflict(mdriResults)
+  const { measureClarifyEffectiveness } = await import('@/lib/mdri/differential')
+  let clarifyEffectiveness: import('@/lib/mdri/differential').ClarifyEffectiveness | undefined
+  if (input.beforeResults) {
+    clarifyEffectiveness = measureClarifyEffectiveness(
+      input.beforeResults, mdriResults,
+      input.beforeConfidence ?? 'clarify',
+      productConfidence?.level ?? 'clarify',
+      input.beforeConflict ?? 'none',
+      afterConflict.level,
+      {
+        aiUsed: input.clarifyMeta?.aiUsed ?? false,
+        fallbackUsed: input.clarifyMeta?.fallbackUsed ?? false,
+        validCount: input.clarifyMeta?.validCount ?? input.clarifyQuestions.length,
+        answersCount: Object.keys(input.clarifyAnswers).length,
+      },
+    )
+  }
+
   const result = {
     method: 'consensus' as const,
     finalRemedy: topRemedy, sonnetRemedy: topRemedy, mdriRemedy: topRemedy,
@@ -1068,6 +1093,7 @@ export async function rerunWithClarifications(input: {
     usedSymptoms,
     clarifyAdded: { symptoms: clarifySymptoms.length, modalities: clarifyModalities.length },
     clarifyExplain,
+    clarifyEffectiveness,
   }
 
   if (input.consultationId) {
@@ -1076,6 +1102,7 @@ export async function rerunWithClarifications(input: {
       .eq('id', input.consultationId)
   }
 
+  // Логирование с before/after метрикой
   try {
     await supabase.from('ai_analysis_log').insert({
       user_id: user.id, consultation_id: input.consultationId ?? null,
@@ -1083,8 +1110,9 @@ export async function rerunWithClarifications(input: {
         ...clarifySymptoms.map(s => ({ rubric: s.rubric, type: s.category, priority: 'clarify', weight: s.weight }))],
       engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
       confidence_level: productConfidence?.level ?? null,
-      warnings: null, symptom_count: allSymptoms.length, modality_count: allModalities.length,
-      has_conflict: checkHypothesisConflict(mdriResults).hasConflict,
+      warnings: clarifyEffectiveness ? { clarify_effectiveness: clarifyEffectiveness } : null,
+      symptom_count: allSymptoms.length, modality_count: allModalities.length,
+      has_conflict: afterConflict.hasConflict,
     })
   } catch { /* не ломаем flow */ }
 

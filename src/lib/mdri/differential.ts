@@ -9,6 +9,82 @@
  */
 
 import type { MDRIResult, MDRISymptom, MDRIModality } from './types'
+
+// =====================================================================
+// 0. Измерение эффективности clarify
+// =====================================================================
+
+export type ClarifyEffectiveness = {
+  top1_before: string; top2_before: string
+  top1_after: string; top2_after: string
+  gap_before: number; gap_after: number; delta_gap: number
+  changed_top1: boolean
+  confidence_before: string; confidence_after: string
+  conflict_before: string; conflict_after: string
+  ai_used: boolean; fallback_used: boolean
+  valid_questions_count: number; selected_answers_count: number
+  clarify_effective: boolean; reason: string
+}
+
+export function measureClarifyEffectiveness(
+  beforeResults: MDRIResult[],
+  afterResults: MDRIResult[],
+  confidenceBefore: string,
+  confidenceAfter: string,
+  conflictBefore: string,
+  conflictAfter: string,
+  meta: { aiUsed: boolean; fallbackUsed: boolean; validCount: number; answersCount: number },
+): ClarifyEffectiveness {
+  const top1B = beforeResults[0]?.remedy ?? ''
+  const top2B = beforeResults[1]?.remedy ?? ''
+  const top1A = afterResults[0]?.remedy ?? ''
+  const top2A = afterResults[1]?.remedy ?? ''
+  const gapB = (beforeResults[0]?.totalScore ?? 0) - (beforeResults[1]?.totalScore ?? 0)
+  const gapA = (afterResults[0]?.totalScore ?? 0) - (afterResults[1]?.totalScore ?? 0)
+  const deltaGap = gapA - gapB
+
+  const confImproved = (
+    (confidenceBefore === 'insufficient' && confidenceAfter !== 'insufficient') ||
+    (confidenceBefore === 'clarify' && (confidenceAfter === 'good' || confidenceAfter === 'high')) ||
+    (confidenceBefore === 'good' && confidenceAfter === 'high')
+  )
+  const gapImproved = deltaGap >= 3
+  const conflictResolved = conflictBefore !== 'none' && conflictAfter === 'none'
+
+  let effective = false
+  let reason = ''
+
+  if (confImproved) {
+    effective = true
+    reason = 'confidence вырос'
+  } else if (gapImproved && top1B === top1A) {
+    effective = true
+    reason = `gap увеличился на ${deltaGap}%`
+  } else if (conflictResolved) {
+    effective = true
+    reason = 'конфликт разрешён'
+  } else if (top1B !== top1A && gapA > gapB) {
+    effective = true
+    reason = `top-1 изменился: ${top1B} → ${top1A}`
+  } else if (deltaGap <= 0 && !confImproved) {
+    reason = 'gap не вырос, confidence не улучшился'
+  } else {
+    reason = 'недостаточно изменений'
+  }
+
+  return {
+    top1_before: top1B, top2_before: top2B,
+    top1_after: top1A, top2_after: top2A,
+    gap_before: gapB, gap_after: gapA, delta_gap: deltaGap,
+    changed_top1: top1B !== top1A,
+    confidence_before: confidenceBefore, confidence_after: confidenceAfter,
+    conflict_before: conflictBefore, conflict_after: conflictAfter,
+    ai_used: meta.aiUsed, fallback_used: meta.fallbackUsed,
+    valid_questions_count: meta.validCount,
+    selected_answers_count: meta.answersCount,
+    clarify_effective: effective, reason,
+  }
+}
 import type { ConfidenceResult, ConflictCheckResult } from './product-layer'
 
 // =====================================================================

@@ -70,6 +70,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
   const [clarifyUsed, setClarifyUsed] = useState(false)
   const [lastConfirmed, setLastConfirmed] = useState<import('@/lib/mdri/types').ParsedSuggestion[]>([])
   const [lastFamilyHistory, setLastFamilyHistory] = useState<string[]>([])
+  const [clarifyMeta, setClarifyMeta] = useState<{ aiUsed: boolean; fallbackUsed: boolean; validCount: number }>({ aiUsed: false, fallbackUsed: false, validCount: 0 })
 
   useEffect(() => {
     localStorage.setItem('hc-last-consultation', window.location.pathname)
@@ -161,14 +162,19 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
             return { pairId, value: value as 'agg' | 'amel' }
           })
           const { generateDifferentialClarifying } = await import('@/lib/actions/ai-consultation')
-          const { questions } = await generateDifferentialClarifying({
+          const clarifyResult = await generateDifferentialClarifying({
             results: result.mdriResults,
             symptoms: confirmedSymptoms,
             modalities: confirmedModalities,
             clarifyUsed,
           })
-          if (questions.length > 0) {
-            setClarifyQuestions(questions)
+          if (clarifyResult.questions.length > 0) {
+            setClarifyQuestions(clarifyResult.questions)
+            setClarifyMeta({
+              aiUsed: clarifyResult.aiGenerated,
+              fallbackUsed: !clarifyResult.aiGenerated,
+              validCount: clarifyResult.validCount,
+            })
           }
         } catch { /* clarify не критичен */ }
       }
@@ -194,6 +200,11 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
         familyHistory: lastFamilyHistory,
         clarifyAnswers: answers,
         clarifyQuestions: clarifyQuestions,
+        // Before state для измерения эффективности
+        beforeResults: aiResult?.mdriResults,
+        beforeConfidence: aiResult?.productConfidence?.level,
+        beforeConflict: undefined, // conflict level не хранится в ConsensusResult
+        clarifyMeta,
       })
       setAIResult(result)
       setClarifyQuestions([])
