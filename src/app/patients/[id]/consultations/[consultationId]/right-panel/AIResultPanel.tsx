@@ -12,14 +12,34 @@ type Props = {
   clarifyingQuestions?: AIQuestion[]
 }
 
-// Названия линз
-const LENS_LABELS: Record<string, { ru: string; en: string }> = {
-  'Kent': { ru: 'Кент', en: 'Kent' },
-  'Polarity': { ru: 'Полярность', en: 'Polarity' },
-  'Hierarchy': { ru: 'Иерархия', en: 'Hierarchy' },
-  'Constellation': { ru: 'Созвездие', en: 'Constellation' },
-  'Negative': { ru: 'Негативный', en: 'Negative' },
-  'Miasm': { ru: 'Миазм', en: 'Miasm' },
+// Двойные названия линз (понятно врачу + оригинал)
+const LENS_LABELS: Record<string, { ru: string; en: string; tooltip: string }> = {
+  'Kent': { ru: 'Классический реперторий', en: 'Classical Repertory', tooltip: 'совпадений в реперторных рубриках' },
+  'Polarity': { ru: 'Полярности', en: 'Polarity', tooltip: 'баланс подтверждающих и исключающих рубрик' },
+  'Hierarchy': { ru: 'Иерархия симптомов', en: 'Symptom Hierarchy', tooltip: 'вес по типу: психика > общее > частное' },
+  'Constellation': { ru: 'Характерные паттерны', en: 'Characteristic Patterns', tooltip: 'совпадение ключевых комбинаций' },
+  'Negative': { ru: 'Исключающие признаки', en: 'Negative Markers', tooltip: 'симптомы, нетипичные для препарата' },
+  'Miasm': { ru: 'Миазм', en: 'Miasm', tooltip: 'миазматическое соответствие' },
+}
+
+// Перевод технических hints на язык врача
+const HINT_TRANSLATIONS: Record<string, string> = {
+  'heat_cold': 'чувствительность к теплу/холоду',
+  'motion_rest': 'хуже от движения / лучше в покое',
+  'open_air': 'на свежем воздухе',
+  'consolation': 'реакция на утешение',
+  'thirst': 'жажда',
+  'appetite': 'аппетит',
+  'sleep': 'сон',
+  'perspiration': 'потоотделение',
+}
+
+function translateHint(hint: string): string {
+  let result = hint
+  for (const [key, val] of Object.entries(HINT_TRANSLATIONS)) {
+    result = result.replace(new RegExp(key, 'gi'), val)
+  }
+  return result
 }
 
 // Цвет полоски по score
@@ -30,39 +50,25 @@ function getBarColor(score: number): string {
   return 'bg-gray-300'
 }
 
-// Бейдж метода
-function MethodBadge({ method, lang }: { method: ConsensusResult['method']; lang: 'ru' | 'en' }) {
-  const labels: Record<string, { ru: string; en: string; color: string }> = {
-    'consensus': { ru: 'Консенсус', en: 'Consensus', color: 'bg-emerald-100 text-emerald-700' },
-    'sonnet_priority': { ru: 'AI приоритет', en: 'AI Priority', color: 'bg-blue-100 text-blue-700' },
-    'opus_arbiter': { ru: 'Арбитраж', en: 'Arbitration', color: 'bg-amber-100 text-amber-700' },
+// Бейдж confidence (единый)
+function ConfidenceBadge({ confidence, productConfidence }: {
+  confidence?: string
+  productConfidence?: ConsensusResult['productConfidence']
+}) {
+  if (productConfidence) {
+    const colors: Record<string, string> = {
+      'green': 'bg-emerald-100 text-emerald-700',
+      'blue': 'bg-blue-100 text-blue-700',
+      'yellow': 'bg-amber-100 text-amber-700',
+      'gray': 'bg-gray-100 text-gray-500',
+    }
+    return (
+      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${colors[productConfidence.color] ?? colors['blue']}`}>
+        {productConfidence.label}
+      </span>
+    )
   }
-  const l = labels[method] ?? labels['consensus']
-  return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${l.color}`}>
-      {lang === 'ru' ? l.ru : l.en}
-    </span>
-  )
-}
-
-// Бейдж product confidence (v5)
-function ProductConfidenceBadge({ confidence }: { confidence: ConsensusResult['productConfidence'] }) {
   if (!confidence) return null
-  const colors: Record<string, string> = {
-    'green': 'bg-emerald-100 text-emerald-700',
-    'blue': 'bg-blue-100 text-blue-700',
-    'yellow': 'bg-amber-100 text-amber-700',
-    'gray': 'bg-gray-100 text-gray-500',
-  }
-  return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${colors[confidence.color] ?? colors['blue']}`}>
-      {confidence.label}
-    </span>
-  )
-}
-
-// Fallback бейдж (для старых результатов без productConfidence)
-function ConfidenceBadge({ confidence }: { confidence: string }) {
   const colors: Record<string, string> = {
     'high': 'bg-emerald-100 text-emerald-700',
     'medium': 'bg-blue-100 text-blue-700',
@@ -76,6 +82,83 @@ function ConfidenceBadge({ confidence }: { confidence: string }) {
     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${colors[confidence] ?? colors['low']}`}>
       {labels[confidence] ?? confidence}
     </span>
+  )
+}
+
+// Блок "Как AI понял случай"
+function InferredProfileBlock({ profile }: { profile: NonNullable<ConsensusResult['inferredProfile']> }) {
+  const LABELS: Record<string, string> = {
+    'acute': 'Острый', 'chronic': 'Хронический',
+    'high': 'Высокая', 'medium': 'Средняя', 'low': 'Низкая',
+    'child': 'Ребёнок', 'adult': 'Взрослый', 'elderly': 'Пожилой',
+  }
+  const confLabel = (c: number) => c >= 0.7 ? 'высокая' : c >= 0.4 ? 'средняя' : 'низкая'
+  const confColor = (c: number) => c >= 0.7 ? 'text-emerald-600' : c >= 0.4 ? 'text-blue-500' : 'text-amber-500'
+
+  const items = [
+    { label: 'Тип случая', value: LABELS[profile.caseType.value] ?? profile.caseType.value, conf: profile.caseType.confidence },
+    { label: 'Витальность', value: LABELS[profile.vitality.value] ?? profile.vitality.value, conf: profile.vitality.confidence },
+    { label: 'Чувствительность', value: LABELS[profile.sensitivity.value] ?? profile.sensitivity.value, conf: profile.sensitivity.confidence },
+    { label: 'Возраст', value: LABELS[profile.age.value] ?? profile.age.value, conf: profile.age.confidence },
+  ]
+
+  return (
+    <div className="mx-3 mt-2 mb-1 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+        Как AI понял случай
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        {items.map(item => (
+          <div key={item.label} className="flex items-baseline gap-1 text-[11px]">
+            <span className="text-gray-400">{item.label}:</span>
+            <span className="font-medium text-gray-700">{item.value}</span>
+            {item.conf < 0.5 && (
+              <span className={`text-[9px] ${confColor(item.conf)}`}>
+                ({confLabel(item.conf)})
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      {items.some(i => i.conf < 0.4) && (
+        <p className="text-[10px] text-amber-500 mt-1.5">
+          Некоторые параметры определены с низкой уверенностью. Уточните описание случая.
+        </p>
+      )}
+    </div>
+  )
+}
+
+// Блок "Почему выбран препарат" — на основе реальных линз
+function WhyChosenBlock({ result }: { result: MDRIResult }) {
+  const reasons: string[] = []
+
+  for (const lens of result.lenses) {
+    if (lens.name === 'Kent' && lens.score >= 50) {
+      const match = lens.details.match(/(\d+)\/(\d+)/)
+      if (match) reasons.push(`${match[1]} из ${match[2]} рубрик совпали`)
+    }
+    if (lens.name === 'Constellation' && lens.score >= 40) {
+      reasons.push('характерный паттерн совпал')
+    }
+    if (lens.name === 'Hierarchy' && lens.score >= 60) {
+      reasons.push('совпадение по ключевым уровням (психика, общее)')
+    }
+    if (lens.name === 'Polarity' && lens.score >= 50) {
+      reasons.push('подтверждено полярностным анализом')
+    }
+  }
+  if (result.miasm) {
+    reasons.push(`миазм: ${result.miasm}`)
+  }
+
+  if (reasons.length === 0) return null
+
+  return (
+    <div className="text-[11px] bg-indigo-50/50 rounded-lg px-2.5 py-1.5 border border-indigo-100">
+      <span className="text-indigo-500 font-medium">Почему выбран: </span>
+      <span className="text-gray-600">{reasons.join(' · ')}</span>
+    </div>
   )
 }
 
@@ -123,19 +206,27 @@ function RemedyCard({ result, rank, expanded, onToggle, onAssign, idx }: {
       {/* Детали */}
       {expanded && (
         <div className="px-3 pb-3 space-y-2">
-          {/* Линзы */}
+          {/* Почему выбран */}
+          {rank === 0 && <WhyChosenBlock result={result} />}
+
+          {/* Линзы — двойные названия */}
           <div className="space-y-1">
-            {result.lenses.map(lens => (
-              <div key={lens.name} className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-400 w-16 shrink-0 truncate">
-                  {LENS_LABELS[lens.name]?.ru ?? lens.name}
-                </span>
-                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`ai-lens-bar h-full rounded-full ${getBarColor(lens.score)}`} style={{ width: `${lens.score}%` }} />
+            {result.lenses.map(lens => {
+              const lensInfo = LENS_LABELS[lens.name]
+              const detailsMatch = lens.details.match(/(\d+)\/(\d+)/)
+              const detailsText = detailsMatch ? `${detailsMatch[1]} из ${detailsMatch[2]}` : lens.details
+              return (
+                <div key={lens.name} className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 w-[110px] shrink-0 truncate" title={lensInfo?.tooltip}>
+                    {lensInfo?.ru ?? lens.name}
+                  </span>
+                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`ai-lens-bar h-full rounded-full ${getBarColor(lens.score)}`} style={{ width: `${lens.score}%` }} />
+                  </div>
+                  <span className="text-[10px] text-gray-400 w-12 text-right">{detailsText}</span>
                 </div>
-                <span className="text-[10px] text-gray-400 w-7 text-right">{lens.details}</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Потенция */}
@@ -188,7 +279,7 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
 
   return (
     <div className="ai-glass ai-slide-up rounded-2xl overflow-hidden">
-      {/* Заголовок */}
+      {/* Заголовок — без стоимости, без method badge */}
       <div className="px-3 py-2.5 border-b border-indigo-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -198,15 +289,11 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
             <span className="text-xs font-semibold text-gray-900">
               {lang === 'ru' ? 'AI-анализ' : 'AI Analysis'}
             </span>
-            {aiResult.productConfidence
-              ? <ProductConfidenceBadge confidence={aiResult.productConfidence} />
-              : <MethodBadge method={aiResult.method} lang={lang} />
-            }
+            <ConfidenceBadge productConfidence={aiResult.productConfidence} />
           </div>
-          <span className="text-[10px] text-gray-400">${aiResult.cost.toFixed(2)}</span>
         </div>
 
-        {/* Warnings из product layer */}
+        {/* Warnings — hints переведены */}
         {aiResult.warnings && aiResult.warnings.length > 0 && (
           <div className="mt-2 space-y-1">
             {aiResult.warnings.map((w, i) => (
@@ -216,33 +303,18 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
                 </svg>
                 <div>
                   <span className="font-medium">{w.message}</span>
-                  <span className="text-amber-500"> — {w.hint}</span>
+                  <span className="text-amber-500"> — {translateHint(w.hint)}</span>
                 </div>
               </div>
             ))}
           </div>
         )}
-
-        {/* Sonnet мнение если отличается (legacy) */}
-        {aiResult.aiResult && aiResult.sonnetRemedy !== aiResult.mdriRemedy && (
-          <div className="mt-1.5 text-[11px] text-gray-500">
-            <span className="text-gray-400">AI-гомеопат: </span>
-            <span className="font-medium">{aiResult.sonnetRemedy.toUpperCase()}</span>
-            <span className="text-gray-300"> · </span>
-            <span className="text-gray-400">MDRI: </span>
-            <span className="font-medium">{aiResult.mdriRemedy.toUpperCase()}</span>
-            <span className="text-gray-300"> → </span>
-            <span className="font-medium text-indigo-600">{aiResult.finalRemedy.toUpperCase()}</span>
-          </div>
-        )}
-
-        {/* Reasoning от Sonnet (legacy) */}
-        {aiResult.aiResult?.reasoning && (
-          <p className="mt-1.5 text-[11px] text-gray-500 leading-relaxed line-clamp-3">
-            {aiResult.aiResult.reasoning}
-          </p>
-        )}
       </div>
+
+      {/* Блок "Как AI понял случай" */}
+      {aiResult.inferredProfile && (
+        <InferredProfileBlock profile={aiResult.inferredProfile} />
+      )}
 
       {/* Список препаратов */}
       <div className="p-2 space-y-1.5">
@@ -268,9 +340,8 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
         )}
       </div>
 
-      {/* Блок уточнений — по productConfidence или legacy */}
+      {/* Блок уточнений */}
       {onClarify && (() => {
-        // v5: используем productConfidence если есть
         const pc = aiResult.productConfidence
         const needsClarify = pc
           ? (pc.level === 'clarify' || pc.level === 'insufficient')

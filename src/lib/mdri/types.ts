@@ -164,6 +164,13 @@ export type ConsensusResult = {
   }
   warnings?: { type: string; message: string; hint: string }[]
   fallbackAdded?: { symptoms: number; modalities: number; conflicts: number }
+  // Автоматически определённый профиль пациента
+  inferredProfile?: {
+    caseType: { value: string; confidence: number }
+    vitality: { value: string; confidence: number }
+    sensitivity: { value: string; confidence: number }
+    age: { value: string; confidence: number }
+  }
 }
 
 // === Suggestions (hybrid parsing) ===

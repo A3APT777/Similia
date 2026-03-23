@@ -163,12 +163,17 @@ function SuggestionItem({ s, onToggle, isKey }: {
         {s.label}
       </span>
 
-      {/* Weight=3 star */}
-      {s.weight >= 3 && s.confirmed && (
-        <span className="text-[8px] px-1 py-0.5 rounded bg-red-50 text-red-500 font-medium shrink-0 border border-red-100">
-          ★
-        </span>
-      )}
+      {/* Source + weight badges */}
+      <span className="flex items-center gap-0.5 shrink-0">
+        {s.weight >= 3 && s.confirmed && (
+          <span className="text-[8px] px-1 py-0.5 rounded bg-red-50 text-red-500 font-medium border border-red-100">★</span>
+        )}
+        {s.confirmed && (
+          <span className="text-[8px] px-1 py-0.5 rounded bg-gray-50 text-gray-400 border border-gray-100">
+            {s.source === 'keyword' ? 'из текста' : 'AI-разбор'}
+          </span>
+        )}
+      </span>
     </button>
   )
 }

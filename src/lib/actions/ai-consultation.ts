@@ -185,6 +185,7 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       productConfidence,
       warnings,
       fallbackAdded,
+      inferredProfile,
     }
     log(`result: ${topRemedy}`)
 
