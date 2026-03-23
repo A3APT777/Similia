@@ -171,7 +171,7 @@ async function parseSonnet(text: string): Promise<{
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 2000,
-    temperature: 0,
+    temperature: 0.2,
     system: PARSING_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: text }],
   })
