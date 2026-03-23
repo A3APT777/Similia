@@ -1039,25 +1039,27 @@ export async function logDoctorChoice(consultationId: string, chosenRemedy: stri
 }
 
 /**
- * Генерация дифференциальных вопросов через Sonnet.
- * Вызывается ТОЛЬКО когда shouldClarify() == true.
- * AI не выбирает препарат — только различает top-1 vs top-2 vs top-3.
+ * Clarify Engine v2: differential pair → matrix → AI candidates → rank → select 1-2 best.
  *
- * Flow: shouldClarify → AI → validateQuestions → UI
- * Если AI мусор или недоступен → fallback вопросы по differentialLenses
+ * Flow: shouldClarify → selectPair → buildMatrix → AI prompt →
+ *       parseCandidates → validateQuestions → rankByInfoGain → select 1-2 best
+ *
+ * AI не выбирает вопрос. AI только генерирует кандидатов.
+ * Engine ранжирует по information gain и выбирает лучшие.
  */
 export async function generateDifferentialClarifying(input: {
   results: MDRIResult[]
   symptoms: MDRISymptom[]
   modalities: MDRIModality[]
   clarifyUsed?: boolean
-}): Promise<{ questions: import('@/lib/mdri/differential').DifferentialQuestion[]; aiGenerated: boolean; rawCount: number; validCount: number }> {
-  const {
-    shouldClarify: shouldClarifyFn,
-    buildDifferentialContext, buildDifferentialPrompt,
-    parseDifferentialResponse, validateQuestions,
-    getFallbackQuestions,
-  } = await import('@/lib/mdri/differential')
+}): Promise<{
+  questions: import('@/lib/mdri/differential').DifferentialQuestion[]
+  aiGenerated: boolean; rawCount: number; validCount: number
+  pair?: import('@/lib/mdri/clarify-engine').DifferentialPair
+  matrix?: import('@/lib/mdri/clarify-engine').DifferentialMatrix
+}> {
+  const { shouldClarify: shouldClarifyFn, parseDifferentialResponse, validateQuestions, getFallbackQuestions, buildDifferentialContext } = await import('@/lib/mdri/differential')
+  const { selectDifferentialPair, buildDifferentialMatrix, buildClarifyPrompt, rankClarifyQuestions, selectBestQuestions, runClarifyEngine } = await import('@/lib/mdri/clarify-engine')
   const { checkHypothesisConflict, computeConfidence, validateInput } = await import('@/lib/mdri/product-layer')
 
   const conflict = checkHypothesisConflict(input.results)
@@ -1067,12 +1069,22 @@ export async function generateDifferentialClarifying(input: {
     return { questions: [], aiGenerated: false, rawCount: 0, validCount: 0 }
   }
 
-  const ctx = buildDifferentialContext(input.results, input.symptoms, input.modalities, conflict)
+  // 1. Differential pair
+  const pair = selectDifferentialPair(input.results, conflict)
+  if (!pair) {
+    const fb = getFallbackQuestions(conflict.differentialLenses)
+    return { questions: fb, aiGenerated: false, rawCount: 0, validCount: fb.length }
+  }
+
+  // 2. Differential matrix
+  const matrix = buildDifferentialMatrix(input.results, pair)
+
+  // 3. AI generates candidates (с focused prompt)
   let rawCount = 0
-  let aiGenerated = false
+  let aiCandidates: import('@/lib/mdri/differential').DifferentialQuestion[] = []
 
   try {
-    const prompt = buildDifferentialPrompt(ctx)
+    const prompt = buildClarifyPrompt(matrix, input.symptoms, input.modalities)
     const client = getAnthropicClient()
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -1082,24 +1094,29 @@ export async function generateDifferentialClarifying(input: {
     })
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '[]'
-    const rawQuestions = parseDifferentialResponse(text)
-    rawCount = rawQuestions.length
+    aiCandidates = parseDifferentialResponse(text)
+    rawCount = aiCandidates.length
 
-    // Валидация — убираем мусор
-    const validated = validateQuestions(rawQuestions, ctx)
-
-    if (validated.length >= 3) {
-      aiGenerated = true
-      return { questions: validated, aiGenerated, rawCount, validCount: validated.length }
-    }
-    // AI вернул < 3 валидных → fallback
+    // Validate
+    const ctx = buildDifferentialContext(input.results, input.symptoms, input.modalities, conflict)
+    aiCandidates = validateQuestions(aiCandidates, ctx)
   } catch {
-    // AI недоступен → fallback
+    // AI unavailable → fallback
   }
 
-  // Fallback: детерминированные вопросы по differentialLenses
-  const fallback = getFallbackQuestions(conflict.differentialLenses)
-  return { questions: fallback, aiGenerated, rawCount, validCount: fallback.length }
+  // 4. Rank by information gain + select 1-2 best
+  if (aiCandidates.length > 0) {
+    const ranked = rankClarifyQuestions(matrix, aiCandidates)
+    const selected = selectBestQuestions(ranked)
+
+    if (selected.length > 0) {
+      return { questions: selected, aiGenerated: true, rawCount, validCount: selected.length, pair, matrix }
+    }
+  }
+
+  // 5. Fallback
+  const fb = getFallbackQuestions(matrix.discriminators.length > 0 ? matrix.discriminators : conflict.differentialLenses)
+  return { questions: fb, aiGenerated: false, rawCount, validCount: fb.length, pair, matrix }
 }
 
 /**
