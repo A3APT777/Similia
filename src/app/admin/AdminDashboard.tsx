@@ -93,6 +93,19 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
           <a href="/dashboard" className="btn btn-ghost btn-sm">← Вернуться</a>
         </div>
 
+        {/* Быстрые ссылки */}
+        <div className="mb-6">
+          <a
+            href="/admin/ai-logs"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium transition-colors"
+            style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)' }}
+          >
+            <span>🤖</span>
+            AI Analysis Logs
+            <span style={{ fontSize: '11px', opacity: 0.6 }}>→</span>
+          </a>
+        </div>
+
         {/* Статкарточки */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[

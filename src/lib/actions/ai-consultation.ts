@@ -857,7 +857,7 @@ export async function analyzeConfirmed(input: {
       .eq('id', input.consultationId)
   }
 
-  // Логирование: confirmed input + engine top-3 + confidence
+  // Логирование: confirmed input + engine top-3 + confidence + аналитика
   const inputWarnings = validateInput(symptoms, modalities)
   try {
     await supabase.from('ai_analysis_log').insert({
@@ -870,6 +870,11 @@ export async function analyzeConfirmed(input: {
       symptom_count: symptoms.length,
       modality_count: modalities.length,
       has_conflict: inputWarnings.some(w => w.type === 'uncertain_parse'),
+      // Аналитика
+      high_count: confirmed.filter(s => s.priority === 'high').length,
+      medium_count: confirmed.filter(s => s.priority === 'medium').length,
+      low_count: confirmed.filter(s => s.priority === 'low').length,
+      mental_count: confirmed.filter(s => s.type === 'mental').length,
     })
   } catch { /* логирование не должно ломать анализ */ }
 
@@ -887,8 +892,22 @@ export async function logDoctorChoice(consultationId: string, chosenRemedy: stri
   if (!user) return
 
   try {
+    // Получаем лог чтобы вычислить correct_position
+    const { data: logEntry } = await supabase.from('ai_analysis_log')
+      .select('engine_top3')
+      .eq('consultation_id', consultationId)
+      .eq('user_id', user.id)
+      .single()
+
+    let correctPosition: number | null = null
+    if (logEntry?.engine_top3) {
+      const top3 = logEntry.engine_top3 as Array<{ remedy: string }>
+      const idx = top3.findIndex(r => r.remedy.toLowerCase() === chosenRemedy.toLowerCase())
+      correctPosition = idx >= 0 ? idx + 1 : null // 1, 2, 3 или null (не в top-3)
+    }
+
     await supabase.from('ai_analysis_log')
-      .update({ doctor_choice: chosenRemedy })
+      .update({ doctor_choice: chosenRemedy, correct_position: correctPosition })
       .eq('consultation_id', consultationId)
       .eq('user_id', user.id)
   } catch { /* silent */ }

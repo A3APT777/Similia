@@ -214,11 +214,17 @@ export type AIAnalysisLog = {
   confirmed_input: Array<{ rubric: string; type: string; priority: string; weight: number }>
   engine_top3: Array<{ remedy: string; score: number }>
   doctor_choice: string | null
+  correct_position: number | null  // 1, 2, 3 или null (не в top-3)
   confidence_level: string | null
   warnings: Array<{ type: string; message: string }> | null
   symptom_count: number
   modality_count: number
   has_conflict: boolean
+  high_count: number
+  medium_count: number
+  low_count: number
+  mental_count: number
+  error_type: string | null  // parsing / input / engine (ручная пометка)
 }
 
 // Смена пароля (для настроек, не админки)
