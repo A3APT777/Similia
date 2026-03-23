@@ -238,6 +238,78 @@ tuberculosis, cancer, diabetes, psoriasis, asthma, alcoholism, heart disease, ec
   "familyHistory": []
 }
 
+Текст: "Мальчик 7 лет. Потеет голова ночью сильно — подушка мокрая. Стопы холодные и влажные. Поздно пошёл, зубы поздно. Любит яйца. Боится собак. Упрямый. Очень зябкий. Кислый запах пота."
+Ответ:
+{
+  "symptoms": [
+    {"rubric": "perspiration head night profuse", "category": "general", "present": true, "weight": 3},
+    {"rubric": "feet cold damp", "category": "particular", "present": true, "weight": 2},
+    {"rubric": "slow development late walking late teething", "category": "general", "present": true, "weight": 2},
+    {"rubric": "desire eggs", "category": "general", "present": true, "weight": 2},
+    {"rubric": "fear dogs animals", "category": "mental", "present": true, "weight": 2},
+    {"rubric": "obstinate stubborn", "category": "mental", "present": true, "weight": 2},
+    {"rubric": "chilly", "category": "general", "present": true, "weight": 2},
+    {"rubric": "perspiration sour odor", "category": "general", "present": true, "weight": 2}
+  ],
+  "modalities": [
+    {"pairId": "heat_cold", "value": "amel"}
+  ],
+  "familyHistory": []
+}
+
+Текст: "Носовые кровотечения яркой красной кровью. Боится темноты, грозы и одиночества одновременно. Очень сочувственный и чуткий. Сильная жажда холодной воды большими глотками. Хуже в сумерках. Жжение между лопатками. Любит мороженое."
+Ответ:
+{
+  "symptoms": [
+    {"rubric": "epistaxis bright red blood", "category": "particular", "present": true, "weight": 2},
+    {"rubric": "fear dark thunderstorm alone", "category": "mental", "present": true, "weight": 3},
+    {"rubric": "sympathetic compassionate clairvoyant", "category": "mental", "present": true, "weight": 2},
+    {"rubric": "thirst large quantities cold water", "category": "general", "present": true, "weight": 3},
+    {"rubric": "worse twilight dusk", "category": "general", "present": true, "weight": 2},
+    {"rubric": "burning pain between scapulae", "category": "particular", "present": true, "weight": 3},
+    {"rubric": "desire ice cream cold food", "category": "general", "present": true, "weight": 2}
+  ],
+  "modalities": [],
+  "familyHistory": []
+}
+
+Текст: "Отёк, жалящие колющие боли. Нет жажды совсем. Хуже от тепла, лучше от холодных компрессов. Кожа розовая восковидная. Ревнивая. Суетливость. Хуже справа."
+Ответ:
+{
+  "symptoms": [
+    {"rubric": "edema swelling stinging", "category": "general", "present": true, "weight": 3},
+    {"rubric": "thirstless", "category": "general", "present": true, "weight": 2},
+    {"rubric": "skin pale waxy pink", "category": "particular", "present": true, "weight": 3},
+    {"rubric": "jealousy", "category": "mental", "present": true, "weight": 2},
+    {"rubric": "restlessness busy fidgety", "category": "mental", "present": true, "weight": 1},
+    {"rubric": "right side complaints", "category": "general", "present": true, "weight": 2}
+  ],
+  "modalities": [
+    {"pairId": "heat_cold", "value": "agg"},
+    {"pairId": "pressure", "value": "agg"}
+  ],
+  "familyHistory": []
+}
+
+Текст: "Просыпается в 2-4 часа ночи с тревогой и сердцебиением. Колющие боли. Отёки верхних век. Зябкий. Боль в пояснице хуже в покое. Чувство долга. Астма ночью."
+Ответ:
+{
+  "symptoms": [
+    {"rubric": "waking 2am 3am 4am anxiety palpitation", "category": "general", "present": true, "weight": 3},
+    {"rubric": "pains stitching sharp", "category": "general", "present": true, "weight": 2},
+    {"rubric": "swelling edema upper eyelids", "category": "particular", "present": true, "weight": 2},
+    {"rubric": "chilly", "category": "general", "present": true, "weight": 2},
+    {"rubric": "pain lumbar worse rest sitting", "category": "particular", "present": true, "weight": 2},
+    {"rubric": "conscientious dutiful sense of duty", "category": "mental", "present": true, "weight": 2},
+    {"rubric": "asthma worse night 2-4am", "category": "particular", "present": true, "weight": 3}
+  ],
+  "modalities": [
+    {"pairId": "heat_cold", "value": "amel"},
+    {"pairId": "motion_rest", "value": "amel"}
+  ],
+  "familyHistory": []
+}
+
 Текст: "Женщина 52 лет. Приливы в менопаузе. Все жалобы слева. Не переносит тесную одежду на шее и животе. Ревнивая, подозрительная. Очень разговорчивая. Хуже после сна. Жаркая."
 Ответ:
 {

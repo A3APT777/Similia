@@ -196,7 +196,105 @@ export function mergeWithFallback(
     })
   }
 
+  // Post-processing: коррекция весов по known peculiar patterns
+  // Sonnet иногда даёт w=2 для peculiar симптомов → исправляем
+  correctWeights(symptoms, originalText)
+
   return { symptoms, modalities, warnings, conflicts: fallback.conflicts }
+}
+
+// =====================================================================
+// 2.5 WEIGHT CORRECTION — post-processing после Sonnet
+//
+// Фиксирует known peculiar patterns которые Sonnet недооценивает.
+// НЕ меняет scoring — только корректирует вход в engine.
+// =====================================================================
+
+// Паттерны в rubric которые ВСЕГДА должны быть w=3
+const PECULIAR_RUBRIC_PATTERNS = [
+  // Time-specific
+  'worse after midnight', 'worse 1am', 'worse 2am', 'worse 2-4am', 'worse 3am', 'worse 4-8pm',
+  'waking 2am', 'waking 3am', 'waking 2-4',
+  // Peculiar combinations
+  'one cheek red other pale',
+  'burning feet night uncovers',
+  'burning pains better warm', 'burning better heat',
+  'first motion worse then better', 'first motion aggravates',
+  'perspiration head night',
+  'thirst small sips frequently',
+  'worse after sleep',
+  'intolerance tight clothing neck',
+  'better at sea', 'better seashore',
+  'bearing down prolapse sensation',
+  'asthma worse night 2', 'asthma night',
+  // Peculiar mental
+  'consolation aggravates',
+  'indifference family',
+  'grief suppressed silent',
+  'fastidious orderly pedantic',
+  'jealousy suspicious',
+  'fear dark thunderstorm alone',
+  // Peculiar physical
+  'vomiting diarrhea cold sweat',
+  'edema swelling stinging',
+  'skin pale waxy',
+  'sleep position abdomen',
+  'desire ice cream cold',
+  'capricious asks then refuses',
+]
+
+// Паттерны в РУССКОМ тексте которые подтверждают w=3
+const PECULIAR_TEXT_PATTERNS: { textPattern: string; rubricContains: string }[] = [
+  { textPattern: 'потеет голова ночью', rubricContains: 'perspiration head' },
+  { textPattern: 'высовывает из-под одеяла', rubricContains: 'burning feet' },
+  { textPattern: 'маленькими глотками', rubricContains: 'small sips' },
+  { textPattern: 'после полуночи', rubricContains: 'midnight' },
+  { textPattern: 'после сна хуже', rubricContains: 'after sleep' },
+  { textPattern: 'хуже после сна', rubricContains: 'after sleep' },
+  { textPattern: 'не переносит тесн', rubricContains: 'tight clothing' },
+  { textPattern: 'на море лучше', rubricContains: 'sea' },
+  { textPattern: 'одна щека красная', rubricContains: 'one cheek' },
+  { textPattern: 'жжение.*лучше от тепла', rubricContains: 'burning' },
+  { textPattern: 'первое движение хуже', rubricContains: 'first motion' },
+  { textPattern: 'расходится', rubricContains: 'first motion' },
+  { textPattern: 'утешение хуже', rubricContains: 'consolation' },
+  { textPattern: 'безразличие к семье', rubricContains: 'indifference family' },
+  { textPattern: 'тянет вниз', rubricContains: 'bearing down' },
+  { textPattern: 'в 2-4', rubricContains: '2am' },
+  { textPattern: 'в 2-4', rubricContains: '2-4' },
+  { textPattern: 'в 4-8', rubricContains: '4-8' },
+  { textPattern: 'с 16 до 20', rubricContains: '4-8pm' },
+  { textPattern: 'с 16 до 20', rubricContains: '4pm' },
+  { textPattern: 'боится темноты.*грозы', rubricContains: 'fear dark' },
+  { textPattern: 'страх.*темноты.*грозы', rubricContains: 'fear dark' },
+  { textPattern: 'спит на животе', rubricContains: 'sleep.*abdomen' },
+  { textPattern: 'нет жажды', rubricContains: 'thirstless' },
+]
+
+function correctWeights(symptoms: MDRISymptom[], originalText: string) {
+  const textLower = originalText.toLowerCase()
+
+  for (const sym of symptoms) {
+    if (sym.weight >= 3) continue // уже peculiar
+    const rubricLower = sym.rubric.toLowerCase()
+
+    // 1. Проверяем rubric по known peculiar patterns
+    for (const pattern of PECULIAR_RUBRIC_PATTERNS) {
+      if (rubricLower.includes(pattern)) {
+        sym.weight = 3
+        break
+      }
+    }
+    if (sym.weight >= 3) continue
+
+    // 2. Проверяем русский текст → rubric подтверждение
+    for (const { textPattern, rubricContains } of PECULIAR_TEXT_PATTERNS) {
+      if (textLower.includes(textPattern) && new RegExp(rubricContains, 'i').test(rubricLower)) {
+        sym.weight = 3
+        break
+      }
+    }
+  }
 }
 
 // =====================================================================
