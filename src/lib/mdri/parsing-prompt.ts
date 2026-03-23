@@ -35,12 +35,57 @@ PARTICULAR — конкретные локальные жалобы:
 - головная боль, кашель, сыпь, боль в суставах, рвота, понос
 - Примеры: "головная боль от солнца" → particular, "зуд кожи" → particular
 
-## WEIGHT (вес симптома)
+## WEIGHT (вес симптома) — КРИТИЧЕСКИ ВАЖНО
 
-1 — обычный, упомянут мимоходом
-2 — выраженный, подчёркнут врачом
-3 — peculiar: странный, необычный, редкий, яркий ключевой симптом
-   Примеры weight=3: "одна щека красная другая бледная", "жжение стоп — высовывает из-под одеяла", "утешение хуже"
+Weight определяет значимость симптома для выбора. Правильный weight = правильный результат.
+
+### weight = 3 (PECULIAR / CHARACTERISTIC)
+Симптом который СУЖАЕТ выбор до нескольких препаратов. Странный, специфичный, необычный.
+
+MENTAL weight=3:
+- "утешение хуже" (consolation aggravates)
+- "безразличие к семье, не хочет видеть детей" (indifference family)
+- "горе подавленное, плачет одна" (grief suppressed silent)
+- "одержимость порядком, педантичный" (fastidious orderly)
+- "ревность с подозрительностью" (jealousy suspicious)
+- "страх смерти" (fear death)
+- "лучше от танцев и упражнений" (better dancing exercise)
+
+GENERAL weight=3:
+- "пьёт маленькими глотками часто" (thirst small sips frequently) — НЕ просто "жажда"
+- "хуже после полуночи 1-2 часа" (worse after midnight 1-2am)
+- "хуже в 4-8 вечера" (worse 4-8pm)
+- "первое движение хуже, потом расходится" (first motion worse then better)
+- "на море лучше" (better at sea)
+- "хуже после сна" (worse after sleep)
+- "не переносит тесную одежду на шее" (intolerance tight clothing neck)
+
+PARTICULAR weight=3:
+- "одна щека красная другая бледная" (one cheek red other pale)
+- "жжение стоп ночью — высовывает из-под одеяла" (burning feet night uncovers)
+- "жгучие боли но лучше от тепла" (burning pains better warm applications) — парадокс!
+- "рвота и понос одновременно с холодным потом" (vomiting diarrhea cold sweat)
+- "ощущение что всё тянет вниз" (bearing down prolapse sensation)
+- "жёлтые пятна на лице" (yellow spots face chloasma)
+
+### weight = 2 (ВЫРАЖЕННЫЙ)
+Значимый симптом, подчёркнутый в описании, но не уникальный.
+
+- "зябкий" (chilly) — важно но много препаратов
+- "раздражительный" (irritability) — важно но не специфично
+- "головная боль от солнца" (headache sun) — модальность выделена
+- "любит солёное" (desire salt) — пищевое пристрастие
+- "хуже ночью" (worse night) — общая модальность
+- "нет жажды" (thirstless) — значимый general
+
+### weight = 1 (ОБЫЧНЫЙ)
+Упомянут мимоходом, общий, не акцентирован.
+
+- "головная боль" (headache) — без модальности
+- "кашель" (cough) — без характеристики
+- "слабость" (weakness) — общий симптом
+- "запоры" (constipation) — без подробностей
+- "худеет" (emaciation) — если не подчёркнуто
 
 ## МОДАЛЬНОСТИ (modalities)
 
@@ -139,6 +184,74 @@ tuberculosis, cancer, diabetes, psoriasis, asthma, alcoholism, heart disease, ec
   "modalities": [
     {"pairId": "motion_rest", "value": "amel"},
     {"pairId": "heat_cold", "value": "amel"}
+  ],
+  "familyHistory": []
+}
+
+Текст: "Мужчина 60 лет. Тревога за здоровье — уверен что болен раком. Педантичный. Беспокойный — не может лежать. Хуже после полуночи. Зябкий. Жгучие боли но лучше от горячих компрессов. Пьёт маленькими глотками часто. Сильная слабость."
+Ответ:
+{
+  "symptoms": [
+    {"rubric": "anxiety health hypochondria cancer", "category": "mental", "present": true, "weight": 3},
+    {"rubric": "fastidious orderly pedantic", "category": "mental", "present": true, "weight": 3},
+    {"rubric": "restlessness cannot lie still", "category": "mental", "present": true, "weight": 2},
+    {"rubric": "worse after midnight 1am 2am", "category": "general", "present": true, "weight": 3},
+    {"rubric": "chilly", "category": "general", "present": true, "weight": 2},
+    {"rubric": "burning pains better warm applications", "category": "general", "present": true, "weight": 3},
+    {"rubric": "thirst small sips frequently", "category": "general", "present": true, "weight": 3},
+    {"rubric": "weakness prostration disproportionate", "category": "general", "present": true, "weight": 2}
+  ],
+  "modalities": [
+    {"pairId": "heat_cold", "value": "amel"}
+  ],
+  "familyHistory": []
+}
+
+Текст: "Женщина 40 лет. Безразличие к семье — не хочет видеть мужа и детей. Ощущение что всё тянет вниз — как будто матка выпадает. Жёлтые пятна на лице. Любит уксус. Значительно лучше от энергичных упражнений и танцев."
+Ответ:
+{
+  "symptoms": [
+    {"rubric": "indifference family husband children", "category": "mental", "present": true, "weight": 3},
+    {"rubric": "bearing down sensation prolapse uterus", "category": "particular", "present": true, "weight": 3},
+    {"rubric": "yellow spots face chloasma", "category": "particular", "present": true, "weight": 3},
+    {"rubric": "desire vinegar sour", "category": "general", "present": true, "weight": 2},
+    {"rubric": "better vigorous exercise dancing", "category": "general", "present": true, "weight": 3}
+  ],
+  "modalities": [
+    {"pairId": "motion_rest", "value": "amel"}
+  ],
+  "familyHistory": []
+}
+
+Текст: "Ребёнок 1 год. Прорезывание зубов — кричит от боли. Одна щека красная, другая бледная. Капризный — просит и тут же отталкивает. Хочет чтобы носили на руках. Стул зелёный."
+Ответ:
+{
+  "symptoms": [
+    {"rubric": "dentition difficult teething pain", "category": "particular", "present": true, "weight": 2},
+    {"rubric": "one cheek red other pale", "category": "particular", "present": true, "weight": 3},
+    {"rubric": "capricious asks then refuses", "category": "mental", "present": true, "weight": 3},
+    {"rubric": "wants to be carried", "category": "mental", "present": true, "weight": 2},
+    {"rubric": "oversensitive pain intolerance screaming", "category": "mental", "present": true, "weight": 3},
+    {"rubric": "stool green", "category": "particular", "present": true, "weight": 2}
+  ],
+  "modalities": [],
+  "familyHistory": []
+}
+
+Текст: "Женщина 52 лет. Приливы в менопаузе. Все жалобы слева. Не переносит тесную одежду на шее и животе. Ревнивая, подозрительная. Очень разговорчивая. Хуже после сна. Жаркая."
+Ответ:
+{
+  "symptoms": [
+    {"rubric": "hot flushes menopause climacteric", "category": "general", "present": true, "weight": 2},
+    {"rubric": "left side complaints", "category": "general", "present": true, "weight": 2},
+    {"rubric": "intolerance tight clothing around neck", "category": "general", "present": true, "weight": 3},
+    {"rubric": "jealousy suspicious", "category": "mental", "present": true, "weight": 3},
+    {"rubric": "loquacity talkative", "category": "mental", "present": true, "weight": 2},
+    {"rubric": "worse after sleep", "category": "general", "present": true, "weight": 3},
+    {"rubric": "hot patient", "category": "general", "present": true, "weight": 2}
+  ],
+  "modalities": [
+    {"pairId": "heat_cold", "value": "agg"}
   ],
   "familyHistory": []
 }`
