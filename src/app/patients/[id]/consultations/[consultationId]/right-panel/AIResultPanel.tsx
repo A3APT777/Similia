@@ -12,385 +12,460 @@ type Props = {
   clarifyingQuestions?: AIQuestion[]
 }
 
-// Двойные названия линз
-const LENS_LABELS: Record<string, { ru: string; tooltip: string }> = {
-  'Kent': { ru: 'Классический реперторий (Kent)', tooltip: 'Совпадения в реперторных рубриках' },
-  'Polarity': { ru: 'Полярности (Polarity)', tooltip: 'Баланс подтверждающих и исключающих рубрик' },
-  'Hierarchy': { ru: 'Иерархия симптомов (Hierarchy)', tooltip: 'Вес по типу: психика > общее > частное' },
-  'Constellation': { ru: 'Характерные паттерны (Constellation)', tooltip: 'Совпадение ключевых комбинаций' },
-  'Negative': { ru: 'Исключающие признаки (Negative)', tooltip: 'Симптомы, нетипичные для препарата' },
-  'Miasm': { ru: 'Миазм (Miasm)', tooltip: 'Миазматическое соответствие' },
-}
-
-// Перевод технических hints
-const HINT_TRANSLATIONS: Record<string, string> = {
-  'heat_cold': 'чувствительность к теплу/холоду',
-  'motion_rest': 'хуже от движения / лучше в покое',
-  'open_air': 'на свежем воздухе',
-  'consolation': 'реакция на утешение',
-  'thirst': 'жажда',
-  'appetite': 'аппетит',
-  'sleep': 'сон',
-  'perspiration': 'потоотделение',
+// Перевод hints
+const HINT_RU: Record<string, string> = {
+  heat_cold: 'чувствительность к теплу/холоду',
+  motion_rest: 'хуже от движения / лучше в покое',
+  open_air: 'на свежем воздухе',
+  consolation: 'реакция на утешение',
+  thirst: 'жажда',
+  appetite: 'аппетит',
+  sleep: 'сон',
+  perspiration: 'потоотделение',
 }
 
 function translateHint(hint: string): string {
-  let result = hint
-  for (const [key, val] of Object.entries(HINT_TRANSLATIONS)) {
-    result = result.replace(new RegExp(key, 'gi'), val)
-  }
-  return result
+  let r = hint
+  for (const [k, v] of Object.entries(HINT_RU)) r = r.replace(new RegExp(k, 'gi'), v)
+  return r
 }
 
-// Цвет полоски
-function getBarColor(score: number): string {
-  if (score >= 70) return 'bg-indigo-500'
-  if (score >= 50) return 'bg-indigo-400'
-  if (score >= 30) return 'bg-indigo-300'
-  return 'bg-gray-300'
+// Генерация факторов "почему выбран" из линз
+function extractFactors(result: MDRIResult): string[] {
+  const f: string[] = []
+  for (const l of result.lenses) {
+    if (l.name === 'Kent' && l.score >= 50) f.push('высокое совпадение в классическом реперторий')
+    if (l.name === 'Constellation' && l.score >= 60) f.push('характерный паттерн полностью совпал')
+    else if (l.name === 'Constellation' && l.score >= 30) f.push('частичное совпадение характерных паттернов')
+    if (l.name === 'Hierarchy' && l.score >= 60) f.push('совпадение по ключевым уровням симптомов')
+    if (l.name === 'Polarity' && l.score >= 50) f.push('подтверждено полярностным анализом')
+    if (l.name === 'Negative' && l.score >= 70) f.push('нет противоречащих признаков')
+  }
+  if (result.miasm) f.push(`миазматическое соответствие: ${result.miasm}`)
+  return f.slice(0, 5)
 }
 
-// Уровень совпадения: текст вместо числа
-function getLensLevel(score: number): string {
-  if (score >= 70) return 'сильное'
-  if (score >= 50) return 'среднее'
-  if (score >= 30) return 'слабое'
-  return 'минимальное'
+// Генерация причин "почему НЕ выбран" — сравнение с top-1
+function extractWeaknesses(result: MDRIResult, top: MDRIResult): string[] {
+  const w: string[] = []
+  for (const topLens of top.lenses) {
+    const thisLens = result.lenses.find(l => l.name === topLens.name)
+    if (!thisLens) continue
+    const gap = topLens.score - thisLens.score
+    if (gap < 15) continue
+
+    if (topLens.name === 'Constellation' && thisLens.score < 30) w.push('не подтверждён характерный паттерн')
+    else if (topLens.name === 'Hierarchy' && thisLens.score < 40) w.push('слабое совпадение по ключевым уровням')
+    else if (topLens.name === 'Kent' && thisLens.score < 40) w.push('меньше совпадений в реперторий')
+    else if (topLens.name === 'Polarity' && thisLens.score < 30) w.push('не подтверждён полярностным анализом')
+    else if (topLens.name === 'Negative' && thisLens.score < 50) w.push('есть противоречащие признаки')
+  }
+  if (w.length === 0) w.push('менее выраженное общее совпадение')
+  return w.slice(0, 2)
 }
 
-// Бейдж confidence
-function ConfidenceBadge({ confidence, productConfidence }: {
-  confidence?: string
-  productConfidence?: ConsensusResult['productConfidence']
-}) {
-  if (productConfidence) {
-    const colors: Record<string, string> = {
-      'green': 'bg-emerald-100 text-emerald-700',
-      'blue': 'bg-blue-100 text-blue-700',
-      'yellow': 'bg-amber-100 text-amber-700',
-      'gray': 'bg-gray-100 text-gray-500',
-    }
-    return (
-      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${colors[productConfidence.color] ?? colors['blue']}`}>
-        {productConfidence.label}
-      </span>
-    )
+// Уверенность текстом
+function confidenceText(level: string): string {
+  const m: Record<string, string> = {
+    high: 'Высокая уверенность', medium: 'Хорошее совпадение',
+    low: 'Требует уточнения', insufficient: 'Недостаточно данных',
   }
-  if (!confidence) return null
-  const colors: Record<string, string> = {
-    'high': 'bg-emerald-100 text-emerald-700',
-    'medium': 'bg-blue-100 text-blue-700',
-    'low': 'bg-amber-100 text-amber-700',
-    'insufficient': 'bg-red-100 text-red-700',
-  }
-  const labels: Record<string, string> = {
-    'high': 'Высокая уверенность', 'medium': 'Средняя уверенность', 'low': 'Низкая уверенность', 'insufficient': 'Недостаточно данных',
-  }
-  return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${colors[confidence] ?? colors['low']}`}>
-      {labels[confidence] ?? confidence}
-    </span>
-  )
+  return m[level] ?? level
 }
 
-// Блок "Как AI понял случай" — confidence ВСЕГДА показывается
-function InferredProfileBlock({ profile }: { profile: NonNullable<ConsensusResult['inferredProfile']> }) {
-  const VALUE_LABELS: Record<string, string> = {
-    'acute': 'Острый', 'chronic': 'Хронический',
-    'high': 'Высокая', 'medium': 'Средняя', 'low': 'Низкая',
-    'child': 'Ребёнок', 'adult': 'Взрослый', 'elderly': 'Пожилой',
+function confidenceStyle(level: string): string {
+  const m: Record<string, string> = {
+    high: 'text-[#2d6a4f] bg-[#2d6a4f]/8', medium: 'text-[#5a7a5c] bg-[#5a7a5c]/8',
+    low: 'text-amber-600 bg-amber-50', insufficient: 'text-red-500 bg-red-50',
   }
-  const confLabel = (c: number) => c >= 0.7 ? 'высокая уверенность' : c >= 0.4 ? 'средняя уверенность' : 'низкая уверенность'
-  const confColor = (c: number) => c >= 0.7 ? 'text-emerald-500' : c >= 0.4 ? 'text-blue-400' : 'text-amber-500'
-  const confBg = (c: number) => c < 0.4 ? 'bg-amber-50 border-amber-100' : ''
+  return m[level] ?? 'text-gray-500 bg-gray-50'
+}
+
+// ═══════════════════════════════════════════
+// Блок: Как AI понял случай
+// ═══════════════════════════════════════════
+function CaseUnderstanding({ profile }: { profile: NonNullable<ConsensusResult['inferredProfile']> }) {
+  const LABELS: Record<string, string> = {
+    acute: 'Острый', chronic: 'Хронический',
+    high: 'Высокая', medium: 'Средняя', low: 'Низкая',
+    child: 'Ребёнок', adult: 'Взрослый', elderly: 'Пожилой',
+  }
+  const confDot = (c: number) =>
+    c >= 0.7 ? 'bg-[#2d6a4f]' : c >= 0.4 ? 'bg-[#5a7a5c]' : 'bg-amber-400'
+  const confText = (c: number) =>
+    c >= 0.7 ? 'высокая' : c >= 0.4 ? 'средняя' : 'низкая'
 
   const items = [
-    { label: 'Тип случая', value: VALUE_LABELS[profile.caseType.value] ?? profile.caseType.value, conf: profile.caseType.confidence },
-    { label: 'Витальность', value: VALUE_LABELS[profile.vitality.value] ?? profile.vitality.value, conf: profile.vitality.confidence },
-    { label: 'Чувствительность', value: VALUE_LABELS[profile.sensitivity.value] ?? profile.sensitivity.value, conf: profile.sensitivity.confidence },
-    { label: 'Возраст', value: VALUE_LABELS[profile.age.value] ?? profile.age.value, conf: profile.age.confidence },
+    { label: 'Тип', value: LABELS[profile.caseType.value] ?? profile.caseType.value, conf: profile.caseType.confidence },
+    { label: 'Витальность', value: LABELS[profile.vitality.value] ?? profile.vitality.value, conf: profile.vitality.confidence },
+    { label: 'Чувствительность', value: LABELS[profile.sensitivity.value] ?? profile.sensitivity.value, conf: profile.sensitivity.confidence },
+    { label: 'Возраст', value: LABELS[profile.age.value] ?? profile.age.value, conf: profile.age.confidence },
   ]
 
+  const hasLowConf = items.some(i => i.conf < 0.4)
+
   return (
-    <div className="mx-3 mt-2 mb-1 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+    <div className="px-4 py-3">
+      <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-2">
         Как AI понял случай
       </div>
-      <div className="space-y-1">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
         {items.map(item => (
-          <div key={item.label} className={`flex items-center justify-between text-[11px] px-1.5 py-0.5 rounded ${confBg(item.conf)}`}>
-            <div className="flex items-baseline gap-1">
-              <span className="text-gray-400">{item.label}:</span>
-              <span className="font-medium text-gray-700">{item.value}</span>
-            </div>
-            <span className={`text-[9px] ${confColor(item.conf)}`}>
-              {confLabel(item.conf)}
-            </span>
+          <div key={item.label} className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${confDot(item.conf)}`} />
+            <span className="text-[11px] text-[#9a8a6a]">{item.label}</span>
+            <span className="text-[11px] font-medium text-[#3a3020]">{item.value}</span>
+            {item.conf < 0.4 && (
+              <span className="text-[9px] text-amber-500">?</span>
+            )}
           </div>
         ))}
       </div>
-      {items.some(i => i.conf < 0.4) && (
-        <p className="text-[10px] text-amber-500 mt-2 px-1.5">
-          Параметры с низкой уверенностью требуют уточнения.
+      {hasLowConf && (
+        <p className="text-[10px] text-amber-500 mt-2 flex items-center gap-1">
+          <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+          </svg>
+          Параметры с низкой уверенностью — уточните описание случая
         </p>
       )}
     </div>
   )
 }
 
-// Блок "Почему выбран" — факторы без числовых метрик
-function WhyChosenBlock({ result }: { result: MDRIResult }) {
-  const factors: string[] = []
-
-  for (const lens of result.lenses) {
-    if (lens.name === 'Kent' && lens.score >= 50) {
-      factors.push('высокое совпадение в классическом реперторий')
-    }
-    if (lens.name === 'Constellation' && lens.score >= 30) {
-      factors.push(lens.score >= 60
-        ? 'сильное совпадение характерных паттернов'
-        : 'частичное совпадение характерных паттернов')
-    }
-    if (lens.name === 'Hierarchy' && lens.score >= 60) {
-      factors.push('совпадение по ключевым уровням (психика, общее)')
-    }
-    if (lens.name === 'Polarity' && lens.score >= 50) {
-      factors.push('подтверждено полярностным анализом')
-    }
-    if (lens.name === 'Negative' && lens.score >= 70) {
-      factors.push('нет противоречащих признаков')
-    }
-  }
-  if (result.miasm) {
-    factors.push(`миазматическое соответствие: ${result.miasm}`)
-  }
-
-  if (factors.length === 0) return null
-
-  return (
-    <div className="text-[11px] bg-indigo-50/50 rounded-lg px-2.5 py-2 border border-indigo-100 space-y-1">
-      <div className="text-indigo-500 font-medium">Почему выбран:</div>
-      <ul className="space-y-0.5 text-gray-600">
-        {factors.slice(0, 5).map((f, i) => (
-          <li key={i} className="flex items-start gap-1">
-            <span className="text-indigo-300 mt-0.5 shrink-0">·</span>
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-[10px] text-gray-400 italic">Это соответствует профилю препарата</p>
-    </div>
-  )
-}
-
-// Карточка препарата
-function RemedyCard({ result, rank, expanded, onToggle, onAssign, idx }: {
+// ═══════════════════════════════════════════
+// Блок: Главный препарат (TOP-1)
+// ═══════════════════════════════════════════
+function HeroRemedy({ result, onAssign, onCompare }: {
   result: MDRIResult
-  rank: number
-  expanded: boolean
-  onToggle: () => void
   onAssign?: () => void
-  idx: number
+  onCompare: () => void
 }) {
+  const factors = extractFactors(result)
+
   return (
-    <div
-      className={`ai-fade-in rounded-2xl border transition-all ${rank === 0 ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 bg-white'}`}
-      style={{ animationDelay: `${idx * 0.1}s` }}
-    >
-      <button
-        onClick={onToggle}
-        className="w-full px-3 py-2.5 flex items-center gap-2 text-left"
-      >
-        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-          rank === 0 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'
-        }`}>
-          {rank + 1}
+    <div className="ai-fade-in px-4 py-4">
+      {/* Название — крупно, как единственный фокус */}
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div className="text-2xl font-bold text-[#1a1a0a] tracking-tight uppercase leading-none">
+            {result.remedy}
+          </div>
+          <div className="text-[13px] text-[#9a8a6a] mt-0.5">{result.remedyName}</div>
+        </div>
+        <span className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${confidenceStyle(result.confidence)}`}>
+          {confidenceText(result.confidence)}
         </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-bold text-gray-900 uppercase">{result.remedy}</span>
-            <span className="text-[11px] text-gray-400 truncate">{result.remedyName}</span>
+      </div>
+
+      {/* Факторы */}
+      {factors.length > 0 && (
+        <div className="mb-4">
+          <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
+            Выбран на основе
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className={`ai-counter text-sm font-bold ${rank === 0 ? 'text-indigo-600' : 'text-gray-600'}`}>
-            {result.totalScore}%
-          </span>
-          <ConfidenceBadge confidence={result.confidence} />
-          <svg className={`w-3.5 h-3.5 text-gray-300 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="px-3 pb-3 space-y-2">
-          {/* Почему выбран — для всех, не только top-1 */}
-          <WhyChosenBlock result={result} />
-
-          {/* Линзы — без числовых деталей, с текстовым уровнем */}
           <div className="space-y-1">
-            {result.lenses.map(lens => {
-              const lensInfo = LENS_LABELS[lens.name]
-              return (
-                <div key={lens.name} className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400 w-[140px] shrink-0 truncate" title={lensInfo?.tooltip}>
-                    {lensInfo?.ru ?? lens.name}
-                  </span>
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`ai-lens-bar h-full rounded-full ${getBarColor(lens.score)}`} style={{ width: `${lens.score}%` }} />
-                  </div>
-                  <span className="text-[9px] text-gray-400 w-16 text-right">{getLensLevel(lens.score)}</span>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Потенция */}
-          {result.potency && (
-            <div className="flex items-center gap-1.5 text-[11px]">
-              <span className="text-gray-400">Потенция:</span>
-              <span className="font-medium text-gray-700">{result.potency.potency}</span>
-              <span className="text-gray-400">—</span>
-              <span className="text-gray-500">{result.potency.reasoning}</span>
-            </div>
-          )}
-
-          {/* Миазм */}
-          {result.miasm && (
-            <div className="text-[11px]">
-              <span className="text-gray-400">Миазм: </span>
-              <span className="font-medium text-gray-700">{result.miasm}</span>
-            </div>
-          )}
-
-          {/* Differential */}
-          {result.differential && (
-            <div className="text-[11px] bg-amber-50 rounded-lg px-2.5 py-1.5 border border-amber-100">
-              <span className="text-amber-600 font-medium">Уточнить: </span>
-              <span className="text-amber-700">{result.differential.differentiatingQuestion}</span>
-            </div>
-          )}
-
-          {/* Назначить */}
-          {onAssign && (
-            <button
-              onClick={onAssign}
-              className="w-full text-xs font-medium py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-            >
-              Назначить {result.remedy.toUpperCase()} {result.potency?.potency ?? '30C'}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarify, clarifyingQuestions }: Props) {
-  const [expandedIdx, setExpandedIdx] = useState(0)
-  const [showAll, setShowAll] = useState(false)
-
-  const results = aiResult.mdriResults
-  const visible = showAll ? results : results.slice(0, 3)
-
-  return (
-    <div className="ai-glass ai-slide-up rounded-2xl overflow-hidden">
-      {/* Заголовок */}
-      <div className="px-3 py-2.5 border-b border-indigo-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-            </svg>
-            <span className="text-xs font-semibold text-gray-900">
-              {lang === 'ru' ? 'AI-анализ' : 'AI Analysis'}
-            </span>
-            <ConfidenceBadge productConfidence={aiResult.productConfidence} />
-          </div>
-        </div>
-
-        {/* Warnings */}
-        {aiResult.warnings && aiResult.warnings.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {aiResult.warnings.map((w, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[11px] text-amber-600 bg-amber-50 rounded-lg px-2 py-1.5">
-                <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
-                </svg>
-                <div>
-                  <span className="font-medium">{w.message}</span>
-                  <span className="text-amber-500"> — {translateHint(w.hint)}</span>
-                </div>
+            {factors.map((f, i) => (
+              <div key={i} className="flex items-start gap-2 text-[12px] text-[#3a3020]">
+                <span className="w-1 h-1 rounded-full bg-[#2d6a4f] mt-1.5 shrink-0" />
+                <span>{f}</span>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Потенция */}
+      {result.potency && (
+        <div className="flex items-center gap-2 text-[12px] mb-4 px-3 py-2 rounded-xl bg-[#f8f5f0] border border-[rgba(0,0,0,0.06)]">
+          <span className="text-[#9a8a6a]">Потенция:</span>
+          <span className="font-semibold text-[#3a3020]">{result.potency.potency}</span>
+          <span className="text-[#9a8a6a]">—</span>
+          <span className="text-[#6a5a4a]">{result.potency.reasoning}</span>
+        </div>
+      )}
+
+      {/* Кнопки */}
+      <div className="flex gap-2">
+        {onAssign && (
+          <button
+            onClick={onAssign}
+            className="flex-1 text-[13px] font-semibold py-2.5 rounded-2xl bg-[#2d6a4f] text-white hover:bg-[#245a42] active:scale-[0.98] transition-all shadow-sm"
+          >
+            Назначить {result.remedy.toUpperCase()} {result.potency?.potency ?? '30C'}
+          </button>
+        )}
+        <button
+          onClick={onCompare}
+          className="px-4 text-[12px] font-medium py-2.5 rounded-2xl border border-[rgba(0,0,0,0.1)] text-[#6a5a4a] hover:bg-[#f8f5f0] active:scale-[0.98] transition-all"
+        >
+          Сравнить
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════
+// Блок: Альтернативы ("почему не другие")
+// ═══════════════════════════════════════════
+function AlternativesBlock({ alternatives, top, onAssign }: {
+  alternatives: MDRIResult[]
+  top: MDRIResult
+  onAssign?: (abbrev: string, potency: string) => void
+}) {
+  if (alternatives.length === 0) return null
+
+  return (
+    <div className="px-4 py-3">
+      <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-2">
+        Альтернативы
+      </div>
+      <div className="space-y-2">
+        {alternatives.slice(0, 3).map((alt, idx) => {
+          const weaknesses = extractWeaknesses(alt, top)
+          return (
+            <div
+              key={alt.remedy}
+              className="ai-fade-in flex items-start gap-3 p-2.5 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white/60 hover:bg-[#f8f5f0] transition-colors group"
+              style={{ animationDelay: `${(idx + 1) * 0.08}s` }}
+            >
+              <span className="w-5 h-5 rounded-full bg-[#e8e2d8] flex items-center justify-center text-[10px] font-bold text-[#9a8a6a] shrink-0 mt-0.5">
+                {idx + 2}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-bold text-[#3a3020] uppercase">{alt.remedy}</span>
+                  <span className="text-[11px] text-[#9a8a6a] truncate">{alt.remedyName}</span>
+                </div>
+                <div className="mt-0.5 space-y-0.5">
+                  {weaknesses.map((w, i) => (
+                    <div key={i} className="text-[11px] text-[#9a8a6a] flex items-start gap-1">
+                      <span className="text-amber-400 shrink-0 mt-px">—</span>
+                      <span>{w}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {onAssign && (
+                <button
+                  onClick={() => onAssign(alt.remedy, alt.potency?.potency ?? '30C')}
+                  className="opacity-0 group-hover:opacity-100 text-[10px] px-2.5 py-1 rounded-lg border border-[rgba(0,0,0,0.1)] text-[#6a5a4a] hover:bg-[#f0ebe3] transition-all shrink-0 mt-0.5"
+                >
+                  Назначить
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════
+// Блок: Детальное сравнение (раскрывается)
+// ═══════════════════════════════════════════
+function DetailedComparison({ results, onAssign }: {
+  results: MDRIResult[]
+  onAssign?: (abbrev: string, potency: string) => void
+}) {
+  const [expanded, setExpanded] = useState<number | null>(null)
+
+  const lensLabel = (name: string) => {
+    const m: Record<string, string> = {
+      Kent: 'Реперторий', Constellation: 'Паттерны', Hierarchy: 'Иерархия',
+      Polarity: 'Полярности', Negative: 'Исключения', Miasm: 'Миазм',
+    }
+    return m[name] ?? name
+  }
+  const lensLevel = (s: number) => s >= 70 ? 'сильное' : s >= 50 ? 'среднее' : s >= 30 ? 'слабое' : '—'
+  const barColor = (s: number) => s >= 70 ? 'bg-[#2d6a4f]' : s >= 50 ? 'bg-[#5a7a5c]' : s >= 30 ? 'bg-[#9a8a6a]' : 'bg-gray-200'
+
+  return (
+    <div className="px-4 py-3 border-t border-[rgba(0,0,0,0.06)]">
+      <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-2">
+        Детальное сравнение
+      </div>
+      <div className="space-y-1">
+        {results.slice(0, 5).map((r, idx) => (
+          <div key={r.remedy}>
+            <button
+              onClick={() => setExpanded(expanded === idx ? null : idx)}
+              className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[#f8f5f0] transition-colors text-left"
+            >
+              <span className="text-[12px] font-bold text-[#3a3020] uppercase w-14">{r.remedy}</span>
+              <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${barColor(r.totalScore)}`} style={{ width: `${r.totalScore}%` }} />
+              </div>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${confidenceStyle(r.confidence)}`}>
+                {confidenceText(r.confidence)}
+              </span>
+              <svg className={`w-3 h-3 text-[#9a8a6a] transition-transform ${expanded === idx ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {expanded === idx && (
+              <div className="ml-16 mr-2 mb-2 space-y-1">
+                {r.lenses.map(l => (
+                  <div key={l.name} className="flex items-center gap-2 text-[11px]">
+                    <span className="text-[#9a8a6a] w-20 shrink-0">{lensLabel(l.name)}</span>
+                    <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`ai-lens-bar h-full rounded-full ${barColor(l.score)}`} style={{ width: `${l.score}%` }} />
+                    </div>
+                    <span className="text-[10px] text-[#9a8a6a] w-14 text-right">{lensLevel(l.score)}</span>
+                  </div>
+                ))}
+                {r.miasm && <div className="text-[11px] text-[#6a5a4a]">Миазм: {r.miasm}</div>}
+                {r.potency && <div className="text-[11px] text-[#6a5a4a]">Потенция: {r.potency.potency} — {r.potency.reasoning}</div>}
+                {onAssign && (
+                  <button
+                    onClick={() => onAssign(r.remedy, r.potency?.potency ?? '30C')}
+                    className="text-[11px] font-medium px-3 py-1.5 rounded-lg bg-[#2d6a4f] text-white hover:bg-[#245a42] transition-colors mt-1"
+                  >
+                    Назначить {r.remedy.toUpperCase()} {r.potency?.potency ?? '30C'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════
+// Блок: Требует уточнения
+// ═══════════════════════════════════════════
+function ClarifyBlock({ aiResult, onClarify, clarifyingQuestions }: {
+  aiResult: ConsensusResult
+  onClarify: (q: AIQuestion[]) => void
+  clarifyingQuestions?: AIQuestion[]
+}) {
+  const pc = aiResult.productConfidence
+  const results = aiResult.mdriResults
+  const needsClarify = pc
+    ? (pc.level === 'clarify' || pc.level === 'insufficient')
+    : (() => {
+      const top = results[0]
+      const second = results[1]
+      return top && (top.confidence === 'low' || top.confidence === 'insufficient' || (second && top.totalScore - second.totalScore < 5))
+    })()
+
+  if (!needsClarify) return null
+
+  // Собираем что именно нужно уточнить
+  const needsItems: string[] = []
+  const w = aiResult.warnings ?? []
+  if (w.some(x => x.type === 'no_modalities')) needsItems.push('модальности (что ухудшает/улучшает)')
+  if (w.some(x => x.type === 'no_mental')) needsItems.push('психическое состояние')
+  if (w.some(x => x.type === 'no_general')) needsItems.push('общие симптомы')
+  if (w.some(x => x.type === 'few_symptoms')) needsItems.push('больше деталей о жалобах')
+  if (needsItems.length === 0) needsItems.push('дополнительные детали случая')
+
+  return (
+    <div className="mx-4 mb-3 p-3 rounded-2xl bg-amber-50/80 border border-amber-200/60">
+      <div className="flex items-start gap-2">
+        <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+        </svg>
+        <div className="flex-1">
+          <div className="text-[12px] font-semibold text-amber-700 mb-1">Требует уточнения</div>
+          <div className="space-y-0.5 mb-2">
+            {needsItems.map((item, i) => (
+              <div key={i} className="text-[11px] text-amber-600 flex items-start gap-1">
+                <span className="text-amber-400 shrink-0">·</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => onClarify(clarifyingQuestions ?? [])}
+            className="text-[11px] font-medium px-4 py-1.5 rounded-xl bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors border border-amber-200/60"
+          >
+            Уточнить данные
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════
+// Главный компонент
+// ═══════════════════════════════════════════
+export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarify, clarifyingQuestions }: Props) {
+  const [showComparison, setShowComparison] = useState(false)
+
+  const results = aiResult.mdriResults
+  const top = results[0]
+  const alternatives = results.slice(1, 4)
+
+  if (!top) return null
+
+  return (
+    <div className="ai-slide-up rounded-2xl bg-[#faf7f2] border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm">
+      {/* Верхняя полоска — confidence */}
+      <div className="px-4 py-2 border-b border-[rgba(0,0,0,0.06)] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#2d6a4f] animate-pulse" />
+          <span className="text-[11px] font-semibold text-[#3a3020]">AI-анализ завершён</span>
+        </div>
+        {aiResult.productConfidence && (
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${confidenceStyle(aiResult.productConfidence.level === 'high' ? 'high' : aiResult.productConfidence.level === 'good' ? 'medium' : aiResult.productConfidence.level === 'clarify' ? 'low' : 'insufficient')}`}>
+            {aiResult.productConfidence.label}
+          </span>
         )}
       </div>
+
+      {/* Warnings — компактно */}
+      {aiResult.warnings && aiResult.warnings.length > 0 && (
+        <div className="px-4 py-2 border-b border-[rgba(0,0,0,0.04)] bg-amber-50/40">
+          {aiResult.warnings.slice(0, 2).map((w, i) => (
+            <p key={i} className="text-[10px] text-amber-600">
+              {w.message} — <span className="text-amber-500">{translateHint(w.hint)}</span>
+            </p>
+          ))}
+        </div>
+      )}
 
       {/* Как AI понял случай */}
       {aiResult.inferredProfile && (
-        <InferredProfileBlock profile={aiResult.inferredProfile} />
+        <div className="border-b border-[rgba(0,0,0,0.06)]">
+          <CaseUnderstanding profile={aiResult.inferredProfile} />
+        </div>
       )}
 
-      {/* Препараты */}
-      <div className="p-2 space-y-1.5">
-        {visible.map((result, idx) => (
-          <RemedyCard
-            key={result.remedy}
-            result={result}
-            rank={idx}
-            idx={idx}
-            expanded={expandedIdx === idx}
-            onToggle={() => setExpandedIdx(expandedIdx === idx ? -1 : idx)}
-            onAssign={onAssignRemedy ? () => onAssignRemedy(result.remedy, result.potency?.potency ?? '30C') : undefined}
-          />
-        ))}
-
-        {results.length > 3 && !showAll && (
-          <button
-            onClick={() => setShowAll(true)}
-            className="w-full text-[11px] text-gray-400 hover:text-gray-600 py-1 transition-colors"
-          >
-            Показать ещё {results.length - 3} →
-          </button>
-        )}
+      {/* ★ ГЛАВНЫЙ ПРЕПАРАТ */}
+      <div className="border-b border-[rgba(0,0,0,0.06)]">
+        <HeroRemedy
+          result={top}
+          onAssign={onAssignRemedy ? () => onAssignRemedy(top.remedy, top.potency?.potency ?? '30C') : undefined}
+          onCompare={() => setShowComparison(!showComparison)}
+        />
       </div>
 
-      {/* Уточнения */}
-      {onClarify && (() => {
-        const pc = aiResult.productConfidence
-        const needsClarify = pc
-          ? (pc.level === 'clarify' || pc.level === 'insufficient')
-          : (() => {
-            const top = results[0]
-            const second = results[1]
-            return top && (top.confidence === 'low' || top.confidence === 'insufficient' || (second && top.totalScore - second.totalScore < 5))
-          })()
+      {/* Альтернативы — всегда видны */}
+      <AlternativesBlock
+        alternatives={alternatives}
+        top={top}
+        onAssign={onAssignRemedy}
+      />
 
-        if (!needsClarify) return null
-        return (
-          <div className="mx-2 mb-2 p-3 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
-            <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-              </svg>
-              <span className="text-xs font-semibold text-amber-700">
-                {pc?.label ?? 'Рекомендуется уточнить'}
-              </span>
-            </div>
-            <p className="text-[11px] text-amber-600">
-              Добавьте информацию о модальностях, психике или общих симптомах для повышения точности.
-            </p>
-            <button
-              onClick={() => onClarify(clarifyingQuestions ?? [])}
-              className="w-full text-xs font-medium py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors border border-amber-200"
-            >
-              Уточнить
-            </button>
-          </div>
-        )
-      })()}
+      {/* Детальное сравнение — по нажатию "Сравнить" */}
+      {showComparison && (
+        <DetailedComparison results={results} onAssign={onAssignRemedy} />
+      )}
+
+      {/* Уточнение — если нужно */}
+      {onClarify && (
+        <ClarifyBlock
+          aiResult={aiResult}
+          onClarify={onClarify}
+          clarifyingQuestions={clarifyingQuestions}
+        />
+      )}
     </div>
   )
 }
