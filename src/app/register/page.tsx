@@ -222,10 +222,10 @@ export default function RegisterPage() {
               </p>
               <div style={{ fontSize: '13px', color: '#b8a898', marginBottom: '12px', lineHeight: 1.6, backgroundColor: 'rgba(45,106,79,0.05)', borderRadius: '12px', padding: '12px 16px', textAlign: 'left' }}>
                 <p style={{ marginBottom: '6px', color: '#6a5a4a' }}>
-                  <strong>Отправитель:</strong> noreply@mail.app.supabase.io
+                  <strong>Отправитель:</strong> Simillia@mail.ru (Similia)
                 </p>
                 <p style={{ marginBottom: '6px' }}>
-                  Это технический адрес нашей системы авторизации. Письмо безопасно.
+                  Тема письма: «Similia — подтвердите регистрацию»
                 </p>
                 <p style={{ marginBottom: 0 }}>
                   Если не нашли — проверьте папку <strong style={{ color: '#6a5a4a' }}>«Спам»</strong> или <strong style={{ color: '#6a5a4a' }}>«Промоакции»</strong>.
