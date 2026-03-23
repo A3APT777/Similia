@@ -330,18 +330,25 @@ export function computeConfidence(
     return { level: 'clarify', label: 'Уточните для точности', color: 'yellow', showDiff: true, showAsEqual: false }
   }
 
+  // === КОНФЛИКТ ПАРСИНГА → потолок GOOD ===
+  // При конфликте Sonnet vs keyword модальности не можем быть уверены.
+  // HIGH невозможен. Максимум GOOD.
+  if (hasConflict) {
+    return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: true, showAsEqual: false }
+  }
+
   // === HIGH ===
   // Все условия одновременно:
   // 1) gap >= 15%
   // 2) strong characteristic (charStrength=2: mental w>=2 ИЛИ peculiar)
   // 3) modalities есть
   // 4) >=3 категории покрыты (mental + general + particular/modalities)
-  // 5) <=1 warning, нет конфликтов
-  if (gap >= 15 && charStrength >= 2 && hasModalities && categoryCoverage >= 3 && warningPenalty <= 1 && !hasConflict) {
+  // 5) <=1 warning
+  if (gap >= 15 && charStrength >= 2 && hasModalities && categoryCoverage >= 3 && warningPenalty <= 1) {
     return { level: 'high', label: 'Высокая уверенность', color: 'green', showDiff: false, showAsEqual: false }
   }
 
   // === GOOD ===
-  // charStrength=1 (слабый) → всё ещё GOOD, но showDiff чаще
+  // charStrength=1 (слабый) → showDiff чаще
   return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: gap < 12 || charStrength < 2, showAsEqual: false }
 }
