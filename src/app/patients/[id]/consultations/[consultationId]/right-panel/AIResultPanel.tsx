@@ -12,17 +12,17 @@ type Props = {
   clarifyingQuestions?: AIQuestion[]
 }
 
-// Двойные названия линз (понятно врачу + оригинал)
-const LENS_LABELS: Record<string, { ru: string; en: string; tooltip: string }> = {
-  'Kent': { ru: 'Классический реперторий', en: 'Classical Repertory', tooltip: 'совпадений в реперторных рубриках' },
-  'Polarity': { ru: 'Полярности', en: 'Polarity', tooltip: 'баланс подтверждающих и исключающих рубрик' },
-  'Hierarchy': { ru: 'Иерархия симптомов', en: 'Symptom Hierarchy', tooltip: 'вес по типу: психика > общее > частное' },
-  'Constellation': { ru: 'Характерные паттерны', en: 'Characteristic Patterns', tooltip: 'совпадение ключевых комбинаций' },
-  'Negative': { ru: 'Исключающие признаки', en: 'Negative Markers', tooltip: 'симптомы, нетипичные для препарата' },
-  'Miasm': { ru: 'Миазм', en: 'Miasm', tooltip: 'миазматическое соответствие' },
+// Двойные названия линз
+const LENS_LABELS: Record<string, { ru: string; tooltip: string }> = {
+  'Kent': { ru: 'Классический реперторий (Kent)', tooltip: 'Совпадения в реперторных рубриках' },
+  'Polarity': { ru: 'Полярности (Polarity)', tooltip: 'Баланс подтверждающих и исключающих рубрик' },
+  'Hierarchy': { ru: 'Иерархия симптомов (Hierarchy)', tooltip: 'Вес по типу: психика > общее > частное' },
+  'Constellation': { ru: 'Характерные паттерны (Constellation)', tooltip: 'Совпадение ключевых комбинаций' },
+  'Negative': { ru: 'Исключающие признаки (Negative)', tooltip: 'Симптомы, нетипичные для препарата' },
+  'Miasm': { ru: 'Миазм (Miasm)', tooltip: 'Миазматическое соответствие' },
 }
 
-// Перевод технических hints на язык врача
+// Перевод технических hints
 const HINT_TRANSLATIONS: Record<string, string> = {
   'heat_cold': 'чувствительность к теплу/холоду',
   'motion_rest': 'хуже от движения / лучше в покое',
@@ -42,7 +42,7 @@ function translateHint(hint: string): string {
   return result
 }
 
-// Цвет полоски по score
+// Цвет полоски
 function getBarColor(score: number): string {
   if (score >= 70) return 'bg-indigo-500'
   if (score >= 50) return 'bg-indigo-400'
@@ -50,7 +50,15 @@ function getBarColor(score: number): string {
   return 'bg-gray-300'
 }
 
-// Бейдж confidence (единый)
+// Уровень совпадения: текст вместо числа
+function getLensLevel(score: number): string {
+  if (score >= 70) return 'сильное'
+  if (score >= 50) return 'среднее'
+  if (score >= 30) return 'слабое'
+  return 'минимальное'
+}
+
+// Бейдж confidence
 function ConfidenceBadge({ confidence, productConfidence }: {
   confidence?: string
   productConfidence?: ConsensusResult['productConfidence']
@@ -76,7 +84,7 @@ function ConfidenceBadge({ confidence, productConfidence }: {
     'insufficient': 'bg-red-100 text-red-700',
   }
   const labels: Record<string, string> = {
-    'high': 'Высокая', 'medium': 'Средняя', 'low': 'Низкая', 'insufficient': 'Недостаточно',
+    'high': 'Высокая уверенность', 'medium': 'Средняя уверенность', 'low': 'Низкая уверенность', 'insufficient': 'Недостаточно данных',
   }
   return (
     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${colors[confidence] ?? colors['low']}`}>
@@ -85,79 +93,92 @@ function ConfidenceBadge({ confidence, productConfidence }: {
   )
 }
 
-// Блок "Как AI понял случай"
+// Блок "Как AI понял случай" — confidence ВСЕГДА показывается
 function InferredProfileBlock({ profile }: { profile: NonNullable<ConsensusResult['inferredProfile']> }) {
-  const LABELS: Record<string, string> = {
+  const VALUE_LABELS: Record<string, string> = {
     'acute': 'Острый', 'chronic': 'Хронический',
     'high': 'Высокая', 'medium': 'Средняя', 'low': 'Низкая',
     'child': 'Ребёнок', 'adult': 'Взрослый', 'elderly': 'Пожилой',
   }
-  const confLabel = (c: number) => c >= 0.7 ? 'высокая' : c >= 0.4 ? 'средняя' : 'низкая'
-  const confColor = (c: number) => c >= 0.7 ? 'text-emerald-600' : c >= 0.4 ? 'text-blue-500' : 'text-amber-500'
+  const confLabel = (c: number) => c >= 0.7 ? 'высокая уверенность' : c >= 0.4 ? 'средняя уверенность' : 'низкая уверенность'
+  const confColor = (c: number) => c >= 0.7 ? 'text-emerald-500' : c >= 0.4 ? 'text-blue-400' : 'text-amber-500'
+  const confBg = (c: number) => c < 0.4 ? 'bg-amber-50 border-amber-100' : ''
 
   const items = [
-    { label: 'Тип случая', value: LABELS[profile.caseType.value] ?? profile.caseType.value, conf: profile.caseType.confidence },
-    { label: 'Витальность', value: LABELS[profile.vitality.value] ?? profile.vitality.value, conf: profile.vitality.confidence },
-    { label: 'Чувствительность', value: LABELS[profile.sensitivity.value] ?? profile.sensitivity.value, conf: profile.sensitivity.confidence },
-    { label: 'Возраст', value: LABELS[profile.age.value] ?? profile.age.value, conf: profile.age.confidence },
+    { label: 'Тип случая', value: VALUE_LABELS[profile.caseType.value] ?? profile.caseType.value, conf: profile.caseType.confidence },
+    { label: 'Витальность', value: VALUE_LABELS[profile.vitality.value] ?? profile.vitality.value, conf: profile.vitality.confidence },
+    { label: 'Чувствительность', value: VALUE_LABELS[profile.sensitivity.value] ?? profile.sensitivity.value, conf: profile.sensitivity.confidence },
+    { label: 'Возраст', value: VALUE_LABELS[profile.age.value] ?? profile.age.value, conf: profile.age.confidence },
   ]
 
   return (
     <div className="mx-3 mt-2 mb-1 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+      <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
         Как AI понял случай
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      <div className="space-y-1">
         {items.map(item => (
-          <div key={item.label} className="flex items-baseline gap-1 text-[11px]">
-            <span className="text-gray-400">{item.label}:</span>
-            <span className="font-medium text-gray-700">{item.value}</span>
-            {item.conf < 0.5 && (
-              <span className={`text-[9px] ${confColor(item.conf)}`}>
-                ({confLabel(item.conf)})
-              </span>
-            )}
+          <div key={item.label} className={`flex items-center justify-between text-[11px] px-1.5 py-0.5 rounded ${confBg(item.conf)}`}>
+            <div className="flex items-baseline gap-1">
+              <span className="text-gray-400">{item.label}:</span>
+              <span className="font-medium text-gray-700">{item.value}</span>
+            </div>
+            <span className={`text-[9px] ${confColor(item.conf)}`}>
+              {confLabel(item.conf)}
+            </span>
           </div>
         ))}
       </div>
       {items.some(i => i.conf < 0.4) && (
-        <p className="text-[10px] text-amber-500 mt-1.5">
-          Некоторые параметры определены с низкой уверенностью. Уточните описание случая.
+        <p className="text-[10px] text-amber-500 mt-2 px-1.5">
+          Параметры с низкой уверенностью требуют уточнения.
         </p>
       )}
     </div>
   )
 }
 
-// Блок "Почему выбран препарат" — на основе реальных линз
+// Блок "Почему выбран" — факторы без числовых метрик
 function WhyChosenBlock({ result }: { result: MDRIResult }) {
-  const reasons: string[] = []
+  const factors: string[] = []
 
   for (const lens of result.lenses) {
     if (lens.name === 'Kent' && lens.score >= 50) {
-      const match = lens.details.match(/(\d+)\/(\d+)/)
-      if (match) reasons.push(`${match[1]} из ${match[2]} рубрик совпали`)
+      factors.push('высокое совпадение в классическом реперторий')
     }
-    if (lens.name === 'Constellation' && lens.score >= 40) {
-      reasons.push('характерный паттерн совпал')
+    if (lens.name === 'Constellation' && lens.score >= 30) {
+      factors.push(lens.score >= 60
+        ? 'сильное совпадение характерных паттернов'
+        : 'частичное совпадение характерных паттернов')
     }
     if (lens.name === 'Hierarchy' && lens.score >= 60) {
-      reasons.push('совпадение по ключевым уровням (психика, общее)')
+      factors.push('совпадение по ключевым уровням (психика, общее)')
     }
     if (lens.name === 'Polarity' && lens.score >= 50) {
-      reasons.push('подтверждено полярностным анализом')
+      factors.push('подтверждено полярностным анализом')
+    }
+    if (lens.name === 'Negative' && lens.score >= 70) {
+      factors.push('нет противоречащих признаков')
     }
   }
   if (result.miasm) {
-    reasons.push(`миазм: ${result.miasm}`)
+    factors.push(`миазматическое соответствие: ${result.miasm}`)
   }
 
-  if (reasons.length === 0) return null
+  if (factors.length === 0) return null
 
   return (
-    <div className="text-[11px] bg-indigo-50/50 rounded-lg px-2.5 py-1.5 border border-indigo-100">
-      <span className="text-indigo-500 font-medium">Почему выбран: </span>
-      <span className="text-gray-600">{reasons.join(' · ')}</span>
+    <div className="text-[11px] bg-indigo-50/50 rounded-lg px-2.5 py-2 border border-indigo-100 space-y-1">
+      <div className="text-indigo-500 font-medium">Почему выбран:</div>
+      <ul className="space-y-0.5 text-gray-600">
+        {factors.slice(0, 5).map((f, i) => (
+          <li key={i} className="flex items-start gap-1">
+            <span className="text-indigo-300 mt-0.5 shrink-0">·</span>
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[10px] text-gray-400 italic">Это соответствует профилю препарата</p>
     </div>
   )
 }
@@ -176,7 +197,6 @@ function RemedyCard({ result, rank, expanded, onToggle, onAssign, idx }: {
       className={`ai-fade-in rounded-2xl border transition-all ${rank === 0 ? 'border-indigo-200 bg-indigo-50/50' : 'border-gray-100 bg-white'}`}
       style={{ animationDelay: `${idx * 0.1}s` }}
     >
-      {/* Заголовок */}
       <button
         onClick={onToggle}
         className="w-full px-3 py-2.5 flex items-center gap-2 text-left"
@@ -203,27 +223,24 @@ function RemedyCard({ result, rank, expanded, onToggle, onAssign, idx }: {
         </div>
       </button>
 
-      {/* Детали */}
       {expanded && (
         <div className="px-3 pb-3 space-y-2">
-          {/* Почему выбран */}
-          {rank === 0 && <WhyChosenBlock result={result} />}
+          {/* Почему выбран — для всех, не только top-1 */}
+          <WhyChosenBlock result={result} />
 
-          {/* Линзы — двойные названия */}
+          {/* Линзы — без числовых деталей, с текстовым уровнем */}
           <div className="space-y-1">
             {result.lenses.map(lens => {
               const lensInfo = LENS_LABELS[lens.name]
-              const detailsMatch = lens.details.match(/(\d+)\/(\d+)/)
-              const detailsText = detailsMatch ? `${detailsMatch[1]} из ${detailsMatch[2]}` : lens.details
               return (
                 <div key={lens.name} className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400 w-[110px] shrink-0 truncate" title={lensInfo?.tooltip}>
+                  <span className="text-[10px] text-gray-400 w-[140px] shrink-0 truncate" title={lensInfo?.tooltip}>
                     {lensInfo?.ru ?? lens.name}
                   </span>
                   <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div className={`ai-lens-bar h-full rounded-full ${getBarColor(lens.score)}`} style={{ width: `${lens.score}%` }} />
                   </div>
-                  <span className="text-[10px] text-gray-400 w-12 text-right">{detailsText}</span>
+                  <span className="text-[9px] text-gray-400 w-16 text-right">{getLensLevel(lens.score)}</span>
                 </div>
               )
             })}
@@ -255,7 +272,7 @@ function RemedyCard({ result, rank, expanded, onToggle, onAssign, idx }: {
             </div>
           )}
 
-          {/* Кнопка назначить */}
+          {/* Назначить */}
           {onAssign && (
             <button
               onClick={onAssign}
@@ -279,7 +296,7 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
 
   return (
     <div className="ai-glass ai-slide-up rounded-2xl overflow-hidden">
-      {/* Заголовок — без стоимости, без method badge */}
+      {/* Заголовок */}
       <div className="px-3 py-2.5 border-b border-indigo-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -293,7 +310,7 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
           </div>
         </div>
 
-        {/* Warnings — hints переведены */}
+        {/* Warnings */}
         {aiResult.warnings && aiResult.warnings.length > 0 && (
           <div className="mt-2 space-y-1">
             {aiResult.warnings.map((w, i) => (
@@ -311,12 +328,12 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
         )}
       </div>
 
-      {/* Блок "Как AI понял случай" */}
+      {/* Как AI понял случай */}
       {aiResult.inferredProfile && (
         <InferredProfileBlock profile={aiResult.inferredProfile} />
       )}
 
-      {/* Список препаратов */}
+      {/* Препараты */}
       <div className="p-2 space-y-1.5">
         {visible.map((result, idx) => (
           <RemedyCard
@@ -340,7 +357,7 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
         )}
       </div>
 
-      {/* Блок уточнений */}
+      {/* Уточнения */}
       {onClarify && (() => {
         const pc = aiResult.productConfidence
         const needsClarify = pc
@@ -359,19 +376,17 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
               <span className="text-xs font-semibold text-amber-700">
-                {pc?.label ?? (lang === 'ru' ? 'Рекомендуется уточнить' : 'Clarification recommended')}
+                {pc?.label ?? 'Рекомендуется уточнить'}
               </span>
             </div>
             <p className="text-[11px] text-amber-600">
-              {lang === 'ru'
-                ? 'Добавьте информацию о модальностях, психике или общих симптомах для повышения точности.'
-                : 'Add modalities, mental or general symptoms to improve accuracy.'}
+              Добавьте информацию о модальностях, психике или общих симптомах для повышения точности.
             </p>
             <button
               onClick={() => onClarify(clarifyingQuestions ?? [])}
               className="w-full text-xs font-medium py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors border border-amber-200"
             >
-              {lang === 'ru' ? 'Уточнить' : 'Clarify'}
+              Уточнить
             </button>
           </div>
         )
