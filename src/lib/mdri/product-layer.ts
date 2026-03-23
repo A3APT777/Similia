@@ -196,15 +196,159 @@ export function mergeWithFallback(
     })
   }
 
-  // Post-processing: коррекция весов по known peculiar patterns
-  // Sonnet иногда даёт w=2 для peculiar симптомов → исправляем
+  // Post-processing 1: нормализация rubrics (canonical mapping)
+  normalizeSymptoms(symptoms, originalText)
+
+  // Post-processing 2: коррекция весов по known peculiar patterns
   correctWeights(symptoms, originalText)
+
+  // Post-processing 3: гарантия модальностей из текста
+  ensureModalities(modalities, originalText)
 
   return { symptoms, modalities, warnings, conflicts: fallback.conflicts }
 }
 
 // =====================================================================
-// 2.5 WEIGHT CORRECTION — post-processing после Sonnet
+// 2.5a NORMALIZE — canonical mapping для стабильности
+//
+// Sonnet может формулировать один и тот же симптом по-разному:
+// "anxiety anticipatory" vs "anxiety anticipation" vs "anxiety before events"
+// Нормализуем в единый canonical rubric.
+// =====================================================================
+
+type CanonicalRule = {
+  // Паттерны в rubric Sonnet (любой match → заменяем)
+  rubricPatterns: string[]
+  // Canonical rubric
+  canonical: string
+  category: 'mental' | 'general' | 'particular'
+  minWeight: 1 | 2 | 3  // минимальный вес (поднимаем если ниже)
+}
+
+const CANONICAL_RULES: CanonicalRule[] = [
+  // Термика
+  { rubricPatterns: ['chilly', 'chilliness', 'sensitive cold'], canonical: 'chilly', category: 'general', minWeight: 2 },
+  { rubricPatterns: ['hot patient', 'warm blooded', 'overheated'], canonical: 'hot patient', category: 'general', minWeight: 2 },
+  // Жажда
+  { rubricPatterns: ['thirstless', 'thirst absent', 'no thirst', 'without thirst'], canonical: 'thirstless', category: 'general', minWeight: 2 },
+  { rubricPatterns: ['thirst large', 'thirst copious', 'drinks large'], canonical: 'thirst large quantities', category: 'general', minWeight: 2 },
+  { rubricPatterns: ['thirst small sips', 'sips frequent', 'drinks often small'], canonical: 'thirst small sips frequently', category: 'general', minWeight: 3 },
+  // Consolation
+  { rubricPatterns: ['consolation agg', 'consolation worse', 'aversion consolation'], canonical: 'consolation aggravates', category: 'mental', minWeight: 3 },
+  { rubricPatterns: ['consolation amel', 'consolation better', 'desires sympathy'], canonical: 'consolation ameliorates', category: 'mental', minWeight: 2 },
+  // Time
+  { rubricPatterns: ['worse 2am', 'worse 2-4', 'worse 3am', 'waking 2', 'waking 3', '2am 3am', '2-4am'], canonical: 'worse after midnight 2-4am', category: 'general', minWeight: 3 },
+  { rubricPatterns: ['worse 4pm', 'worse 4-8', 'worse 16', 'afternoon evening'], canonical: 'worse 4-8pm afternoon evening', category: 'general', minWeight: 3 },
+  { rubricPatterns: ['worse after sleep', 'waking worse', 'after sleep agg'], canonical: 'worse after sleep', category: 'general', minWeight: 3 },
+  // Motion
+  { rubricPatterns: ['first motion worse', 'first motion agg', 'stiffness first motion', 'limbers up'], canonical: 'stiffness joints worse first motion better continued', category: 'general', minWeight: 3 },
+  // Peculiar physical
+  { rubricPatterns: ['perspiration head night', 'perspiration head profuse', 'head sweat night'], canonical: 'perspiration head night profuse', category: 'general', minWeight: 3 },
+  { rubricPatterns: ['burning feet night', 'feet burning uncovers', 'soles burning night'], canonical: 'burning feet at night uncovers', category: 'particular', minWeight: 3 },
+  { rubricPatterns: ['burning better warm', 'burning better heat', 'burning pains amel warm'], canonical: 'burning pains better warm applications', category: 'general', minWeight: 3 },
+  { rubricPatterns: ['one cheek red other pale', 'cheek red pale'], canonical: 'one cheek red other pale', category: 'particular', minWeight: 3 },
+  { rubricPatterns: ['better at sea', 'better seashore', 'better ocean', 'sea ameliorates'], canonical: 'better at sea seashore', category: 'general', minWeight: 3 },
+  { rubricPatterns: ['tight clothing neck', 'intolerance collar', 'cannot bear tight'], canonical: 'intolerance tight clothing around neck', category: 'general', minWeight: 3 },
+  // Mental peculiar
+  { rubricPatterns: ['indifference family', 'indifference husband', 'indifference children'], canonical: 'indifference family husband children', category: 'mental', minWeight: 3 },
+  { rubricPatterns: ['grief suppressed', 'grief silent', 'grief old'], canonical: 'grief suppressed old silent', category: 'mental', minWeight: 3 },
+  { rubricPatterns: ['fastidious', 'orderly pedantic', 'neat tidy'], canonical: 'fastidious orderly pedantic', category: 'mental', minWeight: 3 },
+  // Sleep
+  { rubricPatterns: ['sleep abdomen', 'sleep position abdomen', 'sleeps on abdomen'], canonical: 'sleep position on abdomen', category: 'general', minWeight: 2 },
+  // Fear combinations
+  { rubricPatterns: ['fear dark thunderstorm', 'fear dark thunder alone', 'fear darkness storm'], canonical: 'fear dark thunderstorm alone', category: 'mental', minWeight: 3 },
+]
+
+function normalizeSymptoms(symptoms: MDRISymptom[], _originalText: string) {
+  for (const sym of symptoms) {
+    const rubricLower = sym.rubric.toLowerCase()
+
+    for (const rule of CANONICAL_RULES) {
+      const matched = rule.rubricPatterns.some(p => rubricLower.includes(p))
+      if (matched) {
+        sym.rubric = rule.canonical
+        sym.category = rule.category
+        if (sym.weight < rule.minWeight) sym.weight = rule.minWeight
+        break // первый match побеждает
+      }
+    }
+  }
+
+  // Дедупликация: если после нормализации есть дубли rubric → оставить с max weight
+  const seen = new Map<string, number>() // rubric → index
+  const toRemove: number[] = []
+  for (let i = 0; i < symptoms.length; i++) {
+    const key = symptoms[i].rubric.toLowerCase()
+    if (seen.has(key)) {
+      const prevIdx = seen.get(key)!
+      if (symptoms[i].weight > symptoms[prevIdx].weight) {
+        toRemove.push(prevIdx)
+        seen.set(key, i)
+      } else {
+        toRemove.push(i)
+      }
+    } else {
+      seen.set(key, i)
+    }
+  }
+  // Удаляем дубли (с конца чтобы не сбить индексы)
+  for (const idx of toRemove.sort((a, b) => b - a)) {
+    symptoms.splice(idx, 1)
+  }
+}
+
+// Гарантия модальностей из русского текста
+// Если Sonnet не извлёк модальность, но текст явно указывает → добавляем
+function ensureModalities(modalities: MDRIModality[], originalText: string) {
+  const text = originalText.toLowerCase()
+  const has = (pairId: string) => modalities.some(m => m.pairId === pairId)
+
+  // heat_cold
+  if (!has('heat_cold')) {
+    if (/зябк|мёрзн|мерзн|очень зябк|постоянно мёрзн/.test(text)) {
+      modalities.push({ pairId: 'heat_cold', value: 'amel' })
+    } else if (/жарк|тепло хуже|не переносит тепл|хуже от тепл/.test(text)) {
+      modalities.push({ pairId: 'heat_cold', value: 'agg' })
+    }
+  }
+
+  // motion_rest
+  if (!has('motion_rest')) {
+    if (/движени.{0,5}хуже|хуже от движен|покой лучше|лежит не шевел/.test(text)) {
+      modalities.push({ pairId: 'motion_rest', value: 'agg' })
+    } else if (/движени.{0,5}лучше|лучше от движен|не может сидеть|расходится|расхаж/.test(text)) {
+      modalities.push({ pairId: 'motion_rest', value: 'amel' })
+    }
+  }
+
+  // consolation
+  if (!has('consolation')) {
+    if (/утешение хуже|не хочет утешен|утешение раздраж/.test(text)) {
+      modalities.push({ pairId: 'consolation', value: 'agg' })
+    } else if (/утешение лучше|хочет.*жале|утешение помогает/.test(text)) {
+      modalities.push({ pairId: 'consolation', value: 'amel' })
+    }
+  }
+
+  // open_air
+  if (!has('open_air')) {
+    if (/свежий воздух лучше|на воздухе лучше|лучше на свежем/.test(text)) {
+      modalities.push({ pairId: 'open_air', value: 'amel' })
+    } else if (/сквозняк хуже|хуже от сквозняк/.test(text)) {
+      modalities.push({ pairId: 'open_air', value: 'agg' })
+    }
+  }
+
+  // pressure
+  if (!has('pressure')) {
+    if (/давлени.{0,5}лучше|лучше от давлен|сгибается пополам/.test(text)) {
+      modalities.push({ pairId: 'pressure', value: 'amel' })
+    }
+  }
+}
+
+// =====================================================================
+// 2.5b WEIGHT CORRECTION — post-processing после Sonnet
 //
 // Фиксирует known peculiar patterns которые Sonnet недооценивает.
 // НЕ меняет scoring — только корректирует вход в engine.
