@@ -703,27 +703,52 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     })
   }
 
-  // === Post-processing: ограничения и safety ===
+  // === Post-processing: ограничения, баланс, safety ===
 
-  // 1. Cap: максимум 5 high, остальные → medium
   const MAX_HIGH = 5
-  let highCount = 0
+  const MAX_MEDIUM = 7
+  const MAX_MENTAL_HIGH = 3  // Макс mental симптомов в high
+
+  // 1. Баланс категорий в high: max 3 mental
+  let mentalHighCount = 0
   for (const s of suggestions) {
-    if (s.priority === 'high') {
-      highCount++
-      if (highCount > MAX_HIGH) {
+    if (s.priority === 'high' && s.type === 'mental') {
+      mentalHighCount++
+      if (mentalHighCount > MAX_MENTAL_HIGH) {
         s.priority = 'medium'
       }
     }
   }
 
-  // 2. Safety: при конфликтах → никакого auto-confirm
-  if (!hasConflicts) {
-    for (const s of suggestions) {
-      if (s.priority === 'high') s.confirmed = true
+  // 2. Cap high → medium
+  let highCount = 0
+  for (const s of suggestions) {
+    if (s.priority === 'high') {
+      highCount++
+      if (highCount > MAX_HIGH) s.priority = 'medium'
     }
   }
-  // При конфликтах все confirmed=false, врач подтверждает вручную
+
+  // 3. Cap medium → low
+  let mediumCount = 0
+  for (const s of suggestions) {
+    if (s.priority === 'medium') {
+      mediumCount++
+      if (mediumCount > MAX_MEDIUM) s.priority = 'low'
+    }
+  }
+
+  // 4. Conflict safety: downgrade high → medium (не обнуляем confirmed)
+  if (hasConflicts) {
+    for (const s of suggestions) {
+      if (s.priority === 'high') s.priority = 'medium'
+    }
+  }
+
+  // 5. Auto-confirm: только high
+  for (const s of suggestions) {
+    if (s.priority === 'high') s.confirmed = true
+  }
 
   return {
     suggestions,
@@ -751,15 +776,23 @@ export async function analyzeConfirmed(input: {
 
   const confirmed = input.suggestions.filter(s => s.confirmed)
 
+  // Priority → weight множитель: high=1.0, medium=0.5, low=0.2
+  const PRIORITY_WEIGHT: Record<string, number> = { high: 1.0, medium: 0.5, low: 0.2 }
+
   // Собираем symptoms из confirmed (исключая modalities)
   const symptoms: MDRISymptom[] = confirmed
     .filter(s => s.type !== 'modality')
-    .map(s => ({
-      rubric: s.rubric,
-      category: (s.type === 'mental' ? 'mental' : s.type === 'general' ? 'general' : 'particular') as MDRISymptomCategory,
-      present: true,
-      weight: s.weight,
-    }))
+    .map(s => {
+      const priorityMult = PRIORITY_WEIGHT[s.priority] ?? 0.5
+      // Применяем приоритет к весу: округляем до 1-3
+      const adjustedWeight = Math.max(1, Math.min(3, Math.round(s.weight * priorityMult))) as 1 | 2 | 3
+      return {
+        rubric: s.rubric,
+        category: (s.type === 'mental' ? 'mental' : s.type === 'general' ? 'general' : 'particular') as MDRISymptomCategory,
+        present: true,
+        weight: adjustedWeight,
+      }
+    })
 
   // Собираем modalities из confirmed
   const modalities: MDRIModality[] = confirmed
