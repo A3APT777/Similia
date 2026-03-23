@@ -337,24 +337,29 @@ export function computeConfidence(
     return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: true, showAsEqual: false }
   }
 
+  // === CONFLICT CHECK (ДО HIGH — может понизить любой уровень) ===
+  const conflict = checkHypothesisConflict(results)
+
+  // Hard contradiction → CLARIFY (независимо от gap/charStrength)
+  if (conflict.level === 'hard') {
+    return { level: 'clarify', label: 'Есть противоречия — уточните', color: 'yellow', showDiff: true, showAsEqual: false }
+  }
+
+  // Differential → max GOOD (HIGH невозможен при наличии сильных альтернатив)
+  if (conflict.level === 'differential') {
+    return { level: 'good', label: 'Требует проверки альтернатив', color: 'blue', showDiff: true, showAsEqual: false }
+  }
+
   // === HIGH ===
   // Все условия одновременно:
   // 1) gap >= 15%
-  // 2) strong characteristic (charStrength=2: mental w>=2 ИЛИ peculiar)
+  // 2) strong characteristic (charStrength=2)
   // 3) modalities есть
-  // 4) >=3 категории покрыты (mental + general + particular/modalities)
+  // 4) >=3 категории покрыты
   // 5) <=1 warning
+  // 6) нет конфликтов (проверено выше)
   if (gap >= 15 && charStrength >= 2 && hasModalities && categoryCoverage >= 3 && warningPenalty <= 1) {
     return { level: 'high', label: 'Высокая уверенность', color: 'green', showDiff: false, showAsEqual: false }
-  }
-
-  // === CONFLICT CHECK ===
-  // Проверяем: нет ли у альтернатив сильных сторон, которых нет у top-1?
-  // Это понижает confidence даже при хорошем gap.
-  const conflict = checkHypothesisConflict(results)
-  if (conflict.hasConflict) {
-    // Есть серьёзный конфликт — максимум GOOD, показать diff
-    return { level: 'good', label: 'Требует проверки альтернатив', color: 'blue', showDiff: true, showAsEqual: false }
   }
 
   // === GOOD ===
@@ -370,67 +375,123 @@ export function computeConfidence(
 // должны различать препараты, а не подтверждать один.
 // =====================================================================
 
+// Уровень конфликта
+export type ConflictLevel = 'hard' | 'differential' | 'none'
+
 export type ConflictCheckResult = {
+  level: ConflictLevel
   hasConflict: boolean
   reason?: string
   // Какие линзы у альтернативы сильнее
-  altAdvantages?: { remedy: string; lens: string; altScore: number; topScore: number }[]
+  altAdvantages: { remedy: string; lens: string; altScore: number; topScore: number }[]
+  // Explainable: что поддерживает top-1, что поддерживает альтернативу
+  topStrengths: string[]
+  altStrengths: { remedy: string; strengths: string[] }[]
+  // Differential signals: ключевые линзы различения
+  differentialLenses: string[]
+}
+
+const LENS_RU: Record<string, string> = {
+  Kent: 'реперторий', Constellation: 'характерный паттерн',
+  Hierarchy: 'иерархия', Polarity: 'модальности',
+  Negative: 'исключения', Coverage: 'покрытие',
 }
 
 export function checkHypothesisConflict(results: MDRIResult[]): ConflictCheckResult {
-  if (results.length < 2) return { hasConflict: false }
+  const empty: ConflictCheckResult = {
+    level: 'none', hasConflict: false, altAdvantages: [],
+    topStrengths: [], altStrengths: [], differentialLenses: [],
+  }
+  if (results.length < 2) return empty
 
   const top = results[0]
   const altAdvantages: ConflictCheckResult['altAdvantages'] = []
+  const topStrengths: string[] = []
+  const altStrengths: ConflictCheckResult['altStrengths'] = []
+  const differentialLenses: string[] = []
 
-  // Проверяем top 2-3 альтернативы
+  // === Собираем сильные стороны top-1 ===
+  for (const lens of top.lenses) {
+    if (lens.score >= 60) topStrengths.push(`${LENS_RU[lens.name] ?? lens.name}: сильное соответствие`)
+    else if (lens.score >= 40) topStrengths.push(`${LENS_RU[lens.name] ?? lens.name}: среднее соответствие`)
+  }
+
+  // === Проверяем top 2-3 альтернативы ===
   for (const alt of results.slice(1, 4)) {
+    const strengths: string[] = []
+
     for (const altLens of alt.lenses) {
       const topLens = top.lenses.find(l => l.name === altLens.name)
       if (!topLens) continue
 
-      // Альтернатива СИЛЬНЕЕ по этой линзе на ≥20 пунктов
-      if (altLens.score - topLens.score >= 20) {
+      const gap = altLens.score - topLens.score
+
+      // Альтернатива СИЛЬНЕЕ по этой линзе
+      if (gap >= 15) {
         altAdvantages.push({
-          remedy: alt.remedy,
-          lens: altLens.name,
-          altScore: altLens.score,
-          topScore: topLens.score,
+          remedy: alt.remedy, lens: altLens.name,
+          altScore: altLens.score, topScore: topLens.score,
         })
+        strengths.push(`${LENS_RU[altLens.name] ?? altLens.name}: превосходит`)
+      }
+
+      // Significant difference в любую сторону → differential lens
+      if (Math.abs(gap) >= 20 && !differentialLenses.includes(altLens.name)) {
+        differentialLenses.push(altLens.name)
       }
     }
+
+    if (strengths.length > 0) {
+      altStrengths.push({ remedy: alt.remedy, strengths })
+    }
   }
 
-  // Конфликт если:
-  // 1. Альтернатива имеет Constellation ≥ 60% при top-1 Constellation < 30%
-  // 2. Альтернатива имеет ≥2 линзы сильнее top-1
-  const constellationConflict = altAdvantages.some(a =>
-    a.lens === 'Constellation' && a.altScore >= 60 && a.topScore < 30
+  // === HARD CONTRADICTION ===
+  // Альтернатива имеет сильный constellation (≥50%) при top-1 constellation слабый (<20%)
+  // ИЛИ top-1 имеет Negative score < 30% (есть противоречащие данные)
+  const topCs = top.lenses.find(l => l.name === 'Constellation')?.score ?? 0
+  const topNeg = top.lenses.find(l => l.name === 'Negative')?.score ?? 100
+
+  const hardContradiction = altAdvantages.some(a =>
+    a.lens === 'Constellation' && a.altScore >= 50 && topCs < 20
+  ) || topNeg < 30
+
+  if (hardContradiction) {
+    const csConflict = altAdvantages.find(a => a.lens === 'Constellation' && a.altScore >= 50)
+    return {
+      level: 'hard',
+      hasConflict: true,
+      reason: topNeg < 30
+        ? `у ${top.remedy} выявлены противоречащие клинические данные`
+        : `${csConflict!.remedy} значительно превосходит по характерному паттерну`,
+      altAdvantages, topStrengths, altStrengths, differentialLenses,
+    }
+  }
+
+  // === DIFFERENTIAL ===
+  // Альтернатива имеет ≥2 линзы сильнее top-1 на ≥15 пунктов
+  // ИЛИ constellation альтернативы ≥40% при top-1 <30%
+  const remedyAdvCount = new Map<string, number>()
+  for (const a of altAdvantages) {
+    remedyAdvCount.set(a.remedy, (remedyAdvCount.get(a.remedy) ?? 0) + 1)
+  }
+  const multiLens = [...remedyAdvCount.values()].some(count => count >= 2)
+  const csDifferential = altAdvantages.some(a =>
+    a.lens === 'Constellation' && a.altScore >= 40 && topCs < 30
   )
-  const multiLensConflict = (() => {
-    const byRemedy = new Map<string, number>()
-    for (const a of altAdvantages) {
-      byRemedy.set(a.remedy, (byRemedy.get(a.remedy) ?? 0) + 1)
-    }
-    return [...byRemedy.values()].some(count => count >= 2)
-  })()
 
-  if (constellationConflict) {
-    const a = altAdvantages.find(x => x.lens === 'Constellation')!
+  if (multiLens || csDifferential) {
     return {
+      level: 'differential',
       hasConflict: true,
-      reason: `${a.remedy} имеет характерный паттерн, отсутствующий у ${top.remedy}`,
-      altAdvantages,
+      reason: 'альтернатива имеет значимые преимущества по нескольким параметрам',
+      altAdvantages, topStrengths, altStrengths, differentialLenses,
     }
   }
 
-  if (multiLensConflict) {
-    return {
-      hasConflict: true,
-      reason: 'альтернатива превосходит по нескольким параметрам',
-      altAdvantages,
-    }
+  // === NONE ===
+  return {
+    level: 'none', hasConflict: false,
+    altAdvantages, topStrengths, altStrengths, differentialLenses,
   }
-
-  return { hasConflict: false, altAdvantages }
 }
