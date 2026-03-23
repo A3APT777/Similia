@@ -10,13 +10,14 @@ type Props = {
   loading?: boolean
 }
 
-// Ключевой = weight=3 ИЛИ modality ИЛИ mental weight>=2
-function isKey(s: ParsedSuggestion): boolean {
-  if (s.weight >= 3) return true
-  if (s.type === 'modality') return true
-  if (s.type === 'mental' && s.weight >= 2) return true
-  return false
-}
+const PRIORITY_CONFIG = {
+  high: { label: 'Ключевые', icon: '🔥', bg: 'bg-indigo-50', border: 'border-indigo-200', check: 'bg-indigo-500' },
+  medium: { label: 'Важные', icon: '🟡', bg: 'bg-amber-50', border: 'border-amber-200', check: 'bg-amber-500' },
+  low: { label: 'Остальное', icon: '⚪', bg: 'bg-gray-50', border: 'border-gray-200', check: 'bg-gray-400' },
+} as const
+
+// Максимум видимых элементов в medium+low (без раскрытия)
+const MAX_VISIBLE_SECONDARY = 3
 
 export default function SuggestionReview({ data, onConfirm, onCancel, loading }: Props) {
   const [suggestions, setSuggestions] = useState<ParsedSuggestion[]>(data.suggestions)
@@ -27,12 +28,14 @@ export default function SuggestionReview({ data, onConfirm, onCancel, loading }:
   }
 
   const confirmed = suggestions.filter(s => s.confirmed)
-  const keyItems = suggestions.filter(isKey)
-  const otherItems = suggestions.filter(s => !isKey(s))
+  const highItems = suggestions.filter(s => s.priority === 'high')
+  const mediumItems = suggestions.filter(s => s.priority === 'medium')
+  const lowItems = suggestions.filter(s => s.priority === 'low')
 
-  // Показываем: все ключевые + первые 2 остальных. Остальные под "ещё"
-  const visibleOther = showAll ? otherItems : otherItems.slice(0, 2)
-  const hiddenCount = showAll ? 0 : Math.max(0, otherItems.length - 2)
+  // High всегда видны. Medium+low: показываем MAX_VISIBLE_SECONDARY, остальные под "ещё"
+  const secondary = [...mediumItems, ...lowItems]
+  const visibleSecondary = showAll ? secondary : secondary.slice(0, MAX_VISIBLE_SECONDARY)
+  const hiddenCount = showAll ? 0 : Math.max(0, secondary.length - MAX_VISIBLE_SECONDARY)
 
   return (
     <div className="ai-slide-up rounded-2xl border border-indigo-100 bg-white overflow-hidden">
@@ -47,10 +50,12 @@ export default function SuggestionReview({ data, onConfirm, onCancel, loading }:
           </div>
           <span className="text-[10px] text-gray-400">{confirmed.length} из {suggestions.length}</span>
         </div>
-        <p className="text-[11px] text-gray-500 mt-0.5">Уберите неверное нажатием</p>
+        <p className="text-[11px] text-gray-500 mt-0.5">
+          Ключевые включены. Добавьте важные или уберите лишнее.
+        </p>
       </div>
 
-      {/* Warnings (компактно) */}
+      {/* Warnings */}
       {data.warnings.length > 0 && (
         <div className="px-3 py-1.5 border-b border-amber-100 bg-amber-50/50">
           {data.warnings.slice(0, 2).map((w, i) => (
@@ -60,27 +65,18 @@ export default function SuggestionReview({ data, onConfirm, onCancel, loading }:
       )}
 
       <div className="p-2 space-y-1.5">
-        {/* Ключевые симптомы — всегда видны */}
-        {keyItems.length > 0 && (
-          <div>
-            <div className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide px-1 mb-1">
-              Ключевые
-            </div>
-            {keyItems.map(s => (
-              <SuggestionItem key={s.id} s={s} onToggle={toggle} isKey />
-            ))}
-          </div>
+        {/* 🔥 Ключевые (high) — всегда видны, auto-confirmed */}
+        {highItems.length > 0 && (
+          <PriorityGroup priority="high" items={highItems} onToggle={toggle} />
         )}
 
-        {/* Остальные */}
-        {visibleOther.length > 0 && (
+        {/* 🟡 Важные + ⚪ Остальное — объединены, ограничены */}
+        {visibleSecondary.length > 0 && (
           <div>
-            {keyItems.length > 0 && (
-              <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide px-1 mb-1 mt-1.5">
-                Дополнительные
-              </div>
-            )}
-            {visibleOther.map(s => (
+            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide px-1 mb-1 mt-1">
+              Добавить к анализу
+            </div>
+            {visibleSecondary.map(s => (
               <SuggestionItem key={s.id} s={s} onToggle={toggle} />
             ))}
           </div>
@@ -117,26 +113,49 @@ export default function SuggestionReview({ data, onConfirm, onCancel, loading }:
   )
 }
 
-function SuggestionItem({ s, onToggle, isKey }: { s: ParsedSuggestion; onToggle: (id: string) => void; isKey?: boolean }) {
+function PriorityGroup({ priority, items, onToggle }: {
+  priority: 'high' | 'medium' | 'low'
+  items: ParsedSuggestion[]
+  onToggle: (id: string) => void
+}) {
+  const config = PRIORITY_CONFIG[priority]
+  return (
+    <div>
+      <div className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide px-1 mb-1">
+        {config.icon} {config.label}
+      </div>
+      {items.map(s => (
+        <SuggestionItem key={s.id} s={s} onToggle={onToggle} isKey={priority === 'high'} />
+      ))}
+    </div>
+  )
+}
+
+function SuggestionItem({ s, onToggle, isKey }: {
+  s: ParsedSuggestion
+  onToggle: (id: string) => void
+  isKey?: boolean
+}) {
   const typeIcon = s.type === 'mental' ? '🧠' : s.type === 'modality' ? '↕' : s.type === 'general' ? '🌡' : '📍'
+  const config = PRIORITY_CONFIG[s.priority]
 
   return (
     <button
       onClick={() => onToggle(s.id)}
       className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all text-[12px] mb-0.5 ${
         s.confirmed
-          ? isKey ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200'
+          ? `${config.bg} ${config.border}`
           : 'bg-white border-gray-100 opacity-30 line-through'
       }`}
     >
-      {/* Toggle */}
+      {/* Checkbox */}
       <span className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center shrink-0 text-[9px] leading-none ${
-        s.confirmed ? 'bg-indigo-500 text-white' : 'bg-gray-200'
+        s.confirmed ? `${config.check} text-white` : 'bg-gray-200'
       }`}>
         {s.confirmed ? '✓' : ''}
       </span>
 
-      {/* Icon */}
+      {/* Type icon */}
       <span className="text-[10px] shrink-0">{typeIcon}</span>
 
       {/* Label */}
@@ -144,7 +163,7 @@ function SuggestionItem({ s, onToggle, isKey }: { s: ParsedSuggestion; onToggle:
         {s.label}
       </span>
 
-      {/* Weight=3 badge */}
+      {/* Weight=3 star */}
       {s.weight >= 3 && s.confirmed && (
         <span className="text-[8px] px-1 py-0.5 rounded bg-red-50 text-red-500 font-medium shrink-0 border border-red-100">
           ★

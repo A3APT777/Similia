@@ -646,6 +646,19 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     input.text, parseResult.symptoms, parseResult.modalities,
   )
 
+  // Приоритет: high (characteristic, strong modality, mental w≥2), medium (useful), low (общий)
+  function assignPriority(type: string, weight: number, source: string): 'high' | 'medium' | 'low' {
+    // weight=3 или mental с weight≥2 → high
+    if (weight >= 3) return 'high'
+    if (type === 'mental' && weight >= 2) return 'high'
+    if (type === 'modality') return 'high'
+    // weight=2 или general → medium
+    if (weight >= 2) return 'medium'
+    if (type === 'general') return 'medium'
+    // weight=1, particular → low
+    return 'low'
+  }
+
   // Конвертируем в suggestions
   let idCounter = 0
   const suggestions: ParsedSuggestion[] = []
@@ -654,18 +667,23 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     const isFromFallback = !parseResult.symptoms.some(s =>
       s.rubric.toLowerCase().includes(sym.rubric.split(' ')[0].toLowerCase())
     )
+    const type = sym.category === 'mental' ? 'mental' : sym.category === 'general' ? 'general' : 'particular'
+    const weight = sym.weight as 1 | 2 | 3
+    const source = isFromFallback ? 'keyword' as const : 'sonnet' as const
+    const priority = assignPriority(type, weight, source)
     suggestions.push({
       id: `s-${idCounter++}`,
       rubric: sym.rubric,
       label: rubricToRussian(sym.rubric),
-      type: sym.category === 'mental' ? 'mental' : sym.category === 'general' ? 'general' : 'particular',
-      weight: sym.weight as 1 | 2 | 3,
-      confirmed: true, // По умолчанию подтверждено (opt-out)
-      source: isFromFallback ? 'keyword' : 'sonnet',
+      type,
+      weight,
+      priority,
+      confirmed: priority === 'high', // Только high auto-confirmed
+      source,
     })
   }
 
-  // Модальности как suggestions
+  // Модальности как suggestions (всегда high)
   for (const mod of modalities) {
     const key = `${mod.pairId}_${mod.value}`
     suggestions.push({
@@ -674,6 +692,7 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
       label: MODALITY_RU[key] ?? `${mod.pairId} ${mod.value === 'agg' ? 'хуже' : 'лучше'}`,
       type: 'modality',
       weight: 2,
+      priority: 'high',
       confirmed: true,
       source: parseResult.modalities.some(m => m.pairId === mod.pairId) ? 'sonnet' : 'keyword',
     })

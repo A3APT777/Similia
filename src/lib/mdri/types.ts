@@ -168,13 +168,16 @@ export type ConsensusResult = {
 
 // === Suggestions (hybrid parsing) ===
 
+export type SuggestionPriority = 'high' | 'medium' | 'low'
+
 export type ParsedSuggestion = {
   id: string                    // уникальный id для UI toggle
   rubric: string                // английский rubric
   label: string                 // русский текст для врача
   type: 'mental' | 'general' | 'modality' | 'particular'
   weight: 1 | 2 | 3
-  confirmed: boolean            // по умолчанию true (opt-out)
+  priority: SuggestionPriority  // high=auto-confirm, medium/low=нет
+  confirmed: boolean            // high→true, остальные→false
   source: 'sonnet' | 'keyword'  // откуда пришёл
 }
 
