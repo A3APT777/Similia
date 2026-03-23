@@ -543,13 +543,13 @@ export async function generateClarifyingQuestions(
     const jsonStr = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
     const questions = JSON.parse(jsonStr) as AIQuestion[]
 
-    if (!Array.isArray(questions) || questions.length === 0) return getFallbackClarifying()
+    if (!Array.isArray(questions) || questions.length === 0) return getFallbackQuestions()
     return questions.map(q => ({
       ...q,
       type: q.type === 'chips' && q.options && q.options.length > 2 ? 'chips-multi' as const : q.type,
     }))
   } catch {
-    return getFallbackClarifying()
+    return getFallbackQuestions()
   }
 }
 
@@ -937,26 +937,37 @@ export async function logDoctorChoice(consultationId: string, chosenRemedy: stri
  * Генерация дифференциальных вопросов через Sonnet.
  * Вызывается ТОЛЬКО когда shouldClarify() == true.
  * AI не выбирает препарат — только различает top-1 vs top-2 vs top-3.
+ *
+ * Flow: shouldClarify → AI → validateQuestions → UI
+ * Если AI мусор или недоступен → fallback вопросы по differentialLenses
  */
 export async function generateDifferentialClarifying(input: {
   results: MDRIResult[]
   symptoms: MDRISymptom[]
   modalities: MDRIModality[]
-}): Promise<AIQuestion[]> {
-  const { shouldClarify: shouldClarifyFn, buildDifferentialContext, buildDifferentialPrompt, parseDifferentialResponse } = await import('@/lib/mdri/differential')
+  clarifyUsed?: boolean
+}): Promise<{ questions: import('@/lib/mdri/differential').DifferentialQuestion[]; aiGenerated: boolean; rawCount: number; validCount: number }> {
+  const {
+    shouldClarify: shouldClarifyFn,
+    buildDifferentialContext, buildDifferentialPrompt,
+    parseDifferentialResponse, validateQuestions,
+    getFallbackQuestions,
+  } = await import('@/lib/mdri/differential')
   const { checkHypothesisConflict, computeConfidence, validateInput } = await import('@/lib/mdri/product-layer')
 
   const conflict = checkHypothesisConflict(input.results)
   const confidence = computeConfidence(input.symptoms, input.modalities, input.results, validateInput(input.symptoms, input.modalities))
 
-  if (!shouldClarifyFn(confidence, input.results, conflict)) {
-    return [] // Уточнение не нужно
+  if (!shouldClarifyFn(confidence, input.results, conflict, input.clarifyUsed)) {
+    return { questions: [], aiGenerated: false, rawCount: 0, validCount: 0 }
   }
 
-  try {
-    const ctx = buildDifferentialContext(input.results, input.symptoms, input.modalities, conflict)
-    const prompt = buildDifferentialPrompt(ctx)
+  const ctx = buildDifferentialContext(input.results, input.symptoms, input.modalities, conflict)
+  let rawCount = 0
+  let aiGenerated = false
 
+  try {
+    const prompt = buildDifferentialPrompt(ctx)
     const client = getAnthropicClient()
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -966,27 +977,24 @@ export async function generateDifferentialClarifying(input: {
     })
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '[]'
-    const diffQuestions = parseDifferentialResponse(text)
+    const rawQuestions = parseDifferentialResponse(text)
+    rawCount = rawQuestions.length
 
-    // Конвертируем в формат AIQuestion для UI
-    return diffQuestions.map(dq => ({
-      key: dq.key,
-      label: dq.question,
-      type: 'chips' as const,
-      options: dq.options,
-      hint: dq.why_it_matters,
-    }))
+    // Валидация — убираем мусор
+    const validated = validateQuestions(rawQuestions, ctx)
+
+    if (validated.length >= 3) {
+      aiGenerated = true
+      return { questions: validated, aiGenerated, rawCount, validCount: validated.length }
+    }
+    // AI вернул < 3 валидных → fallback
   } catch {
-    return getFallbackClarifying()
+    // AI недоступен → fallback
   }
-}
 
-function getFallbackClarifying(): AIQuestion[] {
-  return [
-    { key: 'clarify_modality', label: 'Что конкретно ухудшает основную жалобу?', type: 'chips-multi', options: ['Холод', 'Тепло', 'Движение', 'Покой', 'Ночью', 'После еды', 'Стресс'], hint: 'Выберите все подходящие' },
-    { key: 'clarify_mental', label: 'Как пациент ведёт себя когда ему плохо?', type: 'chips-multi', options: ['Хочет быть один', 'Ищет компанию', 'Беспокойный', 'Лежит неподвижно', 'Раздражается'] },
-    { key: 'clarify_sleep', label: 'Как пациент спит?', type: 'chips-multi', options: ['Хорошо', 'Трудно засыпает', 'Просыпается ночью', 'Кошмары', 'Спит на животе'] },
-  ]
+  // Fallback: детерминированные вопросы по differentialLenses
+  const fallback = getFallbackQuestions(conflict.differentialLenses)
+  return { questions: fallback, aiGenerated, rawCount, validCount: fallback.length }
 }
 
 /**
@@ -997,7 +1005,7 @@ export async function rerunWithClarifications(input: {
   originalSuggestions: ParsedSuggestion[]
   familyHistory: string[]
   clarifyAnswers: Record<string, string>
-  clarifyQuestions: AIQuestion[]
+  clarifyQuestions: import('@/lib/mdri/differential').DifferentialQuestion[]
 }): Promise<ConsensusResult & { clarifyAdded: { symptoms: number; modalities: number }; clarifyExplain: string[] }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -1022,13 +1030,8 @@ export async function rerunWithClarifications(input: {
     .filter(s => s.type === 'modality')
     .map(s => { const [pairId, value] = s.rubric.split(':'); return { pairId, value: value as 'agg' | 'amel' } })
 
-  // Конвертируем clarify ответы
-  const diffQ = input.clarifyQuestions.map(q => ({
-    question: q.label, why_it_matters: q.hint ?? '',
-    supports: [] as string[], weakens: [] as string[],
-    options: q.options ?? [], key: q.key,
-  }))
-  const { symptoms: clarifySymptoms, modalities: clarifyModalities } = convertAnswersToSymptoms(diffQ, input.clarifyAnswers)
+  // Конвертируем clarify ответы (детерминированный маппинг через OptionWithMapping)
+  const { symptoms: clarifySymptoms, modalities: clarifyModalities } = convertAnswersToSymptoms(input.clarifyQuestions, input.clarifyAnswers)
 
   // Merge (не затираем исходные)
   const allSymptoms = [...originalSymptoms, ...clarifySymptoms]
@@ -1048,7 +1051,7 @@ export async function rerunWithClarifications(input: {
   const clarifyExplain: string[] = []
   for (const [key, answer] of Object.entries(input.clarifyAnswers)) {
     const q = input.clarifyQuestions.find(cq => cq.key === key)
-    if (q) clarifyExplain.push(`${q.label} → ${answer}`)
+    if (q) clarifyExplain.push(`${q.question} → ${answer}`)
   }
 
   const topRemedy = mdriResults[0]?.remedy ?? ''

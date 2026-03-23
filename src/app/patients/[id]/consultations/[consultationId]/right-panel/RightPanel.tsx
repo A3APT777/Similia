@@ -9,7 +9,7 @@ import SuggestionReview from './SuggestionReview'
 import DifferentialClarify from './DifferentialClarify'
 import { getAge } from '@/lib/utils'
 import type { ConsensusResult, ParsedSuggestion, ParseSuggestionsResult } from '@/lib/mdri/types'
-import type { AIQuestion } from '@/lib/actions/ai-consultation'
+import type { DifferentialQuestion } from '@/lib/mdri/differential'
 
 type Props = {
   previousConsultation: Consultation | null
@@ -30,7 +30,7 @@ type Props = {
   onCancelSuggestions?: () => void
   analyzingConfirmed?: boolean
   // Differential clarify
-  clarifyQuestions?: AIQuestion[]
+  clarifyQuestions?: DifferentialQuestion[]
   onClarifySubmit?: (answers: Record<string, string>) => void
   onClarifySkip?: () => void
   clarifyLoading?: boolean

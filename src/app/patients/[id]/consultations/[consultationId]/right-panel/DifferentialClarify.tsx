@@ -1,41 +1,32 @@
 'use client'
 
 import { useState } from 'react'
-import type { AIQuestion } from '@/lib/actions/ai-consultation'
+import type { DifferentialQuestion } from '@/lib/mdri/differential'
 
 type Props = {
-  questions: AIQuestion[]
+  questions: DifferentialQuestion[]
   onSubmit: (answers: Record<string, string>) => void
   onSkip: () => void
   loading?: boolean
 }
 
-/**
- * UI для дифференциальных вопросов.
- * Показывает 3-5 вопросов с chips-вариантами ответов.
- * Врач выбирает → "Уточнить и пересчитать" → rerun engine.
- */
 export default function DifferentialClarify({ questions, onSubmit, onSkip, loading }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
-
   const answeredCount = Object.keys(answers).length
-  const canSubmit = answeredCount > 0
 
-  function selectOption(key: string, option: string) {
+  function selectOption(key: string, label: string) {
     setAnswers(prev => {
-      // Toggle: если уже выбран — убираем
-      if (prev[key] === option) {
+      if (prev[key] === label) {
         const next = { ...prev }
         delete next[key]
         return next
       }
-      return { ...prev, [key]: option }
+      return { ...prev, [key]: label }
     })
   }
 
   return (
     <div className="ai-slide-up rounded-2xl border border-amber-200/60 bg-amber-50/30 overflow-hidden">
-      {/* Заголовок */}
       <div className="px-4 py-3 border-b border-amber-200/40 bg-amber-50/50">
         <div className="flex items-center gap-2">
           <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -49,7 +40,6 @@ export default function DifferentialClarify({ questions, onSubmit, onSkip, loadi
         </p>
       </div>
 
-      {/* Вопросы */}
       <div className="p-3 space-y-3">
         {questions.map((q, idx) => {
           const selected = answers[q.key]
@@ -60,36 +50,32 @@ export default function DifferentialClarify({ questions, onSubmit, onSkip, loadi
                   {idx + 1}
                 </span>
                 <div className="flex-1">
-                  <p className="text-[12px] font-medium text-[#3a3020] leading-snug">{q.label}</p>
-                  {q.hint && (
-                    <p className="text-[10px] text-amber-500 mt-0.5">{q.hint}</p>
+                  <p className="text-[12px] font-medium text-[#3a3020] leading-snug">{q.question}</p>
+                  {q.why_it_matters && (
+                    <p className="text-[10px] text-amber-500 mt-0.5">{q.why_it_matters}</p>
                   )}
                 </div>
               </div>
-              {/* Варианты ответов */}
-              {q.options && q.options.length > 0 && (
-                <div className="ml-7 flex flex-wrap gap-1">
-                  {q.options.map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => selectOption(q.key, opt)}
-                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
-                        selected === opt
-                          ? 'bg-amber-500 text-white border-amber-500'
-                          : 'bg-white border-[rgba(0,0,0,0.1)] text-[#6a5a4a] hover:border-amber-300'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="ml-7 flex flex-wrap gap-1">
+                {q.options.map(opt => (
+                  <button
+                    key={opt.label}
+                    onClick={() => selectOption(q.key, opt.label)}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                      selected === opt.label
+                        ? 'bg-amber-500 text-white border-amber-500'
+                        : 'bg-white border-[rgba(0,0,0,0.1)] text-[#6a5a4a] hover:border-amber-300'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )
         })}
       </div>
 
-      {/* Кнопки */}
       <div className="px-4 py-3 border-t border-amber-200/40 flex gap-2">
         <button
           onClick={onSkip}
@@ -99,7 +85,7 @@ export default function DifferentialClarify({ questions, onSubmit, onSkip, loadi
         </button>
         <button
           onClick={() => onSubmit(answers)}
-          disabled={!canSubmit || loading}
+          disabled={answeredCount === 0 || loading}
           className="flex-1 text-[12px] font-semibold py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
         >
           {loading ? 'Пересчёт...' : `Уточнить и пересчитать (${answeredCount})`}

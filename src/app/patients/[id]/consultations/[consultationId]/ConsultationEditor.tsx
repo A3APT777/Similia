@@ -65,8 +65,9 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
   const [suggestions, setSuggestions] = useState<import('@/lib/mdri/types').ParseSuggestionsResult | null>(null)
   const [analyzingConfirmed, setAnalyzingConfirmed] = useState(false)
   // Differential clarify flow
-  const [clarifyQuestions, setClarifyQuestions] = useState<import('@/lib/actions/ai-consultation').AIQuestion[]>([])
+  const [clarifyQuestions, setClarifyQuestions] = useState<import('@/lib/mdri/differential').DifferentialQuestion[]>([])
   const [clarifyLoading, setClarifyLoading] = useState(false)
+  const [clarifyUsed, setClarifyUsed] = useState(false)
   const [lastConfirmed, setLastConfirmed] = useState<import('@/lib/mdri/types').ParsedSuggestion[]>([])
   const [lastFamilyHistory, setLastFamilyHistory] = useState<string[]>([])
 
@@ -148,8 +149,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
       setAIResult(result)
       setSuggestions(null)
 
-      // Проверяем нужен ли clarify
-      if (result.productConfidence && (result.productConfidence.level === 'clarify' || result.productConfidence.showDiff)) {
+      // Проверяем нужен ли clarify (максимум 1 раз)
+      if (!clarifyUsed && result.productConfidence && (result.productConfidence.level === 'clarify' || result.productConfidence.showDiff)) {
         try {
           const confirmedSymptoms = confirmed.filter(s => s.confirmed && s.type !== 'modality').map(s => ({
             rubric: s.rubric, category: (s.type === 'mental' ? 'mental' : s.type === 'general' ? 'general' : 'particular') as import('@/lib/mdri/types').MDRISymptomCategory,
@@ -159,10 +160,12 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
             const [pairId, value] = s.rubric.split(':')
             return { pairId, value: value as 'agg' | 'amel' }
           })
-          const questions = await generateDifferentialClarifying({
+          const { generateDifferentialClarifying } = await import('@/lib/actions/ai-consultation')
+          const { questions } = await generateDifferentialClarifying({
             results: result.mdriResults,
             symptoms: confirmedSymptoms,
             modalities: confirmedModalities,
+            clarifyUsed,
           })
           if (questions.length > 0) {
             setClarifyQuestions(questions)
@@ -180,7 +183,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
     }
   }
 
-  // Обработка ответов на clarify вопросы → rerun engine
+  // Обработка ответов на clarify вопросы → rerun engine (максимум 1 раз)
   async function handleClarifySubmit(answers: Record<string, string>) {
     setClarifyLoading(true)
     try {
@@ -190,10 +193,11 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
         originalSuggestions: lastConfirmed,
         familyHistory: lastFamilyHistory,
         clarifyAnswers: answers,
-        clarifyQuestions,
+        clarifyQuestions: clarifyQuestions,
       })
       setAIResult(result)
       setClarifyQuestions([])
+      setClarifyUsed(true) // Блокируем повторный clarify
       toast(lang === 'ru'
         ? `AI (уточнено): ${result.finalRemedy.toUpperCase()}`
         : `AI (clarified): ${result.finalRemedy.toUpperCase()}`)
@@ -359,7 +363,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
               </svg>
               <div>
-                <p className="text-[15px] font-semibold" style={{ color: '#1a1a0a' }}>{t(lang).consultation.noPayment}</p>
+                <p className="text-[15px] font-semibold" style={{ color: 'var(--sim-text)' }}>{t(lang).consultation.noPayment}</p>
                 <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--sim-text-sec)' }}>{t(lang).consultation.noPaymentDesc}</p>
               </div>
             </div>
