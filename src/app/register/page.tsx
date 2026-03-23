@@ -220,8 +220,19 @@ export default function RegisterPage() {
               <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', marginBottom: '8px', lineHeight: 1.6 }}>
                 Мы отправили письмо на <strong style={{ color: '#3a2e1a' }}>{email}</strong>
               </p>
+              <div style={{ fontSize: '13px', color: '#b8a898', marginBottom: '12px', lineHeight: 1.6, backgroundColor: 'rgba(45,106,79,0.05)', borderRadius: '12px', padding: '12px 16px', textAlign: 'left' }}>
+                <p style={{ marginBottom: '6px', color: '#6a5a4a' }}>
+                  <strong>Отправитель:</strong> noreply@mail.app.supabase.io
+                </p>
+                <p style={{ marginBottom: '6px' }}>
+                  Это технический адрес нашей системы авторизации. Письмо безопасно.
+                </p>
+                <p style={{ marginBottom: 0 }}>
+                  Если не нашли — проверьте папку <strong style={{ color: '#6a5a4a' }}>«Спам»</strong> или <strong style={{ color: '#6a5a4a' }}>«Промоакции»</strong>.
+                </p>
+              </div>
               <p style={{ fontSize: '14px', color: '#b8a898', marginBottom: '32px', lineHeight: 1.6 }}>
-                Нажмите на ссылку в письме — и вы сразу окажетесь в системе. Если письма нет, проверьте папку «Спам».
+                Нажмите на ссылку в письме — и вы сразу окажетесь в системе.
               </p>
               <button
                 onClick={() => setCheckEmail(false)}
