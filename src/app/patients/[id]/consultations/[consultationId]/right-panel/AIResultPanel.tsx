@@ -9,6 +9,8 @@ type Props = {
   lang: 'ru' | 'en'
   onAssignRemedy?: (abbrev: string, potency: string) => void
   onClarify?: (questions: AIQuestion[]) => void
+  onEditSymptoms?: () => void
+  onReanalyze?: () => void
   clarifyingQuestions?: AIQuestion[]
 }
 
@@ -134,14 +136,15 @@ function CaseUnderstanding({ profile }: { profile: NonNullable<ConsensusResult['
 // ═══════════════════════════════════════════
 // Блок: Главный препарат (TOP-1)
 // ═══════════════════════════════════════════
-function HeroRemedy({ result, onAssign, onCompare }: {
+function HeroRemedy({ result, usedSymptoms, onAssign, onCompare }: {
   result: MDRIResult
+  usedSymptoms?: ConsensusResult['usedSymptoms']
   onAssign?: () => void
   onCompare: () => void
 }) {
   const factors = extractFactors(result)
 
-  // Какие подходы использованы (из линз с ненулевым score)
+  // Какие подходы использованы
   const approachNames: Record<string, string> = {
     Kent: 'классический реперторий', Constellation: 'анализ паттернов',
     Polarity: 'полярностный анализ', Hierarchy: 'иерархия симптомов',
@@ -150,20 +153,58 @@ function HeroRemedy({ result, onAssign, onCompare }: {
     .filter(l => l.score >= 20 && approachNames[l.name])
     .map(l => approachNames[l.name])
 
+  // Пояснение уверенности
+  const confExplanation: Record<string, string> = {
+    high: 'Достаточно совпадений по ключевым симптомам',
+    medium: 'Основные признаки совпали, но есть пробелы',
+    low: 'Мало данных для уверенного выбора',
+    insufficient: 'Недостаточно симптомов для анализа',
+  }
+
+  // Ключевые совпадения: берём high-priority симптомы (max 5)
+  const keyMatches = (usedSymptoms ?? [])
+    .filter(s => s.type !== 'modality')
+    .slice(0, 5)
+
   return (
     <div className="ai-fade-in px-4 py-4">
-      {/* Название — крупно, как единственный фокус */}
-      <div className="flex items-start justify-between mb-3">
+      {/* Название + confidence */}
+      <div className="flex items-start justify-between mb-1">
         <div>
           <div className="text-2xl font-bold text-[#1a1a0a] tracking-tight uppercase leading-none">
             {result.remedy}
           </div>
           <div className="text-[13px] text-[#9a8a6a] mt-0.5">{result.remedyName}</div>
         </div>
-        <span className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${confidenceStyle(result.confidence)}`}>
-          {confidenceText(result.confidence)}
-        </span>
+        <div className="text-right shrink-0">
+          <span className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${confidenceStyle(result.confidence)}`}>
+            {confidenceText(result.confidence)}
+          </span>
+        </div>
       </div>
+      <p className="text-[10px] text-[#9a8a6a] mb-3">
+        {confExplanation[result.confidence] ?? ''}
+      </p>
+
+      {/* Ключевые совпадения */}
+      {keyMatches.length > 0 && (
+        <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
+          <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
+            Ключевые совпадения
+          </div>
+          <div className="space-y-0.5">
+            {keyMatches.map((s, i) => {
+              const typeIcon = s.type === 'mental' ? '🧠' : s.type === 'general' ? '🌡' : '📍'
+              return (
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-[#3a3020]">
+                  <span className="text-[10px] shrink-0">{typeIcon}</span>
+                  <span>{s.label}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Факторы */}
       {factors.length > 0 && (
@@ -182,7 +223,7 @@ function HeroRemedy({ result, onAssign, onCompare }: {
         </div>
       )}
 
-      {/* Методология — компактно */}
+      {/* Методология */}
       {usedApproaches.length > 0 && (
         <div className="mb-4 text-[10px] text-[#9a8a6a] flex items-center gap-1 flex-wrap">
           <span className="uppercase tracking-[0.06em] font-medium">Использованы:</span>
@@ -417,7 +458,7 @@ function ClarifyBlock({ aiResult, onClarify, clarifyingQuestions }: {
 // ═══════════════════════════════════════════
 // Главный компонент
 // ═══════════════════════════════════════════
-export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarify, clarifyingQuestions }: Props) {
+export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarify, onEditSymptoms, onReanalyze, clarifyingQuestions }: Props) {
   const [showComparison, setShowComparison] = useState(false)
 
   const results = aiResult.mdriResults
@@ -463,30 +504,59 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
       <div className="border-b border-[rgba(0,0,0,0.06)]">
         <HeroRemedy
           result={top}
+          usedSymptoms={aiResult.usedSymptoms}
           onAssign={onAssignRemedy ? () => onAssignRemedy(top.remedy, top.potency?.potency ?? '30C') : undefined}
           onCompare={() => setShowComparison(!showComparison)}
         />
       </div>
 
-      {/* Альтернативы — всегда видны */}
+      {/* Альтернативы */}
       <AlternativesBlock
         alternatives={alternatives}
         top={top}
         onAssign={onAssignRemedy}
       />
 
-      {/* Детальное сравнение — по нажатию "Сравнить" */}
+      {/* Детальное сравнение */}
       {showComparison && (
         <DetailedComparison results={results} onAssign={onAssignRemedy} />
       )}
 
-      {/* Уточнение — если нужно */}
+      {/* Уточнение */}
       {onClarify && (
         <ClarifyBlock
           aiResult={aiResult}
           onClarify={onClarify}
           clarifyingQuestions={clarifyingQuestions}
         />
+      )}
+
+      {/* Мини-контроль */}
+      {(onEditSymptoms || onReanalyze) && (
+        <div className="px-4 py-2.5 border-t border-[rgba(0,0,0,0.06)] flex items-center gap-2">
+          {onEditSymptoms && (
+            <button
+              onClick={onEditSymptoms}
+              className="text-[11px] text-[#6a5a4a] hover:text-[#3a3020] transition-colors flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+              </svg>
+              Изменить симптомы
+            </button>
+          )}
+          {onReanalyze && (
+            <button
+              onClick={onReanalyze}
+              className="text-[11px] text-[#6a5a4a] hover:text-[#3a3020] transition-colors flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+              </svg>
+              Пересчитать
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

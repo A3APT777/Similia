@@ -171,6 +171,8 @@ export type ConsensusResult = {
     sensitivity: { value: string; confidence: number }
     age: { value: string; confidence: number }
   }
+  // Использованные симптомы (русские labels для UI)
+  usedSymptoms?: { label: string; type: 'mental' | 'general' | 'modality' | 'particular' }[]
 }
 
 // === Suggestions (hybrid parsing) ===

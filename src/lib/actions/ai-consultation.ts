@@ -171,6 +171,12 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     const productConfidence = computeConfidence(symptoms, modalities, mdriResults, warnings)
     log(`confidence: ${productConfidence.level}`)
 
+    // Использованные симптомы для UI
+    const usedSymptoms = symptoms.map(s => ({
+      label: rubricToRussian(s.rubric),
+      type: (s.category === 'mental' ? 'mental' : s.category === 'general' ? 'general' : 'particular') as 'mental' | 'general' | 'modality' | 'particular',
+    }))
+
     // Результат
     const topRemedy = mdriResults[0]?.remedy ?? ''
     const result: ConsensusResult = {
@@ -185,6 +191,7 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       productConfidence,
       warnings,
       fallbackAdded,
+      usedSymptoms,
       inferredProfile,
     }
     log(`result: ${topRemedy}`)
@@ -844,6 +851,11 @@ export async function analyzeConfirmed(input: {
   const productConfidence = computeConfidence(symptoms, modalities, mdriResults,
     validateInput(symptoms, modalities))
 
+  // Сохраняем русские labels подтверждённых симптомов для UI
+  const usedSymptoms = confirmed
+    .filter(s => s.confirmed)
+    .map(s => ({ label: s.label, type: s.type }))
+
   const topRemedy = mdriResults[0]?.remedy ?? ''
   const result: ConsensusResult = {
     method: 'consensus',
@@ -855,6 +867,7 @@ export async function analyzeConfirmed(input: {
     cost: 0.01,
     productConfidence,
     warnings: validateInput(symptoms, modalities),
+    usedSymptoms,
   }
 
   if (input.consultationId) {
