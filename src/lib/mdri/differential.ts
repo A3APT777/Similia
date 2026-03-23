@@ -392,10 +392,11 @@ export function validateQuestions(
   questions: DifferentialQuestion[],
   ctx: DifferentialContext,
 ): DifferentialQuestion[] {
-  const topRemedies = [ctx.top1.remedy, ctx.top2.remedy, ctx.top3?.remedy].filter(Boolean) as string[]
+  const norm = (s: string) => s.toLowerCase().replace(/\.$/, '')
+  const topRemedies = [ctx.top1.remedy, ctx.top2.remedy, ctx.top3?.remedy].filter(Boolean).map(r => norm(r as string))
 
   const valid = questions.filter(q => {
-    // 1. Должен иметь supports И weakens
+    // 1. Должен иметь supports ИЛИ weakens (хотя бы одно)
     if (q.supports.length === 0 && q.weakens.length === 0) return false
 
     // 2. Должен иметь ≥2 options
@@ -405,9 +406,9 @@ export function validateQuestions(
     const lower = q.question.toLowerCase()
     if (GENERIC_PATTERNS.some(p => lower.includes(p))) return false
 
-    // 4. Должен различать НАШИ top remedies, а не случайные
-    const allMentioned = [...q.supports, ...q.weakens]
-    const relevant = allMentioned.some(r => topRemedies.includes(r.toLowerCase()))
+    // 4. Должен различать НАШИ top remedies (нормализация ключей!)
+    const allMentioned = [...q.supports, ...q.weakens].map(norm)
+    const relevant = allMentioned.some(r => topRemedies.includes(r))
     if (!relevant && allMentioned.length > 0) return false
 
     // 5. Не слишком короткий вопрос (< 15 символов = мусор)
