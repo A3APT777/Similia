@@ -76,7 +76,6 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
 
   const completedPrimaryIntake = (intakeForms || []).find(f => f.type === 'primary') || null
   const completedAcuteIntake = (intakeForms || []).find(f => f.type === 'acute') || null
-  const completedMemoIntake = (intakeForms || []).find(f => f.type === 'memo') || null
 
   const { paid_sessions_enabled } = await getDoctorSettings()
   const lang = await getLang()
@@ -293,9 +292,6 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
             <div data-tour="intake-link">
               <IntakeLinkButton patientId={id} patientName={patient.name} type={completedPrimaryIntake ? 'acute' : 'primary'} hasCompleted={!!completedPrimaryIntake} />
             </div>
-            <div>
-              <IntakeLinkButton patientId={id} patientName={patient.name} type="memo" />
-            </div>
             <div data-tour="schedule-btn">
               <ScheduleButton patientId={id} />
             </div>
@@ -402,7 +398,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
                 <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
                   {t(lang).patientCard.intakes}
                 </p>
-                {(completedPrimaryIntake || completedAcuteIntake || completedMemoIntake) && (
+                {(completedPrimaryIntake || completedAcuteIntake) && (
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#059669' }} />
                 )}
               </div>
@@ -416,10 +412,9 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
               </div>
             </summary>
             <div className="pt-4 space-y-3">
-              {completedMemoIntake?.answers && <IntakeView answers={completedMemoIntake.answers} completedAt={completedMemoIntake.completed_at} type="memo" patientId={id} />}
               {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" patientId={id} />}
               {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" patientId={id} />}
-              {!completedPrimaryIntake && !completedAcuteIntake && !completedMemoIntake && (
+              {!completedPrimaryIntake && !completedAcuteIntake && (
                 <p className="text-[13px] py-2" style={{ color: 'var(--sim-text-muted)' }}>
                   {lang === 'ru' ? 'Анкета не заполнена. Отправьте ссылку пациенту.' : 'No intake. Send link to patient.'}
                 </p>
