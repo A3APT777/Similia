@@ -1016,8 +1016,11 @@ export async function rerunWithClarifications(input: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Не авторизован')
 
-  const { convertAnswersToSymptoms } = await import('@/lib/mdri/differential')
+  const { convertAnswersToSymptoms, CaseLogBuilder } = await import('@/lib/mdri/differential')
   const { checkHypothesisConflict } = await import('@/lib/mdri/product-layer')
+
+  // Единый лог-объект
+  const caseLog = new CaseLogBuilder(input.consultationId ?? null, 'confirmed')
 
   const confirmed = input.originalSuggestions.filter(s => s.confirmed)
   const PW: Record<string, number> = { high: 1.0, medium: 0.5, low: 0.2 }
@@ -1069,12 +1072,18 @@ export async function rerunWithClarifications(input: {
   const afterConflict = checkHypothesisConflict(mdriResults)
   const { measureClarifyEffectiveness } = await import('@/lib/mdri/differential')
   let clarifyEffectiveness: import('@/lib/mdri/differential').ClarifyEffectiveness | undefined
+
+  // Собираем before в лог
   if (input.beforeResults) {
+    const beforeConflict = input.beforeConflict ?? 'none'
+    caseLog.setInput(originalSymptoms, originalModalities, validateInput(originalSymptoms, originalModalities))
+    caseLog.setBefore(input.beforeResults, input.beforeConfidence ?? 'clarify', beforeConflict, [])
+
     clarifyEffectiveness = measureClarifyEffectiveness(
       input.beforeResults, mdriResults,
       input.beforeConfidence ?? 'clarify',
       productConfidence?.level ?? 'clarify',
-      input.beforeConflict ?? 'none',
+      beforeConflict,
       afterConflict.level,
       {
         aiUsed: input.clarifyMeta?.aiUsed ?? false,
@@ -1082,6 +1091,23 @@ export async function rerunWithClarifications(input: {
         validCount: input.clarifyMeta?.validCount ?? input.clarifyQuestions.length,
         answersCount: Object.keys(input.clarifyAnswers).length,
       },
+    )
+
+    // Clarify details в лог
+    caseLog.setAnswers(input.clarifyQuestions, input.clarifyAnswers, clarifySymptoms, clarifyModalities)
+    caseLog.setAfter(mdriResults, productConfidence?.level ?? 'clarify', afterConflict.level)
+
+    // Effectiveness debug
+    const gapDelta = clarifyEffectiveness.delta_gap
+    const maxPDelta = clarifyEffectiveness.max_alt_pressure_before - clarifyEffectiveness.max_alt_pressure_after
+    const contradictionPenalty = gapDelta > 0 && maxPDelta < 0
+    const conflictBonus = beforeConflict !== 'none' && afterConflict.level === 'none'
+    caseLog.setEffectiveness(clarifyEffectiveness,
+      // improvementScore пересчитаем для лога
+      0.5 * Math.min(1, Math.max(0, maxPDelta / 0.10)) +
+      0.3 * Math.min(1, Math.max(0, gapDelta / 10)) +
+      0.2 * Math.min(1, Math.max(0, (clarifyEffectiveness.alt_pressure_before - clarifyEffectiveness.alt_pressure_after) / 0.10)),
+      contradictionPenalty, conflictBonus,
     )
   }
 
@@ -1102,7 +1128,8 @@ export async function rerunWithClarifications(input: {
       .eq('id', input.consultationId)
   }
 
-  // Логирование с before/after метрикой
+  // Единый лог: полный CaseAnalysisLog в JSONB
+  const fullLog = caseLog.build()
   try {
     await supabase.from('ai_analysis_log').insert({
       user_id: user.id, consultation_id: input.consultationId ?? null,
@@ -1110,7 +1137,7 @@ export async function rerunWithClarifications(input: {
         ...clarifySymptoms.map(s => ({ rubric: s.rubric, type: s.category, priority: 'clarify', weight: s.weight }))],
       engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
       confidence_level: productConfidence?.level ?? null,
-      warnings: clarifyEffectiveness ? { clarify_effectiveness: clarifyEffectiveness } : null,
+      warnings: fullLog, // Полный CaseAnalysisLog в JSONB
       symptom_count: allSymptoms.length, modality_count: allModalities.length,
       has_conflict: afterConflict.hasConflict,
     })

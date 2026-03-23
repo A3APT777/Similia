@@ -562,3 +562,220 @@ export function getFallbackQuestions(differentialLenses: string[]): Differential
 
   return questions.slice(0, 5)
 }
+
+// =====================================================================
+// 9. CaseAnalysisLog — единый лог-объект для полного аудита кейса
+// =====================================================================
+
+export type MappedAnswer = {
+  questionKey: string
+  questionText: string
+  selectedLabel: string
+  mappedRubric: string
+  mappedCategory: 'mental' | 'general' | 'particular'
+  mappedWeight: 1 | 2 | 3
+  mappedModality?: { pairId: string; value: 'agg' | 'amel' }
+}
+
+export type CaseAnalysisLog = {
+  // A. META
+  meta: {
+    caseId: string | null
+    timestamp: string
+    sourceType: 'free_text' | 'card' | 'confirmed'
+    clarifyUsed: boolean
+    aiUsed: boolean
+    fallbackUsed: boolean
+  }
+
+  // B. INPUT
+  input: {
+    parsedSymptoms: { rubric: string; category: string; weight: number }[]
+    parsedModalities: { pairId: string; value: string }[]
+    confirmedCount: number
+    warningsCount: number
+    warnings: string[]
+    inferredProfile?: { caseType: string; vitality: string; sensitivity: string; age: string }
+  }
+
+  // C. BEFORE RESULT
+  before: {
+    top1: string; top2: string; top3: string
+    top1Score: number; top2Score: number; top3Score: number
+    gap: number
+    avgPressure: number; maxPressure: number
+    confidence: string
+    conflictLevel: string
+    differentialLenses: string[]
+  }
+
+  // D. CLARIFY (null если не вызывался)
+  clarify: {
+    shouldClarify: boolean
+    clarifyReason: string
+    rawQuestionsCount: number
+    validQuestionsCount: number
+    invalidCount: number
+    removedReasons: string[]
+    generatedQuestions: { question: string; supports: string[]; weakens: string[]; optionCount: number }[]
+    validatedQuestions: { question: string; supports: string[]; weakens: string[]; optionCount: number }[]
+    selectedAnswers: MappedAnswer[]
+    mappedSymptomsCount: number
+    mappedModalitiesCount: number
+  } | null
+
+  // E. AFTER RESULT (null если clarify не вызывался)
+  after: {
+    top1: string; top2: string; top3: string
+    top1Score: number; top2Score: number; top3Score: number
+    gap: number
+    avgPressure: number; maxPressure: number
+    confidence: string
+    conflictLevel: string
+  } | null
+
+  // F. EFFECTIVENESS (null если clarify не вызывался)
+  effectiveness: {
+    level: ClarifyEffectivenessLevel
+    improvementScore: number
+    top1Delta: number
+    gapDelta: number
+    avgPressureDelta: number
+    maxPressureDelta: number
+    changedTop1: boolean
+    top1Weakened: boolean
+    confidenceImproved: boolean
+    contradictionPenalty: boolean
+    conflictResolvedBonus: boolean
+    reason: string
+  } | null
+}
+
+// Builder — собирает лог по частям (вызывается из разных точек flow)
+export class CaseLogBuilder {
+  private log: CaseAnalysisLog
+
+  constructor(caseId: string | null, sourceType: 'free_text' | 'card' | 'confirmed') {
+    this.log = {
+      meta: { caseId, timestamp: new Date().toISOString(), sourceType, clarifyUsed: false, aiUsed: false, fallbackUsed: false },
+      input: { parsedSymptoms: [], parsedModalities: [], confirmedCount: 0, warningsCount: 0, warnings: [] },
+      before: { top1: '', top2: '', top3: '', top1Score: 0, top2Score: 0, top3Score: 0, gap: 0, avgPressure: 0, maxPressure: 0, confidence: '', conflictLevel: 'none', differentialLenses: [] },
+      clarify: null, after: null, effectiveness: null,
+    }
+  }
+
+  setInput(symptoms: MDRISymptom[], modalities: MDRIModality[], warnings: { type: string }[], profile?: { caseType: { value: string }; vitality: { value: string }; sensitivity: { value: string }; age: { value: string } }) {
+    this.log.input = {
+      parsedSymptoms: symptoms.filter(s => s.present).map(s => ({ rubric: s.rubric, category: s.category, weight: s.weight })),
+      parsedModalities: modalities.map(m => ({ pairId: m.pairId, value: m.value })),
+      confirmedCount: symptoms.filter(s => s.present).length,
+      warningsCount: warnings.length,
+      warnings: warnings.map(w => w.type),
+      ...(profile ? { inferredProfile: { caseType: profile.caseType.value, vitality: profile.vitality.value, sensitivity: profile.sensitivity.value, age: profile.age.value } } : {}),
+    }
+    return this
+  }
+
+  setBefore(results: MDRIResult[], confidence: string, conflictLevel: string, differentialLenses: string[]) {
+    const r = (i: number) => results[i]
+    const top1 = results[0]?.totalScore ?? 0
+    this.log.before = {
+      top1: r(0)?.remedy ?? '', top2: r(1)?.remedy ?? '', top3: r(2)?.remedy ?? '',
+      top1Score: r(0)?.totalScore ?? 0, top2Score: r(1)?.totalScore ?? 0, top3Score: r(2)?.totalScore ?? 0,
+      gap: top1 - (r(1)?.totalScore ?? 0),
+      avgPressure: results.length >= 2 ? Math.round(results.slice(1, 4).reduce((s, x) => s + x.totalScore, 0) / Math.min(3, results.length - 1) / Math.max(top1, 1) * 100) / 100 : 0,
+      maxPressure: results.length >= 2 ? Math.round(Math.max(...results.slice(1, 4).map(x => x.totalScore)) / Math.max(top1, 1) * 100) / 100 : 0,
+      confidence, conflictLevel, differentialLenses,
+    }
+    return this
+  }
+
+  setClarify(data: {
+    shouldClarify: boolean
+    clarifyReason: string
+    rawQuestions: DifferentialQuestion[]
+    validatedQuestions: DifferentialQuestion[]
+    removedReasons: string[]
+    aiUsed: boolean
+    fallbackUsed: boolean
+  }) {
+    this.log.meta.aiUsed = data.aiUsed
+    this.log.meta.fallbackUsed = data.fallbackUsed
+    this.log.clarify = {
+      shouldClarify: data.shouldClarify,
+      clarifyReason: data.clarifyReason,
+      rawQuestionsCount: data.rawQuestions.length,
+      validQuestionsCount: data.validatedQuestions.length,
+      invalidCount: data.rawQuestions.length - data.validatedQuestions.length,
+      removedReasons: data.removedReasons,
+      generatedQuestions: data.rawQuestions.map(q => ({ question: q.question, supports: q.supports, weakens: q.weakens, optionCount: q.options.length })),
+      validatedQuestions: data.validatedQuestions.map(q => ({ question: q.question, supports: q.supports, weakens: q.weakens, optionCount: q.options.length })),
+      selectedAnswers: [],
+      mappedSymptomsCount: 0,
+      mappedModalitiesCount: 0,
+    }
+    return this
+  }
+
+  setAnswers(questions: DifferentialQuestion[], answers: Record<string, string>, mappedSymptoms: MDRISymptom[], mappedModalities: MDRIModality[]) {
+    if (!this.log.clarify) return this
+    this.log.meta.clarifyUsed = true
+
+    const mapped: MappedAnswer[] = []
+    for (const [key, label] of Object.entries(answers)) {
+      const q = questions.find(x => x.key === key)
+      if (!q) continue
+      const opt = q.options.find(o => o.label === label)
+      mapped.push({
+        questionKey: key,
+        questionText: q.question,
+        selectedLabel: label,
+        mappedRubric: opt?.rubric ?? label,
+        mappedCategory: opt?.category ?? 'particular',
+        mappedWeight: opt?.weight ?? 2,
+        ...(opt?.modality ? { mappedModality: opt.modality } : {}),
+      })
+    }
+
+    this.log.clarify.selectedAnswers = mapped
+    this.log.clarify.mappedSymptomsCount = mappedSymptoms.length
+    this.log.clarify.mappedModalitiesCount = mappedModalities.length
+    return this
+  }
+
+  setAfter(results: MDRIResult[], confidence: string, conflictLevel: string) {
+    const r = (i: number) => results[i]
+    const top1 = results[0]?.totalScore ?? 0
+    this.log.after = {
+      top1: r(0)?.remedy ?? '', top2: r(1)?.remedy ?? '', top3: r(2)?.remedy ?? '',
+      top1Score: r(0)?.totalScore ?? 0, top2Score: r(1)?.totalScore ?? 0, top3Score: r(2)?.totalScore ?? 0,
+      gap: top1 - (r(1)?.totalScore ?? 0),
+      avgPressure: results.length >= 2 ? Math.round(results.slice(1, 4).reduce((s, x) => s + x.totalScore, 0) / Math.min(3, results.length - 1) / Math.max(top1, 1) * 100) / 100 : 0,
+      maxPressure: results.length >= 2 ? Math.round(Math.max(...results.slice(1, 4).map(x => x.totalScore)) / Math.max(top1, 1) * 100) / 100 : 0,
+      confidence, conflictLevel,
+    }
+    return this
+  }
+
+  setEffectiveness(eff: ClarifyEffectiveness, improvementScore: number, contradictionPenalty: boolean, conflictBonus: boolean) {
+    this.log.effectiveness = {
+      level: eff.level,
+      improvementScore,
+      top1Delta: eff.top1_score_after - eff.top1_score_before,
+      gapDelta: eff.delta_gap,
+      avgPressureDelta: eff.alt_pressure_before - eff.alt_pressure_after,
+      maxPressureDelta: eff.max_alt_pressure_before - eff.max_alt_pressure_after,
+      changedTop1: eff.changed_top1,
+      top1Weakened: eff.top1_score_after < eff.top1_score_before,
+      confidenceImproved: eff.confidence_improved,
+      contradictionPenalty,
+      conflictResolvedBonus: conflictBonus,
+      reason: eff.reason,
+    }
+    return this
+  }
+
+  build(): CaseAnalysisLog {
+    return this.log
+  }
+}
