@@ -12,6 +12,7 @@ import type {
   AIHomeopathResult, ConsensusResult, MDRISymptomCategory,
 } from '@/lib/mdri/types'
 import { DEFAULT_PROFILE } from '@/lib/mdri/types'
+import { mergeWithFallback, computeConfidence } from '@/lib/mdri/product-layer'
 
 // --- Валидация ---
 
@@ -132,18 +133,37 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       parseTextWithSonnet(parsed.text),
       loadMDRIData(),
     ])
-    const { symptoms, modalities, familyHistory } = parseResult
-    log(`parallel done: ${symptoms.length} symptoms, ${data.repertory.length} rubrics`)
+    const { symptoms: sonnetSymptoms, modalities: sonnetModalities, familyHistory } = parseResult
+    log(`parallel done: ${sonnetSymptoms.length} symptoms, ${data.repertory.length} rubrics`)
+
+    // Шаг 2.5: Product Safety Layer — keyword fallback + soft validation
+    const { symptoms, modalities, warnings } = mergeWithFallback(
+      parsed.text,
+      sonnetSymptoms,
+      sonnetModalities,
+    )
+    const fallbackAdded = {
+      symptoms: symptoms.length - sonnetSymptoms.length,
+      modalities: modalities.length - sonnetModalities.length,
+      conflicts: warnings.filter(w => w.type === 'uncertain_parse').length,
+    }
+    if (fallbackAdded.symptoms > 0 || fallbackAdded.modalities > 0) {
+      log(`fallback added: +${fallbackAdded.symptoms} symptoms, +${fallbackAdded.modalities} modalities`)
+    }
 
     if (symptoms.length === 0) {
       throw new Error('AI не смог извлечь симптомы из текста. Попробуйте описать подробнее.')
     }
 
-    // Шаг 3: MDRI Engine v4 (6 этапов — основной анализ)
+    // Шаг 3: MDRI Engine v5 (НЕ МЕНЯТЬ — заблокирован)
     const mdriResults = analyze(data, symptoms, modalities, familyHistory, parsed.profile as MDRIPatientProfile)
-    log(`MDRI v4 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
+    log(`MDRI v5 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
 
-    // Результат = только MDRI (без двойного Sonnet, укладываемся в 10 сек)
+    // Шаг 4: Confidence Layer — независимая оценка уверенности
+    const productConfidence = computeConfidence(symptoms, modalities, mdriResults, warnings)
+    log(`confidence: ${productConfidence.level}`)
+
+    // Результат
     const topRemedy = mdriResults[0]?.remedy ?? ''
     const result: ConsensusResult = {
       method: 'consensus',
@@ -153,6 +173,10 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       mdriResults,
       aiResult: null,
       cost: 0.01,
+      // Product safety layer
+      productConfidence,
+      warnings,
+      fallbackAdded,
     }
     log(`result: ${topRemedy}`)
 

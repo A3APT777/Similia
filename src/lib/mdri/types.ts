@@ -154,4 +154,14 @@ export type ConsensusResult = {
   mdriResults: MDRIResult[]
   aiResult: AIHomeopathResult | null
   cost: number
+  // Product safety layer (опциональные, для обратной совместимости)
+  productConfidence?: {
+    level: 'high' | 'good' | 'clarify' | 'insufficient'
+    label: string
+    color: 'green' | 'blue' | 'yellow' | 'gray'
+    showDiff: boolean
+    showAsEqual: boolean
+  }
+  warnings?: { type: string; message: string; hint: string }[]
+  fallbackAdded?: { symptoms: number; modalities: number; conflicts: number }
 }
