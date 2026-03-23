@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { savePrescription } from '@/lib/actions/consultations'
+import { logDoctorChoice } from '@/lib/actions/ai-consultation'
 import { useToast } from '@/components/ui/toast'
 import { searchRemediesDB, RemedyResult } from '@/lib/actions/remedies'
 import { t } from '@/lib/i18n'
@@ -102,6 +103,8 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
     if (!remedy.trim()) return
     setSaving(true)
     await savePrescription(consultationId, remedy.trim(), potency.trim(), pellets, dosage.trim())
+    // Silent feedback: логируем выбор врача
+    logDoctorChoice(consultationId, remedy.trim()).catch(() => {})
     setSaving(false)
     toast(t(lang).prescription.prescribed(remedy.trim() + (potency ? ' ' + potency : '')))
     onSaved()

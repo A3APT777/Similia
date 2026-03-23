@@ -709,6 +709,15 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
   const MAX_MEDIUM = 7
   const MAX_MENTAL_HIGH = 3  // Макс mental симптомов в high
 
+  // 0. Weak symptom filter: слишком общие → max medium
+  // Однословные рубрики и очень короткие — слишком расплывчатые для high
+  for (const s of suggestions) {
+    if (s.priority === 'high') {
+      const words = s.rubric.split(/[\s,]+/).filter(w => w.length > 2)
+      if (words.length <= 1) s.priority = 'medium' // "headache", "fever" — слишком общие
+    }
+  }
+
   // 1. Баланс категорий в high: max 3 mental
   let mentalHighCount = 0
   for (const s of suggestions) {
@@ -748,6 +757,21 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
   // 5. Auto-confirm: только high
   for (const s of suggestions) {
     if (s.priority === 'high') s.confirmed = true
+  }
+
+  // 6. Minimal required set — warnings если не хватает категорий
+  const hasGeneral = suggestions.some(s => s.type === 'general')
+  const hasParticular = suggestions.some(s => s.type === 'particular')
+  const hasModality = suggestions.some(s => s.type === 'modality')
+
+  if (!hasGeneral) {
+    warnings.push({ type: 'no_general', message: 'Нет общих симптомов', hint: 'Добавьте температурные предпочтения, жажду, аппетит' })
+  }
+  if (!hasParticular) {
+    warnings.push({ type: 'only_particulars', message: 'Нет частных симптомов', hint: 'Опишите локализацию и характер жалоб' })
+  }
+  if (!hasModality) {
+    warnings.push({ type: 'no_modalities', message: 'Нет модальностей', hint: 'Укажите что ухудшает/улучшает состояние' })
   }
 
   return {
@@ -833,8 +857,41 @@ export async function analyzeConfirmed(input: {
       .eq('id', input.consultationId)
   }
 
+  // Логирование: confirmed input + engine top-3 + confidence
+  const inputWarnings = validateInput(symptoms, modalities)
+  try {
+    await supabase.from('ai_analysis_log').insert({
+      user_id: user.id,
+      consultation_id: input.consultationId ?? null,
+      confirmed_input: confirmed.map(s => ({ rubric: s.rubric, type: s.type, priority: s.priority, weight: s.weight })),
+      engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+      confidence_level: productConfidence?.level ?? null,
+      warnings: inputWarnings.length > 0 ? inputWarnings : null,
+      symptom_count: symptoms.length,
+      modality_count: modalities.length,
+      has_conflict: inputWarnings.some(w => w.type === 'uncertain_parse'),
+    })
+  } catch { /* логирование не должно ломать анализ */ }
+
   await deductAICredit(supabase, user.id)
   return result
+}
+
+/**
+ * Логирование выбора врача (silent feedback)
+ * Вызывается при назначении препарата после AI-анализа
+ */
+export async function logDoctorChoice(consultationId: string, chosenRemedy: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  try {
+    await supabase.from('ai_analysis_log')
+      .update({ doctor_choice: chosenRemedy })
+      .eq('consultation_id', consultationId)
+      .eq('user_id', user.id)
+  } catch { /* silent */ }
 }
 
 function getFallbackClarifying(): AIQuestion[] {
