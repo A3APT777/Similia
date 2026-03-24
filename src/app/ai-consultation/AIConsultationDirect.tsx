@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { analyzeText, generateDifferentialClarifying, rerunWithClarifications } from '@/lib/actions/ai-consultation'
 import type { ConsensusResult } from '@/lib/mdri/types'
@@ -14,6 +14,64 @@ type Props = {
   lang: Lang
 }
 
+const PLACEHOLDERS_RU = [
+  'Опишите жалобы пациента...',
+  'Зябкий, раздражительный, хуже ночью...',
+  'Головная боль от солнца, любит солёное...',
+  'Ребёнок, потеет голова, поздно пошёл...',
+  'Боли в суставах, первое движение хуже...',
+  'Плачет одна, не переносит утешения...',
+]
+
+const PLACEHOLDERS_EN = [
+  'Describe patient symptoms...',
+  'Chilly, irritable, worse at night...',
+  'Headache from sun, desires salt...',
+  'Child, head sweats, late walking...',
+  'Joint pain, first motion worse...',
+  'Weeps alone, aversion to consolation...',
+]
+
+// Анимированный placeholder с blur-эффектом (чистый CSS)
+function AnimatedPlaceholder({ texts, active }: { texts: string[]; active: boolean }) {
+  const [index, setIndex] = useState(0)
+  const [phase, setPhase] = useState<'visible' | 'fading' | 'hidden'>('visible')
+
+  useEffect(() => {
+    if (active) return
+    const interval = setInterval(() => {
+      setPhase('fading')
+      setTimeout(() => {
+        setPhase('hidden')
+        setTimeout(() => {
+          setIndex(prev => (prev + 1) % texts.length)
+          setPhase('visible')
+        }, 150)
+      }, 300)
+    }, 3500)
+    return () => clearInterval(interval)
+  }, [active, texts.length])
+
+  if (active) return null
+
+  return (
+    <span
+      className="pointer-events-none select-none absolute inset-0 flex items-start pt-3 px-4 text-sm leading-relaxed"
+      style={{
+        color: 'var(--sim-text-muted)',
+        opacity: phase === 'visible' ? 0.6 : phase === 'fading' ? 0 : 0,
+        filter: phase === 'visible' ? 'blur(0px)' : 'blur(8px)',
+        transform: phase === 'visible' ? 'translateY(0)' : phase === 'fading' ? 'translateY(-6px)' : 'translateY(6px)',
+        transition: phase === 'visible'
+          ? 'opacity 0.5s ease, filter 0.5s ease, transform 0.5s ease'
+          : 'opacity 0.3s ease, filter 0.3s ease, transform 0.3s ease',
+      }}
+    >
+      {texts[index]}
+    </span>
+  )
+}
+
 export default function AIConsultationDirect({ patients, lang }: Props) {
   const router = useRouter()
   const [text, setText] = useState('')
@@ -25,6 +83,21 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
   const [clarifyAnswers, setClarifyAnswers] = useState<Record<string, string>>({})
   const [clarifyLoading, setClarifyLoading] = useState(false)
   const [clarifyUsed, setClarifyUsed] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const hasContent = text.trim().length > 0
+
+  // Автоматическая высота textarea
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    const minH = isFocused || hasContent ? 160 : 56
+    el.style.height = Math.max(minH, Math.min(el.scrollHeight, 320)) + 'px'
+  }, [isFocused, hasContent])
+
+  useEffect(() => { adjustHeight() }, [text, isFocused, adjustHeight])
 
   async function handleAnalyze() {
     if (!text.trim()) return
@@ -42,6 +115,14 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
         setError(lang === 'ru' ? 'Ошибка AI-анализа. Попробуйте ещё раз.' : 'AI analysis error. Try again.')
       }
       setStep('input')
+    }
+  }
+
+  // Отправка по Ctrl+Enter
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && text.trim()) {
+      e.preventDefault()
+      handleAnalyze()
     }
   }
 
@@ -77,7 +158,6 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
   async function handleClarifySubmit() {
     if (!result?._parsedSymptoms) return
 
-    // Конвертируем выбранные ответы в дополнительные симптомы (через rubric из option)
     const additionalSymptoms: string[] = []
     for (const q of clarifyQuestions) {
       const selectedLabel = clarifyAnswers[q.key]
@@ -95,7 +175,6 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
     setClarifyUsed(true)
     setStep('analyzing')
     try {
-      // Добавляем уточнённые симптомы к исходному тексту
       const clarifyText = additionalSymptoms.length > 0
         ? additionalSymptoms.join('. ')
         : Object.values(clarifyAnswers).filter(Boolean).join('. ')
@@ -107,10 +186,15 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
     }
   }
 
-  // Шаг 1: Ввод симптомов
+  // ═══════════════════════════════════════
+  // Шаг 1: Ввод симптомов — анимированный
+  // ═══════════════════════════════════════
   if (step === 'input') {
+    const placeholders = lang === 'ru' ? PLACEHOLDERS_RU : PLACEHOLDERS_EN
+
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Заголовок */}
         <div className="mb-8">
           <div className="mb-6" style={{ height: '2px', background: 'linear-gradient(to right, var(--sim-green), rgba(45,106,79,0.1))' }} />
           <h1
@@ -126,49 +210,99 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
           </p>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-[11px] font-medium uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--sim-text-muted)' }}>
-              {lang === 'ru' ? 'Симптомы' : 'Symptoms'}
-            </label>
-            <textarea
-              value={text}
-              onChange={e => setText(e.target.value)}
-              placeholder={lang === 'ru'
-                ? 'Женщина 42 года. Горе после потери матери. Закрылась, плачет наедине. Хуже от утешения. Желание солёного. Головные боли от солнца...'
-                : 'Woman 42. Grief after mother loss. Closed off, cries alone. Worse consolation. Desires salt. Headaches from sun...'}
-              rows={8}
-              autoFocus
-              className="w-full px-4 py-3 text-sm rounded-xl border transition-all duration-200 focus:outline-none resize-none leading-relaxed"
-              style={{ backgroundColor: 'var(--sim-bg-card)', borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
-              onFocus={e => { e.currentTarget.style.borderColor = 'var(--sim-green)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(45,106,79,0.06)' }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'var(--sim-border)'; e.currentTarget.style.boxShadow = 'none' }}
-            />
-          </div>
-
-          {error && (
-            <p className="text-[13px]" style={{ color: '#dc2626' }}>{error}</p>
+        {/* Анимированный input */}
+        <div
+          className="relative rounded-2xl overflow-hidden"
+          style={{
+            backgroundColor: 'var(--sim-bg-card)',
+            border: `1px solid ${isFocused ? 'var(--sim-green)' : 'var(--sim-border)'}`,
+            boxShadow: isFocused
+              ? '0 0 0 4px rgba(45,106,79,0.06), 0 8px 32px rgba(0,0,0,0.06)'
+              : '0 2px 8px rgba(0,0,0,0.03)',
+            transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          {/* Placeholder анимация */}
+          {!hasContent && (
+            <AnimatedPlaceholder texts={placeholders} active={isFocused} />
           )}
 
-          <button
-            onClick={handleAnalyze}
-            disabled={!text.trim()}
-            className="btn btn-primary w-full py-3.5"
-          >
-            {lang === 'ru' ? 'Анализировать' : 'Analyze'}
-          </button>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => { if (!hasContent) setIsFocused(false) }}
+            placeholder={isFocused ? (lang === 'ru' ? 'Опишите жалобы, модальности, характер...' : 'Describe complaints, modalities, character...') : ''}
+            autoFocus
+            className="w-full px-4 pt-3 pb-14 text-sm bg-transparent border-0 outline-none resize-none leading-relaxed"
+            style={{
+              color: 'var(--sim-text)',
+              minHeight: isFocused || hasContent ? '160px' : '56px',
+              transition: 'min-height 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          />
 
-          <p className="text-[12px] text-center" style={{ color: 'var(--sim-text-muted)' }}>
-            {lang === 'ru'
-              ? 'Комплексный анализ по 5 методам'
-              : 'Comprehensive 5-method analysis'}
-          </p>
+          {/* Нижняя панель */}
+          <div
+            className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5"
+            style={{
+              background: 'linear-gradient(to top, var(--sim-bg-card) 60%, transparent)',
+              opacity: isFocused || hasContent ? 1 : 0,
+              transform: isFocused || hasContent ? 'translateY(0)' : 'translateY(8px)',
+              transition: 'all 0.35s ease',
+              pointerEvents: isFocused || hasContent ? 'auto' : 'none',
+            }}
+          >
+            <span className="text-[11px]" style={{ color: 'var(--sim-text-muted)' }}>
+              {hasContent
+                ? `${text.trim().split(/\s+/).length} ${lang === 'ru' ? 'слов' : 'words'}`
+                : (lang === 'ru' ? 'Ctrl+Enter — анализ' : 'Ctrl+Enter — analyze')}
+            </span>
+
+            <button
+              onClick={handleAnalyze}
+              disabled={!hasContent}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12px] font-medium transition-all duration-300"
+              style={{
+                backgroundColor: hasContent ? 'var(--sim-green)' : 'transparent',
+                color: hasContent ? '#fff' : 'var(--sim-text-muted)',
+                border: hasContent ? 'none' : '1px solid var(--sim-border)',
+                transform: hasContent ? 'scale(1)' : 'scale(0.95)',
+                opacity: hasContent ? 1 : 0.6,
+              }}
+            >
+              {lang === 'ru' ? 'Анализировать' : 'Analyze'}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Ошибка */}
+        {error && (
+          <p className="text-[13px] mt-3" style={{ color: 'var(--sim-red, #dc2626)' }}>{error}</p>
+        )}
+
+        {/* Подпись */}
+        <p
+          className="text-[11px] text-center mt-4"
+          style={{
+            color: 'var(--sim-text-muted)',
+            opacity: 0.6,
+          }}
+        >
+          {lang === 'ru' ? 'Комплексный анализ по 5 методам' : 'Comprehensive 5-method analysis'}
+        </p>
       </div>
     )
   }
 
-  // Шаг 2: Анализ
+  // ═══════════════════════════════════════
+  // Шаг 2: Анализ (спиннер)
+  // ═══════════════════════════════════════
   if (step === 'analyzing') {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center">
@@ -191,7 +325,9 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
     )
   }
 
+  // ═══════════════════════════════════════
   // Шаг 3: Результат
+  // ═══════════════════════════════════════
   if (step === 'result' && result) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -234,7 +370,7 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
           )}
         </div>
 
-        {/* Топ-5 из MDRI */}
+        {/* Альтернативы */}
         {result.mdriResults && result.mdriResults.length > 1 && (
           <div className="rounded-xl p-4 mb-6" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
             <p className="text-[11px] font-medium uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--sim-text-muted)' }}>
@@ -245,7 +381,7 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
                 const top1Score = result.mdriResults[0]?.totalScore ?? 100
                 const gap = top1Score - r.totalScore
                 const level = gap < 10 ? 'Близкая альтернатива' : gap < 30 ? 'Возможная альтернатива' : 'Маловероятен'
-                const levelColor = gap < 10 ? 'var(--sim-accent, #2d6a4f)' : gap < 30 ? 'var(--sim-text-muted)' : 'var(--sim-text-muted)'
+                const levelColor = gap < 10 ? 'var(--sim-accent, #2d6a4f)' : 'var(--sim-text-muted)'
                 return (
                   <div key={i} className="flex items-center justify-between py-1.5" style={{ borderBottom: i < Math.min(result.mdriResults.length - 2, 3) ? '1px solid var(--sim-border)' : 'none' }}>
                     <span className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{r.remedy}</span>
@@ -257,7 +393,7 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
           </div>
         )}
 
-        {/* Блок уточнения — если confidence низкий или gap маленький */}
+        {/* Блок уточнения */}
         {needsClarify && (
           <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(217, 119, 6, 0.04)', border: '1px solid rgba(217, 119, 6, 0.15)' }}>
             <p className="text-[12px] font-medium text-amber-700 mb-1">
@@ -301,7 +437,9 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
     )
   }
 
+  // ═══════════════════════════════════════
   // Шаг 3.5: Уточняющие вопросы
+  // ═══════════════════════════════════════
   if (step === 'clarify') {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -381,7 +519,9 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
     )
   }
 
+  // ═══════════════════════════════════════
   // Шаг 4: Выбор пациента для назначения
+  // ═══════════════════════════════════════
   if (step === 'assign') {
     return (
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
@@ -446,7 +586,6 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
         {selectedPatient && (
           <button
             onClick={() => {
-              // Перейти к консультации с предзаполненным препаратом
               const rx = encodeURIComponent(result?.finalRemedy || '')
               const p = result?.mdriResults?.[0]?.potency
               const potency = encodeURIComponent(typeof p === 'string' ? p : p?.potency || '30C')
