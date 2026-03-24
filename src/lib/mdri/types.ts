@@ -82,7 +82,7 @@ export type MDRIRemedyRelationships = {
 
 export type MDRIRepertoryRubric = {
   rubric: string
-  chapter: string
+  chapter?: string
   remedies: { abbrev: string; grade: number }[]
 }
 
