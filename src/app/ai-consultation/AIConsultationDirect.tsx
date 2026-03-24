@@ -249,6 +249,15 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
           </div>
         )}
 
+        {/* Debug: показать реальные значения */}
+        <div className="text-[10px] text-gray-400 mb-2 p-2 bg-gray-50 rounded">
+          level: {result.productConfidence?.level ?? 'none'} |
+          showDiff: {String(result.productConfidence?.showDiff ?? 'none')} |
+          gap: {result.mdriResults?.length >= 2 ? result.mdriResults[0].totalScore - result.mdriResults[1].totalScore : 'N/A'} |
+          needsClarify: {String(!!needsClarify)} |
+          clarifyUsed: {String(clarifyUsed)}
+        </div>
+
         {/* Блок уточнения — если confidence низкий или gap маленький */}
         {needsClarify && (
           <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(217, 119, 6, 0.04)', border: '1px solid rgba(217, 119, 6, 0.15)' }}>
