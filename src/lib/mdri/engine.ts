@@ -1994,13 +1994,9 @@ function kentScore(data: MDRIData, symptoms: MDRISymptom[], cache: Map<string, M
   // Динамический anti-domination: плавная функция от количества рубрик
   // Используем remedyRubricCount (общее кол-во рубрик где препарат присутствует)
   // penalty = 1 / (1 + (count/median)^exponent)
-  // Median ~3000. Exponent=0.8:
-  //   count=500   → penalty=0.83
-  //   count=2000  → penalty=0.56
-  //   count=5000  → penalty=0.38
-  //   count=8000  → penalty=0.29
-  //   count=12000 → penalty=0.23
-  const MEDIAN_COUNT = 3000
+  // MEDIAN динамический: ~4% от общего количества рубрик
+  const totalRubrics = data.repertory.length
+  const MEDIAN_COUNT = Math.max(3000, Math.round(totalRubrics * 0.04))
   const AD_EXPONENT = 0.8
   for (const remAbbrev of Object.keys(scores)) {
     const count = data.remedyRubricCount.get(remAbbrev) ?? 0
@@ -2075,12 +2071,12 @@ function hierarchyScore(data: MDRIData, symptoms: MDRISymptom[], cache: Map<stri
     }
   }
 
-  // Anti-domination — тот же динамический
-  const MEDIAN_COUNT = 3000
+  // Anti-domination — динамический, масштабируется с размером реперториума
+  const MEDIAN_COUNT_H = Math.max(3000, Math.round(data.repertory.length * 0.04))
   for (const remAbbrev of Object.keys(scores)) {
     const count = data.remedyRubricCount.get(remAbbrev) ?? 0
     if (count > 100) {
-      const penalty = 1 / (1 + Math.pow(count / MEDIAN_COUNT, 0.5)) // Мягче чем в Kent
+      const penalty = 1 / (1 + Math.pow(count / MEDIAN_COUNT_H, 0.5)) // Мягче чем в Kent
       scores[remAbbrev] *= penalty
     }
   }
