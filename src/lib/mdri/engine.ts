@@ -1728,6 +1728,8 @@ const SEMANTIC_MAP: Record<string, string[]> = {
   'prone sleep': ['sleep, position, abdomen', 'sleep, position, stomach'],
   'sea amel': ['generalities, sea, amel', 'generalities, seaside, amel'],
   'seashore': ['generalities, sea, amel', 'generalities, seaside, amel'],
+  'better seashore': ['generalities, sea, amel', 'generalities, seaside, amel'],
+  'sea amel': ['generalities, sea, amel'],
   'better sea': ['generalities, sea, amel', 'generalities, seaside, amel'],
   'worse morning better evening': ['generalities, morning, agg', 'generalities, evening, amel'],
   // Tuberculinum: travel desire + emaciation + catches cold
