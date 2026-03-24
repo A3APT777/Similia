@@ -200,6 +200,9 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       fallbackAdded,
       usedSymptoms,
       inferredProfile,
+      // Structured data для clarify engine
+      _parsedSymptoms: symptoms,
+      _parsedModalities: modalities,
     }
     log(`result: ${topRemedy}`)
 

@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { analyzeText, generateClarifyingQuestions } from '@/lib/actions/ai-consultation'
+import { analyzeText, generateDifferentialClarifying, rerunWithClarifications } from '@/lib/actions/ai-consultation'
 import type { ConsensusResult } from '@/lib/mdri/types'
-import type { AIQuestion } from '@/lib/actions/ai-consultation'
+import type { DifferentialQuestion } from '@/lib/mdri/differential'
 import type { Lang } from '@/hooks/useLanguage'
 
 type Patient = { id: string; name: string; constitutional_type: string | null }
@@ -21,7 +21,7 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
   const [result, setResult] = useState<ConsensusResult | null>(null)
   const [error, setError] = useState('')
   const [selectedPatient, setSelectedPatient] = useState<string>('')
-  const [clarifyQuestions, setClarifyQuestions] = useState<AIQuestion[]>([])
+  const [clarifyQuestions, setClarifyQuestions] = useState<DifferentialQuestion[]>([])
   const [clarifyAnswers, setClarifyAnswers] = useState<Record<string, string>>({})
   const [clarifyLoading, setClarifyLoading] = useState(false)
   const [clarifyUsed, setClarifyUsed] = useState(false)
@@ -54,18 +54,16 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
   )
 
   async function handleClarify() {
-    if (!result?.mdriResults) return
+    if (!result?.mdriResults || !result._parsedSymptoms) return
     setClarifyLoading(true)
     try {
-      const topRemedies = result.mdriResults.slice(0, 3).map(r => ({
-        remedy: r.remedy,
-        score: r.totalScore,
-        confidence: r.confidence,
-      }))
-      const symptoms = result.usedSymptoms?.map(s => s.label) ?? []
-      const qs = await generateClarifyingQuestions(symptoms, topRemedies)
-      if (qs.length > 0) {
-        setClarifyQuestions(qs)
+      const clarifyResult = await generateDifferentialClarifying({
+        results: result.mdriResults,
+        symptoms: result._parsedSymptoms,
+        modalities: result._parsedModalities ?? [],
+      })
+      if (clarifyResult.questions.length > 0) {
+        setClarifyQuestions(clarifyResult.questions)
         setClarifyAnswers({})
         setStep('clarify')
       }
@@ -77,21 +75,31 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
   }
 
   async function handleClarifySubmit() {
-    // Собираем ответы в текст и добавляем к исходному
-    const answersText = clarifyQuestions
-      .map(q => {
-        const answer = clarifyAnswers[q.key]
-        return answer ? `${q.label}: ${answer}` : null
-      })
-      .filter(Boolean)
-      .join('. ')
+    if (!result?._parsedSymptoms) return
 
-    if (!answersText) return
+    // Конвертируем выбранные ответы в дополнительные симптомы (через rubric из option)
+    const additionalSymptoms: string[] = []
+    for (const q of clarifyQuestions) {
+      const selectedLabel = clarifyAnswers[q.key]
+      if (!selectedLabel) continue
+      const option = q.options?.find(o => o.label === selectedLabel)
+      if (option?.rubric) {
+        additionalSymptoms.push(option.rubric)
+      } else {
+        additionalSymptoms.push(selectedLabel)
+      }
+    }
+
+    if (additionalSymptoms.length === 0 && Object.keys(clarifyAnswers).length === 0) return
 
     setClarifyUsed(true)
     setStep('analyzing')
     try {
-      const res = await analyzeText({ text: text.trim() + '\n\nУточнение: ' + answersText })
+      // Добавляем уточнённые симптомы к исходному тексту
+      const clarifyText = additionalSymptoms.length > 0
+        ? additionalSymptoms.join('. ')
+        : Object.values(clarifyAnswers).filter(Boolean).join('. ')
+      const res = await analyzeText({ text: text.trim() + '\n\nУточнение: ' + clarifyText })
       setResult(res)
       setStep('result')
     } catch {
@@ -322,29 +330,37 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
           {clarifyQuestions.map((q, idx) => (
             <div key={q.key} className="rounded-xl p-4" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
               <p className="text-[13px] font-medium mb-2" style={{ color: 'var(--sim-text)' }}>
-                {idx + 1}. {q.label}
+                {idx + 1}. {q.question}
               </p>
+              {q.why_it_matters && (
+                <p className="text-[11px] mb-2" style={{ color: 'var(--sim-text-muted)' }}>
+                  {q.why_it_matters}
+                </p>
+              )}
               {q.options && q.options.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {q.options.map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => setClarifyAnswers(prev => ({ ...prev, [q.key]: opt }))}
-                      className={`text-[12px] px-3 py-1.5 rounded-full border transition-all ${
-                        clarifyAnswers[q.key] === opt
-                          ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
-                          : 'border-[rgba(0,0,0,0.1)] hover:border-[#2d6a4f]'
-                      }`}
-                      style={{ color: clarifyAnswers[q.key] === opt ? undefined : 'var(--sim-text)' }}
-                    >
-                      {opt}
-                    </button>
-                  ))}
+                  {q.options.map(opt => {
+                    const optId = opt.label
+                    return (
+                      <button
+                        key={optId}
+                        onClick={() => setClarifyAnswers(prev => ({ ...prev, [q.key]: optId }))}
+                        className={`text-[12px] px-3 py-1.5 rounded-full border transition-all ${
+                          clarifyAnswers[q.key] === optId
+                            ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
+                            : 'border-[rgba(0,0,0,0.1)] hover:border-[#2d6a4f]'
+                        }`}
+                        style={{ color: clarifyAnswers[q.key] === optId ? undefined : 'var(--sim-text)' }}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
                 </div>
               ) : (
                 <input
                   type="text"
-                  placeholder={q.hint || (lang === 'ru' ? 'Ваш ответ...' : 'Your answer...')}
+                  placeholder={lang === 'ru' ? 'Ваш ответ...' : 'Your answer...'}
                   value={clarifyAnswers[q.key] || ''}
                   onChange={e => setClarifyAnswers(prev => ({ ...prev, [q.key]: e.target.value }))}
                   className="w-full text-[13px] px-3 py-2 rounded-lg border"

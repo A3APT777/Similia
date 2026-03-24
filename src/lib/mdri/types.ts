@@ -175,6 +175,9 @@ export type ConsensusResult = {
   }
   // Использованные симптомы (русские labels для UI)
   usedSymptoms?: { label: string; type: 'mental' | 'general' | 'modality' | 'particular' }[]
+  // Structured data для clarify engine (не для UI)
+  _parsedSymptoms?: MDRISymptom[]
+  _parsedModalities?: MDRIModality[]
 }
 
 // === Suggestions (hybrid parsing) ===
