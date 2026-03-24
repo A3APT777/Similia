@@ -215,6 +215,23 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     }
 
     await deductAICredit(supabase, user.id)
+
+    // Логирование: analyzeText flow (как в analyzeConfirmed)
+    const inputWarnings = validateInput(symptoms, modalities)
+    try {
+      await supabase.from('ai_analysis_log').insert({
+        user_id: user.id,
+        consultation_id: parsed.consultationId ?? null,
+        confirmed_input: symptoms.map(s => ({ rubric: s.rubric, type: s.category, weight: s.weight })),
+        engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+        confidence_level: productConfidence?.level ?? null,
+        warnings: inputWarnings.length > 0 ? inputWarnings : null,
+        symptom_count: symptoms.length,
+        modality_count: modalities.length,
+        has_conflict: inputWarnings.some(w => w.type === 'uncertain_parse'),
+      })
+    } catch { /* логирование не должно ломать анализ */ }
+
     log('DONE')
 
     return result
