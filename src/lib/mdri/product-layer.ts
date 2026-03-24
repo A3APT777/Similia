@@ -850,6 +850,16 @@ export function applyIdfWeights(
  * Обёртка над engine.analyzePipeline с IDF-нормализацией.
  * Engine core НЕ изменён — мы корректируем вход.
  */
+/**
+ * Обёртка над engine с IDF + post-engine quality re-ranking.
+ * Engine core НЕ изменён.
+ *
+ * Post-engine re-ranking:
+ * 1. Для каждого remedy из top-N проверяем качество совпадений
+ * 2. Peculiar match bonus: w=3 симптомы, которые match remedy, усиливают score
+ * 3. Specificity bonus: совпадения с редкими рубриками (мало remedies) усиливают score
+ * 4. Coverage penalty: если remedy покрывает только общие симптомы — штраф
+ */
 export function analyzeWithIdf(
   data: { repertory: MDRIRepertoryRubric[]; constellations: Record<string, unknown>; polarities: Record<string, unknown>; relationships: Record<string, unknown>; wordIndex: Map<string, number[]> },
   symptoms: MDRISymptom[],
@@ -859,5 +869,155 @@ export function analyzeWithIdf(
 ): MDRIResult[] {
   const normalizedSymptoms = applyIdfWeights(symptoms, data.repertory)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return analyzePipeline(data as any, normalizedSymptoms, modalities, familyHistory, profile)
+  const results = analyzePipeline(data as any, normalizedSymptoms, modalities, familyHistory, profile)
+
+  // Post-engine quality re-ranking (top-20)
+  return reRankByQuality(results.slice(0, 20), symptoms, data.repertory)
+    .concat(results.slice(20))
+}
+
+// =====================================================================
+// 7. POST-ENGINE QUALITY RE-RANKING
+// =====================================================================
+
+/**
+ * Проверить, содержит ли рубрика данный remedy.
+ * Возвращает grade (1-3) или 0 если не найден.
+ */
+function findRemedyInRubric(
+  rubricText: string,
+  remedyAbbrev: string,
+  repertory: MDRIRepertoryRubric[]
+): number {
+  const remedyLower = remedyAbbrev.toLowerCase().replace(/\.$/, '')
+  const words = rubricText.toLowerCase().split(/\s+/)
+
+  for (const rubric of repertory) {
+    const rubricLower = rubric.rubric.toLowerCase()
+    // Проверяем что все слова симптома есть в рубрике
+    if (words.length >= 2 && words.every(w => rubricLower.includes(w))) {
+      const found = rubric.remedies.find(r =>
+        r.abbrev.toLowerCase().replace(/\.$/, '') === remedyLower
+      )
+      if (found) return found.grade
+    }
+  }
+  return 0
+}
+
+/**
+ * Быстрый lookup: есть ли remedy в рубриках, содержащих данные слова.
+ * Использует word index для скорости.
+ */
+function quickRemedyMatch(
+  symptomRubric: string,
+  remedyAbbrev: string,
+  repertory: MDRIRepertoryRubric[],
+  wordIndex: Map<string, number[]>
+): { found: boolean; grade: number; rubricSize: number } {
+  const words = symptomRubric.toLowerCase().split(/\s+/).filter(w => w.length > 2)
+  const remedyLower = remedyAbbrev.toLowerCase().replace(/\.$/, '')
+
+  if (words.length === 0) return { found: false, grade: 0, rubricSize: 0 }
+
+  // Найти рубрики через word index (пересечение)
+  let candidateIndices: Set<number> | null = null
+  for (const word of words) {
+    const indices = wordIndex.get(word)
+    if (!indices || indices.length === 0) return { found: false, grade: 0, rubricSize: 0 }
+    const indexSet = new Set(indices)
+    if (candidateIndices === null) {
+      candidateIndices = indexSet
+    } else {
+      candidateIndices = new Set([...candidateIndices].filter(i => indexSet.has(i)))
+    }
+    if (candidateIndices.size === 0) return { found: false, grade: 0, rubricSize: 0 }
+  }
+
+  // Проверяем remedy в найденных рубриках
+  for (const idx of candidateIndices!) {
+    const rubric = repertory[idx]
+    if (!rubric) continue
+    const rem = rubric.remedies.find(r =>
+      r.abbrev.toLowerCase().replace(/\.$/, '') === remedyLower
+    )
+    if (rem) {
+      return { found: true, grade: rem.grade, rubricSize: rubric.remedies.length }
+    }
+  }
+
+  return { found: false, grade: 0, rubricSize: 0 }
+}
+
+/**
+ * Post-engine re-ranking: пересчёт score на основе качества совпадений.
+ *
+ * Для каждого remedy из results:
+ * 1. Peculiar match: сколько w=3 симптомов реально совпало → bonus
+ * 2. Specificity: средний IDF совпавших рубрик → bonus
+ * 3. Coverage penalty: если remedy покрывает только w=1/2 → penalty
+ */
+function reRankByQuality(
+  results: MDRIResult[],
+  inputSymptoms: MDRISymptom[],
+  repertory: MDRIRepertoryRubric[],
+): MDRIResult[] {
+  if (results.length < 2 || inputSymptoms.length === 0) return results
+
+  // Собираем wordIndex для быстрого lookup
+  const wordIndex = new Map<string, number[]>()
+  for (let i = 0; i < repertory.length; i++) {
+    const words = repertory[i].rubric.toLowerCase().split(/[\s;,]+/)
+    for (const w of words) {
+      if (w.length <= 2) continue
+      if (!wordIndex.has(w)) wordIndex.set(w, [])
+      wordIndex.get(w)!.push(i)
+    }
+  }
+
+  const peculiarSymptoms = inputSymptoms.filter(s => s.weight >= 3)
+  if (peculiarSymptoms.length === 0) return results // Нет peculiar → нечего ранжировать
+
+  // Для каждого peculiar симптома: какие remedies из top-N его покрывают?
+  // Если symptom покрывает ТОЛЬКО 1-2 из top-5 → это дифференцирующий сигнал
+  const topN = results.slice(0, Math.min(10, results.length))
+  const remedyBonuses = new Map<string, number>()
+  for (const r of topN) remedyBonuses.set(r.remedy, 0)
+
+  for (const sym of peculiarSymptoms) {
+    // Кто из top-N покрывает этот peculiar?
+    const coveredBy: string[] = []
+    for (const r of topN) {
+      const match = quickRemedyMatch(sym.rubric, r.remedy, repertory, wordIndex)
+      if (match.found) coveredBy.push(r.remedy)
+    }
+
+    if (coveredBy.length === 0) continue
+
+    // Чем МЕНЬШЕ remedies покрывают этот peculiar, тем БОЛЬШЕ bonus для тех кто покрывает
+    // 1 remedy → bonus 0.08 (уникальное совпадение!)
+    // 2 remedies → bonus 0.05
+    // 3+ → bonus 0.02
+    // 5+ → bonus 0 (общий peculiar, все его покрывают)
+    const bonus = coveredBy.length === 1 ? 0.08
+                : coveredBy.length === 2 ? 0.05
+                : coveredBy.length <= 4 ? 0.02
+                : 0
+
+    for (const rem of coveredBy) {
+      remedyBonuses.set(rem, (remedyBonuses.get(rem) ?? 0) + bonus)
+    }
+  }
+
+  // Применяем бонусы
+  const reranked = results.map(r => {
+    const bonus = remedyBonuses.get(r.remedy) ?? 0
+    if (bonus === 0) return r
+    const adjustedScore = Math.round(r.totalScore * (1 + bonus))
+    return { ...r, totalScore: Math.min(100, adjustedScore) }
+  })
+
+  // Пересортируем
+  reranked.sort((a, b) => b.totalScore - a.totalScore)
+  return reranked
 }
