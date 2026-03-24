@@ -174,12 +174,18 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
               {lang === 'ru' ? 'Альтернативы' : 'Alternatives'}
             </p>
             <div className="space-y-2">
-              {result.mdriResults.slice(1, 5).map((r, i) => (
-                <div key={i} className="flex items-center justify-between py-1.5" style={{ borderBottom: i < Math.min(result.mdriResults.length - 2, 3) ? '1px solid var(--sim-border)' : 'none' }}>
-                  <span className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{r.remedy}</span>
-                  <span className="text-[12px] tabular-nums" style={{ color: 'var(--sim-text-muted)' }}>{r.totalScore}</span>
-                </div>
-              ))}
+              {result.mdriResults.slice(1, 5).map((r, i) => {
+                const top1Score = result.mdriResults[0]?.totalScore ?? 100
+                const gap = top1Score - r.totalScore
+                const level = gap < 10 ? 'Близкая альтернатива' : gap < 30 ? 'Возможная альтернатива' : 'Маловероятен'
+                const levelColor = gap < 10 ? 'var(--sim-accent, #2d6a4f)' : gap < 30 ? 'var(--sim-text-muted)' : 'var(--sim-text-muted)'
+                return (
+                  <div key={i} className="flex items-center justify-between py-1.5" style={{ borderBottom: i < Math.min(result.mdriResults.length - 2, 3) ? '1px solid var(--sim-border)' : 'none' }}>
+                    <span className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{r.remedy}</span>
+                    <span className="text-[11px]" style={{ color: levelColor }}>{level}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
