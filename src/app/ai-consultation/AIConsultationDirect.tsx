@@ -264,14 +264,18 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
             <button
               onClick={handleAnalyze}
               disabled={!hasContent}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12px] font-medium transition-all duration-300"
-              style={{
-                backgroundColor: hasContent ? 'var(--sim-green)' : 'transparent',
-                color: hasContent ? '#fff' : 'var(--sim-text-muted)',
-                border: hasContent ? 'none' : '1px solid var(--sim-border)',
-                transform: hasContent ? 'scale(1)' : 'scale(0.95)',
-                opacity: hasContent ? 1 : 0.6,
-              }}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12px] font-medium transition-all duration-500"
+              style={(() => {
+                const len = text.trim().length
+                const progress = Math.min(len / 20, 1) // 0→1 за 20 символов
+                return {
+                  backgroundColor: `rgba(45, 106, 79, ${progress * 1})`,
+                  color: progress > 0.5 ? '#fff' : 'var(--sim-text-muted)',
+                  border: progress < 0.3 ? '1px solid var(--sim-border)' : 'none',
+                  transform: `scale(${0.95 + progress * 0.05})`,
+                  opacity: 0.5 + progress * 0.5,
+                }
+              })()}
             >
               {lang === 'ru' ? 'Анализировать' : 'Analyze'}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
