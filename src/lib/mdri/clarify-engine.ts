@@ -12,6 +12,8 @@
 import type { MDRIResult, MDRISymptom, MDRIModality } from './types'
 import type { ConflictCheckResult } from './product-layer'
 import type { DifferentialQuestion, OptionWithMapping } from './differential'
+import { findKnownDiscriminators, selectFromKB } from './discriminator-kb'
+import type { Discriminator as KBDiscriminator } from './discriminator-kb'
 
 // =====================================================================
 // 1. selectDifferentialPair
@@ -234,32 +236,50 @@ export function selectBestDiscriminator(
   existingSymptoms: MDRISymptom[],
   existingModalities: MDRIModality[],
 ): Discriminator | null {
+  // Сначала проверяем Knowledge Base
+  const kbPair = findKnownDiscriminators(matrix.pair.top1.remedy, matrix.pair.alt.remedy)
+  if (kbPair) {
+    const kbDisc = selectFromKB(kbPair, existingSymptoms, existingModalities)
+    if (kbDisc) {
+      // Конвертируем KB Discriminator в локальный формат
+      const optA = kbDisc.options.find(o => o.effect === 'supports_a')
+      const optB = kbDisc.options.find(o => o.effect === 'supports_b')
+      return {
+        type: kbDisc.type as Discriminator['type'],
+        description: kbDisc.labelRu,
+        top1Supports: optA?.labelRu ?? '',
+        altSupports: optB?.labelRu ?? '',
+        rubricTop1: optA?.mappedSymptoms[0]?.rubric ?? '',
+        rubricAlt: optB?.mappedSymptoms[0]?.rubric ?? '',
+        categoryTop1: optA?.mappedSymptoms[0]?.category ?? 'general',
+        categoryAlt: optB?.mappedSymptoms[0]?.category ?? 'general',
+        weightTop1: (optA?.mappedSymptoms[0]?.weight ?? 2) as 1 | 2 | 3,
+        weightAlt: (optB?.mappedSymptoms[0]?.weight ?? 2) as 1 | 2 | 3,
+        modalityTop1: optA?.mappedSymptoms[0]?.modality,
+        modalityAlt: optB?.mappedSymptoms[0]?.modality,
+        sourceLens: 'KB',
+        confidence: kbDisc.evidenceLevel === 'high' ? 0.9 : 0.7,
+      }
+    }
+  }
+
+  // Fallback на старый KNOWN_DISCRIMINATORS (если есть)
   const key = pairKey(matrix.pair.top1.remedy, matrix.pair.alt.remedy)
   const known = KNOWN_DISCRIMINATORS[key]
-
   if (!known || known.length === 0) return null
 
-  // Фильтруем: не спрашивать то что уже известно
   const available = known.filter(d => {
-    // Если модальность уже есть — не спрашивать
     if (d.modalityTop1 && existingModalities.some(m => m.pairId === d.modalityTop1!.pairId)) return false
     if (d.modalityAlt && existingModalities.some(m => m.pairId === d.modalityAlt!.pairId)) return false
-
-    // Если rubric уже есть в симптомах — не спрашивать
     const rubLower1 = d.rubricTop1.toLowerCase()
     const rubLower2 = d.rubricAlt.toLowerCase()
     const alreadyHas = existingSymptoms.some(s => {
       const r = s.rubric.toLowerCase()
       return r.includes(rubLower1.split(' ')[0]) || r.includes(rubLower2.split(' ')[0])
     })
-    if (alreadyHas) return false
-
-    return true
+    return !alreadyHas
   })
-
   if (available.length === 0) return null
-
-  // Выбираем с наивысшим confidence
   available.sort((a, b) => b.confidence - a.confidence)
   return available[0]
 }
