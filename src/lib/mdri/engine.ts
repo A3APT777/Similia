@@ -1171,16 +1171,15 @@ export function analyzePipeline(
 
   // Constellation confidence penalty:
   // Если есть кандидат с сильным constellation (cs>40%),
-  // препараты с слабым cs (<15%) получают penalty.
-  // Это предотвращает доминацию через чистый kent без подтверждения паттерна.
+  // препараты с слабым cs получают penalty.
+  // Порог 30 (вместо 15) — ловит Carc (cs=20-23) и другие слабые совпадения.
   const maxCs = Math.max(...results.map(r => r.lenses.find(l => l.name === 'Constellation')?.score ?? 0))
   if (maxCs > 40) {
     for (const r of results) {
       const rCs = r.lenses.find(l => l.name === 'Constellation')?.score ?? 0
-      if (rCs < 15) {
-        // Слабое/нет подтверждение: penalty пропорционально разрыву
-        // cs=0 → penalty 0.65, cs=10 → penalty 0.88
-        const penaltyFactor = 0.65 + (rCs / 15) * 0.35
+      if (rCs < 30) {
+        // cs=0 → penalty 0.55, cs=15 → penalty 0.78, cs=25 → penalty 0.93
+        const penaltyFactor = 0.55 + (rCs / 30) * 0.45
         r.totalScore = Math.round(r.totalScore * penaltyFactor)
       }
     }
