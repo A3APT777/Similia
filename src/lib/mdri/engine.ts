@@ -1177,9 +1177,9 @@ export function analyzePipeline(
   if (maxCs > 40) {
     for (const r of results) {
       const rCs = r.lenses.find(l => l.name === 'Constellation')?.score ?? 0
-      if (rCs < 30) {
-        // cs=0 → penalty 0.55, cs=15 → penalty 0.78, cs=25 → penalty 0.93
-        const penaltyFactor = 0.55 + (rCs / 30) * 0.45
+      if (rCs < 60) {
+        // cs=0 → penalty 0.55, cs=30 → penalty 0.78, cs=50 → penalty 0.93, cs=55 → penalty 0.96
+        const penaltyFactor = 0.55 + (rCs / 60) * 0.45
         r.totalScore = Math.round(r.totalScore * penaltyFactor)
       }
     }
