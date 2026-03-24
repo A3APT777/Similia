@@ -49,6 +49,7 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
   const needsClarify = result && !clarifyUsed && (
     result.productConfidence?.level === 'clarify' ||
     result.productConfidence?.level === 'insufficient' ||
+    result.productConfidence?.showDiff === true ||
     (result.mdriResults?.length >= 2 && result.mdriResults[0].totalScore - result.mdriResults[1].totalScore < 8)
   )
 
