@@ -1185,7 +1185,13 @@ export function analyzePipeline(
     }
   }
 
-  results.sort((a, b) => b.totalScore - a.totalScore)
+  // Сортировка: по totalScore, при равном — по constellation (выше cs = лучше)
+  results.sort((a, b) => {
+    if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+    const aCs = a.lenses.find(l => l.name === 'Constellation')?.score ?? 0
+    const bCs = b.lenses.find(l => l.name === 'Constellation')?.score ?? 0
+    return bCs - aCs
+  })
 
   // Differential
   if (results.length >= 2) {
@@ -1730,6 +1736,16 @@ const SEMANTIC_MAP: Record<string, string[]> = {
   'seashore': ['generalities, sea, amel', 'generalities, seaside, amel'],
   'better seashore': ['generalities, sea, amel', 'generalities, seaside, amel'],
   'sea amel': ['generalities, sea, amel'],
+  // Motion sickness / Tab
+  'motion sickness': ['stomach, nausea, riding, in a carriage or on the cars', 'generalities, riding, in a vehicle, agg'],
+  'worse opening eyes': ['generalities, opening eyes, agg', 'vertigo, opening eyes, on'],
+  'sinking empty feeling': ['stomach, emptiness, weak feeling', 'stomach, sinking, empty'],
+  // Tub specifics
+  'desire cold milk': ['stomach, desires, milk, cold', 'stomach, desires, milk'],
+  'ringworm': ['skin, eruptions, ringworm', 'skin, herpes, circinatus'],
+  // Mag-p specifics
+  'right side worse': ['generalities, side, right', 'generalities, right'],
+  'pain shooting lightning': ['generalities, pain, shooting', 'generalities, pain, lightning-like'],
   'better sea': ['generalities, sea, amel', 'generalities, seaside, amel'],
   'worse morning better evening': ['generalities, morning, agg', 'generalities, evening, amel'],
   // Tuberculinum: travel desire + emaciation + catches cold
