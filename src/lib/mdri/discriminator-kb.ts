@@ -187,11 +187,13 @@ export const DISCRIMINATOR_KB: DifferentialPairKB[] = [
             effect: 'supports_a', confidenceWeight: 1.0,
             mappedSymptoms: [
               { canonicalKey: 'MOTION_AGGRAVATION', rubric: 'worse motion any lies still', weight: 3, category: 'general', modality: { pairId: 'motion_rest', value: 'agg' } },
+              { canonicalKey: 'REST_AMELIORATION', rubric: 'better rest lying perfectly still', weight: 2, category: 'general' },
             ] },
           { id: 'b', labelRu: 'Сначала двигаться тяжело, но если расходиться — становится легче',
             effect: 'supports_b', confidenceWeight: 1.0,
             mappedSymptoms: [
               { canonicalKey: 'AMELIORATION_CONTINUED_MOTION', rubric: 'stiffness joints worse first motion better continued', weight: 3, category: 'general', modality: { pairId: 'motion_rest', value: 'amel' } },
+              { canonicalKey: 'RESTLESSNESS_MUST_MOVE', rubric: 'restlessness cannot lie still must move', weight: 2, category: 'mental' },
             ] },
           { id: 'none', labelRu: 'Не могу сказать / не замечал(а)',
             effect: 'neutral', confidenceWeight: 0, mappedSymptoms: [] },
