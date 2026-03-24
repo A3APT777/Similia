@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { analyzePipeline as analyze } from '@/lib/mdri/engine'
+import { analyzePipeline as analyzeRaw } from '@/lib/mdri/engine'
 import { loadMDRIData } from '@/lib/mdri/data-loader'
 import { HOMEOPATH_SYSTEM_PROMPT } from '@/lib/mdri/homeopath-prompt'
 import { PARSING_SYSTEM_PROMPT } from '@/lib/mdri/parsing-prompt'
@@ -14,7 +14,7 @@ import type {
   ParsedSuggestion, ParseSuggestionsResult,
 } from '@/lib/mdri/types'
 import { DEFAULT_PROFILE } from '@/lib/mdri/types'
-import { mergeWithFallback, computeConfidence, validateInput } from '@/lib/mdri/product-layer'
+import { mergeWithFallback, computeConfidence, validateInput, analyzeWithIdf } from '@/lib/mdri/product-layer'
 import { inferPatientProfile, toEngineProfile } from '@/lib/mdri/infer-profile'
 
 // --- Валидация ---
@@ -83,7 +83,7 @@ export async function analyzeCase(input: z.input<typeof analyzeSchema>): Promise
 
   // MDRI-анализ
   const data = await loadMDRIData()
-  const mdriResults = analyze(
+  const mdriResults = analyzeWithIdf(
     data,
     parsed.symptoms as MDRISymptom[],
     parsed.modalities as MDRIModality[],
@@ -164,7 +164,7 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     log(`profile inferred: ${profile.acuteOrChronic}/${profile.vitality}/${profile.sensitivity}/${profile.age}`)
 
     // Шаг 3: MDRI Engine v5 (НЕ МЕНЯТЬ — заблокирован)
-    const mdriResults = analyze(data, symptoms, modalities, familyHistory, profile)
+    const mdriResults = analyzeWithIdf(data, symptoms, modalities, familyHistory, profile)
     log(`MDRI v5 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
 
     // Шаг 4: Confidence Layer — независимая оценка уверенности
@@ -946,7 +946,7 @@ export async function analyzeConfirmed(input: {
 
   const profile = input.profile ?? DEFAULT_PROFILE
   const data = await loadMDRIData()
-  const mdriResults = analyze(data, symptoms, modalities, input.familyHistory, profile)
+  const mdriResults = analyzeWithIdf(data, symptoms, modalities, input.familyHistory, profile)
 
   // Перевод matchedRubrics на русский
   for (const r of mdriResults) {
@@ -1172,7 +1172,7 @@ export async function rerunWithClarifications(input: {
 
   // Rerun engine
   const data = await loadMDRIData()
-  const mdriResults = analyze(data, allSymptoms, allModalities, input.familyHistory, DEFAULT_PROFILE)
+  const mdriResults = analyzeWithIdf(data, allSymptoms, allModalities, input.familyHistory, DEFAULT_PROFILE)
   for (const r of mdriResults) {
     if (r.matchedRubrics) r.matchedRubrics = r.matchedRubrics.map(rubricToRussian)
   }

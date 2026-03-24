@@ -8,7 +8,8 @@
  * 4. Confidence — реальная уверенность, не формальная
  */
 
-import type { MDRISymptom, MDRIModality, MDRIResult } from './types'
+import type { MDRISymptom, MDRIModality, MDRIResult, MDRIRepertoryRubric, MDRIPatientProfile } from './types'
+import { analyzePipeline } from './engine'
 
 // =====================================================================
 // 1. KEYWORD FALLBACK
@@ -736,4 +737,127 @@ export function checkHypothesisConflict(results: MDRIResult[]): ConflictCheckRes
     level: 'none', hasConflict: false,
     altAdvantages, topStrengths, altStrengths, differentialLenses,
   }
+}
+
+// =====================================================================
+// 6. IDF-НОРМАЛИЗАЦИЯ ВЕСОВ СИМПТОМОВ
+// Снижает влияние общих рубрик (где много препаратов),
+// усиливает влияние специфичных рубрик (где мало препаратов).
+// Engine core НЕ изменён — корректируем weight ДО передачи в engine.
+// =====================================================================
+
+// Кэш IDF для рубрик (считается один раз)
+let idfCache: Map<string, number> | null = null
+let totalRemediesInRepertory = 0
+
+/**
+ * Построить IDF-индекс из реперторных данных.
+ * IDF = log(N / df), где N = кол-во уникальных препаратов, df = кол-во препаратов в рубрике.
+ */
+function buildIdfIndex(repertory: MDRIRepertoryRubric[]): Map<string, number> {
+  if (idfCache) return idfCache
+
+  // Считаем уникальные препараты
+  const allRemedies = new Set<string>()
+  for (const rubric of repertory) {
+    for (const r of rubric.remedies) {
+      allRemedies.add(r.abbrev.toLowerCase())
+    }
+  }
+  totalRemediesInRepertory = allRemedies.size
+
+  const index = new Map<string, number>()
+  for (const rubric of repertory) {
+    const df = rubric.remedies.length
+    // IDF = log(N/df), нормализован в [0..1] через деление на max
+    const idf = Math.log(totalRemediesInRepertory / Math.max(1, df))
+    // Запоминаем по каждому слову рубрики (для fuzzy matching)
+    index.set(rubric.rubric.toLowerCase(), idf)
+  }
+
+  // Нормализация: приводим к [0.3..1.0] чтобы не обнулять веса
+  const maxIdf = Math.max(...index.values())
+  for (const [key, val] of index) {
+    index.set(key, 0.3 + 0.7 * (val / maxIdf))
+  }
+
+  idfCache = index
+  return index
+}
+
+/**
+ * Найти IDF для симптома. Ищет best match среди рубрик.
+ */
+function getSymptomIdf(rubric: string, idfIndex: Map<string, number>): number {
+  const lower = rubric.toLowerCase()
+
+  // Точное совпадение
+  if (idfIndex.has(lower)) return idfIndex.get(lower)!
+
+  // Поиск по вхождению (rubric может быть частью полной рубрики)
+  let bestMatch = 1.0 // default = полный вес
+  let bestLen = Infinity
+  const words = lower.split(/\s+/)
+
+  for (const [key, idf] of idfIndex) {
+    // Все слова симптома содержатся в рубрике
+    if (words.length >= 2 && words.every(w => key.includes(w))) {
+      if (key.length < bestLen) {
+        bestMatch = idf
+        bestLen = key.length
+      }
+    }
+  }
+
+  return bestMatch
+}
+
+/**
+ * Применить IDF-нормализацию к весам симптомов.
+ * Общие симптомы (в которых много препаратов) получают пониженный вес.
+ * Специфичные симптомы сохраняют или повышают вес.
+ *
+ * ВАЖНО: не меняет оригинальный массив, возвращает новый.
+ */
+export function applyIdfWeights(
+  symptoms: MDRISymptom[],
+  repertory: MDRIRepertoryRubric[]
+): MDRISymptom[] {
+  const idfIndex = buildIdfIndex(repertory)
+
+  return symptoms.map(s => {
+    // w=3 (peculiar) НИКОГДА не понижаем — это специфичные симптомы
+    if (s.weight >= 3) return s
+
+    const idf = getSymptomIdf(s.rubric, idfIndex)
+    // idf ∈ [0.3..1.0]
+
+    // w=2 → понижаем до 1 при низком IDF (рубрика слишком общая)
+    // w=1 → оставляем 1 (ниже некуда)
+    // Порог 0.5: рубрики с >50 препаратами (из ~500 всего)
+    let adjustedWeight = s.weight
+    if (s.weight === 2 && idf < 0.5) {
+      adjustedWeight = 1
+    }
+
+    return adjustedWeight !== s.weight
+      ? { ...s, weight: adjustedWeight as 1 | 2 | 3 }
+      : s
+  })
+}
+
+/**
+ * Обёртка над engine.analyzePipeline с IDF-нормализацией.
+ * Engine core НЕ изменён — мы корректируем вход.
+ */
+export function analyzeWithIdf(
+  data: { repertory: MDRIRepertoryRubric[]; constellations: Record<string, unknown>; polarities: Record<string, unknown>; relationships: Record<string, unknown>; wordIndex: Map<string, number[]> },
+  symptoms: MDRISymptom[],
+  modalities: MDRIModality[],
+  familyHistory: string[],
+  profile: MDRIPatientProfile,
+): MDRIResult[] {
+  const normalizedSymptoms = applyIdfWeights(symptoms, data.repertory)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return analyzePipeline(data as any, normalizedSymptoms, modalities, familyHistory, profile)
 }
