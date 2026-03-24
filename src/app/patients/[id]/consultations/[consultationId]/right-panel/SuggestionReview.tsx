@@ -38,7 +38,7 @@ export default function SuggestionReview({ data, onConfirm, onCancel, loading }:
   const hiddenCount = showAll ? 0 : Math.max(0, secondary.length - MAX_VISIBLE_SECONDARY)
 
   return (
-    <div className="ai-slide-up rounded-2xl border border-indigo-100 bg-white overflow-hidden">
+    <div className="ai-slide-up rounded-xl border border-indigo-100 bg-white overflow-hidden">
       {/* Заголовок */}
       <div className="px-3 py-2.5 border-b border-indigo-100 bg-indigo-50/50">
         <div className="flex items-center justify-between">
@@ -166,7 +166,7 @@ function SuggestionItem({ s, onToggle, isKey }: {
       {/* Source + weight badges */}
       <span className="flex items-center gap-0.5 shrink-0">
         {s.weight >= 3 && s.confirmed && (
-          <span className="text-[8px] px-1 py-0.5 rounded bg-red-50 text-red-500 font-medium border border-red-100">★</span>
+          <span className="text-[8px] px-1 py-0.5 rounded bg-red-50 text-red-500 font-medium border border-red-100" title="Характерный симптом — особенно важен для выбора препарата">★</span>
         )}
         {s.confirmed && (
           <span className="text-[8px] px-1 py-0.5 rounded bg-gray-50 text-gray-400 border border-gray-100">

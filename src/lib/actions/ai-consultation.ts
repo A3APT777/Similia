@@ -733,7 +733,17 @@ function rubricToRussian(rubric: string): string {
   if (CHAPTER_RU[firstWord]) {
     return CHAPTER_RU[firstWord] + ': ' + r.split(',').slice(1).join(',').trim()
   }
-  // 4. Fallback: оригинал (лучше чем обрезка)
+  // 4. Fallback: перевести раздел + оставить ключевые слова
+  // Пример: "Mind, grief, silent" → "Психика: grief, silent"
+  const parts2 = r.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+  if (parts2.length >= 2) {
+    const chapter = CHAPTER_RU[parts2[0]] ?? parts2[0]
+    const rest = parts2.slice(1).map(p => {
+      const words = p.split(/\s+/)
+      return words.map(w => WORD_RU[w] ?? w).join(' ')
+    }).join(', ')
+    return chapter + ': ' + rest
+  }
   return rubric
 }
 

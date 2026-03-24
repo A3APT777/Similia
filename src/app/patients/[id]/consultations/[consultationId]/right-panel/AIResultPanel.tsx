@@ -195,7 +195,7 @@ function RubricHierarchy({ rubrics }: { rubrics: string[] }) {
   }
 
   return (
-    <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
+    <div className="mb-3 p-2.5 rounded-xl bg-[var(--sim-bg, #faf8f5)]/60 border border-[rgba(0,0,0,0.05)]">
       <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
         Совпавшие рубрики
       </div>
@@ -290,7 +290,7 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
 
       {/* Fallback: русские labels если нет рубрик */}
       {(!result.matchedRubrics || result.matchedRubrics.length === 0) && keyMatches.length > 0 && (
-        <div className="mb-3 p-2.5 rounded-xl bg-[#f0ebe3]/60 border border-[rgba(0,0,0,0.05)]">
+        <div className="mb-3 p-2.5 rounded-xl bg-[var(--sim-bg, #faf8f5)]/60 border border-[rgba(0,0,0,0.05)]">
           <div className="text-[10px] font-semibold text-[#9a8a6a] uppercase tracking-[0.08em] mb-1.5">
             Недостаточно данных для полной оценки
           </div>
@@ -383,14 +383,14 @@ function HeroRemedy({ result, alternatives, usedSymptoms, onAssign, onCompare }:
         {onAssign && (
           <button
             onClick={onAssign}
-            className="flex-1 text-[13px] font-semibold py-2.5 rounded-2xl bg-[#2d6a4f] text-white hover:bg-[#245a42] active:scale-[0.98] transition-all shadow-sm"
+            className="flex-1 text-[13px] font-semibold py-2.5 rounded-xl bg-[#2d6a4f] text-white hover:bg-[#245a42] active:scale-[0.98] transition-all shadow-sm"
           >
             Назначить {result.remedy.toUpperCase()} {result.potency?.potency ?? '30C'}
           </button>
         )}
         <button
           onClick={onCompare}
-          className="px-4 text-[12px] font-medium py-2.5 rounded-2xl border border-[rgba(0,0,0,0.1)] text-[#6a5a4a] hover:bg-[#f8f5f0] active:scale-[0.98] transition-all"
+          className="px-4 text-[12px] font-medium py-2.5 rounded-xl border border-[rgba(0,0,0,0.1)] text-[#6a5a4a] hover:bg-[#f8f5f0] active:scale-[0.98] transition-all"
         >
           Сравнить
         </button>
@@ -446,7 +446,7 @@ function AlternativesBlock({ alternatives, top, onAssign }: {
               {onAssign && (
                 <button
                   onClick={() => onAssign(alt.remedy, alt.potency?.potency ?? '30C')}
-                  className="opacity-0 group-hover:opacity-100 text-[10px] px-2.5 py-1 rounded-lg border border-[rgba(0,0,0,0.1)] text-[#6a5a4a] hover:bg-[#f0ebe3] transition-all shrink-0 mt-0.5"
+                  className="opacity-0 group-hover:opacity-100 text-[10px] px-2.5 py-1 rounded-lg border border-[rgba(0,0,0,0.1)] text-[#6a5a4a] hover:bg-[var(--sim-bg, #faf8f5)] transition-all shrink-0 mt-0.5"
                 >
                   Назначить
                 </button>
@@ -512,7 +512,7 @@ function DetailedComparison({ results, onAssign }: {
                     <span className="text-[10px] text-[#9a8a6a] w-14 text-right">{lensLevel(l.score)}</span>
                   </div>
                 ))}
-                {r.miasm && <div className="text-[11px] text-[#6a5a4a]">Миазм: {r.miasm}</div>}
+                {r.miasm && <div className="text-[11px] text-[#6a5a4a]" title="Миазматическая предрасположенность — глубинная тенденция организма">Миазм: {r.miasm}</div>}
                 {r.potency && <div className="text-[11px] text-[#6a5a4a]">Потенция: {r.potency.potency} — {r.potency.reasoning}</div>}
                 {onAssign && (
                   <button
@@ -561,7 +561,7 @@ function ClarifyBlock({ aiResult, onClarify, clarifyingQuestions }: {
   if (needsItems.length === 0) needsItems.push('дополнительные детали случая')
 
   return (
-    <div className="mx-4 mb-3 p-3 rounded-2xl bg-amber-50/80 border border-amber-200/60">
+    <div className="mx-4 mb-3 p-3 rounded-xl bg-amber-50/80 border border-amber-200/60">
       <div className="flex items-start gap-2">
         <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
@@ -601,7 +601,7 @@ export default function AIResultPanel({ aiResult, lang, onAssignRemedy, onClarif
   if (!top) return null
 
   return (
-    <div className="ai-slide-up rounded-2xl bg-[#faf7f2] border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm">
+    <div className="ai-slide-up rounded-xl bg-[#faf7f2] border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm">
       {/* Верхняя полоска — confidence */}
       <div className="px-4 py-2 border-b border-[rgba(0,0,0,0.06)] flex items-center justify-between">
         <div className="flex items-center gap-2">
