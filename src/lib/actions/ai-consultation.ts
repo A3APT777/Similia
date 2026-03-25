@@ -232,6 +232,7 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       await supabase.from('ai_analysis_log').insert({
         user_id: user.id,
         consultation_id: parsed.consultationId ?? null,
+        input_text: parsed.text.substring(0, 2000), // исходный русский текст (макс 2000 символов)
         confirmed_input: symptoms.map(s => ({ rubric: s.rubric, type: s.category, weight: s.weight })),
         engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
         confidence_level: productConfidence?.level ?? null,
@@ -1115,6 +1116,41 @@ export async function logClarifyResult(data: {
     if (lastLog) {
       await supabase.from('ai_analysis_log')
         .update({ clarify_log: data })
+        .eq('id', lastLog.id)
+    }
+  } catch { /* silent */ }
+}
+
+/**
+ * Doctor feedback из Direct flow (без consultation_id)
+ * Записывает doctor_choice в последний лог пользователя
+ */
+export async function logDoctorFeedback(chosenRemedy: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  try {
+    const { data: lastLog } = await supabase.from('ai_analysis_log')
+      .select('id, engine_top3')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (lastLog) {
+      // Вычислить correct_position
+      let correctPosition: number | null = null
+      if (lastLog.engine_top3) {
+        const top3 = lastLog.engine_top3 as Array<{ remedy: string }>
+        const idx = top3.findIndex(r =>
+          r.remedy.toLowerCase().replace(/\.$/, '') === chosenRemedy.toLowerCase().replace(/\.$/, '')
+        )
+        correctPosition = idx >= 0 ? idx + 1 : null
+      }
+
+      await supabase.from('ai_analysis_log')
+        .update({ doctor_choice: chosenRemedy, correct_position: correctPosition })
         .eq('id', lastLog.id)
     }
   } catch { /* silent */ }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { analyzeText, logClarifyResult } from '@/lib/actions/ai-consultation'
+import { analyzeText, logClarifyResult, logDoctorFeedback } from '@/lib/actions/ai-consultation'
 import type { ConsensusResult } from '@/lib/mdri/types'
 import type { ClarifyQuestion } from '@/lib/mdri/question-gain'
 import { applyClarifyBonus } from '@/lib/mdri/question-gain'
@@ -670,7 +670,10 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         {selectedPatient && (
           <button
             onClick={() => {
-              const rx = encodeURIComponent(result?.finalRemedy || '')
+              const chosenRemedy = result?.finalRemedy || ''
+              // Сохранить doctor_choice (silent feedback)
+              logDoctorFeedback(chosenRemedy).catch(() => {})
+              const rx = encodeURIComponent(chosenRemedy)
               const p = result?.mdriResults?.[0]?.potency
               const potency = encodeURIComponent(typeof p === 'string' ? p : p?.potency || '30C')
               router.push(`/patients/${selectedPatient}?rx=${rx}&potency=${potency}`)
