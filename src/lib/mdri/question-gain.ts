@@ -41,8 +41,17 @@ function symMatchSimple(a: string, b: string): boolean {
   return matches.length >= Math.min(2, aw.length)
 }
 
+// Нормализация remedy key: 'Sep.' → 'sep', 'Nux-v.' → 'nux-v'
+function normalizeRemedyKey(key: string): string {
+  return key.toLowerCase().replace(/\.$/, '')
+}
+
+function getConstellationForRemedy(remedy: string, constellations: Record<string, MDRIConstellationData>): MDRIConstellationData | null {
+  return constellations[remedy] ?? constellations[normalizeRemedyKey(remedy)] ?? null
+}
+
 function getConstellationScore(feature: string, remedy: string, constellations: Record<string, MDRIConstellationData>): number {
-  const con = constellations[remedy]
+  const con = getConstellationForRemedy(remedy, constellations)
   if (!con?.clusters) return 0
   for (const cluster of con.clusters) {
     for (const sym of cluster.symptoms) {
@@ -148,7 +157,7 @@ function findFeatureTranslation(feature: string): { question: string; yes: strin
 }
 
 function getKeyFeatureDescription(remedy: string, constellations: Record<string, MDRIConstellationData>): string {
-  const con = constellations[remedy]
+  const con = getConstellationForRemedy(remedy, constellations)
   if (!con?.clusters?.length) return remedy
 
   // Берём самый важный cluster → самый весомый symptom
@@ -210,7 +219,7 @@ export function selectBestClarifyQuestion(
   // Собрать ВСЕ features из constellation top-3
   const allFeatures = new Set<string>()
   for (const r of top3) {
-    const con = constellations[r.remedy]
+    const con = getConstellationForRemedy(r.remedy, constellations)
     if (!con?.clusters) continue
     for (const cluster of con.clusters) {
       for (const sym of cluster.symptoms) {
