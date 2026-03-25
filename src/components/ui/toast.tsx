@@ -55,7 +55,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   }, [])
 
   const colors = {
-    success: { bg: '#f0f7f3', border: '1px solid #2d6a4f', textColor: '#1a3020', icon: '✓', iconBg: 'rgba(45,106,79,0.12)', iconColor: '#2d6a4f' },
+    success: { bg: '#f0f7f3', border: '1px solid #2d6a4f', textColor: 'var(--sim-forest)', icon: '✓', iconBg: 'rgba(45,106,79,0.12)', iconColor: 'var(--sim-green)' },
     error:   { bg: '#fef0f0', border: '1px solid #c0392b', textColor: '#c0392b', icon: '✕', iconBg: 'rgba(192,57,43,0.12)', iconColor: '#c0392b' },
     info:    { bg: '#fff8e8', border: '1px solid #c8a035', textColor: '#8a5f00', icon: 'i', iconBg: 'rgba(200,160,53,0.12)', iconColor: '#c8a035' },
   }

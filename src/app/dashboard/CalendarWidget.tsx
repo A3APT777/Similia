@@ -179,7 +179,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
   )
 
   return (
-    <div className="rounded-2xl overflow-hidden shadow-sm" style={{ backgroundColor: '#f5f0e8', border: '1px solid var(--sim-border)' }}>
+    <div className="rounded-xl overflow-hidden shadow-sm" style={{ backgroundColor: '#f5f0e8', border: '1px solid var(--sim-border)' }}>
       {/* Шапка: навигация по месяцам */}
       <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '0.5px solid var(--sim-border)' }}>
         <button
@@ -219,7 +219,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
             <button
               key={dateStr}
               onClick={() => handleDayClick(dateStr)}
-              className={`flex flex-col items-center py-1 rounded-2xl transition-all ${
+              className={`flex flex-col items-center py-1 rounded-xl transition-all ${
                 isSelected
                   ? 'bg-[#2d6a4f] text-white'
                   : isToday
@@ -325,11 +325,11 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
                 placeholder={t(lang).calendar.patientName}
                 value={patientSearch}
                 onChange={e => { setPatientSearch(e.target.value); setAddPatientId('') }}
-                className="w-full border border-gray-200 rounded-2xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-[#2d6a4f]/30/10"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-[#2d6a4f]/30/10"
                 autoFocus
               />
               {patientSearch.length > 0 && !addPatientId && filteredPatients.length > 0 && (
-                <div className="absolute z-10 w-full top-full mt-0.5 rounded-2xl shadow-lg overflow-hidden" style={{ backgroundColor: '#f5f0e8', border: '1px solid var(--sim-border)' }}>
+                <div className="absolute z-10 w-full top-full mt-0.5 rounded-xl shadow-lg overflow-hidden" style={{ backgroundColor: '#f5f0e8', border: '1px solid var(--sim-border)' }}>
                   {filteredPatients.slice(0, 5).map(p => (
                     <button
                       key={p.id}
@@ -373,7 +373,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
               <button
                 onClick={handleAdd}
                 disabled={!addPatientId || addLoading || freeSlots.length === 0}
-                className="flex-1 text-xs bg-[#2d6a4f] text-white py-2 rounded-2xl hover:bg-[#1a3020] disabled:opacity-40 transition-colors font-semibold shadow-sm"
+                className="flex-1 text-xs bg-[#2d6a4f] text-white py-2 rounded-xl hover:bg-[var(--sim-forest)] disabled:opacity-40 transition-colors font-semibold shadow-sm"
               >
                 {addLoading ? t(lang).calendar.saving : t(lang).calendar.save}
               </button>

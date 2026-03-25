@@ -3,6 +3,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import IntakeForm from './IntakeForm'
 import type { ScheduleConfig } from '@/lib/slots'
+import { getDefaultFields } from '@/lib/default-questionnaire-fields'
+import type { TemplateField } from '@/lib/actions/questionnaire-templates'
 
 export default async function IntakePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -19,7 +21,7 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
@@ -35,7 +37,7 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
@@ -65,14 +67,15 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
     }
   }
 
-  // Расписание врача — для блока записи на приём в конце анкеты
+  // Расписание врача + кастомный шаблон анкеты
   const serviceSupabase = createServiceClient()
-  const { data: scheduleData } = await serviceSupabase
-    .from('doctor_schedules')
-    .select('*')
-    .eq('doctor_id', intake.doctor_id)
-    .single()
+  const [{ data: scheduleData }, { data: customTemplate }] = await Promise.all([
+    serviceSupabase.from('doctor_schedules').select('*').eq('doctor_id', intake.doctor_id).single(),
+    serviceSupabase.from('questionnaire_templates').select('fields').eq('doctor_id', intake.doctor_id).eq('type', intake.type === 'acute' ? 'acute' : 'primary').single(),
+  ])
   const schedule: ScheduleConfig | null = scheduleData ?? null
+  const templateType = intake.type === 'acute' ? 'acute' : 'primary'
+  const customFields: TemplateField[] | null = customTemplate?.fields as TemplateField[] | null
 
   return (
     <IntakeForm
@@ -82,6 +85,7 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
       prefilled={prefilled}
       schedule={schedule}
       doctorId={intake.doctor_id}
+      customFields={customFields || getDefaultFields(templateType)}
     />
   )
 }

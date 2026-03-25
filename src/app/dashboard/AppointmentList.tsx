@@ -122,7 +122,7 @@ export default function AppointmentList({ appointments, compact = false }: Props
     if (!allRecent.length) return null
 
     return (
-      <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: '#f5f0e8', border: '1px solid var(--sim-border)' }}>
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: '#f5f0e8', border: '1px solid var(--sim-border)' }}>
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-[0.08em] px-4 pt-3.5 pb-2">
           {t(lang).appointments.schedule}
         </p>
@@ -199,7 +199,7 @@ export default function AppointmentList({ appointments, compact = false }: Props
         {groupByDay(active).map(([day, dayAppts]) => (
           <div key={day}>
             <p className="text-xs font-medium text-gray-500 mb-1.5 capitalize">{formatDayHeader(day, lang)}</p>
-            <div className="rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-[var(--sim-border)]" style={{ backgroundColor: '#f0ebe3', border: '0.5px solid var(--sim-border)' }}>
+            <div className="rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-[var(--sim-border)]" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', border: '0.5px solid var(--sim-border)' }}>
               {dayAppts.map(appt => {
                 const { label, variant } = getTimeLabel(appt.scheduled_at!, lang)
                 const done = appt.status === 'completed'
@@ -225,7 +225,7 @@ export default function AppointmentList({ appointments, compact = false }: Props
                       {done ? (
                         <Link href={`/patients/${appt.patients.id}/consultations/${appt.id}`} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">{t(lang).appointments.open} →</Link>
                       ) : live ? (
-                        <Link href={`/patients/${appt.patients.id}/consultations/${appt.id}`} className="text-xs bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[#1a3020] transition-colors font-semibold shadow-sm">{t(lang).appointments.continue} →</Link>
+                        <Link href={`/patients/${appt.patients.id}/consultations/${appt.id}`} className="text-xs bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[var(--sim-forest)] transition-colors font-semibold shadow-sm">{t(lang).appointments.continue} →</Link>
                       ) : (
                         <form action={startConsultation.bind(null, appt.id, appt.patients.id)}>
                           <button type="submit" className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${isUrgent ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm' : 'border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700'}`}>

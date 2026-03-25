@@ -36,7 +36,7 @@ export default function HelpButton() {
       {/* Панель помощи */}
       {open && (
         <div
-          className="fixed bottom-20 right-6 z-[9000] w-80 rounded-2xl shadow-xl overflow-hidden"
+          className="fixed bottom-20 right-6 z-[9000] w-80 rounded-xl shadow-xl overflow-hidden"
           style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}
         >
           <div className="px-4 py-3" style={{ backgroundColor: 'var(--sim-green)' }}>

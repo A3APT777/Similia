@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function DemoPage() {
   return (
-    <div className="min-h-screen bg-[#f0ebe3]">
+    <div className="min-h-screen bg-[var(--sim-bg, #faf8f5)]">
       {/* Хедер — светлый полупрозрачный, как на /pricing */}
       <header
         className="border-b"
@@ -25,7 +25,7 @@ export default function DemoPage() {
               <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9" />
               <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#2d6a4f" opacity="0.65" />
             </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '18px', fontWeight: 500, color: '#2d6a4f' }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '18px', fontWeight: 500, color: 'var(--sim-green)' }}>
               Similia
             </span>
           </Link>
@@ -69,7 +69,7 @@ export default function DemoPage() {
           </p>
           <Link
             href="/pricing"
-            className="btn btn-ai inline-flex text-sm font-semibold px-6 py-2.5 rounded-2xl"
+            className="btn btn-ai inline-flex text-sm font-semibold px-6 py-2.5 rounded-xl"
           >
             Подключить AI Pro →
           </Link>

@@ -67,9 +67,9 @@ export default async function AIConsultationPage({
   const name = user?.user_metadata?.name || user?.email || ''
 
   return (
-    <div className="min-h-[100dvh] bg-[#f0ebe3] flex flex-col">
+    <div className="min-h-[100dvh] bg-[var(--sim-bg, #faf8f5)] flex flex-col">
       {/* Шапка */}
-      <nav className="h-[54px] bg-[#f0ebe3] border-b border-[var(--sim-border)] px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
+      <nav className="h-[54px] bg-[var(--sim-bg, #faf8f5)] border-b border-[var(--sim-border)] px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
         <Link
           href={`/patients/${patientId}`}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors group"

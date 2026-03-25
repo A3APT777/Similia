@@ -1,0 +1,257 @@
+[
+  {
+    "page": "landing",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "landing",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "landing",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Перейти к содержимом\", \"w\": 1, \"h\": 1}, {\"text\": \"Similia\", \"w\": 107, \"h\": 35}, {\"text\": "
+  },
+  {
+    "page": "login",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "login",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "login",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Забыли пароль?\", \"w\": 104, \"h\": 22}, {\"text\": \"Зарегистрироваться\", \"w\": 134, \"h\": 19}, {"
+  },
+  {
+    "page": "register",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "register",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "register",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"политикой конфиденци\", \"w\": 196, \"h\": 17}, {\"text\": \"Войти\", \"w\": 40, \"h\": 19}, {\"text\": "
+  },
+  {
+    "page": "pricing",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "pricing",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "pricing",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Similia\", \"w\": 107, \"h\": 35}, {\"text\": \"Реферальная программ\", \"w\": 149, \"h\": 17}, {\"text"
+  },
+  {
+    "page": "privacy",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "privacy",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "privacy",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Перейти к содержимом\", \"w\": 1, \"h\": 1}, {\"text\": \"Similia\", \"w\": 82, \"h\": 29}, {\"text\": \""
+  },
+  {
+    "page": "terms",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "terms",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "terms",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Перейти к содержимом\", \"w\": 1, \"h\": 1}, {\"text\": \"Similia\", \"w\": 82, \"h\": 29}, {\"text\": \""
+  },
+  {
+    "page": "guide",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "guide",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "guide",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Забыли пароль?\", \"w\": 104, \"h\": 22}, {\"text\": \"Зарегистрироваться\", \"w\": 134, \"h\": 19}, {"
+  },
+  {
+    "page": "dashboard",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "dashboard",
+    "viewport": "desktop",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}]"
+  },
+  {
+    "page": "dashboard",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "dashboard",
+    "viewport": "mobile",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}]"
+  },
+  {
+    "page": "dashboard",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Similia\", \"w\": 104, \"h\": 34}, {\"text\": \"Стандартдо 1 июн.\", \"w\": 212, \"h\": 34}, {\"text\": "
+  },
+  {
+    "page": "settings",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "settings",
+    "viewport": "desktop",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}, {\"text\": \"▲\", \"size\": \"10px\"}, {\"text\": \"▼\", \"size\": \"10px\"}, {\"text\""
+  },
+  {
+    "page": "settings",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "settings",
+    "viewport": "mobile",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}, {\"text\": \"▲\", \"size\": \"10px\"}, {\"text\": \"▼\", \"size\": \"10px\"}, {\"text\""
+  },
+  {
+    "page": "settings",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Similia\", \"w\": 104, \"h\": 34}, {\"text\": \"Стандартдо 1 июн.\", \"w\": 212, \"h\": 34}, {\"text\": "
+  },
+  {
+    "page": "repertory",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "repertory",
+    "viewport": "desktop",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}, {\"text\": \"Топ сейчас:\", \"size\": \"10px\"}, {\"text\": \"+464\", \"size\": \"10"
+  },
+  {
+    "page": "repertory",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "repertory",
+    "viewport": "mobile",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}, {\"text\": \"Топ сейчас:\", \"size\": \"10px\"}, {\"text\": \"+464\", \"size\": \"10"
+  },
+  {
+    "page": "repertory",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Similia\", \"w\": 104, \"h\": 34}, {\"text\": \"Стандартдо 1 июн.\", \"w\": 212, \"h\": 34}, {\"text\": "
+  },
+  {
+    "page": "referral",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "referral",
+    "viewport": "desktop",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}]"
+  },
+  {
+    "page": "referral",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "referral",
+    "viewport": "mobile",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}]"
+  },
+  {
+    "page": "referral",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Similia\", \"w\": 104, \"h\": 34}, {\"text\": \"Стандартдо 1 июн.\", \"w\": 212, \"h\": 34}, {\"text\": "
+  },
+  {
+    "page": "ai-consultation",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "ai-consultation",
+    "viewport": "desktop",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}]"
+  },
+  {
+    "page": "ai-consultation",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "ai-consultation",
+    "viewport": "mobile",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}]"
+  },
+  {
+    "page": "ai-consultation",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Similia\", \"w\": 104, \"h\": 34}, {\"text\": \"Стандартдо 1 июн.\", \"w\": 212, \"h\": 34}, {\"text\": "
+  },
+  {
+    "page": "patient-card",
+    "viewport": "desktop",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "patient-card",
+    "viewport": "desktop",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}]"
+  },
+  {
+    "page": "patient-card",
+    "viewport": "mobile",
+    "issue": "Нестандартные шрифты: ['Inter']"
+  },
+  {
+    "page": "patient-card",
+    "viewport": "mobile",
+    "issue": "Мелкий текст (<11px): [{\"text\": \"3\", \"size\": \"9px\"}]"
+  },
+  {
+    "page": "patient-card",
+    "viewport": "mobile",
+    "issue": "Мелкие touch targets: [{\"text\": \"Similia\", \"w\": 104, \"h\": 34}, {\"text\": \"Стандартдо 1 июн.\", \"w\": 212, \"h\": 34}, {\"text\": "
+  }
+]

@@ -47,7 +47,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
   const selectStyle = {
     backgroundColor: '#faf7f2', border: '1px solid var(--sim-border)',
     borderRadius: '8px', padding: '8px 12px', fontSize: '14px',
-    color: '#1a1a0a', outline: 'none',
+    color: 'var(--sim-text)', outline: 'none',
   }
   const labelStyle = { fontSize: '13px', fontWeight: 600 as const, color: '#6b5f4f', textTransform: 'uppercase' as const, letterSpacing: '0.05em', display: 'block' as const, marginBottom: '8px' }
 
@@ -83,7 +83,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
               className="px-3 py-2 rounded-full text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
               style={data.working_days.includes(key)
                 ? { backgroundColor: 'var(--sim-green)', color: '#fff', border: '1px solid #2d6a4f' }
-                : { backgroundColor: '#f0ebe3', color: '#6b5f4f', border: '1px solid var(--sim-border)' }}
+                : { backgroundColor: 'var(--sim-bg, #faf8f5)', color: '#6b5f4f', border: '1px solid var(--sim-border)' }}
             >
               {t(lang).settings.days[i]}
             </button>
@@ -116,7 +116,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
             aria-label={lang === 'ru' ? 'Включить обеденный перерыв' : 'Enable lunch break'}
             onClick={() => setData(p => ({ ...p, lunch_enabled: !p.lunch_enabled }))}
             className="relative inline-flex items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-            style={{ width: 40, height: 24, backgroundColor: data.lunch_enabled ? '#2d6a4f' : 'var(--sim-border)', padding: '2px' }}
+            style={{ width: 40, height: 24, backgroundColor: data.lunch_enabled ? 'var(--sim-green)' : 'var(--sim-border)', padding: '2px' }}
           >
             <span
               className="inline-block rounded-full bg-white transition-transform"
@@ -140,7 +140,7 @@ export default function ScheduleSettings({ initial }: { initial: DoctorSchedule 
       <button
         onClick={handleSave}
         disabled={isPending}
-        className="w-full py-2.5 rounded-2xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+        className="btn btn-primary w-full"
         style={{ backgroundColor: 'var(--sim-forest)' }}
       >
         {isPending ? t(lang).settings.saving : t(lang).settings.saveSchedule}

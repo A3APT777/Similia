@@ -59,9 +59,9 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
               onClick={() => { setTypeFilter(opt.value); setLimit(INITIAL_LIMIT) }}
               className="text-[12px] px-3 py-1 rounded-lg border transition-all"
               style={{
-                borderColor: typeFilter === opt.value ? '#2d6a4f' : 'var(--sim-border)',
-                backgroundColor: typeFilter === opt.value ? '#2d6a4f' : 'transparent',
-                color: typeFilter === opt.value ? '#fff' : '#9a8a6a',
+                borderColor: typeFilter === opt.value ? 'var(--sim-green)' : 'var(--sim-border)',
+                backgroundColor: typeFilter === opt.value ? 'var(--sim-green)' : 'transparent',
+                color: typeFilter === opt.value ? '#fff' : 'var(--sim-text-muted)',
                 fontWeight: typeFilter === opt.value ? 600 : 400,
               }}
             >
@@ -86,7 +86,7 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
                 setLimit(INITIAL_LIMIT) // сбрасываем пагинацию при новом поиске
               }}
               placeholder={t(lang).timelineFilter.search}
-              className="w-full pl-8 pr-8 py-2 text-sm border border-[var(--sim-border)] rounded-2xl focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+              className="w-full pl-8 pr-8 py-2 text-sm border border-[var(--sim-border)] rounded-xl focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
               style={{ backgroundColor: '#faf7f2' }}
             />
             {remedy && (
@@ -138,7 +138,7 @@ export default function TimelineWithFilter({ patientId, consultations, followupB
         <div className="mt-6 text-center">
           <button
             onClick={() => setLimit(l => l + INITIAL_LIMIT)}
-            className="text-sm text-gray-400 hover:text-emerald-700 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 px-5 py-2.5 rounded-2xl transition-all"
+            className="text-sm text-gray-400 hover:text-emerald-700 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 px-5 py-2.5 rounded-xl transition-all"
           >
             {t(lang).timelineFilter.showMore(filtered.length - limit)}
           </button>

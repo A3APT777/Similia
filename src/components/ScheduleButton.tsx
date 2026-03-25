@@ -113,17 +113,25 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="btn btn-secondary w-full"
+        className="w-full flex items-center gap-2 px-4 py-3 rounded-full text-[13px] font-medium transition-all"
+        style={{
+          backgroundColor: 'var(--sim-bg-card)',
+          border: '1px solid var(--sim-border)',
+          color: 'var(--sim-text)',
+        }}
       >
-        {t(lang).scheduleBtn.schedule}
+        <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+        </svg>
+        <span className="truncate">{t(lang).scheduleBtn.schedule}</span>
       </button>
     )
   }
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 space-y-3">
+    <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 space-y-3">
       {/* Переключатель типа */}
-      <div className="flex items-center gap-1 bg-[#ede7dd] border border-gray-200 rounded-full p-0.5 w-fit">
+      <div className="flex items-center gap-1 bg-[var(--sim-bg-card, #f5f0e8)] border border-gray-200 rounded-full p-0.5 w-fit">
         <button
           type="button"
           onClick={() => setApptType('chronic')}
@@ -166,7 +174,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="submit" disabled={loading} className="bg-[#2d6a4f] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#1a3020] disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={loading} className="bg-[#2d6a4f] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[var(--sim-forest)] disabled:opacity-50 transition-colors">
             {loading ? t(lang).scheduleBtn.checking : t(lang).scheduleBtn.book}
           </button>
           <button type="button" onClick={() => { setOpen(false); resetConflict() }} className="text-gray-400 hover:text-gray-600 text-sm px-2 py-2">
@@ -188,7 +196,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
                       key={slot}
                       type="button"
                       onClick={() => handleSlotClick(slot)}
-                      className="text-xs bg-[#ede7dd] border border-green-300 text-green-700 px-3 py-1 rounded-full hover:bg-green-100 transition-colors"
+                      className="text-xs bg-[var(--sim-bg-card, #f5f0e8)] border border-green-300 text-green-700 px-3 py-1 rounded-full hover:bg-green-100 transition-colors"
                     >
                       {slot}
                     </button>

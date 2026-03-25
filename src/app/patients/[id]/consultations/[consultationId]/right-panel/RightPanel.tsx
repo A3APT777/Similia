@@ -16,6 +16,7 @@ type Props = {
   patient: Patient
   lang: 'ru' | 'en'
   preVisitSurvey?: PreVisitSurvey | null
+  primaryIntakeAnswers?: Record<string, unknown> | null
   // unused props kept for compat with ConsultationEditor call site
   symptoms?: unknown
   previousSymptoms?: unknown
@@ -36,7 +37,7 @@ type Props = {
   clarifyLoading?: boolean
 }
 
-export default function RightPanel({ previousConsultation, patient, lang, preVisitSurvey, onAssignRemedy, aiResult, suggestions, onConfirmSuggestions, onCancelSuggestions, analyzingConfirmed, clarifyQuestions, onClarifySubmit, onClarifySkip, clarifyLoading }: Props) {
+export default function RightPanel({ previousConsultation, patient, lang, preVisitSurvey, primaryIntakeAnswers, onAssignRemedy, aiResult, suggestions, onConfirmSuggestions, onCancelSuggestions, analyzingConfirmed, clarifyQuestions, onClarifySubmit, onClarifySkip, clarifyLoading }: Props) {
   const handleAIAssign = onAssignRemedy
     ? (abbrev: string, _potency: string) => onAssignRemedy(abbrev)
     : undefined
@@ -61,6 +62,7 @@ export default function RightPanel({ previousConsultation, patient, lang, preVis
         <DifferentialClarify questions={clarifyQuestions} onSubmit={onClarifySubmit} onSkip={onClarifySkip} loading={clarifyLoading} />
       )}
         {preVisitSurvey && <PreVisitSurveyPanel survey={preVisitSurvey} lang={lang} />}
+        {primaryIntakeAnswers && <PrimaryIntakeSection answers={primaryIntakeAnswers} lang={lang} />}
       </div>
     )
   }
@@ -79,7 +81,54 @@ export default function RightPanel({ previousConsultation, patient, lang, preVis
       )}
 
       <PreviousVisitSummary previousConsultation={previousConsultation} lang={lang} />
+
+      {primaryIntakeAnswers && <PrimaryIntakeSection answers={primaryIntakeAnswers} lang={lang} />}
     </div>
+  )
+}
+
+function PrimaryIntakeSection({ answers, lang }: { answers: Record<string, unknown>; lang: 'ru' | 'en' }) {
+  const DEFAULT_LABELS: Record<string, string> = {
+    chief_complaint: 'Жалобы',
+    duration: 'Как давно',
+    etiology: 'С чего началось',
+    modality_worse: 'Хуже от',
+    modality_better: 'Лучше от',
+    mental: 'Психика',
+    general: 'Общие симптомы',
+    sleep: 'Сон',
+    appetite: 'Аппетит',
+    thirst: 'Жажда',
+    perspiration: 'Потоотделение',
+    family_history: 'Наследственность',
+  }
+
+  // Показываем все непустые ответы — и стандартные и кастомные
+  const SKIP_KEYS = ['patient_name', 'birth_date', 'phone', 'email']
+  const entries = Object.entries(answers)
+    .filter(([k, v]) => !SKIP_KEYS.includes(k) && v && String(v).trim())
+    .map(([k, v]) => ({
+      key: k,
+      label: DEFAULT_LABELS[k] || k.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()),
+      value: String(v),
+    }))
+
+  if (entries.length === 0) return null
+
+  return (
+    <details className="rounded-lg" style={{ backgroundColor: '#faf6f1', border: '1px solid #e8ddd0' }}>
+      <summary className="px-3 py-2.5 cursor-pointer text-xs font-semibold uppercase tracking-wide" style={{ color: '#8a7e6c' }}>
+        {lang === 'ru' ? 'Первичная анкета' : 'Primary intake'} ({entries.length})
+      </summary>
+      <div className="px-3 pb-3 space-y-2">
+        {entries.map(e => (
+          <div key={e.key}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#a09080' }}>{e.label}</p>
+            <p className="text-xs leading-relaxed" style={{ color: '#4a4a3a' }}>{e.value}</p>
+          </div>
+        ))}
+      </div>
+    </details>
   )
 }
 

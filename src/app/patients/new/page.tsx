@@ -17,7 +17,7 @@ export default async function NewPatientPage() {
           <h1 className="text-xl font-semibold text-gray-900">{t(lang).patientCard.newPatient}</h1>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl p-6">
+        <div className="bg-white border border-gray-100 rounded-xl p-6">
           <PatientForm action={createPatient} submitLabel={t(lang).patientCard.createPatient} />
         </div>
       </div>

@@ -100,5 +100,6 @@ export async function triggerReferralBonus(inviteeId: string): Promise<void> {
   const { error } = await supabase.rpc('apply_referral_bonus', { p_invitee_id: inviteeId })
   if (error) {
     console.error('[referrals] apply bonus error:', error)
+    // Не throw — бонус не критичен, основная регистрация не должна падать
   }
 }

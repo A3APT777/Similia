@@ -31,15 +31,16 @@ export default function PrescriptionRulesEditor({ initialRules }: { initialRules
         value={rules}
         onChange={e => setRules(e.target.value)}
         rows={14}
-        className="w-full rounded-2xl border px-4 py-3 text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/20"
-        style={{ borderColor: 'var(--sim-border)', color: '#3d342b', backgroundColor: '#faf7f2' }}
+        className="w-full rounded-xl border px-4 py-3 text-sm leading-relaxed resize-none focus:outline-none transition-all duration-200"
+        style={{ borderColor: 'var(--sim-border)', color: 'var(--sim-text)', backgroundColor: 'var(--sim-bg-card)' }}
+        onFocus={e => { e.currentTarget.style.borderColor = 'var(--sim-green)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,106,79,0.08)' }}
+        onBlur={e => { e.currentTarget.style.borderColor = 'var(--sim-border)'; e.currentTarget.style.boxShadow = 'none' }}
       />
       <div className="flex gap-2">
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="px-4 py-2 rounded-full text-sm font-medium text-white transition-colors disabled:opacity-50"
-          style={{ backgroundColor: 'var(--sim-green)' }}
+          className="btn btn-primary btn-sm"
         >
           {isPending ? 'Сохраняю...' : 'Сохранить правила'}
         </button>

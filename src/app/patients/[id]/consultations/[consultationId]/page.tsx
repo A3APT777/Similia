@@ -43,18 +43,19 @@ export default async function ConsultationPage({
   ])
 
   const name = user?.user_metadata?.name || user?.email || ''
-  const [{ paid_sessions_enabled }, surveyByConsultation, { count: realPatientCount }] = await Promise.all([
+  const [{ paid_sessions_enabled }, surveyByConsultation, { count: realPatientCount }, { data: primaryIntake }] = await Promise.all([
     getDoctorSettings(),
     getPreVisitSurveyByConsultation(consultationId),
     supabase.from('patients').select('*', { count: 'exact', head: true }).eq('doctor_id', user.id).eq('is_demo', false),
+    supabase.from('intake_forms').select('answers').eq('patient_id', id).eq('doctor_id', user.id).eq('type', 'primary').eq('status', 'completed').order('created_at', { ascending: false }).limit(1).single(),
   ])
   // Fallback: если survey не привязан к консультации — берём последний completed для пациента
   const preVisitSurvey = surveyByConsultation || await getLatestPatientSurvey(id)
 
   return (
-    <div className="min-h-[100dvh] bg-[#ede7dd] flex flex-col">
+    <div className="min-h-[100dvh] bg-[var(--sim-bg-card, #f5f0e8)] flex flex-col">
       {/* Шапка */}
-      <nav className="h-[54px] bg-[#ede7dd] border-b border-gray-100 px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
+      <nav className="h-[54px] bg-[var(--sim-bg-card, #f5f0e8)] border-b border-gray-100 px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
         <Link
           href={`/patients/${id}`}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors group"
@@ -77,6 +78,7 @@ export default async function ConsultationPage({
         paidSessionsEnabled={paid_sessions_enabled}
         visitNumber={visitCount ?? 1}
         preVisitSurvey={preVisitSurvey}
+        primaryIntakeAnswers={primaryIntake?.answers || null}
         showAI={(realPatientCount ?? 0) >= 5}
       />
     </div>

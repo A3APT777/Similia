@@ -6,8 +6,8 @@ import RefCookieSetter from '@/components/RefCookieSetter'
 const Logo = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
     <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9" />
-    <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65" />
-    <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round" />
+    <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="var(--sim-forest)" opacity="0.65" />
+    <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round" />
   </svg>
 )
 
@@ -26,7 +26,7 @@ export default function LandingPage() {
           --lr-fg: #1a1a0a;
           --lr-muted: #8a7e6c;
           --lr-green: #2d6a4f;
-          --lr-forest: #1a3020;
+          --lr-forest: var(--sim-forest);
           --lr-border: rgba(0,0,0,0.06);
           background-color: var(--lr-bg);
           color: var(--lr-fg);
@@ -172,7 +172,7 @@ export default function LandingPage() {
 
             <div className="lr-reveal lr-reveal-3 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
               <Link href="/register" className="lr-btn-primary">
-                Попробовать бесплатно
+                Начать работу
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
                 </svg>
@@ -310,7 +310,7 @@ export default function LandingPage() {
             <div className="hidden lg:block">
               <div className="grid grid-cols-2 gap-3">
                 {['Kent', 'Polarity', 'Hierarchy', 'Constellation', 'Miasm', 'Potency', 'Negative', 'Relations'].map((lens, i) => (
-                  <div key={i} className="px-4 py-3 rounded-2xl text-center" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div key={i} className="px-4 py-3 rounded-xl text-center" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>{lens}</p>
                   </div>
                 ))}
@@ -321,22 +321,55 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Тарифы — простые ═══ */}
+      {/* ═══ Безопасность ═══ */}
+      <section className="py-24 sm:py-32">
+        <div className="max-w-[800px] mx-auto px-6 text-center">
+          <p className="text-[13px] font-medium tracking-[0.15em] uppercase mb-4" style={{ color: 'var(--lr-green)' }}>
+            Безопасность
+          </p>
+          <h2 className="lr-serif text-[clamp(32px,4vw,48px)] font-light leading-[1.1] mb-6" style={{ letterSpacing: '-0.02em' }}>
+            Ваши данные под защитой.
+          </h2>
+          <p className="text-[16px] mb-16 max-w-[520px] mx-auto leading-relaxed" style={{ color: 'var(--lr-muted)' }}>
+            Мы понимаем ответственность за хранение медицинских данных. Безопасность — не функция, а основа сервиса.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+            {[
+              { title: 'Хранение в России', desc: 'Данные на серверах в РФ. Соответствие 152-ФЗ о персональных данных.' },
+              { title: 'Шифрование', desc: 'Все данные передаются по HTTPS. Доступ только через авторизацию.' },
+              { title: 'Изоляция', desc: 'Каждый врач видит только своих пациентов. Мы не имеем доступа к вашим данным.' },
+              { title: 'Экспорт', desc: 'Скачайте все данные в PDF в любой момент. Данные принадлежат вам.' },
+            ].map((item, i) => (
+              <div key={i} className="lr-feature p-5">
+                <p className="text-[14px] font-medium mb-2" style={{ color: 'var(--lr-text)' }}>{item.title}</p>
+                <p className="text-[13px] leading-relaxed" style={{ color: 'var(--lr-muted)' }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-[13px] mt-8" style={{ color: 'var(--lr-muted)' }}>
+            Для сравнения: Word-файл на компьютере не защищён — вирус или поломка диска = потеря данных навсегда.
+          </p>
+        </div>
+      </section>
+
+      {/* ═══ Тарифы ═══ */}
       <section className="py-24 sm:py-32">
         <div className="max-w-[800px] mx-auto px-6 text-center">
           <p className="text-[13px] font-medium tracking-[0.15em] uppercase mb-4" style={{ color: 'var(--lr-green)' }}>
             Тарифы
           </p>
           <h2 className="lr-serif text-[clamp(32px,4vw,48px)] font-light leading-[1.1] mb-6" style={{ letterSpacing: '-0.02em' }}>
-            Начните бесплатно.
+            Без обязательств.
           </h2>
           <p className="text-[16px] mb-16" style={{ color: 'var(--lr-muted)' }}>
-            5 пациентов бесплатно навсегда. Стандарт — от 290 ₽/мес.
+            5 пациентов бесплатно, без ограничения по времени. Стандарт — от 290 ₽/мес.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-left max-w-[600px] mx-auto">
             <div className="lr-feature">
-              <p className="text-[13px] font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--lr-muted)' }}>Бесплатно</p>
+              <p className="text-[13px] font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--lr-muted)' }}>Базовый</p>
               <div className="lr-serif text-[36px] font-light mb-4">0 ₽</div>
               <ul className="space-y-2 text-[14px]" style={{ color: 'var(--lr-muted)' }}>
                 <li>5 пациентов</li>
@@ -344,7 +377,7 @@ export default function LandingPage() {
                 <li>Анкеты и опросы</li>
               </ul>
               <Link href="/register" className="block mt-6 text-center text-[14px] font-medium py-3 rounded-full transition-all hover:bg-[var(--lr-green)] hover:text-white" style={{ border: '1px solid var(--lr-green)', color: 'var(--lr-green)' }}>
-                Начать бесплатно
+                Зарегистрироваться
               </Link>
             </div>
             <div className="lr-feature" style={{ backgroundColor: 'var(--lr-forest)', border: 'none' }}>
@@ -356,7 +389,7 @@ export default function LandingPage() {
                 <li>Экспорт PDF</li>
               </ul>
               <Link href="/register" className="block mt-6 text-center text-[14px] font-medium py-3 rounded-full text-white transition-colors hover:bg-white/10" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
-                Попробовать
+                Подключить
               </Link>
             </div>
           </div>
@@ -370,7 +403,7 @@ export default function LandingPage() {
             Начните вести<br />пациентов иначе.
           </h2>
           <Link href="/register" className="lr-btn-primary text-[15px]">
-            Попробовать бесплатно
+            Начать работу
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
             </svg>

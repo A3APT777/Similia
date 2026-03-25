@@ -53,27 +53,28 @@ export default function IntakeLinkButton({
 
   if (!link) {
     return (
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Отправить пациенту — ссылка */}
-        <button
-          onClick={handleSendLink}
-          disabled={loadingLink}
-          className="btn btn-secondary w-full"
-        >
-          {loadingLink
-            ? t(lang).intake.creating
-            : isAcute
-              ? `⚡ ${t(lang).intake.acuteIntake}`
-              : hasCompleted
-                ? t(lang).intake.newIntake
-                : `📋 ${t(lang).intake.sendBtn}`}
-        </button>
-      </div>
+      <button
+        onClick={handleSendLink}
+        disabled={loadingLink}
+        className="w-full flex items-center gap-2 px-4 py-3 rounded-full text-[13px] font-medium transition-all"
+        style={{
+          backgroundColor: 'var(--sim-bg-card)',
+          border: '1px solid var(--sim-border)',
+          color: 'var(--sim-text)',
+        }}
+      >
+        <svg className="w-4 h-4 shrink-0" style={{ color: isAcute ? '#ea580c' : 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+        <span className="truncate">
+          {loadingLink ? 'Создаю...' : isAcute ? 'Анкета острого случая' : 'Отправить анкету'}
+        </span>
+      </button>
     )
   }
 
   return (
-    <div data-tour="intake-link-result" className="border rounded-2xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
+    <div data-tour="intake-link-result" className="border rounded-xl px-4 py-3 space-y-2" style={{ backgroundColor: 'var(--color-muted-bg)', borderColor: isAcute ? 'rgba(200,160,53,0.3)' : 'var(--color-border-light)' }}>
       <p className="text-xs font-semibold" style={{ color: isAcute ? 'var(--color-amber)' : 'var(--color-primary)' }}>
         {isAcute ? `⚡ ${t(lang).intake.acuteLink}` : t(lang).intake.patientLink}
       </p>

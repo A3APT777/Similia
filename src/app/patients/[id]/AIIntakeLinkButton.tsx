@@ -59,7 +59,7 @@ export default function AIIntakeLinkButton({ patientId }: Props) {
   }
 
   return (
-    <div className="border rounded-2xl px-4 py-3 space-y-2" style={{ backgroundColor: 'rgba(99,102,241,0.04)', borderColor: 'rgba(99,102,241,0.2)' }}>
+    <div className="border rounded-xl px-4 py-3 space-y-2" style={{ backgroundColor: 'rgba(99,102,241,0.04)', borderColor: 'rgba(99,102,241,0.2)' }}>
       <p className="text-xs font-semibold" style={{ color: '#6366f1' }}>
         ✨ {lang === 'ru' ? 'Персональная AI-анкета' : 'Personal AI Intake'}
       </p>

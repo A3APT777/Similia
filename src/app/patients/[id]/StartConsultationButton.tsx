@@ -15,7 +15,7 @@ export default function StartConsultationButton({ action, label }: Props) {
       data-tour="new-consultation"
       type="button"
       disabled={isPending}
-      onClick={() => startTransition(() => action())}
+      onClick={() => startTransition(async () => { await action() })}
       className="btn btn-primary btn-lg w-full disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {isPending ? 'Создаём...' : label}

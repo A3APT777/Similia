@@ -29,18 +29,19 @@ type Props = {
   paidSessionsEnabled: boolean
   visitNumber: number
   preVisitSurvey?: PreVisitSurvey | null
+  primaryIntakeAnswers?: Record<string, unknown> | null
   showAI?: boolean
 }
 
-export default function ConsultationEditor({ consultation, patient, previousConsultation, paidSessionsEnabled, visitNumber, preVisitSurvey, showAI = true }: Props) {
+export default function ConsultationEditor({ consultation, patient, previousConsultation, paidSessionsEnabled, visitNumber, preVisitSurvey, primaryIntakeAnswers, showAI = true }: Props) {
   return (
     <ConsultationProvider consultation={consultation} patient={patient} previousConsultation={previousConsultation}>
-      <EditorInner paidSessionsEnabled={paidSessionsEnabled} visitNumber={visitNumber} preVisitSurvey={preVisitSurvey} showAI={showAI} />
+      <EditorInner paidSessionsEnabled={paidSessionsEnabled} visitNumber={visitNumber} preVisitSurvey={preVisitSurvey} primaryIntakeAnswers={primaryIntakeAnswers} showAI={showAI} />
     </ConsultationProvider>
   )
 }
 
-function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI = true }: { paidSessionsEnabled: boolean; visitNumber: number; preVisitSurvey?: PreVisitSurvey | null; showAI?: boolean }) {
+function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primaryIntakeAnswers, showAI = true }: { paidSessionsEnabled: boolean; visitNumber: number; preVisitSurvey?: PreVisitSurvey | null; primaryIntakeAnswers?: Record<string, unknown> | null; showAI?: boolean }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -319,7 +320,9 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
   }, [state.saveState])
 
   // Финальный экран после завершения консультации
-  if (isCompleted && !consultation.status?.startsWith('in')) {
+  // Если консультация завершена И есть назначение — показать финальный экран
+  // Если завершена но БЕЗ назначения — показать редактор (чтобы можно было выписать)
+  if (isCompleted && !consultation.status?.startsWith('in') && consultation.remedy) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-sm">
@@ -422,8 +425,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
           <div className="px-4">
             <FirstTimeHint id="consultation">
               {lang === 'ru'
-                ? 'Запишите жалобы пациента. Раскройте «Модальности, психика» для подробностей. Реперторий — кнопка справа. Назначение — внизу.'
-                : 'Record patient complaints. Expand "Modalities, mentals" for details. Repertory — button on the right. Prescription — below.'}
+                ? <>Запишите жалобы пациента. Раскройте «Модальности, психика» для подробностей. Реперторий — кнопка справа. Назначение — внизу. <a href="/docs/Repertory_Manual_RU.pdf" target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>Скачать руководство (PDF)</a></>
+                : <>Record patient complaints. Expand "Modalities, mentals" for details. Repertory — button on the right. Prescription — below. <a href="/docs/Repertory_Manual_RU.pdf" target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>Download guide (PDF)</a></>}
             </FirstTimeHint>
           </div>
 
@@ -562,6 +565,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, showAI 
                 patient={patient}
                 lang={lang}
                 preVisitSurvey={preVisitSurvey}
+                primaryIntakeAnswers={primaryIntakeAnswers}
                 aiResult={aiResult}
                 suggestions={suggestions}
                 onConfirmSuggestions={handleConfirmSuggestions}

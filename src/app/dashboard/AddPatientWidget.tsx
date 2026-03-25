@@ -42,7 +42,7 @@ export default function AddPatientWidget({ patients }: Props) {
       {/* Dropdown */}
       {menuOpen && (
         <div
-          className="absolute top-full left-0 mt-2 w-full sm:w-80 rounded-2xl shadow-lg z-50 overflow-hidden"
+          className="absolute top-full left-0 mt-2 w-full sm:w-80 rounded-xl shadow-lg z-50 overflow-hidden"
           style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}
         >
           <button
@@ -94,7 +94,7 @@ function WidgetButton({
   href?: string
   disabled?: boolean
 }) {
-  const cls = `flex items-start gap-3 w-full text-left px-3 py-3 rounded-2xl transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed`
+  const cls = `flex items-start gap-3 w-full text-left px-3 py-3 rounded-xl transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed`
   const style = { backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }
 
   const inner = (
@@ -262,14 +262,14 @@ function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onCl
       {step === 'type' && (
         <div className="space-y-3">
           <div className="space-y-2">
-            <label className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-colors ${formType === 'survey' ? 'border-[#2d6a4f] bg-[rgba(45,106,79,0.05)]' : 'border-gray-200 hover:bg-gray-50'}`}>
+            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formType === 'survey' ? 'border-[#2d6a4f] bg-[rgba(45,106,79,0.05)]' : 'border-gray-200 hover:bg-gray-50'}`}>
               <input type="radio" className="mt-0.5 accent-[#2d6a4f]" checked={formType === 'survey'} onChange={() => setFormType('survey')} />
               <div>
                 <div className="text-sm font-medium text-gray-800">Опросник перед визитом</div>
                 <div className="text-xs text-gray-500 mt-0.5">Реакция на препарат, динамика, сон, аппетит — 10–15 минут</div>
               </div>
             </label>
-            <label className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-colors ${formType === 'acute' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+            <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formType === 'acute' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'}`}>
               <input type="radio" className="mt-0.5 accent-orange-500" checked={formType === 'acute'} onChange={() => setFormType('acute')} />
               <div>
                 <div className="text-sm font-medium text-gray-800">⚡ Острый случай</div>
@@ -280,7 +280,7 @@ function ExistingPatientModal({ patients, onClose }: { patients: Patient[]; onCl
           <button
             onClick={generateLink}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-60"
             style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}
           >
             {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
@@ -311,7 +311,7 @@ function Modal({ title, subtitle, children, onClose, onBack }: {
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full rounded-2xl p-6 shadow-2xl"
+        className="w-full rounded-xl p-6 shadow-2xl"
         style={{ maxWidth: 420, backgroundColor: 'var(--sim-bg)', border: '0.5px solid var(--sim-border)' }}
       >
         <div className="flex items-start justify-between mb-1">
@@ -323,7 +323,7 @@ function Modal({ title, subtitle, children, onClose, onBack }: {
                 </svg>
               </button>
             )}
-            <h2 className="text-xl font-light" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: '#1a1a0a' }}>
+            <h2 className="text-xl font-light" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-text)' }}>
               {title}
             </h2>
           </div>
@@ -349,15 +349,15 @@ function LinkResult({ link, copied, onCopy, note }: {
   return (
     <div className="space-y-3">
       <div
-        className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-mono break-all"
-        style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)', color: 'var(--sim-text-sec)' }}
+        className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-mono break-all"
+        style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', border: '1px solid var(--sim-border)', color: 'var(--sim-text-sec)' }}
       >
         {link}
       </div>
       <button
         onClick={onCopy}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold transition-all hover:opacity-90"
-        style={{ backgroundColor: copied ? '#2d6a4f' : '#1a3020', color: '#f7f3ed' }}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+        style={{ backgroundColor: copied ? 'var(--sim-green)' : 'var(--sim-forest)', color: '#f7f3ed' }}
       >
         {copied ? `✓ Скопировано` : `📋 Скопировать ссылку`}
       </button>

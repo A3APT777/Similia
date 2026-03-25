@@ -28,21 +28,21 @@ export default function SettingsToggle({ initialEnabled }: { initialEnabled: boo
 
   return (
     <div
-      className="rounded-2xl p-5"
-      style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)' }}
+      className="rounded-xl p-5"
+      style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', border: '1px solid var(--sim-border)' }}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5"
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
             style={{ backgroundColor: enabled ? 'rgba(45,106,79,0.12)' : 'rgba(0,0,0,0.05)' }}
           >
-            <svg className="w-5 h-5" style={{ color: enabled ? '#2d6a4f' : '#6b5f4f' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <svg className="w-5 h-5" style={{ color: enabled ? 'var(--sim-green)' : '#6b5f4f' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
             </svg>
           </div>
           <div>
-            <p className="text-[15px] font-semibold" style={{ color: '#1a1a0a' }}>
+            <p className="text-[15px] font-semibold" style={{ color: 'var(--sim-text)' }}>
               {t(lang).settings.paymentToggle}
             </p>
             <p className="text-[13px] mt-1 leading-relaxed" style={{ color: 'var(--sim-text-sec)' }}>
@@ -65,7 +65,7 @@ export default function SettingsToggle({ initialEnabled }: { initialEnabled: boo
         >
           <div
             className="absolute inset-0 rounded-full transition-colors duration-200"
-            style={{ backgroundColor: enabled ? '#2d6a4f' : 'var(--sim-border)' }}
+            style={{ backgroundColor: enabled ? 'var(--sim-green)' : 'var(--sim-border)' }}
           />
           <div
             className="absolute top-0.5 rounded-full bg-white shadow transition-transform duration-200"

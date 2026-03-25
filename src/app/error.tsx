@@ -14,14 +14,23 @@ export default function Error({
   const { lang } = useLanguage()
 
   useEffect(() => {
+    // redirect() выбрасывает NEXT_REDIRECT — не логируем как ошибку
+    if (error.message?.includes('NEXT_REDIRECT') || error.digest?.includes('NEXT_REDIRECT')) {
+      return
+    }
     console.error('[App Error]', error)
   }, [error])
 
+  // Если это redirect — не показываем error page
+  if (error.message?.includes('NEXT_REDIRECT') || error.digest?.includes('NEXT_REDIRECT')) {
+    return null
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#f0ebe3' }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
       <div className="text-center max-w-md">
         <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6"
+          className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-6"
           style={{ backgroundColor: '#fef0f0' }}
         >
           <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#c0392b" strokeWidth={1.75}>
@@ -30,7 +39,7 @@ export default function Error({
         </div>
         <h2
           className="text-3xl font-light mb-3"
-          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: '#1a1a0a' }}
+          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-text)' }}
         >
           {t(lang).error.somethingWrong}
         </h2>
@@ -40,14 +49,14 @@ export default function Error({
         <div className="flex gap-3 justify-center">
           <button
             onClick={reset}
-            className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'var(--sim-forest)' }}
           >
             {t(lang).error.tryAgain}
           </button>
           <a
             href="/dashboard"
-            className="px-5 py-2.5 rounded-2xl text-sm transition-colors hover:opacity-70"
+            className="px-5 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
             style={{ color: 'var(--sim-text-hint)', border: '1px solid var(--sim-border)' }}
           >
             {t(lang).error.goHome}

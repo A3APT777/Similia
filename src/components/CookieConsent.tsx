@@ -59,7 +59,7 @@ export default function CookieConsent() {
       aria-label="Согласие на использование cookies"
     >
       <div
-        className="sm:max-w-md rounded-2xl border shadow-lg px-4 py-3 flex items-center gap-3"
+        className="sm:max-w-md rounded-xl border shadow-lg px-4 py-3 flex items-center gap-3"
         style={{
           backgroundColor: 'rgba(247, 243, 237, 0.97)',
           backdropFilter: 'blur(12px)',
@@ -68,7 +68,7 @@ export default function CookieConsent() {
       >
         <p className="text-xs sm:text-sm text-gray-700 leading-snug flex-1">
           Cookie и Метрика для улучшения сайта.{' '}
-          <Link href="/privacy" className="text-emerald-700 underline underline-offset-2">
+          <Link href="/privacy" className="text-emerald-700 underline underline-offset-2 inline-block py-1">
             Подробнее
           </Link>
         </p>

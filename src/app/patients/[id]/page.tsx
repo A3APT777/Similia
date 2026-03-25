@@ -18,6 +18,7 @@ import DeletePatientButton from './DeletePatientButton'
 import StickyPatientHeader from './StickyPatientHeader'
 import FirstTimeHint from '@/components/FirstTimeHint'
 import SendSurveyButton from './SendSurveyButton'
+import BookingLinkButton from './BookingLinkButton'
 import StartConsultationButton from './StartConsultationButton'
 import SharePrescriptionButton from './consultations/[consultationId]/SharePrescriptionButton'
 import { getDoctorSettings } from '@/lib/actions/payments'
@@ -158,17 +159,17 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
 
         {/* ── Welcome ── */}
         {isWelcome && (
-          <div className="mb-6 px-5 py-4 rounded-xl" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.12)' }}>
-            <p className="text-sm" style={{ color: 'var(--sim-text-muted)' }}>
-              {lang === 'ru'
-                ? 'Это демо-пациент. Нажмите «Начать приём» ниже, чтобы попробовать.'
-                : 'Demo patient. Click "Start appointment" below to try it.'}
-            </p>
-          </div>
+          <p className="text-[14px] italic mb-8 leading-relaxed" style={{ color: 'var(--sim-text-muted)' }}>
+            {lang === 'ru'
+              ? 'Это демо-пациент. Нажмите «Начать приём» ниже, чтобы попробовать систему.'
+              : 'Demo patient. Click "Start appointment" below to try.'}
+          </p>
         )}
 
         {/* ═══ HERO ═══ */}
         <div data-tour="patient-hero" className="mb-8">
+          {/* Green accent */}
+          <div className="mb-6" style={{ height: '2px', background: 'linear-gradient(to right, var(--sim-green), rgba(45,106,79,0.1))' }} />
           {/* Статус + тулбар */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -288,16 +289,19 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
           </FirstTimeHint>
 
           {/* ── Действия ── */}
-          <div data-tour="action-buttons" className="mb-6 flex flex-wrap gap-2">
-            <div data-tour="intake-link">
-              <IntakeLinkButton patientId={id} patientName={patient.name} type={completedPrimaryIntake ? 'acute' : 'primary'} hasCompleted={!!completedPrimaryIntake} />
+          <div data-tour="action-buttons" className="mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div data-tour="intake-link">
+                <IntakeLinkButton patientId={id} patientName={patient.name} type={completedPrimaryIntake ? 'acute' : 'primary'} hasCompleted={!!completedPrimaryIntake} />
+              </div>
+              <div data-tour="schedule-btn">
+                <ScheduleButton patientId={id} />
+              </div>
+              <BookingLinkButton patientId={id} patientName={patient.name} />
+              {(completedPrimaryIntake || lastCompleted) && (
+                <SendSurveyButton patientId={id} patientName={patient.name} />
+              )}
             </div>
-            <div data-tour="schedule-btn">
-              <ScheduleButton patientId={id} />
-            </div>
-            {(completedPrimaryIntake || lastCompleted) && (
-              <SendSurveyButton patientId={id} patientName={patient.name} />
-            )}
           </div>
 
           {/* Запланированные */}
@@ -430,7 +434,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
               </p>
             </div>
           ) : (
-            <details className="mb-5 group" open>
+            <details className="mb-5 group">
               <summary className="flex items-center justify-between py-3 cursor-pointer select-none" style={{ borderBottom: '1px solid var(--sim-border)' }}>
                 <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
                   {t(lang).patientCard.timeline}

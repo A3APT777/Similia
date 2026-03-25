@@ -46,7 +46,7 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
   // Если есть ответ — показываем результат
   if (followup?.responded_at && followup.status) {
     return (
-      <div className={`rounded-2xl px-5 py-4 mb-6 ${statusColor[followup.status]}`}>
+      <div className={`rounded-xl px-5 py-4 mb-6 ${statusColor[followup.status]}`}>
         <p className="text-sm font-medium">{t(lang).followup.feeling} {t(lang).followup.statusLabels[followup.status]}</p>
         {followup.comment && (
           <p className="text-sm mt-1 opacity-80">{followup.comment}</p>
@@ -57,25 +57,18 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
 
   // Если ссылка уже создана — показываем её
   if (followup?.token) {
-    const url = typeof window !== 'undefined'
-      ? `${window.location.origin}/followup/${followup.token}`
-      : `/followup/${followup.token}`
-
     return (
-      <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 mb-6">
-        <p className="text-sm text-green-800 font-medium mb-2">{t(lang).followup.linkReady}</p>
+      <div className="rounded-xl px-4 py-3 space-y-2 mb-6" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.15)' }}>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--sim-green)' }}>{t(lang).followup.linkReady}</p>
         <div className="flex items-center gap-2">
-          <code className="text-xs text-green-700 bg-[#faf7f2] border border-green-100 rounded px-2 py-1 flex-1 truncate">
-            {`${typeof window !== 'undefined' ? window.location.origin : ''}/followup/${followup.token}`}
-          </code>
-          <button
-            onClick={copyLink}
-            className="text-xs bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[#1a3020] transition-colors shrink-0"
-          >
-            {copied ? t(lang).followup.copied : t(lang).followup.copy}
+          <p className="text-xs truncate flex-1 rounded-full px-3 py-1.5 font-mono" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)', color: 'var(--sim-text-muted)' }}>
+            {typeof window !== 'undefined' ? `${window.location.origin}/followup/${followup.token}` : ''}
+          </p>
+          <button onClick={copyLink} className="btn btn-primary text-xs shrink-0">
+            {copied ? '✓' : t(lang).followup.copy}
           </button>
         </div>
-        <p className="text-xs text-green-500 mt-2">{t(lang).followup.sendHint}</p>
+        <p className="text-[11px]" style={{ color: 'var(--sim-text-muted)', lineHeight: 1.5 }}>Скопируйте и отправьте пациенту. Он оценит самочувствие по шкале 1-10 и опишет изменения. Ответ появится в карточке.</p>
       </div>
     )
   }
@@ -86,9 +79,17 @@ export default function FollowupSection({ latestConsultationId, patientId, exist
       <button
         onClick={handleCreate}
         disabled={loading}
-        className="btn btn-secondary"
+        className="w-full flex items-center gap-2 px-4 py-3 rounded-full text-[13px] font-medium transition-all"
+        style={{
+          backgroundColor: 'var(--sim-bg-card)',
+          border: '1px solid var(--sim-border)',
+          color: 'var(--sim-text)',
+        }}
       >
-        {loading ? t(lang).followup.creating : t(lang).followup.askFeeling}
+        <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+        </svg>
+        <span className="truncate">{loading ? t(lang).followup.creating : 'Быстрый опрос'}</span>
       </button>
     </div>
   )

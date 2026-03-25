@@ -68,8 +68,8 @@ function getScaleColor(key: string, value: unknown): string | undefined {
   if (typeof value === 'object' && value && 'scale' in value) num = Number((value as Record<string, unknown>).scale)
 
   if (num === undefined) return undefined
-  if (key === 'energy_level') return num >= 7 ? '#2d6a4f' : num <= 3 ? '#dc2626' : '#d97706'
-  if (num > 0) return '#2d6a4f'
+  if (key === 'energy_level') return num >= 7 ? 'var(--sim-green)' : num <= 3 ? '#dc2626' : '#d97706'
+  if (num > 0) return 'var(--sim-green)'
   if (num < 0) return '#dc2626'
   return '#6b7280'
 }

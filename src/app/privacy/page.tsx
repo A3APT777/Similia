@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f0ebe3' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
 
       {/* Skip to content */}
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:text-sm" style={{ color: 'var(--sim-green)' }}>
@@ -22,8 +22,8 @@ export default function PrivacyPage() {
           <Link href="/" aria-label="На главную" className="flex items-center gap-2">
             <svg width={24} height={24} viewBox="0 0 36 36" fill="none" aria-hidden="true">
               <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9" />
-              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65" />
-              <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round" />
+              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="var(--sim-forest)" opacity="0.65" />
+              <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round" />
             </svg>
             <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '18px', fontWeight: 500, color: 'var(--sim-forest)' }}>Similia</span>
           </Link>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Оператор персональных данных</h2>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 text-sm space-y-1.5">
+            <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm space-y-1.5">
               <p><span className="text-gray-600">Сервис:</span> Similia</p>
               <p><span className="text-gray-600">Сайт:</span> simillia.ru</p>
               <p><span className="text-gray-600">Оператор:</span> Назаретян Кнарик Давидовна, плательщик налога на профессиональный доход (422-ФЗ)</p>
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
             <p className="leading-relaxed mt-3">
               Пароли хранятся в хешированном виде. Передача данных осуществляется по защищённому протоколу HTTPS.
             </p>
-            <p className="leading-relaxed mt-3 text-sm text-amber-900 bg-amber-50 rounded-2xl px-4 py-3 border border-amber-200">
+            <p className="leading-relaxed mt-3 text-sm text-amber-900 bg-amber-50 rounded-xl px-4 py-3 border border-amber-200">
               ⚠ Обратите внимание: в текущей версии Сервиса серверная инфраструктура расположена за пределами территории РФ. Используя Сервис, вы даёте согласие на трансграничную передачу ваших персональных данных в соответствии со ст. 12 Федерального закона № 152-ФЗ. Если вы работаете с персональными данными граждан РФ в рамках профессиональной деятельности, рекомендуем уточнить требования локализации согласно ч. 5 ст. 18 152-ФЗ.
             </p>
           </section>

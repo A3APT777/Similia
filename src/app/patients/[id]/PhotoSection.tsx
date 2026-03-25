@@ -126,7 +126,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
           <button
             onClick={handleCreateLink}
             disabled={creatingLink}
-            className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:border-[#2d6a4f] hover:text-[#2d6a4f] hover:bg-[rgba(45,106,79,0.05)] disabled:opacity-50 transition-all"
+            className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-500 px-3 py-1.5 rounded-full hover:border-[#2d6a4f] hover:text-[#2d6a4f] hover:bg-[rgba(45,106,79,0.05)] disabled:opacity-50 transition-all"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -135,7 +135,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
           </button>
           <button
             onClick={() => fileRef.current?.click()}
-            className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+            className="inline-flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-500 px-3 py-1.5 rounded-full hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.043 11.095" />
@@ -155,18 +155,18 @@ export default function PhotoSection({ patientId, photos }: Props) {
 
       {/* Ссылка для пациента */}
       {uploadLink && (
-        <div className="mb-4 rounded-2xl p-3" style={{ backgroundColor: '#f0ebe3', border: '1px solid #c8a035' }}>
+        <div className="mb-4 rounded-xl p-3" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', border: '1px solid #c8a035' }}>
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--sim-amber)' }}>{t(lang).photo.linkHint}</p>
           <div className="flex items-center gap-2">
             <input
               readOnly
               value={uploadLink}
-              className="flex-1 text-xs rounded-lg px-3 py-2 text-gray-700 min-w-0"
+              className="flex-1 text-xs rounded-full px-3 py-2 text-gray-700 min-w-0"
               style={{ backgroundColor: '#faf7f2', border: '1px solid #c8a035' }}
             />
             <button
               onClick={handleCopyLink}
-              className="shrink-0 text-xs font-medium text-white px-3 py-2 rounded-lg transition-colors hover:opacity-90"
+              className="shrink-0 text-xs font-medium text-white px-3 py-2 rounded-full transition-colors hover:opacity-90"
               style={{ backgroundColor: 'var(--sim-forest)' }}
             >
               {linkCopied ? t(lang).photo.copied : t(lang).photo.copy}
@@ -178,10 +178,10 @@ export default function PhotoSection({ patientId, photos }: Props) {
 
       {/* Форма загрузки */}
       {showForm && preview && (
-        <form onSubmit={handleSubmit} className="mb-5 bg-gray-50 border border-gray-200 rounded-2xl p-4">
+        <form onSubmit={handleSubmit} className="mb-5 bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex gap-4">
             {/* Превью */}
-            <div className="w-28 h-28 rounded-2xl overflow-hidden shrink-0 bg-gray-200">
+            <div className="w-28 h-28 rounded-xl overflow-hidden shrink-0 bg-gray-200">
               <img src={preview} alt="preview" className="w-full h-full object-cover" />
             </div>
 
@@ -196,7 +196,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   value={takenAt}
                   onChange={e => setTakenAt(e.target.value)}
                   required
-                  className="border border-gray-200 rounded-2xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   value={note}
                   onChange={e => setNote(e.target.value)}
                   placeholder={t(lang).photo.notePlaceholder}
-                  className="w-full border border-gray-200 rounded-2xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[#faf7f2] focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
                 />
               </div>
             </div>
@@ -219,14 +219,14 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <button
               type="submit"
               disabled={uploading}
-              className="bg-[#2d6a4f] text-white text-sm font-medium px-4 py-2 rounded-2xl hover:bg-[#1a3020] disabled:opacity-50 transition-colors"
+              className="bg-[#2d6a4f] text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-[var(--sim-forest)] disabled:opacity-50 transition-colors"
             >
               {uploading ? t(lang).photo.uploading : t(lang).photo.save}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2 rounded-2xl hover:bg-gray-100 transition-all"
+              className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2 rounded-xl hover:bg-gray-100 transition-all"
             >
               {t(lang).photo.cancel}
             </button>
@@ -239,7 +239,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
         <div
           onClick={() => fileRef.current?.click()}
           className="flex flex-col items-center gap-2 cursor-pointer transition-all hover:border-[#2d6a4f]"
-          style={{ border: '2px dashed #c4b89a', borderRadius: '12px', padding: '40px 0', backgroundColor: '#f0ebe3' }}
+          style={{ border: '2px dashed #c4b89a', borderRadius: '12px', padding: '40px 0', backgroundColor: 'var(--sim-bg, #faf8f5)' }}
         >
           <svg className="w-8 h-8" style={{ color: '#c4b89a' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
@@ -252,7 +252,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <div key={photo.id} className="group relative">
               <button
                 onClick={() => setLightbox(photo)}
-                className="block w-full aspect-square rounded-2xl overflow-hidden bg-gray-100 hover:ring-2 hover:ring-emerald-400 transition-all"
+                className="block w-full aspect-square rounded-xl overflow-hidden bg-gray-100 hover:ring-2 hover:ring-emerald-400 transition-all"
               >
                 <img
                   src={photo.url}
@@ -298,7 +298,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <img
               src={lightbox.url}
               alt={lightbox.note || ''}
-              className="w-full rounded-2xl shadow-2xl"
+              className="w-full rounded-xl shadow-2xl"
             />
 
             {/* Мета */}
@@ -310,13 +310,13 @@ export default function PhotoSection({ patientId, photos }: Props) {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDelete(lightbox)}
-                  className="text-xs text-red-400 hover:text-red-300 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded-lg transition-all"
+                  className="text-xs text-red-400 hover:text-red-300 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded-full transition-all"
                 >
                   {t(lang).photo.delete}
                 </button>
                 <button
                   onClick={() => setLightbox(null)}
-                  className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 px-3 py-1.5 rounded-lg transition-all"
+                  className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 px-3 py-1.5 rounded-full transition-all"
                 >
                   {t(lang).photo.close}
                 </button>
@@ -331,7 +331,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   {idx > 0 && (
                     <button
                       onClick={() => setLightbox(photos[idx - 1])}
-                      className="pointer-events-auto w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/80 transition-all"
+                      className="pointer-events-auto w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/80 transition-all"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -342,7 +342,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
                   {idx < photos.length - 1 && (
                     <button
                       onClick={() => setLightbox(photos[idx + 1])}
-                      className="pointer-events-auto w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/80 transition-all"
+                      className="pointer-events-auto w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/80 transition-all"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

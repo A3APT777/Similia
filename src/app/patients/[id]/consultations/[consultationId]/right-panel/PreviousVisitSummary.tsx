@@ -20,7 +20,7 @@ export default function PreviousVisitSummary({ previousConsultation, lang }: Pro
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex items-center justify-between w-full px-3 py-2 border-none text-left transition-colors duration-150"
-        style={{ backgroundColor: expanded ? '#f0ebe3' : '#faf7f2' }}
+        style={{ backgroundColor: expanded ? 'var(--sim-bg, #faf8f5)' : '#faf7f2' }}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-xs font-semibold text-gray-400 shrink-0">
@@ -45,6 +45,10 @@ export default function PreviousVisitSummary({ previousConsultation, lang }: Pro
             </div>
           )}
           {complaints && <Section title={lang === 'ru' ? 'Жалобы' : 'Complaints'} text={complaints} />}
+          {(previousConsultation as Record<string, unknown>).modality_worse_text && <Section title={lang === 'ru' ? 'Хуже от' : 'Worse from'} text={String((previousConsultation as Record<string, unknown>).modality_worse_text)} />}
+          {(previousConsultation as Record<string, unknown>).modality_better_text && <Section title={lang === 'ru' ? 'Лучше от' : 'Better from'} text={String((previousConsultation as Record<string, unknown>).modality_better_text)} />}
+          {(previousConsultation as Record<string, unknown>).mental_text && <Section title={lang === 'ru' ? 'Психика' : 'Mental'} text={String((previousConsultation as Record<string, unknown>).mental_text)} />}
+          {(previousConsultation as Record<string, unknown>).general_text && <Section title={lang === 'ru' ? 'Общие' : 'Generals'} text={String((previousConsultation as Record<string, unknown>).general_text)} />}
           {observations && <Section title={lang === 'ru' ? 'Наблюдения' : 'Observations'} text={observations} />}
           {notes && <Section title={lang === 'ru' ? 'Заметки' : 'Notes'} text={notes} />}
           {recommendations && <Section title={lang === 'ru' ? 'Рекомендации' : 'Recommendations'} text={recommendations} />}

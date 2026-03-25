@@ -105,7 +105,10 @@ export async function submitIntake(token: string, answers: IntakeAnswers): Promi
       .select('id')
       .single()
 
-    if (patientError) console.error('[submitIntake] patient insert:', patientError)
+    if (patientError) {
+      console.error('[submitIntake] patient insert:', patientError)
+      throw new Error('Не удалось создать карточку пациента')
+    }
     patientId = newPatient?.id || null
   }
 
@@ -121,7 +124,10 @@ export async function submitIntake(token: string, answers: IntakeAnswers): Promi
     .eq('token', token)
     .eq('status', 'pending')
 
-  if (updateError) console.error('[submitIntake] update:', updateError)
+  if (updateError) {
+    console.error('[submitIntake] update:', updateError)
+    throw new Error('Не удалось сохранить анкету')
+  }
 }
 
 // Врач заполняет/редактирует анкету напрямую (без токена)

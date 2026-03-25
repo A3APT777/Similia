@@ -294,7 +294,7 @@ export default function TemplateMenu({ onInsertStructured, onInsertText, consult
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 w-80 bg-[#ede7dd] border border-gray-100 rounded-2xl shadow-xl shadow-gray-900/10 z-30 overflow-hidden">
+        <div className="absolute left-0 top-full mt-1.5 w-80 bg-[var(--sim-bg-card, #f5f0e8)] border border-gray-100 rounded-xl shadow-xl shadow-gray-900/10 z-30 overflow-hidden">
 
           {/* Диалог подтверждения (если поля не пустые) */}
           {confirmTemplate && (
@@ -337,7 +337,7 @@ export default function TemplateMenu({ onInsertStructured, onInsertText, consult
                       <button
                         key={tpl.id}
                         onClick={() => handleFullTemplate(tpl.fields)}
-                        className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-colors group ${
+                        className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors group ${
                           isRecommended ? 'bg-emerald-50 ring-1 ring-emerald-200' : 'hover:bg-gray-50'
                         }`}
                       >

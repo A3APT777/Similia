@@ -87,7 +87,7 @@ export async function proxy(request: NextRequest) {
     `font-src 'self' https://fonts.gstatic.com`,
     `img-src 'self' data: blob: https://*.supabase.co https://mc.yandex.ru https://mc.yandex.com`,
     `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://mc.yandex.ru https://mc.yandex.com https://mc.webvisor.org`,
-    `frame-ancestors 'none'`,
+    `frame-ancestors 'self' https://metrika.yandex.ru https://metrika.yandex.by https://metrica.yandex.com https://metrica.yandex.com.tr https://webvisor.com https://*.webvisor.com`,
   ].join('; ')
 
   let response = NextResponse.next({ request })

@@ -23,7 +23,7 @@ import { mergeWithFallback, checkHypothesisConflict, computeConfidence, validate
 import { inferPatientProfile, toEngineProfile } from '../src/lib/mdri/infer-profile'
 import { parseDifferentialResponse, validateQuestions, buildDifferentialContext, convertAnswersToSymptoms } from '../src/lib/mdri/differential'
 import type { DifferentialQuestion } from '../src/lib/mdri/differential'
-import { selectDifferentialPair, buildDifferentialMatrix, buildClarifyPrompt, rankClarifyQuestions, selectBestQuestions } from '../src/lib/mdri/clarify-engine'
+import { selectDifferentialPair, buildDifferentialMatrix, selectBestDiscriminator, discriminatorToQuestion, buildAIDiscriminatorPrompt, runClarifyEngine } from '../src/lib/mdri/clarify-engine'
 
 function loadData(): MDRIData {
   const d = join(process.cwd(), 'src', 'lib', 'mdri', 'data')
@@ -96,7 +96,7 @@ async function main() {
     questionsGenerated: number; questionsSelected: number
     selectedQuestion: string; selectedOptions: string[]
     simulatedAnswer: string; answerReason: string
-    infoGain: number; rankReason: string
+    questionSource: string
     // After rerun
     afterTop1: string; afterTop2: string; afterTop3: string
     afterGap: number; afterPos: number
@@ -147,34 +147,45 @@ async function main() {
 
     const matrix = buildDifferentialMatrix(baseResults, pair)
 
-    // 3. AI generates candidates
-    let aiCandidates: DifferentialQuestion[] = []
-    try {
-      const prompt = buildClarifyPrompt(matrix, symptoms, modalities)
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-20250514', max_tokens: 1500, temperature: 0.3,
-        messages: [{ role: 'user', content: prompt }],
-      })
-      const text = response.content[0].type === 'text' ? response.content[0].text : '[]'
-      const ctx = buildDifferentialContext(baseResults, symptoms, modalities, conflict)
-      aiCandidates = validateQuestions(parseDifferentialResponse(text), ctx)
-    } catch (e) {
-      console.log('AI error → skip')
-      skipped++
-      continue
+    // 3. Discriminator-first: known → детерминированный, unknown → AI
+    const disc = selectBestDiscriminator(matrix, symptoms, modalities)
+    let bestQ: DifferentialQuestion
+    let questionSource = 'unknown'
+
+    if (disc) {
+      // Known discriminator — без AI
+      bestQ = discriminatorToQuestion(disc, pair)
+      questionSource = `known: ${disc.type}`
+    } else {
+      // AI формулирует 1 вопрос
+      try {
+        const prompt = buildAIDiscriminatorPrompt(matrix, symptoms, modalities)
+        const response = await client.messages.create({
+          model: 'claude-sonnet-4-20250514', max_tokens: 800, temperature: 0.3,
+          messages: [{ role: 'user', content: prompt }],
+        })
+        const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
+        const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+        let parsed: DifferentialQuestion[]
+        try {
+          const obj = JSON.parse(clean)
+          parsed = Array.isArray(obj) ? parseDifferentialResponse(text) : parseDifferentialResponse(`[${clean}]`)
+        } catch { parsed = parseDifferentialResponse(text) }
+        const ctx = buildDifferentialContext(baseResults, symptoms, modalities, conflict)
+        const validated = validateQuestions(parsed, ctx)
+        if (validated.length === 0) {
+          console.log('no valid AI question → skip')
+          skipped++
+          continue
+        }
+        bestQ = validated[0]
+        questionSource = 'ai'
+      } catch {
+        console.log('AI error → skip')
+        skipped++
+        continue
+      }
     }
-
-    // 4. Rank + select
-    const ranked = rankClarifyQuestions(matrix, aiCandidates)
-    const selected = selectBestQuestions(ranked)
-
-    if (selected.length === 0) {
-      console.log(`no good questions (${aiCandidates.length} candidates, all filtered)`)
-      skipped++
-      continue
-    }
-
-    const bestQ = selected[0]
 
     // 5. Simulate answer: выбираем option который supports правильный препарат
     let simulatedAnswer = ''
@@ -238,7 +249,7 @@ async function main() {
     }
 
     const mark = becameTop1 ? '✓' : posImproved ? '↑' : posWorsened ? '↓' : '='
-    console.log(`${mark} ${verdict} | Q: "${bestQ.question.slice(0, 50)}..." → "${simulatedAnswer}" | gain=${bestQ.informationGain.toFixed(2)}`)
+    console.log(`${mark} ${verdict} | Q: "${bestQ.question.slice(0, 50)}..." → "${simulatedAnswer}" | src=${questionSource}`)
 
     results.push({
       id: c.id, name: c.name, expected: c.expected,
@@ -246,10 +257,10 @@ async function main() {
       baseGap, basePos: basePos + 1,
       pairChosen: `${pair.top1.remedy} vs ${pair.alt.remedy}`,
       matrixDiscriminators: matrix.discriminators,
-      questionsGenerated: aiCandidates.length, questionsSelected: selected.length,
+      questionsGenerated: 1, questionsSelected: 1,
       selectedQuestion: bestQ.question, selectedOptions: bestQ.options.map(o => o.label),
       simulatedAnswer, answerReason,
-      infoGain: bestQ.informationGain, rankReason: (bestQ as any).rankReason ?? '',
+      questionSource,
       afterTop1, afterTop2: norm(afterResults[1]?.remedy ?? ''), afterTop3: norm(afterResults[2]?.remedy ?? ''),
       afterGap, afterPos: afterPos >= 0 ? afterPos + 1 : -1,
       improved: posImproved || becameTop1, unchanged: !posImproved && !posWorsened && !becameTop1, worsened: posWorsened,
@@ -275,7 +286,7 @@ async function main() {
       console.log(`  #${r.id} ${r.name}: pos ${r.basePos} → ${r.afterPos === -1 ? 'LOST' : r.afterPos}`)
       console.log(`    Q: ${r.selectedQuestion}`)
       console.log(`    A: ${r.simulatedAnswer} (${r.answerReason})`)
-      console.log(`    gain: ${r.infoGain.toFixed(2)}, rank: ${r.rankReason}`)
+      console.log(`    source: ${r.questionSource}`)
     }
   }
 

@@ -7,7 +7,7 @@ export const authInputStyle: React.CSSProperties = {
   borderRadius: '12px',
   padding: '14px 18px',
   fontSize: '15px',
-  color: '#1a1a0a',
+  color: 'var(--sim-text)',
   outline: 'none',
   boxSizing: 'border-box',
   transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -26,7 +26,7 @@ export const authLabelStyle: React.CSSProperties = {
 export function getAuthInputFocusStyle(field: string, focusedField: string | null): React.CSSProperties {
   return {
     ...authInputStyle,
-    borderColor: focusedField === field ? '#2d6a4f' : 'rgba(0,0,0,0.08)',
+    borderColor: focusedField === field ? 'var(--sim-green)' : 'rgba(0,0,0,0.08)',
     boxShadow: focusedField === field ? '0 0 0 3px rgba(45,106,79,0.1)' : 'none',
   }
 }

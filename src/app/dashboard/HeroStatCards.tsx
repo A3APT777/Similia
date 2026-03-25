@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useRef, useCallback } from 'react'
 
 type Props = {
   todayCount: number
@@ -16,7 +17,6 @@ function flash(id: string) {
   const el = document.getElementById(id)
   if (!el) return
   el.classList.remove('highlight-flash')
-  // Перезапуск анимации через reflow
   void el.offsetWidth
   el.classList.add('highlight-flash')
   setTimeout(() => el.classList.remove('highlight-flash'), 1200)
@@ -26,19 +26,23 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-export default function HeroStatCards({ todayCount, totalPatients, pendingCount, filterPending, todayLabel, patientsLabel, noPrescriptionLabel }: Props) {
+export default function HeroStatCards({
+  todayCount, totalPatients, pendingCount, filterPending,
+  todayLabel, patientsLabel, noPrescriptionLabel
+}: Props) {
   const router = useRouter()
+  const cardsRef = useRef<HTMLDivElement>(null)
 
-  function handleToday() {
+  const handleToday = useCallback(() => {
     scrollTo('appointments-section')
     flash('appointments-section')
-  }
+  }, [])
 
-  function handlePatients() {
+  const handlePatients = useCallback(() => {
     scrollTo('patients-section')
-  }
+  }, [])
 
-  function handlePending() {
+  const handlePending = useCallback(() => {
     if (filterPending) {
       router.push('/dashboard#patients-section')
     } else {
@@ -48,45 +52,73 @@ export default function HeroStatCards({ todayCount, totalPatients, pendingCount,
       scrollTo('patients-section')
       flash('patients-section')
     }, 100)
-  }
+  }, [filterPending, router])
 
-  const numStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-cormorant, Georgia, serif)',
-    color: 'var(--sim-green)',
-  }
-  const labelStyle: React.CSSProperties = { color: 'var(--sim-text-muted)' }
+  const cards = [
+    {
+      value: todayCount,
+      label: todayLabel,
+      onClick: handleToday,
+      accent: false,
+    },
+    {
+      value: totalPatients,
+      label: patientsLabel,
+      onClick: handlePatients,
+      accent: false,
+    },
+    {
+      value: pendingCount,
+      label: noPrescriptionLabel,
+      onClick: handlePending,
+      accent: pendingCount > 0,
+    },
+  ]
 
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-3">
-      <button
-        onClick={handleToday}
-        aria-label={`${todayCount} ${todayLabel}`}
-        className="text-left rounded-2xl px-3 py-3 transition-opacity hover:opacity-75"
-        style={{ background: 'rgba(45,106,79,0.04)', border: '1px solid rgba(0,0,0,0.04)' }}
-      >
-        <p className="text-[22px] sm:text-[26px] font-light leading-none" style={numStyle}>{todayCount}</p>
-        <p className="text-[12px] mt-1" style={labelStyle}>{todayLabel}</p>
-      </button>
+    <div ref={cardsRef} className="grid grid-cols-3 gap-px rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--sim-border)' }}>
+      {cards.map((card, i) => (
+        <button
+          key={i}
+          onClick={card.onClick}
+          aria-label={`${card.value} ${card.label}`}
+          className="group relative text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sim-green)] focus-visible:ring-inset"
+          style={{ backgroundColor: 'var(--sim-bg-card)' }}
+        >
+          {/* Фоновый акцент при hover */}
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            style={{ background: card.accent ? 'rgba(245,158,11,0.04)' : 'rgba(45,106,79,0.03)' }}
+          />
 
-      <button
-        onClick={handlePatients}
-        aria-label={`${totalPatients} ${patientsLabel}`}
-        className="text-left rounded-2xl px-3 py-3 transition-opacity hover:opacity-75"
-        style={{ background: 'rgba(45,106,79,0.04)', border: '1px solid rgba(0,0,0,0.04)' }}
-      >
-        <p className="text-[22px] sm:text-[26px] font-light leading-none" style={numStyle}>{totalPatients}</p>
-        <p className="text-[12px] mt-1" style={labelStyle}>{patientsLabel}</p>
-      </button>
+          <div className="relative px-4 sm:px-5 py-4 sm:py-5">
+            {/* Число — монументальное */}
+            <p
+              className="text-[28px] sm:text-[36px] lg:text-[42px] font-light leading-[1] tracking-[-0.02em] transition-transform duration-300 group-hover:translate-y-[-1px]"
+              style={{
+                fontFamily: 'var(--font-cormorant, Georgia, serif)',
+                color: card.accent ? 'var(--sim-amber, #b45309)' : 'var(--sim-green)',
+              }}
+            >
+              {card.value}
+            </p>
 
-      <button
-        onClick={handlePending}
-        aria-label={`${pendingCount} ${noPrescriptionLabel}`}
-        className="text-left rounded-2xl px-3 py-3 transition-opacity hover:opacity-75"
-        style={{ background: pendingCount > 0 ? 'rgba(200,160,53,0.18)' : 'rgba(255,255,255,0.08)' }}
-      >
-        <p className="text-[22px] sm:text-[26px] font-light leading-none" style={{ ...numStyle, color: pendingCount > 0 ? 'var(--color-amber)' : 'rgba(255,255,255,0.9)' }}>{pendingCount}</p>
-        <p className="text-[12px] mt-1" style={labelStyle}>{noPrescriptionLabel}</p>
-      </button>
+            {/* Подпись — утончённая */}
+            <p
+              className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.12em] leading-tight transition-colors duration-300"
+              style={{ color: 'var(--sim-text-muted)' }}
+            >
+              {card.label}
+            </p>
+          </div>
+
+          {/* Нижняя линия-индикатор при hover */}
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-0 group-hover:w-[60%] transition-all duration-500 ease-out rounded-full"
+            style={{ backgroundColor: card.accent ? 'var(--sim-amber, #b45309)' : 'var(--sim-green)' }}
+          />
+        </button>
+      ))}
     </div>
   )
 }

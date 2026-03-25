@@ -162,7 +162,7 @@ export async function getAppointmentsForDay(dayStart: string, dayEnd: string): P
     .from('consultations')
     .select('scheduled_at')
     .eq('doctor_id', user.id)
-    .eq('status', 'scheduled')
+    .neq('status', 'cancelled')
     .gte('scheduled_at', dayStart)
     .lte('scheduled_at', dayEnd)
 

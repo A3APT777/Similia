@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f0ebe3' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
 
       {/* Skip to content */}
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:text-sm" style={{ color: 'var(--sim-green)' }}>
@@ -22,8 +22,8 @@ export default function TermsPage() {
           <Link href="/" aria-label="На главную" className="flex items-center gap-2">
             <svg width={24} height={24} viewBox="0 0 36 36" fill="none" aria-hidden="true">
               <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9" />
-              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65" />
-              <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round" />
+              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="var(--sim-forest)" opacity="0.65" />
+              <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round" />
             </svg>
             <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '18px', fontWeight: 500, color: 'var(--sim-forest)' }}>Similia</span>
           </Link>
@@ -52,7 +52,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Исполнитель</h2>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 text-sm space-y-1.5">
+            <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm space-y-1.5">
               <p><span className="text-gray-600">Исполнитель:</span> Назаретян Кнарик Давидовна, плательщик налога на профессиональный доход (422-ФЗ)</p>
               <p><span className="text-gray-600">ИНН:</span> 500717175199</p>
               <p><span className="text-gray-600">Сайт:</span> <a href="https://simillia.ru" className="text-emerald-700 hover:underline">simillia.ru</a></p>
@@ -81,10 +81,10 @@ export default function TermsPage() {
               Сервис работает по модели подписки (Freemium). Доступны следующие тарифы:
             </p>
 
-            <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200">
+            <div className="mt-4 overflow-hidden rounded-xl border border-gray-200">
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ backgroundColor: '#f0ebe3' }}>
+                  <tr style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
                     <th className="text-left px-4 py-2.5 font-semibold text-gray-700"></th>
                     <th className="text-center px-4 py-2.5 font-semibold text-gray-700">Бесплатный</th>
                     <th className="text-center px-4 py-2.5 font-semibold text-gray-700">Стандарт</th>

@@ -153,16 +153,47 @@ export async function adminToggleAIPro(doctorId: string, enable: boolean) {
   await requireAdmin()
   const service = createServiceClient()
 
-  const { error } = await service
+  // Обновляем doctor_settings (для AI-кредитов)
+  const { error: settingsError } = await service
     .from('doctor_settings')
     .upsert({
       doctor_id: doctorId,
       subscription_plan: enable ? 'ai_pro' : null,
     }, { onConflict: 'doctor_id' })
 
-  if (error) {
-    console.error('[adminToggleAIPro]', error)
+  if (settingsError) {
+    console.error('[adminToggleAIPro] settings error:', settingsError)
     throw new Error('Не удалось обновить AI Pro')
+  }
+
+  // Обновляем subscriptions (для подписки и features)
+  if (enable) {
+    const periodEnd = new Date()
+    periodEnd.setFullYear(periodEnd.getFullYear() + 1) // AI Pro на 1 год
+    const { error: subError } = await service
+      .from('subscriptions')
+      .upsert({
+        doctor_id: doctorId,
+        plan_id: 'ai_pro',
+        status: 'active',
+        current_period_end: periodEnd.toISOString(),
+        cancel_at_period_end: false,
+      }, { onConflict: 'doctor_id' })
+
+    if (subError) {
+      console.error('[adminToggleAIPro] subscription error:', subError)
+      throw new Error('Не удалось обновить подписку')
+    }
+  } else {
+    // Откат на standard
+    const { error: subError } = await service
+      .from('subscriptions')
+      .update({ plan_id: 'standard' })
+      .eq('doctor_id', doctorId)
+
+    if (subError) {
+      console.error('[adminToggleAIPro] rollback error:', subError)
+    }
   }
 }
 

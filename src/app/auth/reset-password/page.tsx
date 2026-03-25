@@ -82,7 +82,7 @@ export default function ResetPasswordPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9.303 3.376c-.866 1.5-3.032 1.5-3.898 0L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374z" />
             </svg>
           </div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '24px', fontWeight: 400, color: 'var(--sim-forest)', marginBottom: '12px' }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '24px', fontWeight: 300, color: 'var(--sim-text)', letterSpacing: '-0.01em', marginBottom: '12px' }}>
             {lang === 'ru' ? 'Ссылка недействительна' : 'Link expired'}
           </h1>
           <p style={{ fontSize: '14px', color: 'var(--sim-text-hint)', marginBottom: '24px', lineHeight: 1.6 }}>
@@ -105,12 +105,12 @@ export default function ResetPasswordPage() {
           <svg width="26" height="26" viewBox="0 0 36 36" fill="none" aria-hidden="true">
             <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
             <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
-            <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
+            <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: 'var(--sim-forest)' }}>Similia</span>
+          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 300, color: 'var(--sim-text)', letterSpacing: '-0.01em' }}>Similia</span>
         </div>
 
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: 'var(--sim-forest)', marginBottom: '6px' }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 300, color: 'var(--sim-text)', letterSpacing: '-0.01em', marginBottom: '6px' }}>
           {t(lang).auth.newPassword}
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--sim-text-hint)', marginBottom: '32px' }}>
@@ -150,15 +150,15 @@ export default function ResetPasswordPage() {
           </div>
 
           {error && (
-            <div role="alert" style={{ backgroundColor: '#fef0f0', border: '1px solid #fbd5d5', borderRadius: '8px', padding: '12px 16px' }}>
-              <p style={{ color: '#c0392b', fontSize: '14px' }}>{error}</p>
+            <div role="alert" style={{ padding: '0' }}>
+              <p style={{ color: '#dc2626', fontSize: '13px' }}>{error}</p>
             </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            style={{ width: '100%', backgroundColor: loading ? '#5a7060' : '#1a3020', color: '#f7f3ed', border: 'none', borderRadius: '100px', padding: '14px 24px', fontSize: '15px', fontWeight: 500, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}
+            style={{ width: '100%', backgroundColor: loading ? '#5a7060' : 'var(--sim-forest)', color: '#f7f3ed', border: 'none', borderRadius: '100px', padding: '14px 24px', fontSize: '15px', fontWeight: 500, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}
           >
             {loading ? t(lang).common.saving : t(lang).auth.savePassword}
           </button>

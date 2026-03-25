@@ -487,6 +487,35 @@ const ACUTE_STEPS: Step[] = [
   },
 ]
 
+// ─── Построение шагов из кастомных полей врача ───────────────────────────────
+
+function buildStepsFromCustomFields(fields: import('@/lib/actions/questionnaire-templates').TemplateField[]): Step[] {
+  // Группируем по 4-5 полей на шаг
+  const CHUNK = 5
+  const steps: Step[] = []
+  for (let i = 0; i < fields.length; i += CHUNK) {
+    const chunk = fields.slice(i, i + CHUNK)
+    steps.push({
+      title: i === 0 ? 'Основные вопросы' : `Вопросы (${Math.floor(i / CHUNK) + 1})`,
+      subtitle: i === 0 ? 'Ответьте максимально подробно' : undefined,
+      fields: chunk.map(f => ({
+        key: f.id,
+        label: f.label,
+        hint: f.hint,
+        type: f.type === 'scale' ? 'scale' as const
+          : f.type === 'select' ? 'select' as const
+          : f.type === 'chips' ? 'chips' as const
+          : 'textarea' as const,
+        required: f.required,
+        options: f.options,
+        scaleMin: f.scaleMin,
+        scaleMax: f.scaleMax,
+      })),
+    })
+  }
+  return steps
+}
+
 // ─── Конфигурация ─────────────────────────────────────────────────────────────
 
 const CONFIG = {
@@ -568,33 +597,33 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
 
   if (bookingState === 'booked') {
     return (
-      <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
-        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
-          <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="mt-6 rounded-xl border border-[rgba(45,106,79,0.15)] bg-[rgba(45,106,79,0.04)] p-5 text-center">
+        <div className="w-10 h-10 rounded-full bg-[rgba(45,106,79,0.08)] flex items-center justify-center mx-auto mb-3">
+          <svg className="w-5 h-5 text-[var(--sim-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-sm font-semibold text-emerald-800">Вы записаны!</p>
-        <p className="text-sm text-emerald-600 mt-1">{bookedDate}</p>
+        <p className="text-sm font-semibold text-[var(--sim-green)]">Вы записаны!</p>
+        <p className="text-sm text-[var(--sim-green)] mt-1">{bookedDate}</p>
       </div>
     )
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-      <p className="text-sm font-semibold text-gray-900 mb-1">Записаться на первичную консультацию</p>
-      <p className="text-xs text-gray-400 mb-4">Необязательно — можно пропустить и договориться отдельно</p>
+    <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
+      <p className="text-sm font-semibold text-[var(--sim-text)] mb-1">Записаться на первичную консультацию</p>
+      <p className="text-xs text-[var(--sim-text-muted)] mb-4">Необязательно — можно пропустить и договориться отдельно</p>
 
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Выберите дату</p>
+      <p className="text-xs font-semibold text-[var(--sim-text-muted)] uppercase tracking-wide mb-2">Выберите дату</p>
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1">
         {selectableDates.slice(0, 14).map(d => (
           <button
             key={d}
             onClick={() => setSelectedDate(d)}
-            className={`shrink-0 px-3 py-2 rounded-2xl border text-xs font-medium transition-all ${
+            className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
               selectedDate === d
                 ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
-                : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
+                : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-[var(--sim-bg)]'
             }`}
           >
             {formatDateRu(d)}
@@ -603,25 +632,25 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
       </div>
 
       {bookingState === 'loading' && (
-        <p className="text-xs text-gray-400 text-center py-3">Загружаю доступные слоты...</p>
+        <p className="text-xs text-[var(--sim-text-muted)] text-center py-3">Загружаю доступные слоты...</p>
       )}
 
       {bookingState === 'ready' && slots.length === 0 && (
-        <p className="text-xs text-gray-400 text-center py-3">На эту дату нет свободных мест</p>
+        <p className="text-xs text-[var(--sim-text-muted)] text-center py-3">На эту дату нет свободных мест</p>
       )}
 
       {bookingState === 'ready' && slots.length > 0 && (
         <>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Выберите время</p>
+          <p className="text-xs font-semibold text-[var(--sim-text-muted)] uppercase tracking-wide mb-2">Выберите время</p>
           <div className="flex flex-wrap gap-2 mb-4">
             {slots.map(t => (
               <button
                 key={t}
                 onClick={() => setSelectedTime(t)}
-                className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
                   selectedTime === t
                     ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-gray-50'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-[var(--sim-bg)]'
                 }`}
               >
                 {t}
@@ -639,13 +668,13 @@ function BookingSection({ token, schedule, doctorId }: { token: string; schedule
         <button
           onClick={handleBook}
           disabled={!selectedDate || !selectedTime || bookingState === 'booking'}
-          className="flex-1 bg-[#2d6a4f] hover:bg-[#1a3020] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-2xl transition-colors"
+          className="flex-1 bg-[#2d6a4f] hover:bg-[var(--sim-forest)] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-xl transition-colors"
         >
           {bookingState === 'booking' ? 'Записываю...' : 'Записаться'}
         </button>
         <button
           onClick={() => setSkipped(true)}
-          className="px-4 py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          className="px-4 py-3 text-sm text-[var(--sim-text-muted)] hover:text-gray-600 transition-colors"
         >
           Пропустить
         </button>
@@ -665,9 +694,10 @@ type Props = {
   doctorId?: string
   doctorPatientId?: string
   initialAnswers?: IntakeAnswers
+  customFields?: import('@/lib/actions/questionnaire-templates').TemplateField[]
 }
 
-export default function IntakeForm({ token, patientName, type: initialType, prefilled, schedule, doctorId, doctorPatientId, initialAnswers }: Props) {
+export default function IntakeForm({ token, patientName, type: initialType, prefilled, schedule, doctorId, doctorPatientId, initialAnswers, customFields }: Props) {
   const router = useRouter()
   const isDoctorMode = !!doctorPatientId
   // Если врач уже выбрал тип — используем его. Иначе пациент выбирает.
@@ -675,22 +705,26 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
   const [showTypeChoice, setShowTypeChoice] = useState(false) // Экран выбора типа
 
   const type = selectedType ?? 'primary'
+
+  // Если врач настроил кастомные поля — создаём шаги из них
+  const customSteps: Step[] | null = customFields ? buildStepsFromCustomFields(customFields) : null
   const cfg = CONFIG[type]
-  const STEPS = (prefilled || isDoctorMode) ? cfg.steps.filter(s => s !== PERSONAL_STEP) : cfg.steps
+  const baseSteps = customSteps ? [PERSONAL_STEP, ...customSteps] : cfg.steps
+  const STEPS = (prefilled || isDoctorMode) ? baseSteps.filter(s => s !== PERSONAL_STEP) : baseSteps
   const isAcute = type === 'acute'
 
   const btnClass = isAcute
-    ? 'bg-orange-500 hover:bg-orange-600 text-white'
-    : 'bg-[#2d6a4f] hover:bg-[#1a3020] text-white'
+    ? 'bg-[#ea580c] hover:bg-[#c2410c] text-white'
+    : 'bg-[var(--sim-green)] hover:bg-[var(--sim-forest)] text-white'
 
   const chipActiveClass = isAcute
-    ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-    : 'bg-[#2d6a4f] text-white border-[#2d6a4f] shadow-sm'
+    ? 'bg-[rgba(234,88,12,0.08)] text-[#ea580c] border-[rgba(234,88,12,0.2)]'
+    : 'bg-[rgba(45,106,79,0.08)] text-[var(--sim-green)] border-[rgba(45,106,79,0.2)]'
 
-  const progressClass = isAcute ? 'bg-orange-500' : 'bg-[#2d6a4f]'
+  const progressClass = isAcute ? 'bg-[#ea580c]' : 'bg-[var(--sim-green)]'
   const focusRingClass = isAcute
-    ? 'focus:border-orange-400 focus:ring-orange-500/10'
-    : 'focus:border-emerald-400 focus:ring-[#2d6a4f]/30/10'
+    ? 'focus:border-[rgba(234,88,12,0.4)] focus:ring-orange-500/10'
+    : 'focus:border-[var(--sim-green)] focus:ring-[#2d6a4f]/30/10'
 
   const DRAFT_KEY = isDoctorMode ? `intake_doctor_draft_${doctorPatientId}_${type}` : `intake_draft_${token}`
   const restoredRef = useRef(false)
@@ -790,16 +824,16 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
   if (done) {
     const showBooking = schedule && doctorId
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ backgroundColor: "var(--sim-bg)" }}>
         <div className="w-full max-w-sm">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-              <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-16 h-16 rounded-xl bg-[rgba(45,106,79,0.08)] flex items-center justify-center mx-auto mb-5">
+              <svg className="w-8 h-8 text-[var(--sim-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Анкета отправлена!</h1>
-            <p className="text-gray-500 text-sm leading-relaxed">
+            <h1 className="text-[24px] font-light mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-text)' }}>Анкета отправлена!</h1>
+            <p className="text-[var(--sim-text-muted)] text-sm leading-relaxed">
               Спасибо за подробные ответы. Врач ознакомится с ними до консультации.
             </p>
           </div>
@@ -816,47 +850,47 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
   // Экран выбора типа случая (если пациент сам выбирает)
   if (showTypeChoice) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-emerald-50 via-white to-white">
+      <div className="min-h-screen flex items-center justify-center px-4 py-8 ">
         <div className="max-w-sm w-full">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-2xl bg-[#0d1f14] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#0d1f14] flex items-center justify-center shrink-0">
               <span className="text-lg leading-none">📋</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-xl font-medium text-[var(--sim-text)] leading-tight">
                 {patientName ? `${patientName.split(' ')[0]}, здравствуйте!` : 'Здравствуйте!'}
               </h1>
-              <p className="text-xs text-gray-400 mt-0.5">Выберите тип обращения</p>
+              <p className="text-xs text-[var(--sim-text-muted)] mt-0.5">Выберите тип обращения</p>
             </div>
           </div>
 
-          <p className="text-sm text-gray-500 leading-relaxed mb-5">
+          <p className="text-sm text-[var(--sim-text-muted)] leading-relaxed mb-5">
             Чтобы подготовить правильную анкету, подскажите — какой у вас случай?
           </p>
 
           <div className="space-y-3">
             <button
               onClick={() => { setSelectedType('acute'); setShowTypeChoice(false) }}
-              className="w-full text-left p-4 rounded-2xl border-2 border-orange-200 bg-orange-50/50 hover:border-orange-400 transition-all"
+              className="w-full text-left p-4 rounded-xl border-2 border-[rgba(234,88,12,0.15)] bg-[rgba(234,88,12,0.03)] hover:border-[rgba(234,88,12,0.4)] transition-all"
             >
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-lg">⚡</span>
-                <span className="font-bold text-gray-900">Острый случай</span>
+                <span className="font-medium text-[var(--sim-text)]">Острый случай</span>
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-xs text-[var(--sim-text-muted)] leading-relaxed">
                 Возникло внезапно — за последние часы или дни. Травма, простуда, температура, отравление, приступ.
               </p>
             </button>
 
             <button
               onClick={() => { setSelectedType('primary'); setShowTypeChoice(false) }}
-              className="w-full text-left p-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 hover:border-emerald-400 transition-all"
+              className="w-full text-left p-4 rounded-xl border-2 border-[rgba(45,106,79,0.15)] bg-[rgba(45,106,79,0.03)] hover:border-[var(--sim-green)] transition-all"
             >
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-lg">📋</span>
-                <span className="font-bold text-gray-900">Хронический случай</span>
+                <span className="font-medium text-[var(--sim-text)]">Хронический случай</span>
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-xs text-[var(--sim-text-muted)] leading-relaxed">
                 Беспокоит давно — недели, месяцы или годы. Повторяющиеся проблемы, длительные симптомы, общее состояние здоровья.
               </p>
             </button>
@@ -868,25 +902,25 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
 
   if (step === -1) {
     return (
-      <div className={`min-h-screen flex items-center justify-center px-4 py-8 ${isAcute ? 'bg-gradient-to-br from-orange-50 via-white to-white' : 'bg-gradient-to-br from-emerald-50 via-white to-white'}`}>
+      <div className={`min-h-screen flex items-center justify-center px-4 py-8 ${isAcute ? '' : ''}`}>
         <div className="max-w-sm w-full">
           {/* Шапка */}
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-2xl bg-[#0d1f14] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#0d1f14] flex items-center justify-center shrink-0">
               <span className="text-lg leading-none">{cfg.icon}</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-xl font-medium text-[var(--sim-text)] leading-tight">
                 {patientName ? `${patientName.split(' ')[0]}, здравствуйте!` : 'Здравствуйте!'}
               </h1>
-              <p className="text-xs text-gray-400 mt-0.5">{cfg.welcomeTitle}</p>
+              <p className="text-xs text-[var(--sim-text-muted)] mt-0.5">{cfg.welcomeTitle}</p>
             </div>
           </div>
 
-          <p className="text-sm text-gray-500 leading-relaxed mb-4">{cfg.welcomeText}</p>
+          <p className="text-sm text-[var(--sim-text-muted)] leading-relaxed mb-4">{cfg.welcomeText}</p>
 
           {prefilled && (
-            <div className="mb-3 flex items-center gap-2 rounded-2xl px-3 py-2.5 text-xs border bg-emerald-50 border-emerald-200 text-emerald-700">
+            <div className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs border bg-[rgba(45,106,79,0.04)] border-[rgba(45,106,79,0.15)] text-[var(--sim-green)]">
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
@@ -895,7 +929,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
           )}
 
           {/* Инфо-блок */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 mb-4">
             <div className="grid grid-cols-2 gap-2">
               {[
                 { icon: isAcute ? '⚡' : '📋', text: `${totalSteps} разделов · ${isAcute ? '5–7' : '15–20'} мин` },
@@ -905,7 +939,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-base leading-none">{item.icon}</span>
-                  <p className="text-xs text-gray-500">{item.text}</p>
+                  <p className="text-xs text-[var(--sim-text-muted)]">{item.text}</p>
                 </div>
               ))}
             </div>
@@ -920,14 +954,14 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                 onChange={e => setConsentGiven(e.target.checked)}
                 className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-emerald-600 shrink-0"
               />
-              <span className="text-[12px] text-gray-400 leading-relaxed">
-                Согласен(а) на обработку персональных данных, включая трансграничную передачу (ст. 12 ФЗ-152), в соответствии с <a href="/privacy" target="_blank" className="text-emerald-600 underline">политикой конфиденциальности</a>. Данные используются только для оказания медицинской помощи и не передаются третьим лицам.
+              <span className="text-[12px] text-[var(--sim-text-muted)] leading-relaxed">
+                Согласен(а) на обработку персональных данных, включая трансграничную передачу (ст. 12 ФЗ-152), в соответствии с <a href="/privacy" target="_blank" className="text-[var(--sim-green)] underline">политикой конфиденциальности</a>. Данные используются только для оказания медицинской помощи и не передаются третьим лицам.
               </span>
             </label>
           )}
 
           {draftRestored && (
-            <div className={`mb-3 flex items-center gap-2 rounded-2xl px-3 py-2.5 text-xs border ${isAcute ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+            <div className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs border ${isAcute ? 'bg-orange-50 border-[rgba(234,88,12,0.15)] text-orange-700' : 'bg-[rgba(45,106,79,0.04)] border-[rgba(45,106,79,0.15)] text-[var(--sim-green)]'}`}>
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
@@ -938,7 +972,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
           <button
             onClick={() => draftRestored ? setStep(step) : setStep(0)}
             disabled={!consentGiven}
-            className={`w-full font-semibold text-sm py-3 rounded-2xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
+            className={`w-full font-semibold text-sm py-3 rounded-xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
           >
             {draftRestored ? 'Продолжить →' : 'Начать заполнение →'}
           </button>
@@ -951,7 +985,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                 setStep(0)
                 setDraftRestored(false)
               }}
-              className="w-full text-xs text-gray-400 hover:text-gray-600 mt-2 transition-colors"
+              className="w-full text-xs text-[var(--sim-text-muted)] hover:text-gray-600 mt-2 transition-colors"
             >
               Начать заново
             </button>
@@ -963,7 +997,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
 
   // ── Шаги ──
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden" style={{ backgroundColor: "var(--sim-bg)" }}>
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
         <div
           className={`h-1 transition-all duration-500 ${progressClass}`}
@@ -972,27 +1006,27 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
         <div className="px-4 py-2 flex items-center justify-between">
           <button
             onClick={handleBack}
-            className="text-sm text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors"
+            className="text-sm text-[var(--sim-text-muted)] hover:text-gray-700 flex items-center gap-1 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
             Назад
           </button>
-          <span className="text-xs text-gray-400 font-medium">Шаг {step + 1} из {totalSteps}: {currentStep.title}</span>
+          <span className="text-xs text-[var(--sim-text-muted)] font-medium">Шаг {step + 1} из {totalSteps}: {currentStep.title}</span>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-4 pb-24">
         <div className="mb-4">
-          <h2 className="text-lg font-bold text-gray-900">{currentStep.title}</h2>
+          <h2 className="text-lg font-medium text-[var(--sim-text)]">{currentStep.title}</h2>
           {currentStep.subtitle && (
-            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{currentStep.subtitle}</p>
+            <p className="text-xs text-[var(--sim-text-muted)] mt-0.5 leading-relaxed">{currentStep.subtitle}</p>
           )}
         </div>
 
         {/* Все поля шага — одна карточка с разделителями */}
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
           {currentStep.fields.map((field, fieldIdx) => (
             <div
               key={field.key}
@@ -1003,7 +1037,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                 {field.required && <span className="text-red-400 ml-1">*</span>}
               </label>
               {field.hint && (
-                <p className="text-[12px] text-gray-500 mb-2 leading-relaxed">{field.hint}</p>
+                <p className="text-[12px] text-[var(--sim-text-muted)] mb-2 leading-relaxed">{field.hint}</p>
               )}
 
               {field.type === 'textarea' && (
@@ -1012,7 +1046,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                   onChange={e => setField(field.key, e.target.value)}
                   rows={3}
                   placeholder={field.placeholder}
-                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-2xl px-3 py-2 resize-none focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
@@ -1022,7 +1056,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                   value={answers[field.key] || ''}
                   onChange={e => setField(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-2xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 placeholder-gray-300 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
@@ -1031,7 +1065,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                   type="date"
                   value={answers[field.key] || ''}
                   onChange={e => setField(field.key, e.target.value)}
-                  className={`w-full text-sm text-gray-800 border border-gray-200 rounded-2xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
+                  className={`w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-4 transition-all ${focusRingClass}`}
                 />
               )}
 
@@ -1045,7 +1079,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                       className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
                         answers[field.key] === opt
                           ? chipActiveClass
-                          : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-gray-50'
+                          : 'border-gray-200 text-[var(--sim-text-muted)] hover:border-gray-300 bg-[var(--sim-bg)]'
                       }`}
                     >
                       {opt}
@@ -1066,7 +1100,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                         className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
                           selected
                             ? chipActiveClass
-                            : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-gray-50'
+                            : 'border-gray-200 text-[var(--sim-text-muted)] hover:border-gray-300 bg-[var(--sim-bg)]'
                         }`}
                       >
                         {opt}
@@ -1089,7 +1123,7 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
                             ? n <= 3 ? 'bg-[#2d6a4f] text-white border-emerald-500'
                               : n <= 6 ? 'bg-amber-400 text-white border-amber-400'
                               : 'bg-red-500 text-white border-red-500'
-                            : 'border-gray-200 text-gray-500 bg-gray-50'
+                            : 'border-gray-200 text-[var(--sim-text-muted)] bg-[var(--sim-bg)]'
                         }`}
                       >
                         {n}
@@ -1110,14 +1144,14 @@ export default function IntakeForm({ token, patientName, type: initialType, pref
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3">
         <div className="max-w-lg mx-auto space-y-3">
           {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
               <p className="text-sm text-red-600">{submitError}</p>
             </div>
           )}
           <button
             onClick={handleNext}
             disabled={!canProceed() || submitting}
-            className={`w-full font-semibold text-sm py-3.5 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm ${btnClass}`}
+            className={`w-full font-semibold text-sm py-3.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm ${btnClass}`}
           >
             {submitting ? 'Отправляю...' : step === totalSteps - 1 ? 'Отправить анкету' : 'Далее →'}
           </button>

@@ -77,7 +77,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
   const { lang } = useLanguage()
   const isAcute = state.type === 'acute'
 
-  const L = isAcute
+  const labels = isAcute
     ? (ACUTE_LABELS[lang] ?? ACUTE_LABELS.ru)
     : (CHRONIC_LABELS[lang] ?? CHRONIC_LABELS.ru)
 
@@ -116,21 +116,17 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
     }
   }
 
-  // Стили текстаря
-  const taBase = 'w-full resize-none rounded-2xl border px-3.5 py-2.5 transition-all focus:outline-none placeholder-gray-400'
-  const acuteFocusBorder = '#fbbf24'
-  const acuteFocusShadow = '0 0 0 3px rgba(251,191,36,0.12)'
-  const chronicFocusBorder = '#6ee7b7'
-  const chronicFocusShadow = '0 0 0 3px rgba(110,231,183,0.1)'
-  const focusBorder = isAcute ? acuteFocusBorder : chronicFocusBorder
-  const focusShadow = isAcute ? acuteFocusShadow : chronicFocusShadow
+  // Стили textarea — Apple-level
+  const taBase = 'w-full resize-none rounded-xl border px-3.5 py-2.5 transition-all duration-200 focus:outline-none text-sm leading-relaxed'
+  const focusBorder = isAcute ? 'rgba(180,83,9,0.4)' : 'var(--sim-green)'
+  const focusShadow = isAcute ? '0 0 0 3px rgba(180,83,9,0.06)' : '0 0 0 3px rgba(45,106,79,0.08)'
 
   function focusStyle(e: React.FocusEvent<HTMLTextAreaElement>) {
     e.currentTarget.style.borderColor = focusBorder
     e.currentTarget.style.boxShadow = focusShadow
   }
   function blurStyle(e: React.FocusEvent<HTMLTextAreaElement>) {
-    e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'
+    e.currentTarget.style.borderColor = 'var(--sim-border)'
     e.currentTarget.style.boxShadow = 'none'
   }
 
@@ -140,7 +136,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
       {/* Основная жалоба / Острая жалоба */}
       <div>
         <label htmlFor="chief-complaint" className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: isAcute ? '#b45309' : '#7a6e64', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {L.chief}
+          {labels.chief}
         </label>
         <textarea
           id="chief-complaint"
@@ -149,10 +145,10 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
           onChange={handleChange('complaints')}
           onInput={e => autoResize(e.currentTarget)}
           onKeyDown={e => handleTab(e, onsetRef)}
-          placeholder={L.chiefPlaceholder}
+          placeholder={labels.chiefPlaceholder}
           rows={3}
           className={taBase}
-          style={{ fontSize: '15px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
+          style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
           onFocus={focusStyle}
           onBlur={blurStyle}
         />
@@ -161,8 +157,8 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
       {/* Этиология — для хронического случая */}
       {!isAcute && (
         <div>
-          <label htmlFor="etiology" className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: '#7a6e64', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            {(L as typeof CHRONIC_LABELS.ru).etiology}
+          <label htmlFor="etiology" className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sim-text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+            {(labels as typeof CHRONIC_LABELS.ru).etiology}
           </label>
           <textarea
             id="etiology"
@@ -171,10 +167,10 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
             onChange={handleChange('observations')}
             onInput={e => autoResize(e.currentTarget)}
             onKeyDown={e => handleTab(e, worseRef)}
-            placeholder={(L as typeof CHRONIC_LABELS.ru).etiologyPlaceholder}
+            placeholder={(labels as typeof CHRONIC_LABELS.ru).etiologyPlaceholder}
             rows={2}
             className={taBase}
-            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fff' }}
+            style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
             onFocus={focusStyle}
             onBlur={blurStyle}
           />
@@ -184,8 +180,8 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
       {/* Начало и причина — только для острого случая */}
       {isAcute && (
         <div>
-          <label className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            {(L as typeof ACUTE_LABELS.ru).onset}
+          <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: '#b45309', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+            {(labels as typeof ACUTE_LABELS.ru).onset}
           </label>
           <textarea
             ref={onsetRef}
@@ -193,10 +189,10 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
             onChange={handleChange('observations')}
             onInput={e => autoResize(e.currentTarget)}
             onKeyDown={e => handleTab(e, worseRef)}
-            placeholder={(L as typeof ACUTE_LABELS.ru).onsetPlaceholder}
+            placeholder={(labels as typeof ACUTE_LABELS.ru).onsetPlaceholder}
             rows={2}
             className={taBase}
-            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fffbf0' }}
+            style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'rgba(180,83,9,0.02)' }}
             onFocus={focusStyle}
             onBlur={blurStyle}
           />
@@ -223,8 +219,8 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
       {/* Хуже / Лучше в одну строку */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label htmlFor="modality-worse" className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: '#a02e23', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 1 }}>
-            {L.worse}
+          <label htmlFor="modality-worse" className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: '#b91c1c', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+            {labels.worse}
           </label>
           <textarea
             id="modality-worse"
@@ -233,17 +229,17 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
             onChange={handleChange('modalityWorseText')}
             onInput={e => autoResize(e.currentTarget)}
             onKeyDown={e => handleTab(e, betterRef)}
-            placeholder={L.worsePlaceholder}
+            placeholder={labels.worsePlaceholder}
             rows={2}
             className={taBase}
-            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
+            style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
             onFocus={e => { e.currentTarget.style.borderColor = '#fca5a5'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(252,165,165,0.15)' }}
             onBlur={blurStyle}
           />
         </div>
         <div>
-          <label htmlFor="modality-better" className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 1 }}>
-            {L.better}
+          <label htmlFor="modality-better" className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sim-green)', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+            {labels.better}
           </label>
           <textarea
             id="modality-better"
@@ -252,10 +248,10 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
             onChange={handleChange('modalityBetterText')}
             onInput={e => autoResize(e.currentTarget)}
             onKeyDown={e => handleTab(e, isAcute ? generalRef : mentalRef)}
-            placeholder={L.betterPlaceholder}
+            placeholder={labels.betterPlaceholder}
             rows={2}
             className={taBase}
-            style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
+            style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
             onFocus={focusStyle}
             onBlur={blurStyle}
           />
@@ -267,8 +263,8 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
         <>
           {/* Температура, озноб, жажда, пот */}
           <div>
-            <label className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {L.general}
+            <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: '#b45309', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+              {labels.general}
             </label>
             <textarea
               ref={generalRef}
@@ -276,10 +272,10 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
               onChange={handleChange('generalText')}
               onInput={e => autoResize(e.currentTarget)}
               onKeyDown={e => handleTab(e, mentalRef)}
-              placeholder={L.generalPlaceholder}
+              placeholder={labels.generalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fffbf0' }}
+              style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'rgba(180,83,9,0.02)' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
@@ -287,18 +283,18 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
 
           {/* Поведение и сопутствующие симптомы */}
           <div>
-            <label className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {L.mental}
+            <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: '#b45309', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+              {labels.mental}
             </label>
             <textarea
               ref={mentalRef}
               value={state.mentalText}
               onChange={handleChange('mentalText')}
               onInput={e => autoResize(e.currentTarget)}
-              placeholder={L.mentalPlaceholder}
+              placeholder={labels.mentalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fffbf0' }}
+              style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'rgba(180,83,9,0.02)' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
@@ -308,8 +304,8 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
         <>
           {/* Психика (хронический) */}
           <div>
-            <label className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: '#7a6e64', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {L.mental}
+            <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sim-text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+              {labels.mental}
             </label>
             <textarea
               ref={mentalRef}
@@ -317,10 +313,10 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
               onChange={handleChange('mentalText')}
               onInput={e => autoResize(e.currentTarget)}
               onKeyDown={e => handleTab(e, generalRef)}
-              placeholder={L.mentalPlaceholder}
+              placeholder={labels.mentalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fff' }}
+              style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
@@ -328,18 +324,18 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
 
           {/* Общее (хронический) */}
           <div>
-            <label className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: '#7a6e64', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {L.general}
+            <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sim-text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+              {labels.general}
             </label>
             <textarea
               ref={generalRef}
               value={state.generalText}
               onChange={handleChange('generalText')}
               onInput={e => autoResize(e.currentTarget)}
-              placeholder={L.generalPlaceholder}
+              placeholder={labels.generalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ fontSize: '14px', lineHeight: '1.6', borderColor: 'rgba(0,0,0,0.08)', backgroundColor: '#fff' }}
+              style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />

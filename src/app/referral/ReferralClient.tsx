@@ -31,17 +31,17 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
   return (
     <div className="space-y-6">
       {/* Ссылка */}
-      <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--sim-forest)' }}>
+      <div className="rounded-xl p-5" style={{ backgroundColor: 'var(--sim-forest)' }}>
         <p className="text-xs uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>Ваша ссылка</p>
         <div className="flex items-center gap-2">
           <input
             readOnly
             value={link}
-            className="flex-1 text-sm bg-white/10 border border-white/20 rounded-2xl px-4 py-3 text-white truncate focus:outline-none"
+            className="flex-1 text-sm bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white truncate focus:outline-none"
           />
           <button
             onClick={handleCopy}
-            className="shrink-0 px-5 py-3 rounded-2xl text-sm font-semibold transition-all"
+            className="shrink-0 px-5 py-3 rounded-full text-sm font-semibold transition-all"
             style={{ backgroundColor: copied ? '#16a34a' : '#c8a035', color: 'var(--sim-forest)' }}
           >
             {copied ? '✓ Скопировано' : 'Копировать'}
@@ -53,7 +53,7 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
       </div>
 
       {/* Как работает */}
-      <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', border: '1px solid var(--sim-border)' }}>
+      <div className="rounded-xl p-5" style={{ backgroundColor: 'white', border: '1px solid var(--sim-border)' }}>
         <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--sim-text-hint)' }}>Как это работает</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
@@ -74,18 +74,18 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
 
       {/* Бонусы */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-2xl p-5 text-center" style={{ backgroundColor: 'rgba(45,106,79,0.06)', border: '1px solid rgba(45,106,79,0.15)' }}>
+        <div className="rounded-xl p-5 text-center" style={{ backgroundColor: 'rgba(45,106,79,0.06)', border: '1px solid rgba(45,106,79,0.15)' }}>
           <p className="text-2xl font-light mb-1" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-green)' }}>+7</p>
           <p className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>дней вам</p>
         </div>
-        <div className="rounded-2xl p-5 text-center" style={{ backgroundColor: 'rgba(200,160,53,0.08)', border: '1px solid rgba(200,160,53,0.2)' }}>
+        <div className="rounded-xl p-5 text-center" style={{ backgroundColor: 'rgba(200,160,53,0.08)', border: '1px solid rgba(200,160,53,0.2)' }}>
           <p className="text-2xl font-light mb-1" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-amber)' }}>+14</p>
           <p className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>дней коллеге</p>
         </div>
       </div>
 
       {/* Статистика */}
-      <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', border: '1px solid var(--sim-border)' }}>
+      <div className="rounded-xl p-5" style={{ backgroundColor: 'white', border: '1px solid var(--sim-border)' }}>
         <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--sim-text-hint)' }}>Ваша статистика</h2>
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div className="text-center">
@@ -108,10 +108,10 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
             <span>Бонусных дней</span>
             <span>{stats.totalBonusDays} / {stats.maxBonusDays}</span>
           </div>
-          <div className="h-2 rounded-full" style={{ backgroundColor: '#f0ebe3' }}>
+          <div className="h-2 rounded-full" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
             <div
               className="h-2 rounded-full transition-all duration-500"
-              style={{ width: `${progressPct}%`, backgroundColor: progressPct >= 100 ? '#c8a035' : '#2d6a4f' }}
+              style={{ width: `${progressPct}%`, backgroundColor: progressPct >= 100 ? '#c8a035' : 'var(--sim-green)' }}
             />
           </div>
         </div>
@@ -119,11 +119,11 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
 
       {/* Список приглашений */}
       {stats.invitations.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--sim-border)' }}>
-          <div className="px-5 py-3" style={{ backgroundColor: '#f0ebe3' }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--sim-border)' }}>
+          <div className="px-5 py-3" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
             <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-text-hint)' }}>История приглашений</h2>
           </div>
-          <div className="divide-y divide-[#f0ebe3]">
+          <div className="divide-y divide-[var(--sim-bg, #faf8f5)]">
             {stats.invitations.map((inv, i) => (
               <div key={i} className="px-5 py-3 flex items-center justify-between">
                 <div>
@@ -137,7 +137,7 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
                       +{inv.referrer_bonus_days} дн.
                     </span>
                   ) : (
-                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: '#f0ebe3', color: 'var(--sim-text-hint)' }}>
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', color: 'var(--sim-text-hint)' }}>
                       Ожидает оплаты
                     </span>
                   )}

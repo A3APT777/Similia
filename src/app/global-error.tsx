@@ -19,7 +19,7 @@ export default function GlobalError({
 
   return (
     <html lang={lang}>
-      <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', backgroundColor: '#f0ebe3' }}>
+      <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ textAlign: 'center', maxWidth: '400px' }}>
             <div style={{
@@ -32,7 +32,7 @@ export default function GlobalError({
             </div>
             <h2 style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: '32px', fontWeight: 400, color: '#1a1a0a', marginBottom: '12px',
+              fontSize: '32px', fontWeight: 400, color: 'var(--sim-text)', marginBottom: '12px',
             }}>
               {t(lang).error.criticalError}
             </h2>

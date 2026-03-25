@@ -7,19 +7,18 @@ import { translateRubric } from '@/lib/repertory-translations'
 import { useLanguage } from '@/hooks/useLanguage'
 import { t } from '@/lib/i18n'
 import FirstTimeHint from '@/components/FirstTimeHint'
-import RepertoryTutorialPanel, { type TutorialStep } from './RepertoryTutorialPanel'
 
-// ── Цветовая схема V3 ─────────────────────────────────────────────
-const C = {
-  bg: '#f7f3ed',
-  sidebar: '#f2ece4',
-  header: '#1a3020',
-  link: '#2d6a4f',
+// ── Цветовая схема V4 (Apple/Linear) ──────────────────────────────
+const colors = {
+  bg: 'var(--sim-bg, #faf8f5)',
+  sidebar: 'var(--sim-bg-card, #f5f0e8)',
+  header: 'var(--sim-bg-card, #f5f0e8)',
+  link: 'var(--sim-green, #2d6a4f)',
   border: 'var(--sim-border)',
-  borderLight: '#e0d8cc',
-  text: '#1a1a0a',
-  secondary: '#5a5040',
-  muted: '#9a8a6a',
+  borderLight: 'var(--sim-border)',
+  text: 'var(--sim-text, #1a1a0a)',
+  secondary: 'var(--sim-text-muted, #5a5040)',
+  muted: 'var(--sim-text-muted, #9a8a6a)',
 }
 
 // ── Группы разделов ───────────────────────────────────────────────
@@ -82,7 +81,7 @@ const CHAPTER_LABELS: Record<string, string> = {
 }
 
 // Цвета для coverage dots — по одному на каждую рубрику в анализе
-const COVERAGE_COLORS = ['#2d6a4f', '#c8a035', '#2563eb', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#6b7280']
+const COVERAGE_COLORS = ['var(--sim-green)', '#c8a035', '#2563eb', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#6b7280']
 
 const RECENT_KEY = 'hc-recent-rubrics'
 const MAX_RECENT = 10
@@ -494,20 +493,44 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   return (
     <div
       className="flex flex-col h-full"
-      style={{ fontFamily: 'Inter, sans-serif', backgroundColor: C.bg }}
+      style={{ backgroundColor: colors.bg }}
     >
       {/* ══════════════════════════════════════════
-          ШАПКА
+          ШАПКА — Clinical Library
       ══════════════════════════════════════════ */}
-      <div className="shrink-0" style={{ backgroundColor: C.header }}>
+      <div className="shrink-0" style={{ backgroundColor: colors.header }}>
+        {/* Зелёный акцент сверху */}
+        <div style={{ height: '2px', background: 'linear-gradient(to right, var(--sim-green), rgba(45,106,79,0.15))' }} />
 
-        {/* Строка 1: Поиск + кнопка */}
-        <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-          <div className={`flex-1 relative${tutorialStep === 1 ? ' tut-glow-light' : ''}`}>
+        {/* Строка 1: Навигация + кнопка */}
+        <div className="flex items-center justify-between px-5 pt-3 pb-1">
+          <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
+            {lang === 'ru' ? 'Реперторий Кента' : "Kent's Repertory"}
+          </p>
+          <button
+            className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full transition-all duration-200 hover:bg-[rgba(45,106,79,0.04)]"
+            style={{ color: 'var(--sim-text-muted)' }}
+            onPointerDown={() => {
+              window.location.href = (lastConsultation && lastConsultation.startsWith('/')) ? lastConsultation : '/dashboard'
+            }}
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            {lastConsultation
+              ? (lang === 'ru' ? 'К консультации' : 'To consultation')
+              : (lang === 'ru' ? 'На главную' : 'Home')
+            }
+          </button>
+        </div>
+
+        {/* Строка 2: Поиск — HERO */}
+        <div className="px-5 pb-3">
+          <div className={`relative${tutorialStep === 1 ? ' tut-glow-light' : ''}`}>
             <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] pointer-events-none transition-colors duration-200"
+              style={{ color: 'var(--sim-text-muted)' }}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
@@ -520,129 +543,98 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               onChange={e => handleQueryChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t(lang).repertory.searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2.5 text-base rounded-full focus:outline-none"
+              className="w-full pl-11 pr-24 py-3 text-[15px] rounded-xl focus:outline-none transition-all duration-300"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.10)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: 'rgba(255,255,255,0.90)',
-                outline: 'none',
+                backgroundColor: 'var(--sim-bg-card, white)',
+                border: '1px solid var(--sim-border)',
+                color: 'var(--sim-text)',
               }}
-              onFocus={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
+              onFocus={e => {
+                e.currentTarget.style.borderColor = 'var(--sim-green)'
+                e.currentTarget.style.boxShadow = '0 0 0 4px rgba(45,106,79,0.06)'
+              }}
+              onBlur={e => {
+                e.currentTarget.style.borderColor = 'var(--sim-border)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
             />
             {query && (
               <>
                 <span
-                  className="absolute right-10 top-1/2 -translate-y-1/2 text-[12px] px-1.5 py-0.5 rounded pointer-events-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.30)' }}
+                  className="absolute right-10 top-1/2 -translate-y-1/2 text-[11px] font-medium px-2 py-0.5 rounded-full pointer-events-none"
+                  style={{ backgroundColor: 'rgba(45,106,79,0.06)', color: 'var(--sim-green)' }}
                 >
-                  {t(lang).repertory.enterToAdd}
+                  Enter ↵
                 </span>
                 <button
                   onPointerDown={() => handleQueryChange('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-black/[0.04]"
+                  style={{ color: 'var(--sim-text-muted)' }}
                 >
-                  ✕
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </>
             )}
           </div>
-
-          {/* Кнопка "В консультацию" / "Вернуться к консультации" */}
-          <button
-            className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium rounded-full border transition-all whitespace-nowrap"
-            style={{
-              borderColor: 'rgba(255,255,255,0.2)',
-              color: 'rgba(255,255,255,0.65)',
-              backgroundColor: 'rgba(255,255,255,0.07)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
-            onPointerDown={() => {
-              window.location.href = (lastConsultation && lastConsultation.startsWith('/')) ? lastConsultation : '/dashboard'
-            }}
-          >
-            {lastConsultation ? (
-              <>
-                <span>←</span>
-                <span className="hidden sm:inline">{t(lang).repertory.toConsultation}</span>
-              </>
-            ) : (
-              <>
-                <span>←</span>
-                <span className="hidden sm:inline">{t(lang).repertory.toHome}</span>
-              </>
-            )}
-          </button>
         </div>
 
-        {/* Строка 2: Живые топ-препараты */}
-        <div className="px-4 pb-2">
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-full overflow-hidden"
-            style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
-          >
-            <span className="shrink-0 text-[12px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
-              {t(lang).repertory.topNow}
-            </span>
-            <div className="flex items-baseline gap-x-2.5 gap-y-0.5 flex-wrap flex-1 min-w-0">
-              {loading ? (
-                <span className="text-[12px] animate-pulse" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                  {t(lang).repertory.loading}
-                </span>
-              ) : headerTopRemedies.top.length === 0 ? (
-                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                  {t(lang).repertory.noData}
-                </span>
-              ) : (
-                <>
-                  {headerTopRemedies.top.map(([abbrev, data]) => (
-                    <span
-                      key={abbrev}
-                      className="cursor-default"
-                      style={{
-                        color: data.maxGrade >= 3 ? '#7dd4a8' : data.maxGrade === 2 ? '#b8e0cc' : 'rgba(255,255,255,0.30)',
-                        fontWeight: data.maxGrade >= 3 ? 700 : data.maxGrade === 2 ? 500 : 400,
-                        fontSize: data.maxGrade >= 3 ? '13px' : data.maxGrade === 2 ? '12px' : '10px',
-                        textTransform: data.maxGrade >= 3 ? 'uppercase' : 'none',
-                        letterSpacing: data.maxGrade >= 3 ? '0.03em' : 'normal',
-                      }}
-                    >
-                      {abbrev}
-                    </span>
-                  ))}
-                  {headerTopRemedies.extra > 0 && (
-                    <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                      +{headerTopRemedies.extra} {t(lang).repertory.more}
-                    </span>
-                  )}
-                </>
-              )}
+        {/* Строка 3: Живые топ-препараты */}
+        {headerTopRemedies.top.length > 0 && (
+          <div className="px-5 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: 'var(--sim-text-muted)' }}>
+                {t(lang).repertory.topNow}
+              </span>
+              <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap flex-1 min-w-0">
+                {headerTopRemedies.top.map(([abbrev, data]) => (
+                  <span
+                    key={abbrev}
+                    className="cursor-default transition-opacity duration-200 hover:opacity-70"
+                    style={{
+                      color: data.maxGrade >= 3 ? 'var(--sim-green)' : data.maxGrade === 2 ? 'var(--sim-text)' : 'var(--sim-text-muted)',
+                      fontWeight: data.maxGrade >= 3 ? 600 : data.maxGrade === 2 ? 500 : 400,
+                      fontSize: data.maxGrade >= 3 ? '13px' : '11px',
+                      letterSpacing: data.maxGrade >= 3 ? '0.02em' : 'normal',
+                    }}
+                  >
+                    {abbrev}
+                  </span>
+                ))}
+                {headerTopRemedies.extra > 0 && (
+                  <span className="text-[11px]" style={{ color: 'var(--sim-text-muted)' }}>
+                    +{headerTopRemedies.extra}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Строка 3: Чипы разделов */}
+        {/* Строка 4: Чипы разделов */}
         <div
-          className="flex gap-1.5 overflow-x-auto px-4 pb-3"
-          style={{ scrollbarWidth: 'none' }}
+          className="flex gap-1.5 overflow-x-auto px-5 pb-3"
+          style={{ scrollbarWidth: 'none', borderBottom: '1px solid var(--sim-border)' }}
         >
-          {SECTION_GROUPS.map((group, idx) => (
-            <button
-              key={idx}
-              onPointerDown={() => handleGroupChange(idx)}
-              className="shrink-0 px-3 py-1.5 text-[13px] rounded-full border transition-all whitespace-nowrap"
-              style={{
-                borderColor: groupIndex === idx ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.12)',
-                backgroundColor: groupIndex === idx ? 'rgba(255,255,255,0.14)' : 'transparent',
-                color: groupIndex === idx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.40)',
-                fontWeight: groupIndex === idx ? 600 : 400,
-              }}
-            >
-              {group[lang]}
-            </button>
-          ))}
+          {SECTION_GROUPS.map((group, idx) => {
+            const isActive = groupIndex === idx
+            return (
+              <button
+                key={idx}
+                onPointerDown={() => handleGroupChange(idx)}
+                className="shrink-0 px-3 py-1.5 text-[11px] rounded-full transition-all duration-200 whitespace-nowrap"
+                style={{
+                  backgroundColor: isActive ? 'var(--sim-green)' : 'transparent',
+                  color: isActive ? '#fff' : 'var(--sim-text-muted)',
+                  fontWeight: isActive ? 500 : 400,
+                  border: isActive ? 'none' : '1px solid var(--sim-border)',
+                }}
+              >
+                {group[lang]}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -658,11 +650,11 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           {recentRubrics.length > 0 && (
             <div
               className="shrink-0 px-4 py-2.5 border-b"
-              style={{ backgroundColor: C.sidebar, borderColor: C.borderLight }}
+              style={{ backgroundColor: colors.sidebar, borderColor: colors.borderLight }}
             >
               <p
                 className="text-[12px] font-semibold uppercase tracking-widest mb-2"
-                style={{ color: C.muted }}
+                style={{ color: colors.muted }}
               >
                 {t(lang).repertory.recentlyUsed}
               </p>
@@ -676,9 +668,9 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                       onPointerDown={() => addToAnalysis(r)}
                       className="shrink-0 px-2.5 py-1 text-[13px] rounded-full border transition-all whitespace-nowrap"
                       style={{
-                        borderColor: inA ? C.link : C.border,
+                        borderColor: inA ? colors.link : colors.border,
                         borderWidth: inA ? 1.5 : 1,
-                        color: inA ? C.link : C.secondary,
+                        color: inA ? colors.link : colors.secondary,
                         backgroundColor: inA ? 'rgba(45,106,79,0.06)' : 'white',
                       }}
                       title={r.fullpath}
@@ -693,43 +685,45 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
           {/* Строка-заголовок раздела */}
           <div
-            className="shrink-0 px-4 py-2 border-b flex items-center justify-between"
-            style={{ borderColor: C.borderLight, backgroundColor: C.bg }}
+            className="shrink-0 px-5 py-2.5 flex items-center justify-between"
+            style={{ borderBottom: '1px solid var(--sim-border)', backgroundColor: colors.bg }}
           >
-            <p className="text-[14px]" style={{ color: C.muted }}>
+            <p className="text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>
               {loading ? (
                 <span className="animate-pulse">{t(lang).common.loading}</span>
               ) : query ? (
                 <>
-                  {t(lang).repertory.searchResults}&nbsp;
-                  <span style={{ color: C.text }}>«{query}»</span>
-                  &nbsp;·&nbsp;
-                  <span style={{ color: C.link }}>{total.toLocaleString('ru-RU')}</span>
-                  &nbsp;{t(lang).repertory.rubrics}
+                  {t(lang).repertory.searchResults}{' '}
+                  <span style={{ color: 'var(--sim-text)', fontWeight: 500 }}>«{query}»</span>
+                  {' · '}
+                  <span className="tabular-nums" style={{ color: 'var(--sim-green)', fontWeight: 500 }}>{total.toLocaleString('ru-RU')}</span>
                 </>
               ) : (
                 <>
-                  <span style={{ fontStyle: 'italic', color: C.text, fontFamily: 'Georgia, serif' }}>
+                  <span style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', fontWeight: 400, fontSize: '15px', color: 'var(--sim-text)' }}>
                     {SECTION_GROUPS[groupIndex][lang]}
                   </span>
-                  &nbsp;·&nbsp;
-                  <span style={{ color: C.link }}>{total.toLocaleString('ru-RU')}</span>
-                  &nbsp;{t(lang).repertory.rubrics}
+                  {' · '}
+                  <span className="tabular-nums" style={{ color: 'var(--sim-green)' }}>{total.toLocaleString('ru-RU')}</span>
                 </>
               )}
             </p>
 
             {/* Кнопка анализа на мобильном */}
             <button
-              className="lg:hidden flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border"
-              style={{ borderColor: C.border, color: analysisEntries.length > 0 ? C.link : C.muted }}
+              className="lg:hidden flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full transition-all duration-200"
+              style={{
+                border: `1px solid ${analysisEntries.length > 0 ? 'var(--sim-green)' : 'var(--sim-border)'}`,
+                color: analysisEntries.length > 0 ? 'var(--sim-green)' : 'var(--sim-text-muted)',
+                backgroundColor: analysisEntries.length > 0 ? 'rgba(45,106,79,0.04)' : 'transparent',
+              }}
               onPointerDown={() => setShowAnalysis(v => !v)}
             >
               {t(lang).repertory.analysis}
               {analysisEntries.length > 0 && (
                 <span
-                  className="w-4 h-4 rounded-full text-white text-[12px] font-bold flex items-center justify-center"
-                  style={{ backgroundColor: C.link }}
+                  className="w-4 h-4 rounded-full text-white text-[11px] font-semibold flex items-center justify-center"
+                  style={{ backgroundColor: 'var(--sim-green)' }}
                 >
                   {analysisEntries.length}
                 </span>
@@ -741,8 +735,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             <div className="px-4">
               <FirstTimeHint id="full_repertory">
                 {lang === 'ru'
-                  ? 'Полный реперторий Кента — 74 482 рубрики с поиском по разделам. Добавляйте рубрики в анализ [+], настраивайте веса и элиминацию. Кнопка «📚 Обучение» вверху — подробный тур из 13 шагов.'
-                  : "Full Kent's Repertory — 74,482 rubrics searchable by chapter. Add rubrics to analysis [+], set weights and elimination. '📚 Tutorial' button — detailed 13-step tour."}
+                  ? <>Полный реперторий Кента — 74 482 рубрики с поиском по разделам. Добавляйте рубрики в анализ [+], настраивайте веса и элиминацию. <a href="/docs/Full_Repertory_Manual_RU.pdf" target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>Скачать руководство (PDF)</a></>
+                  : <>Full Kent&apos;s Repertory — 74,482 rubrics searchable by chapter. Add rubrics to analysis [+], set weights and elimination. <a href="/docs/Full_Repertory_Manual_RU.pdf" target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>Download guide (PDF)</a></>}
               </FirstTimeHint>
             </div>
           )}
@@ -755,18 +749,18 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   <div
                     key={i}
                     className="h-9 rounded animate-pulse"
-                    style={{ backgroundColor: C.borderLight }}
+                    style={{ backgroundColor: colors.borderLight }}
                   />
                 ))}
               </div>
             ) : rubrics.length === 0 ? (
-              <div className="text-center py-16" style={{ color: C.muted }}>
+              <div className="text-center py-16" style={{ color: colors.muted }}>
                 <p className="text-sm">{t(lang).repertory.noRubrics}</p>
                 {query && (
                   <button
                     onPointerDown={() => handleQueryChange('')}
                     className="mt-2 text-sm underline"
-                    style={{ color: C.link }}
+                    style={{ color: colors.link }}
                   >
                     {t(lang).repertory.clearSearch}
                   </button>
@@ -799,25 +793,25 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 {/* Пагинация */}
                 {totalPages > 1 && (
                   <div
-                    className="flex items-center justify-center gap-4 py-4 border-t"
-                    style={{ borderColor: C.borderLight }}
+                    className="flex items-center justify-center gap-3 py-4"
+                    style={{ borderTop: '1px solid var(--sim-border)' }}
                   >
                     <button
                       onPointerDown={() => loadRubrics(query, groupIndex, page - 1)}
                       disabled={page === 0}
-                      className="px-4 py-1.5 text-sm border rounded disabled:opacity-30 transition-colors"
-                      style={{ borderColor: C.border, color: C.link }}
+                      className="px-4 py-1.5 text-[12px] font-medium rounded-full border disabled:opacity-20 transition-all duration-200 hover:bg-[rgba(45,106,79,0.04)]"
+                      style={{ borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
                     >
                       {t(lang).repertory.prev}
                     </button>
-                    <span className="text-sm" style={{ color: C.muted }}>
+                    <span className="text-[12px] tabular-nums" style={{ color: 'var(--sim-text-muted)' }}>
                       {page + 1} / {totalPages}
                     </span>
                     <button
                       onPointerDown={() => loadRubrics(query, groupIndex, page + 1)}
                       disabled={page >= totalPages - 1}
-                      className="px-4 py-1.5 text-sm border rounded disabled:opacity-30 transition-colors"
-                      style={{ borderColor: C.border, color: C.link }}
+                      className="px-4 py-1.5 text-[12px] font-medium rounded-full border disabled:opacity-20 transition-all duration-200 hover:bg-[rgba(45,106,79,0.04)]"
+                      style={{ borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
                     >
                       {t(lang).repertory.next}
                     </button>
@@ -832,49 +826,51 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
         <div
           data-tour="rep-analysis"
           className={`shrink-0 flex-col border-l bg-white ${showAnalysis ? 'flex' : 'hidden'} lg:flex${tutorialStep >= 7 && tutorialStep <= 9 ? ' tut-glow' : ''}`}
-          style={{ width: 260, borderColor: C.border }}
+          style={{ width: 260, borderColor: colors.border }}
         >
           {/* Заголовок */}
           <div
-            className="flex items-center justify-between px-4 py-3 border-b shrink-0"
-            style={{ borderColor: C.borderLight }}
+            className="flex items-center justify-between px-4 py-3 shrink-0"
+            style={{ borderBottom: '1px solid var(--sim-border)' }}
           >
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold" style={{ color: C.text }}>
+              <span className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
                 {t(lang).repertory.analysis}
               </span>
               {analysisEntries.length > 0 && (
                 <span
-                  className="px-1.5 py-0.5 text-[12px] font-bold rounded-full text-white"
-                  style={{ backgroundColor: C.link }}
+                  className="px-1.5 py-0.5 text-[11px] font-semibold rounded-full text-white"
+                  style={{ backgroundColor: 'var(--sim-green)' }}
                 >
                   {analysisEntries.length}
                 </span>
               )}
             </div>
             <button
-              className="lg:hidden text-sm"
-              style={{ color: C.muted }}
+              className="lg:hidden w-6 h-6 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.04]"
+              style={{ color: 'var(--sim-text-muted)' }}
               onPointerDown={() => setShowAnalysis(false)}
             >
-              ✕
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
 
           {analysisEntries.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
               <div
-                className="w-10 h-10 rounded-2xl flex items-center justify-center mb-3"
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
                 style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}
               >
-                <svg className="w-5 h-5" style={{ color: C.link }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="w-5 h-5" style={{ color: colors.link }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5" />
                 </svg>
               </div>
-              <p className="text-sm font-medium" style={{ color: C.secondary }}>
+              <p className="text-sm font-medium" style={{ color: colors.secondary }}>
                 {t(lang).repertory.addRubrics}
               </p>
-              <p className="text-[13px] mt-1 leading-relaxed" style={{ color: C.muted }}>
+              <p className="text-[13px] mt-1 leading-relaxed" style={{ color: colors.muted }}>
                 {t(lang).repertory.addHint}
               </p>
             </div>
@@ -883,19 +879,19 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             <div className="flex-1 min-h-0 overflow-y-auto">
 
               {/* Добавленные рубрики с весами */}
-              <div className="p-3 space-y-1.5 border-b" style={{ borderColor: C.borderLight }}>
+              <div className="p-3 space-y-1.5 border-b" style={{ borderColor: colors.borderLight }}>
                 {analysisEntries.map(ae => (
                   <div
                     key={ae.rubric.id}
                     className="flex items-start gap-1.5 rounded-full px-2 py-1.5"
                     style={{
                       backgroundColor: ae.eliminate ? 'rgba(220,38,38,0.06)' : 'rgba(45,106,79,0.05)',
-                      borderLeft: `3px solid ${ae.eliminate ? '#dc2626' : C.link}`,
+                      borderLeft: `3px solid ${ae.eliminate ? '#dc2626' : colors.link}`,
                     }}
                   >
                     <span
                       className="flex-1 text-[13px] leading-relaxed min-w-0 break-words"
-                      style={{ color: C.text }}
+                      style={{ color: colors.text }}
                     >
                       {localize(ae.rubric).split(', ').slice(0, 3).join(', ')}
                     </span>
@@ -907,8 +903,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                         className="w-6 h-6 rounded text-[12px] font-bold transition-all flex items-center justify-center"
                         style={{
                           backgroundColor: ae.eliminate ? '#dc2626' : 'transparent',
-                          color: ae.eliminate ? 'white' : C.muted,
-                          border: `1px solid ${ae.eliminate ? '#dc2626' : C.border}`,
+                          color: ae.eliminate ? 'white' : colors.muted,
+                          border: `1px solid ${ae.eliminate ? '#dc2626' : colors.border}`,
                           ...(tutorialStep === 9 ? {
                             outline: '2px solid #dc2626',
                             outlineOffset: 2,
@@ -925,9 +921,9 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                           onPointerDown={() => setWeight(ae.rubric.id, w)}
                           className="w-6 h-6 rounded text-[12px] font-bold transition-all flex items-center justify-center"
                           style={{
-                            backgroundColor: ae.weight === w ? C.link : 'transparent',
-                            color: ae.weight === w ? 'white' : C.muted,
-                            border: `1px solid ${ae.weight === w ? C.link : C.border}`,
+                            backgroundColor: ae.weight === w ? colors.link : 'transparent',
+                            color: ae.weight === w ? 'white' : colors.muted,
+                            border: `1px solid ${ae.weight === w ? colors.link : colors.border}`,
                             ...(tutorialStep === 8 ? {
                               outline: '2px solid #2d6a4f',
                               outlineOffset: 1,
@@ -942,7 +938,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                       <button
                         onPointerDown={() => removeFromAnalysis(ae.rubric.id)}
                         className="ml-0.5 w-6 h-6 flex items-center justify-center text-[12px]"
-                        style={{ color: C.muted }}
+                        style={{ color: colors.muted }}
                         title={t(lang).repertory.delete}
                       >
                         ✕
@@ -971,7 +967,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     <span>{lang === 'ru' ? 'Это кандидаты — проверьте по Materia Medica перед назначением' : 'These are candidates — verify via Materia Medica before prescribing'}</span>
                   </div>
                   <div className="flex items-center justify-between mb-2.5">
-                    <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: C.muted }}>
+                    <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: colors.muted }}>
                       {t(lang).repertory.topRemedies}
                     </p>
                     {/* Фильтр «только во всех рубриках» */}
@@ -980,8 +976,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                         onPointerDown={() => setCoverageOnly(v => !v)}
                         className="text-[12px] px-1.5 py-0.5 rounded border transition-all"
                         style={{
-                          borderColor: coverageOnly ? C.link : C.border,
-                          color: coverageOnly ? C.link : C.muted,
+                          borderColor: coverageOnly ? colors.link : colors.border,
+                          color: coverageOnly ? colors.link : colors.muted,
                           backgroundColor: coverageOnly ? 'rgba(45,106,79,0.07)' : 'transparent',
                           fontWeight: coverageOnly ? 600 : 400,
                         }}
@@ -1000,12 +996,12 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                       { label: lang === 'ru' ? 'Обычный' : 'Plain', opacity: '55', title: lang === 'ru' ? 'Грейд 1: слабая подтверждённость, единичные данные' : 'Grade 1: low confirmation, sparse data' },
                     ].map(({ label, opacity, title }) => (
                       <div key={label} className="flex items-center gap-0.5" title={title}>
-                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, backgroundColor: `${C.link}${opacity === '1' ? '' : opacity}`, flexShrink: 0 }} />
-                        <span className="text-[12px]" style={{ color: C.muted }}>{label}</span>
+                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, backgroundColor: `${colors.link}${opacity === '1' ? '' : opacity}`, flexShrink: 0 }} />
+                        <span className="text-[12px]" style={{ color: colors.muted }}>{label}</span>
                       </div>
                     ))}
                     {analysisEntries.length > 1 && (
-                      <span className="text-[12px]" style={{ color: C.muted }}>·</span>
+                      <span className="text-[12px]" style={{ color: colors.muted }}>·</span>
                     )}
                     {analysisEntries.length > 1 && analysisEntries.map((ae, i) => (
                       <div key={i} className="flex items-center gap-0.5" title={localize(ae.rubric)}>
@@ -1016,7 +1012,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                             opacity: 0.85, flexShrink: 0,
                           }}
                         />
-                        <span className="text-[12px] truncate max-w-[50px]" style={{ color: C.muted }}>
+                        <span className="text-[12px] truncate max-w-[50px]" style={{ color: colors.muted }}>
                           {localize(ae.rubric).split(', ').slice(-1)[0]}
                         </span>
                       </div>
@@ -1032,7 +1028,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                           <div className="flex items-center gap-1.5">
                             <span
                               className="text-[13px] font-semibold shrink-0 truncate"
-                              style={{ width: 46, color: rank === 0 ? C.link : C.text }}
+                              style={{ width: 46, color: rank === 0 ? colors.link : colors.text }}
                             >
                               {abbrev}
                             </span>
@@ -1044,13 +1040,13 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                                 className="h-full rounded-full transition-all duration-300"
                                 style={{
                                   width: `${pct}%`,
-                                  backgroundColor: rank === 0 ? C.link : rank < 3 ? '#6aad89' : '#9ca3af',
+                                  backgroundColor: rank === 0 ? colors.link : rank < 3 ? '#6aad89' : '#9ca3af',
                                 }}
                               />
                             </div>
                             <span
                               className="text-[12px] font-bold shrink-0"
-                              style={{ width: 20, textAlign: 'right', color: C.secondary }}
+                              style={{ width: 20, textAlign: 'right', color: colors.secondary }}
                             >
                               {data.total}
                             </span>
@@ -1059,11 +1055,11 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                               onPointerDown={() => openPrescribeModal(abbrev, data.name)}
                               className={`shrink-0 transition-opacity text-[12px] rounded ${tutorialStep === 11 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                               style={{
-                                border: `1px solid ${C.link}`, color: C.link,
+                                border: `1px solid ${colors.link}`, color: colors.link,
                                 backgroundColor: 'transparent', padding: '1px 5px', lineHeight: 1.4,
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = C.link; e.currentTarget.style.color = 'white' }}
-                              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = C.link }}
+                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.link; e.currentTarget.style.color = 'white' }}
+                              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = colors.link }}
                             >
                               Rx
                             </button>
@@ -1102,12 +1098,12 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
             {/* Кнопка "Очистить" внизу */}
             {analysisEntries.length > 0 && (
-              <div className="p-3 border-t shrink-0 space-y-1.5" style={{ borderColor: C.borderLight }}>
+              <div className="p-3 border-t shrink-0 space-y-1.5" style={{ borderColor: colors.borderLight }}>
                 {/* Сохранить анализ в консультацию — всегда через выбор пациента */}
                 <button
                   className="w-full py-2 text-sm rounded-full transition-colors font-medium"
                   style={{
-                    backgroundColor: saveStatus === 'saved' ? '#16a34a' : saveStatus === 'error' ? '#dc2626' : C.link,
+                    backgroundColor: saveStatus === 'saved' ? '#16a34a' : saveStatus === 'error' ? '#dc2626' : colors.link,
                     color: 'white',
                     opacity: saveStatus === 'saving' ? 0.7 : 1,
                   }}
@@ -1124,7 +1120,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 </button>
                 <button
                   className="w-full py-2 text-sm rounded-full transition-colors border"
-                  style={{ borderColor: C.border, color: C.secondary, backgroundColor: 'transparent' }}
+                  style={{ borderColor: colors.border, color: colors.secondary, backgroundColor: 'transparent' }}
                   onPointerDown={() => setAnalysisEntries([])}
                 >
                   {t(lang).repertory.clear}
@@ -1336,16 +1332,6 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       {/* ══════════════════════════════════════════
           МОДАЛ "ВЫПИСАТЬ"
       ══════════════════════════════════════════ */}
-      {/* Панель учебного режима */}
-      {tutorialStep >= 0 && (
-        <RepertoryTutorialPanel
-          step={tutorialStep as TutorialStep}
-          lang={lang}
-          addedCount={tutorialAddedCount}
-          onNext={handleTutorialNext}
-          onExit={handleTutorialExit}
-        />
-      )}
 
       {prescribeModal && (
         <PrescribeModalDialog
@@ -1398,7 +1384,7 @@ function RubricRow({
       style={{
         borderColor: '#e8e4dc',
         borderLeftWidth: inAnalysis ? 3 : 0,
-        borderLeftColor: C.link,
+        borderLeftColor: colors.link,
         backgroundColor: isFocused
           ? '#e8f0e8'
           : inAnalysis
@@ -1426,7 +1412,7 @@ function RubricRow({
             <div className="flex items-center gap-0.5 mb-0.5 flex-wrap">
               {parentSegments.map((seg, i) => (
                 <span key={i} className="flex items-center gap-0.5">
-                  {i > 0 && <span style={{ color: '#c4b89a', fontSize: 9 }}>›</span>}
+                  {i > 0 && <span style={{ color: '#c4b89a', fontSize: 11 }}>›</span>}
                   <button
                     type="button"
                     onPointerDown={e => { e.stopPropagation(); onNavigate(seg) }}
@@ -1464,7 +1450,7 @@ function RubricRow({
           className={`shrink-0 flex items-center justify-center transition-all ${isTutorialTarget || (tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
           style={{
             width: 20, height: 20,
-            backgroundColor: inAnalysis ? '#1a7a40' : C.link,
+            backgroundColor: inAnalysis ? '#1a7a40' : colors.link,
             borderRadius: 4,
             ...((tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6 && !inAnalysis) ? {
               outline: '2px solid #2d6a4f',
@@ -1509,7 +1495,7 @@ function RubricRow({
             <span
               key={i}
               style={{
-                color: Number(r.grade) >= 3 ? '#2d6a4f' : Number(r.grade) === 2 ? '#2a2010' : '#9a9a8a',
+                color: Number(r.grade) >= 3 ? 'var(--sim-green)' : Number(r.grade) === 2 ? '#2a2010' : '#9a9a8a',
                 fontWeight: Number(r.grade) >= 3 ? 700 : Number(r.grade) === 2 ? 500 : 400,
                 fontSize: Number(r.grade) >= 3 ? '11px' : '10px',
                 fontStyle: Number(r.grade) === 2 ? 'italic' : 'normal',
@@ -1602,7 +1588,7 @@ function PrescribeModalDialog({
       onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-sm rounded-xl shadow-2xl overflow-hidden"
         style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid var(--sim-border)' }}
       >
         {/* Заголовок */}
@@ -1627,9 +1613,9 @@ function PrescribeModalDialog({
                   onPointerDown={() => onChange({ ...modal, potency: p })}
                   className="px-3 py-1.5 text-xs rounded-full border transition-all"
                   style={{
-                    borderColor: modal.potency === p ? '#1a3020' : 'var(--sim-border)',
-                    backgroundColor: modal.potency === p ? '#1a3020' : 'white',
-                    color: modal.potency === p ? 'white' : '#5a5040',
+                    borderColor: modal.potency === p ? 'var(--sim-forest)' : 'var(--sim-border)',
+                    backgroundColor: modal.potency === p ? 'var(--sim-forest)' : 'white',
+                    color: modal.potency === p ? 'white' : 'var(--sim-text-sec)',
                     fontWeight: modal.potency === p ? 600 : 400,
                   }}
                 >
@@ -1652,9 +1638,9 @@ function PrescribeModalDialog({
                   onPointerDown={() => onChange({ ...modal, form: f.value })}
                   className="flex-1 py-2 text-xs rounded-full border transition-all"
                   style={{
-                    borderColor: modal.form === f.value ? '#1a3020' : 'var(--sim-border)',
-                    backgroundColor: modal.form === f.value ? '#1a3020' : 'white',
-                    color: modal.form === f.value ? 'white' : '#5a5040',
+                    borderColor: modal.form === f.value ? 'var(--sim-forest)' : 'var(--sim-border)',
+                    backgroundColor: modal.form === f.value ? 'var(--sim-forest)' : 'white',
+                    color: modal.form === f.value ? 'white' : 'var(--sim-text-sec)',
                     fontWeight: modal.form === f.value ? 600 : 400,
                   }}
                 >
@@ -1678,10 +1664,10 @@ function PrescribeModalDialog({
               style={{
                 border: '1px solid var(--sim-border)',
                 backgroundColor: 'white',
-                color: '#1a1a0a',
+                color: 'var(--sim-text)',
                 outline: 'none',
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = '#1a3020')}
+              onFocus={e => (e.currentTarget.style.borderColor = 'var(--sim-forest)')}
               onBlur={e => (e.currentTarget.style.borderColor = 'var(--sim-border)')}
             />
           </div>
@@ -1699,9 +1685,9 @@ function PrescribeModalDialog({
                   onPointerDown={() => onChange({ ...modal, duration: modal.duration === d ? '' : d })}
                   className="px-3 py-1.5 text-xs rounded-full border transition-all"
                   style={{
-                    borderColor: modal.duration === d ? '#1a3020' : 'var(--sim-border)',
-                    backgroundColor: modal.duration === d ? '#1a3020' : 'white',
-                    color: modal.duration === d ? 'white' : '#5a5040',
+                    borderColor: modal.duration === d ? 'var(--sim-forest)' : 'var(--sim-border)',
+                    backgroundColor: modal.duration === d ? 'var(--sim-forest)' : 'white',
+                    color: modal.duration === d ? 'white' : 'var(--sim-text-sec)',
                     fontWeight: modal.duration === d ? 600 : 400,
                   }}
                 >
@@ -1718,7 +1704,7 @@ function PrescribeModalDialog({
             <button
               type="button"
               onPointerDown={onSaveToConsultation}
-              className="w-full py-3 text-sm font-semibold text-white rounded-2xl transition-colors"
+              className="w-full py-3 text-sm font-semibold text-white rounded-xl transition-colors"
               style={{ backgroundColor: 'var(--sim-forest)' }}
             >
               {L.saveToConsultation}
@@ -1727,11 +1713,11 @@ function PrescribeModalDialog({
           <button
             type="button"
             onPointerDown={onSelectPatient}
-            className="w-full py-2.5 text-sm font-medium rounded-2xl border transition-colors"
+            className="w-full py-2.5 text-sm font-medium rounded-xl border transition-colors"
             style={{
-              borderColor: '#1a3020',
+              borderColor: 'var(--sim-forest)',
               color: 'var(--sim-forest)',
-              backgroundColor: hasActiveConsultation ? 'transparent' : '#1a3020',
+              backgroundColor: hasActiveConsultation ? 'transparent' : 'var(--sim-forest)',
               ...(hasActiveConsultation ? {} : { color: 'white' }),
             }}
           >
@@ -1740,7 +1726,7 @@ function PrescribeModalDialog({
           <button
             type="button"
             onPointerDown={onClose}
-            className="w-full py-2 text-sm rounded-2xl transition-colors"
+            className="w-full py-2 text-sm rounded-xl transition-colors"
             style={{ color: 'var(--sim-text-hint)', backgroundColor: 'transparent' }}
           >
             {L.cancelBtn}

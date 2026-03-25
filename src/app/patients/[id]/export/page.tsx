@@ -76,7 +76,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
 
   const { data: consultations } = await supabase
     .from('consultations')
-    .select('id, date, type, status, notes, prescription, scheduled_at, structured_symptoms, clinical_assessment, doctor_dynamics, etiology, remedy, potency, pellets, dosage')
+    .select('id, date, type, status, notes, prescription, scheduled_at, structured_symptoms, clinical_assessment, doctor_dynamics, etiology, remedy, potency, pellets, dosage, complaints, modality_worse_text, modality_better_text, mental_text, general_text, case_state')
     .eq('patient_id', id)
     .neq('status', 'cancelled')
     .order('scheduled_at', { ascending: true, nullsFirst: false })
@@ -146,7 +146,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                 primaryIntake && { intake: primaryIntake, sections: PRIMARY_SECTIONS, label: t(lang).export.primaryIntake },
                 acuteIntake && { intake: acuteIntake, sections: ACUTE_SECTIONS, label: t(lang).export.acuteIntake },
               ].filter(Boolean).map(({ intake, sections, label }: any) => (
-                <div key={intake.id} className="mb-5 border border-gray-200 rounded-2xl overflow-hidden">
+                <div key={intake.id} className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
                     <p className="text-sm font-semibold text-gray-700">{label}</p>
                     {intake.completed_at && (
@@ -195,7 +195,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                     : t(lang).timeline.consultationN(chronicIndex)
 
                   return (
-                    <div key={c.id} className="border border-gray-200 rounded-2xl overflow-hidden print:break-inside-avoid">
+                    <div key={c.id} className="border border-gray-200 rounded-xl overflow-hidden print:break-inside-avoid">
                       {/* Заголовок консультации */}
                       <div className={`px-4 py-2.5 border-b flex items-center justify-between ${isAcute ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-200'}`}>
                         <div className="flex items-center gap-2">
@@ -212,11 +212,57 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                       </div>
 
                       <div className="px-4 py-3 space-y-3">
+                        {/* Жалобы */}
+                        {(c as Record<string, unknown>).complaints && String((c as Record<string, unknown>).complaints).trim() && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Жалобы</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).complaints)}</p>
+                          </div>
+                        )}
+
+                        {/* Модальности */}
+                        {(c as Record<string, unknown>).modality_worse_text && String((c as Record<string, unknown>).modality_worse_text).trim() && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Хуже от</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).modality_worse_text)}</p>
+                          </div>
+                        )}
+                        {(c as Record<string, unknown>).modality_better_text && String((c as Record<string, unknown>).modality_better_text).trim() && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Лучше от</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).modality_better_text)}</p>
+                          </div>
+                        )}
+
+                        {/* Психика */}
+                        {(c as Record<string, unknown>).mental_text && String((c as Record<string, unknown>).mental_text).trim() && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Психика и эмоции</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).mental_text)}</p>
+                          </div>
+                        )}
+
+                        {/* Общие симптомы */}
+                        {(c as Record<string, unknown>).general_text && String((c as Record<string, unknown>).general_text).trim() && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Общие симптомы</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).general_text)}</p>
+                          </div>
+                        )}
+
                         {/* Заметки */}
                         {c.notes?.trim() && (
                           <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">{t(lang).export.notes}</p>
                             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.notes}</p>
+                          </div>
+                        )}
+
+                        {/* Динамика */}
+                        {(c as Record<string, unknown>).case_state && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Динамика</p>
+                            <p className="text-sm text-gray-700">{String((c as Record<string, unknown>).case_state)}</p>
                           </div>
                         )}
 

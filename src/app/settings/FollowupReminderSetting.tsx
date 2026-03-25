@@ -27,17 +27,17 @@ export default function FollowupReminderSetting({ initial }: { initial: number }
   }
 
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)' }}>
+    <div className="rounded-xl p-5" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', border: '1px solid var(--sim-border)' }}>
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-sm font-semibold" style={{ color: '#1a1a0a' }}>
+          <p className="text-sm font-semibold" style={{ color: 'var(--sim-text)' }}>
             Отслеживание визитов
           </p>
           <p className="text-xs mt-0.5" style={{ color: '#6b5f4f' }}>
             Пациенты без визита дольше указанного срока будут выделены в дашборде
           </p>
         </div>
-        <span aria-live="polite" className="text-xs shrink-0 ml-4" style={{ color: saving ? '#6b5f4f' : saved ? '#2d6a4f' : 'transparent' }}>
+        <span aria-live="polite" className="text-xs shrink-0 ml-4" style={{ color: saving ? '#6b5f4f' : saved ? 'var(--sim-green)' : 'transparent' }}>
           {saving ? 'Сохраняю...' : saved ? '✓ Сохранено' : '·'}
         </span>
       </div>
@@ -52,9 +52,9 @@ export default function FollowupReminderSetting({ initial }: { initial: number }
             aria-label={`Напоминание через ${opt} дней`}
             className="text-xs px-3 py-2 rounded-full border transition-all font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
             style={{
-              backgroundColor: days === opt ? '#1a3020' : 'transparent',
-              color: days === opt ? '#f7f3ed' : '#5a5040',
-              borderColor: days === opt ? '#1a3020' : 'var(--sim-border)',
+              backgroundColor: days === opt ? 'var(--sim-forest)' : 'transparent',
+              color: days === opt ? '#f7f3ed' : 'var(--sim-text-sec)',
+              borderColor: days === opt ? 'var(--sim-forest)' : 'var(--sim-border)',
             }}
           >
             {opt} дн.
@@ -63,7 +63,7 @@ export default function FollowupReminderSetting({ initial }: { initial: number }
       </div>
 
       <p className="text-xs mt-3" style={{ color: '#6b5f4f' }}>
-        Выбрано: <span className="font-semibold" style={{ color: '#1a1a0a' }}>{days} дней</span> — пациенты без визита более {days} дней будут выделены в дашборде
+        Выбрано: <span className="font-semibold" style={{ color: 'var(--sim-text)' }}>{days} дней</span> — пациенты без визита более {days} дней будут выделены в дашборде
       </p>
     </div>
   )

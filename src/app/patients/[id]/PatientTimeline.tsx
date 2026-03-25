@@ -206,14 +206,14 @@ function ConsultationCard({
           href={`/patients/${patientId}/consultations/${consultation.id}`}
           className="group block transition-all"
           style={{
-            backgroundColor: '#f0ebe3',
+            backgroundColor: 'var(--sim-bg, #faf8f5)',
             border: '1px solid var(--sim-border)',
             borderLeft: isAcute ? '4px solid #c8a035' : '4px solid #2d6a4f',
             borderRadius: '8px',
             padding: '16px',
           }}
         >
-          <p className="mb-1.5 font-semibold" style={{ fontSize: '15px', color: isAcute ? '#c8a035' : '#1a1a0a' }}>
+          <p className="mb-1.5 font-semibold" style={{ fontSize: '15px', color: isAcute ? '#c8a035' : 'var(--sim-text)' }}>
             {title}
           </p>
 
@@ -290,7 +290,7 @@ function FollowupCard({
           <span style={{ fontSize: '12px', color: 'var(--sim-text-hint)' }}>{daysAgo(event.sortKey, lang)}</span>
         </div>
 
-        <div style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)', borderRadius: '8px', padding: '16px' }}>
+        <div style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', border: '1px solid var(--sim-border)', borderRadius: '8px', padding: '16px' }}>
           <div className="flex items-center gap-2 mb-1.5">
             <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.badge}`}>
               {cfg.icon}

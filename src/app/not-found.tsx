@@ -15,7 +15,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium text-white transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
           style={{ backgroundColor: 'var(--sim-green, #2d6a4f)' }}
         >
           На главную

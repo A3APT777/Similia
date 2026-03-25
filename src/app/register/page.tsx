@@ -80,7 +80,7 @@ export default function RegisterPage() {
 
   const getInputStyle = (field: string): React.CSSProperties => ({
     ...inputStyle,
-    borderColor: focusedField === field ? '#2d6a4f' : 'var(--sim-border)',
+    borderColor: focusedField === field ? 'var(--sim-green)' : 'var(--sim-border)',
     boxShadow: focusedField === field ? '0 0 0 3px rgba(45,106,79,0.3)' : 'none',
   })
 
@@ -126,7 +126,7 @@ export default function RegisterPage() {
             <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
               <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
               <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
-              <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
+              <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round"/>
             </svg>
             <span style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -154,38 +154,23 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Галочки и цитата */}
+        {/* Цитата */}
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-            {t(lang).auth.registerFeatures.map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '20px', height: '20px', borderRadius: '50%',
-                  backgroundColor: 'rgba(125,212,168,0.15)',
-                  border: '1px solid rgba(125,212,168,0.4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <svg width="10" height="8" fill="none" viewBox="0 0 10 8">
-                    <path d="M1 4l2.5 2.5L9 1" stroke="#7dd4a8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>{f}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <p style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: '17px',
+              fontSize: '18px',
               fontStyle: 'italic',
-              color: 'rgba(255,255,255,0.5)',
-              marginBottom: '4px',
+              fontWeight: 300,
+              color: 'rgba(255,255,255,0.4)',
+              marginBottom: '6px',
+              letterSpacing: '0.01em',
             }}>
               «Similia similibus curantur»
             </p>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>Ганеман, 1796</p>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.05em' }}>
+              Самуэль Ганеман, 1796
+            </p>
           </div>
         </div>
       </div>
@@ -214,7 +199,7 @@ export default function RegisterPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
               </div>
-              <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: 'var(--sim-forest)', marginBottom: '12px' }}>
+              <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 300, color: 'var(--sim-text)', marginBottom: '12px', letterSpacing: '-0.01em' }}>
                 Проверьте почту
               </h1>
               <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', marginBottom: '8px', lineHeight: 1.6 }}>
@@ -248,7 +233,7 @@ export default function RegisterPage() {
             <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
               <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
               <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
-              <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round"/>
+              <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round"/>
             </svg>
             <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: 'var(--sim-forest)' }}>
               Similia
@@ -320,7 +305,7 @@ export default function RegisterPage() {
                 type="checkbox"
                 checked={consent}
                 onChange={e => setConsent(e.target.checked)}
-                style={{ marginTop: '3px', accentColor: '#2d6a4f', width: '16px', height: '16px', flexShrink: 0 }}
+                style={{ marginTop: '3px', accentColor: 'var(--sim-green)', width: '16px', height: '16px', flexShrink: 0 }}
               />
               <span style={{ fontSize: '13px', color: 'var(--sim-text-sec)', lineHeight: 1.5 }}>
                 {lang === 'ru'
@@ -331,8 +316,8 @@ export default function RegisterPage() {
             </label>
 
             {error && (
-              <div style={{ backgroundColor: '#fef0f0', border: '1px solid #fbd5d5', borderRadius: '8px', padding: '12px 16px' }}>
-                <p style={{ color: '#c0392b', fontSize: '14px' }}>{error}</p>
+              <div style={{ padding: '0' }}>
+                <p style={{ color: '#dc2626', fontSize: '13px' }}>{error}</p>
               </div>
             )}
 
@@ -341,7 +326,7 @@ export default function RegisterPage() {
               disabled={loading || !consent}
               style={{
                 width: '100%',
-                backgroundColor: loading ? '#5a7060' : '#1a3020',
+                backgroundColor: loading ? '#5a7060' : 'var(--sim-forest)',
                 color: '#f7f3ed',
                 border: 'none',
                 borderRadius: '100px',
@@ -352,16 +337,16 @@ export default function RegisterPage() {
                 transition: 'background-color 0.15s',
                 opacity: loading ? 0.7 : 1,
               }}
-              onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = '#2d6a4f' }}
-              onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = '#1a3020' }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = 'var(--sim-green)' }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = 'var(--sim-forest)' }}
             >
               {loading ? t(lang).auth.creatingAccount : t(lang).auth.register}
             </button>
           </form>
 
-          <p style={{ marginTop: '24px', fontSize: '14px', color: 'var(--sim-text-hint)', textAlign: 'center' }}>
+          <p style={{ marginTop: '24px', fontSize: '14px', color: 'var(--sim-text-hint)', textAlign: 'center', padding: '8px 0' }}>
             {t(lang).auth.hasAccount}{' '}
-            <Link href="/login" style={{ color: 'var(--sim-green)', fontWeight: 500, textDecoration: 'none' }}>
+            <Link href="/login" style={{ color: 'var(--sim-green)', fontWeight: 500, textDecoration: 'none', padding: '4px 0' }}>
               {t(lang).auth.signIn}
             </Link>
           </p>

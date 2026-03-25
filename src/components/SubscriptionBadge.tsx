@@ -16,7 +16,7 @@ export default function SubscriptionBadge({ subscription, patientCount, lang = '
   return (
     <Link
       href="/pricing"
-      className="block rounded-2xl px-3 py-2 transition-colors hover:opacity-80"
+      className="block rounded-full px-3 py-2 transition-colors hover:opacity-80"
       style={{
         backgroundColor: isFree ? 'rgba(200,160,53,0.1)' : 'rgba(45,106,79,0.1)',
         border: `1px solid ${isFree ? 'rgba(200,160,53,0.2)' : 'rgba(45,106,79,0.2)'}`,
@@ -25,7 +25,7 @@ export default function SubscriptionBadge({ subscription, patientCount, lang = '
       <div className="flex items-center justify-between">
         <span
           className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: isFree ? '#8a7030' : '#2d6a4f' }}
+          style={{ color: isFree ? '#8a7030' : 'var(--sim-green)' }}
         >
           {isFree
             ? (lang === 'ru' ? 'Бесплатный' : 'Free')
@@ -48,7 +48,7 @@ export default function SubscriptionBadge({ subscription, patientCount, lang = '
               className="h-full rounded-full transition-all"
               style={{
                 width: `${Math.min((patientCount / max) * 100, 100)}%`,
-                backgroundColor: patientCount >= max ? '#dc2626' : patientCount >= max * 0.8 ? '#c8a035' : '#2d6a4f',
+                backgroundColor: patientCount >= max ? '#dc2626' : patientCount >= max * 0.8 ? '#c8a035' : 'var(--sim-green)',
               }}
             />
           </div>

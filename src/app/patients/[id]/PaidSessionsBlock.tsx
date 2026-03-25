@@ -31,7 +31,7 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
   const historyRef = useRef<HTMLDivElement>(null)
 
   // Цветовое кодирование
-  const color = count === 0 ? '#c0392b' : count <= 2 ? '#c8a035' : '#2d6a4f'
+  const color = count === 0 ? '#c0392b' : count <= 2 ? '#c8a035' : 'var(--sim-green)'
   const statusText = count === 0 ? t(lang).paidSessions.noPaid : count <= 2 ? t(lang).paidSessions.running_low : t(lang).paidSessions.remaining
 
   // Закрытие модалки по Escape
@@ -76,8 +76,8 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
   return (
     <>
       <div
-        className="rounded-2xl px-4 py-4 mb-5"
-        style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)' }}
+        className="rounded-xl px-4 py-4 mb-5"
+        style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', border: '1px solid var(--sim-border)' }}
       >
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--sim-text-hint)' }}>
           {t(lang).paidSessions.paidConsultations}
@@ -101,14 +101,14 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
           <div className="flex items-center gap-2 relative" ref={historyRef}>
             <button
               onClick={() => setShowAddModal(true)}
-              className="text-sm font-medium px-4 py-2 rounded-2xl transition-colors"
+              className="text-sm font-medium px-4 py-2 rounded-xl transition-colors"
               style={{ backgroundColor: 'var(--sim-green)', color: '#fff' }}
             >
               {t(lang).paidSessions.add}
             </button>
             <button
               onClick={handleOpenHistory}
-              className="text-sm font-medium px-4 py-2 rounded-2xl border transition-colors hover:opacity-80"
+              className="text-sm font-medium px-4 py-2 rounded-xl border transition-colors hover:opacity-80"
               style={{ border: '1px solid var(--sim-border)', color: 'var(--sim-text-sec)', backgroundColor: '#faf7f2' }}
             >
               {t(lang).paidSessions.history}
@@ -117,8 +117,8 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
             {/* Дропдаун истории */}
             {showHistory && (
               <div
-                className="absolute right-0 top-full mt-2 w-72 rounded-2xl shadow-xl z-30 overflow-hidden"
-                style={{ backgroundColor: '#f0ebe3', border: '1px solid var(--sim-border)' }}
+                className="absolute right-0 top-full mt-2 w-72 rounded-xl shadow-xl z-30 overflow-hidden"
+                style={{ backgroundColor: 'var(--sim-bg, #faf8f5)', border: '1px solid var(--sim-border)' }}
               >
                 <p className="px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--sim-text-hint)', borderBottom: '1px solid var(--sim-border)' }}>
                   {t(lang).paidSessions.last10}
@@ -134,7 +134,7 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
                         <div className="flex items-center gap-2">
                           <span
                             className="text-sm font-semibold w-8"
-                            style={{ color: entry.amount > 0 ? '#2d6a4f' : '#c0392b' }}
+                            style={{ color: entry.amount > 0 ? 'var(--sim-green)' : '#c0392b' }}
                           >
                             {entry.amount > 0 ? `+${entry.amount}` : entry.amount}
                           </span>
@@ -157,14 +157,14 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
 
       {/* Модалка "+ Добавить" */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={(e) => { if (e.target === e.currentTarget) { setShowAddModal(false); setAddAmount(5); setAddNote('') } }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) { setShowAddModal(false); setAddAmount(5); setAddNote('') } }}>
           <div
-            className="relative rounded-2xl p-6 w-[320px] mx-4 shadow-2xl"
+            className="relative rounded-xl p-6 w-[320px] mx-4 shadow-2xl"
             style={{ backgroundColor: 'var(--sim-bg)', border: '0.5px solid var(--sim-border)' }}
           >
             <h2
               className="text-lg font-light mb-4"
-              style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: '#1a1a0a' }}
+              style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)' }}
             >
               {t(lang).paidSessions.addTitle}
             </h2>
@@ -180,9 +180,9 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
                       key={n}
                       type="button"
                       onClick={() => setAddAmount(n)}
-                      className="flex-1 py-2 rounded-2xl text-sm font-semibold border transition-all"
+                      className="flex-1 py-2 rounded-xl text-sm font-semibold border transition-all"
                       style={addAmount === n
-                        ? { backgroundColor: 'var(--sim-green)', color: '#fff', borderColor: '#2d6a4f' }
+                        ? { backgroundColor: 'var(--sim-green)', color: '#fff', borderColor: 'var(--sim-green)' }
                         : { backgroundColor: '#faf7f2', color: 'var(--sim-text-sec)', borderColor: 'var(--sim-border)' }}
                     >
                       {n}
@@ -194,8 +194,8 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
                   min={1}
                   value={addAmount}
                   onChange={e => setAddAmount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full border rounded-2xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30"
-                  style={{ backgroundColor: '#faf7f2', borderColor: 'var(--sim-border)', color: '#1a1a0a' }}
+                  className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30"
+                  style={{ backgroundColor: '#faf7f2', borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
                 />
               </div>
               <div>
@@ -207,8 +207,8 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
                   value={addNote}
                   onChange={e => setAddNote(e.target.value)}
                   placeholder={t(lang).paidSessions.notePlaceholder}
-                  className="w-full border rounded-2xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30"
-                  style={{ backgroundColor: '#faf7f2', borderColor: 'var(--sim-border)', color: '#1a1a0a' }}
+                  className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30"
+                  style={{ backgroundColor: '#faf7f2', borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
                 />
               </div>
             </div>
@@ -217,14 +217,14 @@ export default function PaidSessionsBlock({ patientId, initialCount }: Props) {
               <button
                 onClick={handleAdd}
                 disabled={isPending}
-                className="flex-1 py-2.5 rounded-2xl text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ backgroundColor: 'var(--sim-green)' }}
               >
                 {isPending ? t(lang).paidSessions.saving : t(lang).paidSessions.save}
               </button>
               <button
                 onClick={() => { setShowAddModal(false); setAddAmount(5); setAddNote('') }}
-                className="px-4 py-2.5 rounded-2xl text-sm transition-colors hover:opacity-70"
+                className="px-4 py-2.5 rounded-xl text-sm transition-colors hover:opacity-70"
                 style={{ color: 'var(--sim-text-hint)' }}
               >
                 {t(lang).paidSessions.cancel}

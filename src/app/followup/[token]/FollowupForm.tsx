@@ -5,11 +5,11 @@ import { respondFollowup } from '@/lib/actions/followups'
 
 type Status = 'better' | 'same' | 'worse' | 'new_symptoms'
 
-const options: { value: Status; label: string; emoji: string; color: string }[] = [
-  { value: 'better', label: 'Лучше', emoji: '↑', color: 'border-green-200 bg-green-50 text-green-700 has-[:checked]:bg-green-100 has-[:checked]:border-green-400' },
-  { value: 'same', label: 'Без изменений', emoji: '→', color: 'border-gray-200 bg-gray-50 text-gray-600 has-[:checked]:bg-gray-100 has-[:checked]:border-gray-400' },
-  { value: 'worse', label: 'Хуже', emoji: '↓', color: 'border-red-100 bg-red-50 text-red-600 has-[:checked]:bg-red-100 has-[:checked]:border-red-400' },
-  { value: 'new_symptoms', label: 'Появились новые симптомы', emoji: '!', color: 'border-orange-100 bg-orange-50 text-orange-600 has-[:checked]:bg-orange-100 has-[:checked]:border-orange-400' },
+const options: { value: Status; label: string; color: string }[] = [
+  { value: 'better',       label: 'Лучше',                    color: 'var(--sim-green)' },
+  { value: 'same',         label: 'Без изменений',            color: '#6b7280' },
+  { value: 'worse',        label: 'Хуже',                     color: '#dc2626' },
+  { value: 'new_symptoms', label: 'Появились новые симптомы',  color: '#ea580c' },
 ]
 
 export default function FollowupForm({ token }: { token: string }) {
@@ -36,15 +36,30 @@ export default function FollowupForm({ token }: { token: string }) {
 
   if (done) {
     return (
-      <div className="text-center py-8">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--sim-green)' }}>
-          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+      <div className="text-center py-12">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
+          <svg className="w-5 h-5" style={{ color: 'var(--sim-green)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
         </div>
-        <h2 className="text-lg font-normal" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-forest)' }}>Спасибо!</h2>
-        <p className="text-gray-500 mt-2">Ваш врач получил ответ</p>
-        <div className="mt-6">
-          <a href="https://simillia.ru" className="text-xs hover:underline" style={{ color: 'var(--sim-text-hint)' }} target="_blank" rel="noopener noreferrer">
-            Simillia.ru — цифровой кабинет гомеопата
+        <h2
+          className="text-[24px] font-light mb-2"
+          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-text)' }}
+        >
+          Спасибо!
+        </h2>
+        <p className="text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>
+          Ваш врач получил ответ
+        </p>
+        <div className="mt-8">
+          <a
+            href="https://simillia.ru"
+            className="text-[11px] transition-colors hover:underline"
+            style={{ color: 'var(--sim-text-muted)' }}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Similia — цифровой кабинет гомеопата
           </a>
         </div>
       </div>
@@ -52,82 +67,95 @@ export default function FollowupForm({ token }: { token: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Статус — выбор */}
       <div className="space-y-2">
-        {options.map(option => (
-          <label
-            key={option.value}
-            className={`flex items-center gap-3 border rounded-2xl px-5 py-4 cursor-pointer transition-all ${option.color}`}
-          >
-            <input
-              type="radio"
-              name="status"
-              value={option.value}
-              checked={selected === option.value}
-              onChange={() => setSelected(option.value)}
-              className="sr-only"
-            />
-            <span className="text-lg w-6 text-center">{option.emoji}</span>
-            <span className="font-medium">{option.label}</span>
-          </label>
-        ))}
+        {options.map(option => {
+          const isActive = selected === option.value
+          return (
+            <label
+              key={option.value}
+              className="flex items-center gap-3 rounded-xl px-5 py-4 cursor-pointer transition-all duration-200"
+              style={{
+                backgroundColor: isActive ? `color-mix(in srgb, ${option.color} 6%, transparent)` : 'var(--sim-bg-card)',
+                border: `1px solid ${isActive ? `color-mix(in srgb, ${option.color} 20%, transparent)` : 'var(--sim-border)'}`,
+              }}
+            >
+              <input
+                type="radio"
+                name="status"
+                value={option.value}
+                checked={isActive}
+                onChange={() => setSelected(option.value)}
+                className="sr-only"
+              />
+              <span
+                className="w-2 h-2 rounded-full shrink-0 transition-all duration-200"
+                style={{ backgroundColor: option.color, opacity: isActive ? 1 : 0.3 }}
+              />
+              <span
+                className="text-[14px] font-medium transition-colors duration-200"
+                style={{ color: isActive ? option.color : 'var(--sim-text)' }}
+              >
+                {option.label}
+              </span>
+            </label>
+          )
+        })}
       </div>
 
-      {/* Пояснение при выборе "Новые симптомы" — закон Геринга */}
+      {/* Пояснение при "Новые симптомы" — закон Геринга */}
       {selected === 'new_symptoms' && (
-        <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3.5 space-y-2">
-          <p className="text-sm font-semibold text-orange-800">Уточните, пожалуйста</p>
-          <p className="text-sm text-orange-700 leading-relaxed">
-            Иногда после гомеопатического препарата симптомы появляются на коже или возвращаются
-            старые болезни — это может быть признаком правильного исцеления (закон Геринга:
-            болезнь уходит изнутри наружу).
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(234,88,12,0.04)', border: '1px solid rgba(234,88,12,0.12)' }}>
+          <p className="text-[13px] font-medium mb-2" style={{ color: '#ea580c' }}>Уточните, пожалуйста</p>
+          <p className="text-[12px] leading-relaxed mb-3" style={{ color: 'var(--sim-text-muted)' }}>
+            Иногда после препарата симптомы появляются на коже или возвращаются старые болезни — это может быть признаком правильного исцеления (закон Геринга).
           </p>
-          <p className="text-sm text-orange-700 font-medium">Где появились симптомы?</p>
-          <div className="space-y-1.5 pt-0.5">
+          <div className="space-y-2">
             {[
-              { value: 'skin', label: 'На коже, суставах или поверхности тела', hint: 'возможно, хороший знак' },
-              { value: 'old', label: 'Вернулись старые симптомы, которые были раньше', hint: 'врач должен знать' },
-              { value: 'new_internal', label: 'Новое, во внутренних органах (грудь, живот, голова)', hint: 'обязательно сообщите' },
-              { value: 'other', label: 'Другое или не могу определить', hint: '' },
+              { value: 'skin', label: 'На коже, суставах или поверхности тела' },
+              { value: 'old', label: 'Вернулись старые симптомы' },
+              { value: 'new_internal', label: 'Новое, во внутренних органах' },
+              { value: 'other', label: 'Другое' },
             ].map(item => (
-              <label key={item.value} className="flex items-start gap-2.5 cursor-pointer group">
+              <label key={item.value} className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   type="radio"
                   name="new_symptoms_location"
                   value={item.value}
-                  className="mt-0.5 accent-orange-500 shrink-0"
+                  className="shrink-0"
+                  style={{ accentColor: 'var(--sim-green)' }}
                 />
-                <span className="text-sm text-orange-800">
-                  {item.label}
-                  {item.hint && (
-                    <span className="text-orange-500 ml-1 text-xs">— {item.hint}</span>
-                  )}
-                </span>
+                <span className="text-[13px]" style={{ color: 'var(--sim-text)' }}>{item.label}</span>
               </label>
             ))}
           </div>
-          <p className="text-xs text-orange-500 pt-1">
-            Ваши уточнения помогут врачу правильно оценить динамику лечения
-          </p>
         </div>
       )}
 
+      {/* Комментарий */}
       <div>
+        <label className="block text-[11px] font-medium uppercase tracking-[0.1em] mb-1.5" style={{ color: 'var(--sim-text-muted)' }}>
+          {selected === 'new_symptoms' ? 'Подробности' : 'Комментарий'}
+        </label>
         <textarea
           value={comment}
           onChange={e => setComment(e.target.value)}
           rows={3}
-          placeholder={selected === 'new_symptoms' ? 'Опишите подробнее, что именно появилось...' : 'Комментарий (необязательно)...'}
-          className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30"
+          placeholder={selected === 'new_symptoms' ? 'Опишите что именно появилось...' : 'Необязательно...'}
+          className="w-full rounded-xl border px-4 py-3 text-sm resize-none focus:outline-none transition-all duration-200 leading-relaxed"
+          style={{ borderColor: 'var(--sim-border)', color: 'var(--sim-text)', backgroundColor: 'var(--sim-bg-card)' }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--sim-green)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,106,79,0.08)' }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'var(--sim-border)'; e.currentTarget.style.boxShadow = 'none' }}
         />
       </div>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-[13px]" style={{ color: '#dc2626' }}>{error}</p>}
 
       <button
         type="submit"
         disabled={!selected || loading}
-        className="w-full bg-[#2d6a4f] text-white rounded-full py-3.5 font-medium hover:bg-[#1a3020] disabled:opacity-40 transition-colors"
+        className="btn btn-primary w-full py-3.5"
       >
         {loading ? 'Отправляю...' : 'Отправить'}
       </button>

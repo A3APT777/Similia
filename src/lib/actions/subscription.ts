@@ -71,8 +71,8 @@ export async function getAccessiblePatientIds(): Promise<{ ids: string[]; isLimi
 
   const sub = await getSubscription()
 
-  // Стандарт активный — все пациенты доступны
-  if (sub.planId === 'standard' && sub.status === 'active') {
+  // Стандарт или AI Pro активный — все пациенты доступны
+  if ((sub.planId === 'standard' || sub.planId === 'ai_pro') && sub.status === 'active') {
     return { ids: [], isLimited: false } // пустой = все доступны
   }
 

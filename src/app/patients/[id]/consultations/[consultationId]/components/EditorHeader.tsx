@@ -6,7 +6,7 @@ import { formatDate, getAge } from '@/lib/utils'
 import { ConsultationType } from '@/types'
 
 const TYPE_DOT: Record<ConsultationType, string> = {
-  chronic: '#2d6a4f',
+  chronic: 'var(--sim-green)',
   acute:   '#c8a035',
 }
 
@@ -32,7 +32,7 @@ export default function EditorHeader({ visitNumber }: Props) {
   return (
     <div style={{ borderBottom: '1px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-card)' }}>
       {/* Хлебные крошки */}
-      <div className="px-5 lg:px-6 pt-2.5 pb-1 flex items-center gap-1.5 min-w-0">
+      <div className="px-5 lg:px-7 pt-2.5 pb-1 flex items-center gap-1.5 min-w-0">
         <Link href="/dashboard" className="text-xs transition-colors hover:underline" style={{ color: 'var(--sim-text-hint)' }}>
           Пациенты
         </Link>
@@ -51,7 +51,7 @@ export default function EditorHeader({ visitNumber }: Props) {
       </div>
 
       {/* Основная строка */}
-      <div className="px-5 lg:px-6 pb-2.5 flex items-center justify-between gap-2.5 min-w-0">
+      <div className="px-5 lg:px-7 pb-2.5 flex items-center justify-between gap-2.5 min-w-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
           <div className="min-w-0">

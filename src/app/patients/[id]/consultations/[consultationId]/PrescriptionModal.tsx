@@ -112,19 +112,19 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-[#ede7dd] rounded-2xl shadow-2xl shadow-black/20 w-full max-w-md mx-4 overflow-hidden">
+      <div className="bg-[var(--sim-bg-card,#f5f0e8)] rounded-xl shadow-2xl shadow-black/20 w-full max-w-md mx-4 overflow-hidden">
 
         {/* Шапка */}
-        <div className="px-6 pt-5 pb-4 border-b border-gray-100">
+        <div className="px-6 pt-5 pb-4" style={{ borderBottom: '1px solid var(--sim-border)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
-              <svg className="w-4.5 h-4.5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
+              <svg className="w-4 h-4" style={{ color: 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900">{t(lang).prescription.title}</h2>
-              <p className="text-xs text-gray-400">{t(lang).prescription.hint}</p>
+              <h2 className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{t(lang).prescription.title}</h2>
+              <p className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>{t(lang).prescription.hint}</p>
             </div>
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
 
           {/* Препарат с автодополнением */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-[11px] font-medium uppercase tracking-[0.1em] mb-1.5" style={{ color: 'var(--sim-text-muted)' }}>
               {t(lang).prescription.remedy}
             </label>
             <div className="relative">
@@ -146,7 +146,8 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                 onChange={e => handleRemedyChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Аконит, Sulphur, Pulsatilla, сера..."
-                className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+                className="w-full border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none transition-all duration-200"
+                style={{ borderColor: 'var(--sim-border)', color: 'var(--sim-text)', backgroundColor: 'var(--sim-bg-card)' }}
               />
               {/* Индикатор поиска */}
               {searching && (
@@ -158,7 +159,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               {showSuggestions && suggestions.length > 0 && (
                 <div
                   ref={suggestionsRef}
-                  className="absolute top-full left-0 right-0 mt-1 bg-[#ede7dd] border border-gray-200 rounded-2xl shadow-lg z-10 overflow-hidden"
+                  className="absolute top-full left-0 right-0 mt-1 bg-[var(--sim-bg-card,#f5f0e8)] border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden"
                 >
                   {suggestions.map((r, i) => (
                     <button
@@ -189,7 +190,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
 
           {/* Потенция */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-[11px] font-medium uppercase tracking-[0.1em] mb-1.5" style={{ color: 'var(--sim-text-muted)' }}>
               {t(lang).prescription.potency}
             </label>
             <div className="flex flex-wrap gap-1.5 mb-2">
@@ -213,13 +214,13 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               value={potency}
               onChange={e => setPotency(e.target.value)}
               placeholder={t(lang).prescription.schemeManual}
-              className="w-full border border-gray-200 rounded-2xl px-4 py-2 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
             />
           </div>
 
           {/* Количество горошинок */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-[11px] font-medium uppercase tracking-[0.1em] mb-1.5" style={{ color: 'var(--sim-text-muted)' }}>
               {t(lang).prescription.pellets}
             </label>
             <div className="flex gap-2">
@@ -228,7 +229,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                   key={n}
                   type="button"
                   onClick={() => setPellets(pellets === n ? null : n)}
-                  className={`w-9 h-9 rounded-2xl border text-sm font-semibold transition-all ${
+                  className={`w-9 h-9 rounded-xl border text-sm font-semibold transition-all ${
                     pellets === n
                       ? 'bg-[#2d6a4f] text-white border-[#2d6a4f] shadow-sm'
                       : 'border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
@@ -242,7 +243,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
 
           {/* Схема приёма */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-[11px] font-medium uppercase tracking-[0.1em] mb-1.5" style={{ color: 'var(--sim-text-muted)' }}>
               {t(lang).prescription.scheme}
             </label>
             <textarea
@@ -250,7 +251,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
               onChange={e => setDosage(e.target.value)}
               rows={2}
               placeholder={t(lang).prescription.schemePlaceholder}
-              className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 resize-none focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 resize-none focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-[#2d6a4f]/30/10 transition-all"
             />
           </div>
         </div>
@@ -260,13 +261,14 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
           <button
             onClick={handleSave}
             disabled={saving || !remedy.trim()}
-            className="flex-1 bg-[#2d6a4f] text-white text-sm font-semibold py-2.5 rounded-2xl hover:bg-[#1a3020] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="btn btn-primary flex-1"
           >
             {saving ? t(lang).prescription.saving : t(lang).prescription.prescribeAndFinish}
           </button>
           <button
             onClick={onSkip}
-            className="text-sm text-gray-400 hover:text-gray-700 px-4 py-2.5 rounded-2xl hover:bg-gray-50 transition-all"
+            className="text-sm px-4 py-2.5 rounded-full transition-all duration-200 hover:bg-black/[0.03]"
+            style={{ color: 'var(--sim-text-muted)' }}
           >
             {t(lang).prescription.later}
           </button>

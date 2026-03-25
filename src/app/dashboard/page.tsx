@@ -9,10 +9,9 @@ import HeroStatCards from './HeroStatCards'
 import CalendarWidget from './CalendarWidget'
 import LunarPhaseWidget from './LunarPhaseWidget'
 import AddPatientWidget from './AddPatientWidget'
-import OnboardingBanner from './OnboardingBanner'
 import { getAccessiblePatientIds } from '@/lib/actions/subscription'
 import UnpaidWidget from './UnpaidWidget'
-import OnboardingFlow from '@/components/OnboardingFlow'
+
 import { getUnpaidPatients } from '@/lib/actions/payments'
 import { seedDemoData } from '@/lib/actions/seed'
 
@@ -51,8 +50,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
 
   const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const ninetyDaysAgoIso = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+  const threeMonthsAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const ninetyDaysAgoIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   const threeDaysAgoIso = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
 
   // Параллельные запросы с fallback — один сбой не роняет дашборд
@@ -207,11 +206,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const totalPatients = (patients || []).length
   const newPatientsCount = (patients || []).filter(p =>
-    p.created_at && new Date(p.created_at) >= new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+    p.created_at && new Date(p.created_at) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
   ).length
   const pendingCount = patientsWithConsultations.filter(p => p.pending_prescription).length
   const todayCount = todayAppointments.length
-  const totalConsultations90d = (recentConsultations || []).length
+  const totalConsultations30d = (recentConsultations || []).length
   const params = await searchParams
   const filterPending = params?.filter === 'pending'
   const filterOverdue = params?.filter === 'overdue'
@@ -239,9 +238,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {/* ─── Левая колонка ─── */}
         <div className="flex-1 min-w-0 w-full">
 
-          {/* Hero-баннер */}
-          <div data-tour="stats" className="relative overflow-hidden rounded-2xl mb-5 lg:mb-7" style={{ backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.06)' }}>
-            <div className="px-5 sm:px-7 py-5 sm:py-6">
+          {/* Hero-баннер — Forest Mist */}
+          <div data-tour="stats" className="relative overflow-hidden rounded-xl mb-5 lg:mb-7" style={{ border: '1px solid rgba(45,106,79,0.12)' }}>
+            {/* Зелёный акцент — верхняя линия */}
+            <div style={{ height: '2px', background: 'linear-gradient(to right, var(--sim-green), rgba(45,106,79,0.2))' }} />
+            {/* Фоновый мист */}
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(45,106,79,0.04) 0%, rgba(45,106,79,0.01) 40%, transparent 100%)' }} />
+            <div className="relative px-5 sm:px-7 py-5 sm:py-6">
               <h1
                 className="text-[20px] sm:text-[24px] font-light leading-tight mb-5"
                 style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)', letterSpacing: '0.01em' }}
@@ -295,57 +298,55 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-4">
-            <OnboardingFlow realPatientCount={realPatientIds.size} />
-          </div>
+          <div className="mb-4" />
 
-          {/* AI Pro карточка — показываем с 5+ реальных пациентов */}
+          {/* AI Pro карточка */}
           {totalPatients >= 3 && <Link
             href="/ai-consultation"
-            className="block mb-5 px-5 py-4 rounded-2xl transition-all hover:opacity-95"
-            style={{ backgroundColor: 'var(--sim-forest)', border: '1px solid rgba(45,106,79,0.3)' }}
+            className="group block mb-5 px-5 py-4 rounded-xl transition-all duration-300 hover:shadow-sm"
+            style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                <svg className="w-5 h-5" style={{ color: 'var(--sim-mint)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105"
+                style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}
+              >
+                <svg className="w-4.5 h-4.5" style={{ color: 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">{lang === 'ru' ? 'AI-анализ случая' : 'AI Case Analysis'}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{lang === 'ru' ? 'AI-анализ случая' : 'AI Case Analysis'}</p>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--sim-text-muted)' }}>
                   {lang === 'ru' ? '8 линз MDRI · AI-гомеопат · Consensus' : '8 MDRI lenses · AI homeopath · Consensus'}
                 </p>
               </div>
-              <div className="shrink-0 text-xs font-medium px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
-                {lang === 'ru' ? 'Начать' : 'Start'}
-              </div>
+              <svg className="w-4 h-4 shrink-0 opacity-0 group-hover:opacity-50 transition-opacity duration-200" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
             </div>
           </Link>}
 
-          {/* Активный приём — идёт прямо сейчас */}
+          {/* Активный приём */}
           {activeConsultations && activeConsultations.length > 0 && (() => {
             const active = activeConsultations[0] as unknown as { id: string; patient_id: string; patients: { id: string; name: string } | null }
             const patientName = active.patients?.name || ''
             return (
               <Link
                 href={`/patients/${active.patient_id}/consultations/${active.id}`}
-                className="flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-5 transition-opacity hover:opacity-90"
-                style={{ backgroundColor: 'var(--sim-forest)', color: '#f7f3ed' }}
+                className="group flex items-center gap-3 rounded-xl px-4 py-3.5 mb-5 transition-all duration-300 hover:shadow-sm"
+                style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-green)', borderLeftWidth: '3px' }}
               >
-                <span className="relative flex h-3 w-3 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: '#4ade80' }} />
-                  <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: '#22c55e' }} />
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ backgroundColor: 'var(--sim-green)' }} />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: 'var(--sim-green)' }} />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold leading-none" style={{ color: '#f7f3ed' }}>
-                    {lang === 'ru' ? 'Идёт приём' : 'Appointment in progress'}
-                  </p>
-                  <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(247,243,237,0.6)' }}>
-                    {patientName}
+                  <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>
+                    {lang === 'ru' ? 'Идёт приём' : 'In progress'} · {patientName}
                   </p>
                 </div>
-                <span className="text-xs font-medium shrink-0" style={{ color: 'rgba(247,243,237,0.7)' }}>
+                <span className="text-[12px] font-medium shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--sim-green)' }}>
                   {lang === 'ru' ? 'Продолжить →' : 'Continue →'}
                 </span>
               </Link>
@@ -380,17 +381,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
 
           {/* Аналитика за 90 дней */}
-          {(totalConsultations90d > 0 || betterPct !== null || topRemedy || newPatientsCount > 0) && (
-            <div className="rounded-2xl p-3" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
+          {(totalConsultations30d > 0 || betterPct !== null || topRemedy || newPatientsCount > 0) && (
+            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border-light)' }}>
               <p className="text-[12px] font-semibold text-gray-400 uppercase tracking-[0.08em] mb-3">
-                {t(lang).dashboard.last90days}
+                {t(lang).dashboard.last30days}
               </p>
               <div className="space-y-3">
-                {totalConsultations90d > 0 && (
+                {totalConsultations30d > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">{t(lang).dashboard.consultations}</span>
                     <span className="text-sm font-semibold text-gray-900" style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}>
-                      {totalConsultations90d}
+                      {totalConsultations30d}
                     </span>
                   </div>
                 )}

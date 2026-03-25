@@ -68,7 +68,7 @@ export default function AILogsView({ logs }: Props) {
             { label: 'Top-3', value: `${top3Accuracy}%`, icon: '📊', color: top3Accuracy >= 85 ? 'var(--sim-green)' : '#f59e0b' },
             { label: 'Промахи', value: mismatches, icon: '⚠️', color: mismatches > 0 ? '#dc2626' : 'var(--sim-green)' },
           ].map(s => (
-            <div key={s.label} className="rounded-2xl p-5" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
+            <div key={s.label} className="rounded-xl p-5" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
               <div className="text-2xl mb-1">{s.icon}</div>
               <div className="text-3xl font-bold" style={{ color: s.color ?? 'var(--sim-green)' }}>{s.value}</div>
               <div className="text-xs mt-1" style={{ color: 'var(--sim-text-muted)' }}>{s.label}</div>
@@ -77,7 +77,7 @@ export default function AILogsView({ logs }: Props) {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-1 mb-6 p-1 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+        <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
           {([
             { id: 'all' as const, label: `Все (${total})` },
             { id: 'mismatch' as const, label: `Не top-1 (${logs.filter(l => l.doctor_choice && l.correct_position !== 1).length})` },
@@ -100,7 +100,7 @@ export default function AILogsView({ logs }: Props) {
         </div>
 
         {/* Logs */}
-        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
+        <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
           {filtered.length === 0 && (
             <div className="text-center py-16" style={{ color: 'var(--sim-text-hint)' }}>
               {total === 0 ? 'Нет данных. Сделайте AI-анализ через консультацию.' : 'Нет записей по фильтру.'}
@@ -235,7 +235,7 @@ function LogCard({ log, expanded, onToggle, isLast }: {
               {log.engine_top3.map((r, i) => (
                 <div
                   key={i}
-                  className="text-sm px-4 py-2 rounded-2xl"
+                  className="text-sm px-4 py-2 rounded-xl"
                   style={{
                     backgroundColor: i === 0 ? 'rgba(99,102,241,0.1)' : 'var(--sim-bg-card)',
                     border: `1px solid ${i === 0 ? 'rgba(99,102,241,0.2)' : 'var(--sim-border)'}`,
@@ -263,7 +263,7 @@ function LogCard({ log, expanded, onToggle, isLast }: {
 
           {/* Verdict */}
           {isMismatch && (
-            <div className="rounded-2xl px-4 py-3" style={{ backgroundColor: '#fef3c7', border: '1px solid #fde68a' }}>
+            <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#fef3c7', border: '1px solid #fde68a' }}>
               <p className="text-sm" style={{ color: '#92400e' }}>
                 Engine → <strong>{top1?.remedy}</strong>, врач → <strong>{log.doctor_choice}</strong>
                 {log.correct_position && <span> (был #{log.correct_position})</span>}

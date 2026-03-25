@@ -153,14 +153,24 @@ type Props = {
   patientId?: string
 }
 
-export default function IntakeView({ answers, completedAt, type, patientId }: Props) {
+export default function IntakeView({ answers, completedAt, type, patientId, customLabels }: Props & { customLabels?: Record<string, string> }) {
   const { lang } = useLanguage()
   const [expanded, setExpanded] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [localAnswers, setLocalAnswers] = useState<IntakeAnswers>(answers)
   const [saving, setSaving] = useState(false)
 
-  const sections = type === 'acute' ? ACUTE_SECTIONS : PRIMARY_SECTIONS
+  // Если есть кастомные labels — подменяем в секциях
+  const baseSections = type === 'acute' ? ACUTE_SECTIONS : PRIMARY_SECTIONS
+  const sections = customLabels
+    ? baseSections.map(s => ({
+        ...s,
+        fields: s.fields.map(f => ({
+          ...f,
+          label: customLabels[f.key] || f.label,
+        })),
+      }))
+    : baseSections
 
   const dateStr = completedAt
     ? new Date(completedAt).toLocaleDateString('ru-RU', {
@@ -199,7 +209,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
 
   return (
     <div style={{
-      backgroundColor: '#f0ebe3',
+      backgroundColor: 'var(--sim-bg, #faf8f5)',
       border: `1px solid ${accentColor}`,
       borderLeft: `4px solid ${accentColor}`,
       borderRadius: '8px',
@@ -218,7 +228,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
           onClick={() => setExpanded(v => !v)}
           className="flex items-center gap-2 flex-1 min-w-0"
         >
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor }}>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor }}>
             <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               {type === 'acute' ? (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -227,7 +237,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
               )}
             </svg>
           </div>
-          <span className="font-semibold truncate" style={{ fontSize: '15px', color: '#1a1a0a' }}>
+          <span className="font-semibold truncate" style={{ fontSize: '15px', color: 'var(--sim-text)' }}>
             {type === 'acute' ? t(lang).intake.acuteIntakeTitle : t(lang).intake.primaryIntake}
           </span>
           {dateStr && <span className="shrink-0" style={{ fontSize: '13px', color: 'var(--sim-text-hint)' }}>{dateStr}</span>}
@@ -251,7 +261,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-60"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all disabled:opacity-60"
                   style={{ backgroundColor: 'var(--sim-green)', color: '#fff' }}
                 >
                   {saving ? 'Сохраняю...' : 'Сохранить'}
@@ -259,7 +269,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
                 <button
                   onClick={handleCancel}
                   disabled={saving}
-                  className="text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all"
+                  className="text-xs font-medium px-2.5 py-1.5 rounded-full transition-all"
                   style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--sim-text-sec)' }}
                 >
                   Отмена
@@ -268,7 +278,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
             ) : (
               <button
                 onClick={() => { setExpanded(true); setEditMode(true) }}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
+                className="text-xs font-medium px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5"
                 style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--sim-text-sec)' }}
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -304,11 +314,11 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
                           value={localAnswers[field.key] || ''}
                           onChange={e => handleFieldChange(field.key, e.target.value)}
                           rows={field.multiline ? 3 : 1}
-                          className="w-full rounded-lg px-3 py-2 text-sm resize-none"
+                          className="w-full rounded-xl px-3 py-2 text-sm resize-none"
                           style={{
                             border: '1px solid var(--sim-border)',
                             backgroundColor: '#fff',
-                            color: '#1a1a0a',
+                            color: 'var(--sim-text)',
                             minHeight: field.multiline ? '72px' : '36px',
                             lineHeight: '1.4',
                           }}
@@ -330,7 +340,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="text-sm font-semibold px-4 py-2 rounded-2xl transition-all disabled:opacity-60"
+                className="text-sm font-semibold px-4 py-2 rounded-xl transition-all disabled:opacity-60"
                 style={{ backgroundColor: 'var(--sim-green)', color: '#fff' }}
               >
                 {saving ? 'Сохраняю...' : 'Сохранить изменения'}
@@ -338,7 +348,7 @@ export default function IntakeView({ answers, completedAt, type, patientId }: Pr
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="text-sm font-medium px-3 py-2 rounded-2xl"
+                className="text-sm font-medium px-3 py-2 rounded-xl"
                 style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--sim-text-sec)' }}
               >
                 Отмена

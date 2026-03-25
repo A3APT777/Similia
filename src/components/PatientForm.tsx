@@ -173,7 +173,7 @@ export default function PatientForm({ patient, action, submitLabel }: Props) {
               autoComplete="off"
             />
             {showSuggestions && suggestions.length > 0 && (
-              <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden" style={{ zIndex: 100002 }}>
+              <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden" style={{ zIndex: 100002 }}>
                 {suggestions.map(s => (
                   <button
                     key={s}

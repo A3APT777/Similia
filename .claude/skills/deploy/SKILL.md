@@ -10,6 +10,6 @@ allowed-tools: Bash
 2. Если билд прошёл — деплой:
    ```
    export PATH="$PATH:/c/Program Files/nodejs:/c/Users/ARTASHES/AppData/Roaming/npm"
-   npx vercel --prod --yes --token vcp_5VNaIybfsMNA5dbmSXqgwdYa2xvI8QHOUori2BCYsi9pTVZsqP3zw8fB
+   npx vercel --prod --yes
    ```
 3. Сообщи пользователю URL деплоя и что он задеплоен на simillia.ru

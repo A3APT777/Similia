@@ -12,8 +12,8 @@ export default function PatientLoading() {
           <PatientCardSkeleton />
           {/* Action buttons */}
           <div className="flex gap-2 mb-5">
-            <Skeleton className="h-10 w-40 rounded-2xl" />
-            <Skeleton className="h-10 w-28 rounded-2xl" />
+            <Skeleton className="h-10 w-40 rounded-xl" />
+            <Skeleton className="h-10 w-28 rounded-xl" />
           </div>
           {/* Timeline */}
           <Skeleton className="h-3 w-20 mb-5" />

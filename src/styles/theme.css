@@ -7,7 +7,7 @@
 :root {
 
   /* ── Бренд-цвета ────────────────────────────────────────── */
-  --sim-forest:      #1a3020;   /* сайдбар, самые тёмные акценты */
+  --sim-forest:      var(--sim-forest);   /* сайдбар, самые тёмные акценты */
   --sim-green:       #2d6a4f;   /* primary action, ссылки, акценты */
   --sim-green-hover: #245c43;   /* hover для primary */
   --sim-green-light: #e8f3ee;   /* фон активных элементов */
@@ -21,7 +21,7 @@
   --sim-bg:          #f7f3ed;   /* глобальный фон */
   --sim-bg-card:     #ffffff;   /* карточки, модалы */
   --sim-bg-muted:    #f2ece4;   /* вторичные поверхности */
-  --sim-bg-hover:    #ede7dd;   /* hover на нейтральных */
+  --sim-bg-hover:    var(--sim-bg-card, #f5f0e8);   /* hover на нейтральных */
   --sim-bg-input:    rgba(255,255,255,0.6);   /* поля ввода — полупрозрачные */
 
   /* ── Границы ────────────────────────────────────────────── */
@@ -37,7 +37,7 @@
   --sim-text-label:  #5a7060;   /* лейблы зелёного оттенка */
 
   /* ── Типографика ────────────────────────────────────────── */
-  --sim-font-sans:   'Inter', system-ui, -apple-system, sans-serif;
+  --sim-font-sans:   var(--font-geist-sans), 'Geist', system-ui, -apple-system, sans-serif;
   --sim-font-serif:  'Cormorant Garamond', Georgia, serif;
 
   /* Размеры — минимум 12px (ничего мельче в UI) */

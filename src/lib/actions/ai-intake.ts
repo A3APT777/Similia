@@ -108,7 +108,10 @@ export async function submitAIIntake(token: string, answers: Record<string, stri
     .eq('id', intake.id)
     .eq('status', 'pending')
 
-  if (error) console.error('[submitAIIntake]', error)
+  if (error) {
+    console.error('[submitAIIntake]', error)
+    throw new Error('Не удалось сохранить анкету')
+  }
 }
 
 /**

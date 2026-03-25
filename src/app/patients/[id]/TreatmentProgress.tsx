@@ -91,7 +91,7 @@ export default function TreatmentProgress({ consultations, followupByConsultatio
       <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
         {t(lang).treatmentProgress.title}
       </h2>
-      <div className="border border-gray-100 rounded-2xl p-4 shadow-sm overflow-x-auto" style={{ backgroundColor: '#f0ebe3' }}>
+      <div className="border border-gray-100 rounded-xl p-4 shadow-sm overflow-x-auto" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
         <div className="flex items-center gap-0 min-w-max">
           {withRx.map((c, idx) => {
             const followup = followupByConsultation[c.id]

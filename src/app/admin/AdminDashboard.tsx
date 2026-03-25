@@ -97,7 +97,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
         <div className="mb-6">
           <a
             href="/admin/ai-logs"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
             style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)' }}
           >
             <span>🤖</span>
@@ -114,7 +114,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
             { label: 'Консультаций', value: stats.totalConsultations, icon: '🩺' },
             { label: 'Платежей', value: stats.totalPayments, icon: '💳' },
           ].map(s => (
-            <div key={s.label} className="rounded-2xl p-5" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
+            <div key={s.label} className="rounded-xl p-5" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
               <div className="text-2xl mb-1">{s.icon}</div>
               <div className="text-3xl font-bold" style={{ color: 'var(--sim-green)' }}>{s.value}</div>
               <div className="text-xs mt-1" style={{ color: 'var(--sim-text-muted)' }}>{s.label}</div>
@@ -123,7 +123,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
         </div>
 
         {/* Табы */}
-        <div className="flex gap-1 mb-6 p-1 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+        <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
           {tabs.map(t => (
             <button
               key={t.id}
@@ -141,7 +141,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
         </div>
 
         {/* Контент */}
-        <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
+        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
 
           {/* Обзор */}
           {tab === 'overview' && (
@@ -154,7 +154,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
                   .map(user => {
                     const sub = getSubscription(user.id)
                     return (
-                      <div key={user.id} className="flex items-center justify-between py-3 px-4 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+                      <div key={user.id} className="flex items-center justify-between py-3 px-4 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
                         <div>
                           <div className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>
                             {user.user_metadata?.name || user.user_metadata?.full_name || 'Без имени'}
@@ -202,7 +202,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
               {filteredDoctors
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map(doc => (
-                    <div key={doc.id} className="p-4 rounded-2xl" style={{ border: '1px solid var(--sim-border)' }}>
+                    <div key={doc.id} className="p-4 rounded-xl" style={{ border: '1px solid var(--sim-border)' }}>
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="font-medium" style={{ color: 'var(--sim-text)' }}>
@@ -311,7 +311,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
               ) : (
                 <div className="space-y-2">
                   {stats.recentPayments.map(p => (
-                    <div key={p.id} className="flex items-center justify-between py-3 px-4 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+                    <div key={p.id} className="flex items-center justify-between py-3 px-4 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
                       <div>
                         <div className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{getUserEmail(p.doctor_id)}</div>
                         <div className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>
@@ -340,7 +340,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
               ) : (
                 <div className="space-y-2">
                   {stats.referrals.map(r => (
-                    <div key={r.id} className="flex items-center justify-between py-3 px-4 rounded-2xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+                    <div key={r.id} className="flex items-center justify-between py-3 px-4 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
                       <div>
                         <div className="text-sm" style={{ color: 'var(--sim-text)' }}>
                           {getUserEmail(r.referrer_id)} → {getUserEmail(r.invitee_id)}

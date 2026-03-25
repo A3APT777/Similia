@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { getBookedSlots } from '@/lib/actions/newPatient'
 import { generateSlots } from '@/lib/slots'
-import { submitNewPatientBooking } from '@/lib/actions/newPatient'
+import { submitNewPatientBooking, bookExistingPatient } from '@/lib/actions/newPatient'
 
 type Schedule = {
   session_duration: number
@@ -20,6 +20,8 @@ type Props = {
   token: string
   doctorId: string
   schedule: Schedule | null
+  bookingOnly?: boolean
+  existingPatientId?: string
 }
 
 const DEFAULT_SCHEDULE: Schedule = {
@@ -43,9 +45,9 @@ const DURATION_OPTIONS = [
 
 const DAY_MAP: Record<number, string> = { 0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat' }
 
-export default function NewPatientForm({ token, doctorId, schedule: scheduleProp }: Props) {
+export default function NewPatientForm({ token, doctorId, schedule: scheduleProp, bookingOnly = false, existingPatientId }: Props) {
   const schedule = scheduleProp || DEFAULT_SCHEDULE
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(bookingOnly ? 2 : 1)  // Если только запись — сразу шаг 2 (календарь)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -113,12 +115,22 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
     if (!selectedDate || !selectedTime) return
     setSubmitting(true)
     setError(null)
-    const result = await submitNewPatientBooking(token, {
-      name, birth_date: birthDate, phone, email,
-      complaints, duration, previous_treatment: prevTreatment,
-      allergies, medications, medications_list: medicationsList,
-      date: selectedDate, time: selectedTime,
-    })
+
+    let result: { success: boolean; error?: string; appointmentDate?: string }
+
+    if (bookingOnly && existingPatientId) {
+      // Только запись — без анкеты
+      result = await bookExistingPatient(token, selectedDate, selectedTime)
+    } else {
+      // Новый пациент — анкета + запись
+      result = await submitNewPatientBooking(token, {
+        name, birth_date: birthDate, phone, email,
+        complaints, duration, previous_treatment: prevTreatment,
+        allergies, medications, medications_list: medicationsList,
+        date: selectedDate, time: selectedTime,
+      })
+    }
+
     if (result.success) {
       setSuccess(result.appointmentDate || '')
     } else {
@@ -130,7 +142,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
   const inputStyle = {
     width: '100%', backgroundColor: '#faf7f2',
     border: '1px solid var(--sim-border)', borderRadius: '8px',
-    padding: '12px 14px', fontSize: '16px', color: '#1a1a0a',
+    padding: '12px 14px', fontSize: '16px', color: 'var(--sim-text)',
     outline: 'none', boxSizing: 'border-box' as const,
   }
   const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--sim-text-hint)', marginBottom: '6px', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }
@@ -155,14 +167,14 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
       {/* Progress bar */}
       <div className="flex items-center gap-3 mb-8">
         <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--sim-forest)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f7f3ed', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>1</div>
-        <div style={{ flex: 1, height: '2px', backgroundColor: step >= 2 ? '#1a3020' : 'var(--sim-border)' }} />
-        <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: step >= 2 ? '#1a3020' : '#f0ebe3', border: step >= 2 ? 'none' : '2px solid var(--sim-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: step >= 2 ? '#f7f3ed' : '#9a8a6a', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>2</div>
+        <div style={{ flex: 1, height: '2px', backgroundColor: step >= 2 ? 'var(--sim-forest)' : 'var(--sim-border)' }} />
+        <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: step >= 2 ? 'var(--sim-forest)' : 'var(--sim-bg, #faf8f5)', border: step >= 2 ? 'none' : '2px solid var(--sim-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: step >= 2 ? '#f7f3ed' : 'var(--sim-text-muted)', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>2</div>
         <p style={{ fontSize: '13px', color: 'var(--sim-text-hint)', flexShrink: 0 }}>Шаг {step} из 2</p>
       </div>
 
       {step === 1 && (
         <form onSubmit={handleStep1Submit}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a1a0a', marginBottom: '6px' }}>Первичная анкета</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: 'var(--sim-text)', marginBottom: '6px' }}>Первичная анкета</h2>
           <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', marginBottom: '28px', lineHeight: 1.5 }}>
             Заполните до первого приёма — это сэкономит время на консультации
           </p>
@@ -208,7 +220,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
               <div style={{ display: 'flex', gap: '12px' }}>
                 {['no', 'yes'].map(v => (
                   <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '16px', color: '#3a2e1a' }}>
-                    <input type="radio" name="medications" value={v} checked={medications === v} onChange={() => setMedications(v)} style={{ width: 18, height: 18, accentColor: '#1a3020' }} />
+                    <input type="radio" name="medications" value={v} checked={medications === v} onChange={() => setMedications(v)} style={{ width: 18, height: 18, accentColor: 'var(--sim-forest)' }} />
                     {v === 'yes' ? 'Да' : 'Нет'}
                   </label>
                 ))}
@@ -226,7 +238,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
                 type="checkbox"
                 checked={consent}
                 onChange={e => setConsent(e.target.checked)}
-                style={{ width: 18, height: 18, marginTop: '2px', accentColor: '#1a3020', flexShrink: 0 }}
+                style={{ width: 18, height: 18, marginTop: '2px', accentColor: 'var(--sim-forest)', flexShrink: 0 }}
               />
               <span style={{ fontSize: '13px', color: 'var(--sim-text-hint)', lineHeight: 1.5 }}>
                 Я согласен(на) на обработку моих персональных данных, включая трансграничную передачу (ст. 12 ФЗ-152), в соответствии с{' '}
@@ -243,7 +255,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
           <button
             type="submit"
             disabled={!consent}
-            style={{ width: '100%', marginTop: '28px', backgroundColor: consent ? '#1a3020' : 'var(--sim-border)', color: consent ? '#f7f3ed' : '#9a8a6a', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '16px', fontWeight: 600, cursor: consent ? 'pointer' : 'default' }}
+            style={{ width: '100%', marginTop: '28px', backgroundColor: consent ? 'var(--sim-forest)' : 'var(--sim-border)', color: consent ? '#f7f3ed' : 'var(--sim-text-muted)', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '16px', fontWeight: 600, cursor: consent ? 'pointer' : 'default' }}
           >
             Далее — выбрать время →
           </button>
@@ -255,7 +267,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
           <button onClick={() => setStep(1)} style={{ fontSize: '14px', color: 'var(--sim-text-hint)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>
             ← Вернуться к анкете
           </button>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a1a0a', marginBottom: '24px' }}>Выберите удобное время</h2>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: 'var(--sim-text)', marginBottom: '24px' }}>Выберите удобное время</h2>
 
           {/* Calendar */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '24px' }}>
@@ -278,9 +290,9 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
                   style={{
                     padding: '8px 4px',
                     borderRadius: '8px',
-                    border: isSelected ? '2px solid #1a3020' : '1px solid transparent',
-                    backgroundColor: isSelected ? '#1a3020' : isWork ? '#e8f0e8' : '#f0ebe3',
-                    color: isSelected ? '#f7f3ed' : isWork ? '#1a3020' : '#c4b89a',
+                    border: isSelected ? '2px solid var(--sim-forest)' : '1px solid transparent',
+                    backgroundColor: isSelected ? 'var(--sim-forest)' : isWork ? '#e8f0e8' : 'var(--sim-bg, #faf8f5)',
+                    color: isSelected ? '#f7f3ed' : isWork ? 'var(--sim-forest)' : '#c4b89a',
                     fontSize: '14px',
                     fontWeight: isSelected ? 600 : 400,
                     cursor: isWork ? 'pointer' : 'default',
@@ -301,7 +313,7 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
               </p>
               {loadingSlots ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--sim-text-hint)', fontSize: '14px' }}>
-                  <span style={{ width: 16, height: 16, border: '2px solid var(--sim-border)', borderTopColor: '#2d6a4f', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+                  <span style={{ width: 16, height: 16, border: '2px solid var(--sim-border)', borderTopColor: 'var(--sim-green)', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
                   Загружаю слоты...
                 </div>
               ) : slots.length === 0 ? (
@@ -315,8 +327,8 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
                       style={{
                         padding: '8px 16px',
                         borderRadius: '8px',
-                        border: selectedTime === slot ? '2px solid #1a3020' : '1px solid var(--sim-border)',
-                        backgroundColor: selectedTime === slot ? '#1a3020' : '#faf7f2',
+                        border: selectedTime === slot ? '2px solid var(--sim-forest)' : '1px solid var(--sim-border)',
+                        backgroundColor: selectedTime === slot ? 'var(--sim-forest)' : '#faf7f2',
                         color: selectedTime === slot ? '#f7f3ed' : '#3a2e1a',
                         fontSize: '15px',
                         fontWeight: selectedTime === slot ? 600 : 400,
@@ -338,8 +350,8 @@ export default function NewPatientForm({ token, doctorId, schedule: scheduleProp
             disabled={!selectedDate || !selectedTime || submitting}
             style={{
               width: '100%',
-              backgroundColor: selectedDate && selectedTime ? '#1a3020' : 'var(--sim-border)',
-              color: selectedDate && selectedTime ? '#f7f3ed' : '#9a8a6a',
+              backgroundColor: selectedDate && selectedTime ? 'var(--sim-forest)' : 'var(--sim-border)',
+              color: selectedDate && selectedTime ? '#f7f3ed' : 'var(--sim-text-muted)',
               border: 'none', borderRadius: '10px', padding: '14px',
               fontSize: '16px', fontWeight: 600,
               cursor: selectedDate && selectedTime ? 'pointer' : 'default',

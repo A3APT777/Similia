@@ -1,0 +1,1745 @@
+{
+  "timestamp": "2026-03-23T18:33:56.804Z",
+  "casesCount": 20,
+  "runsPerCase": 3,
+  "stableCount": 13,
+  "unstableCount": 7,
+  "stableRate": 65,
+  "results": [
+    {
+      "id": 1,
+      "name": "Sulphur",
+      "expected": "sulph",
+      "runs": [
+        {
+          "symptoms": [
+            "aversion bathing washing",
+            "burning feet at night uncovers",
+            "hot patient",
+            "hunger 11am emptiness stomach",
+            "itching skin worse warmth washing",
+            "theorizing philosophizing",
+            "worse standing"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            3,
+            1,
+            2
+          ],
+          "modalities": [
+            "heat_cold:agg"
+          ],
+          "top1": "sulph",
+          "top2": "lyc",
+          "top3": "mez",
+          "top1Score": 100,
+          "gap": 15
+        },
+        {
+          "symptoms": [
+            "aversion bathing washing",
+            "burning feet at night uncovers",
+            "hot patient",
+            "hunger 11am emptiness stomach",
+            "itching skin worse warmth washing",
+            "theorizing philosophizing",
+            "worse standing"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            3,
+            1,
+            2
+          ],
+          "modalities": [
+            "heat_cold:agg"
+          ],
+          "top1": "sulph",
+          "top2": "lyc",
+          "top3": "mez",
+          "top1Score": 100,
+          "gap": 15
+        },
+        {
+          "symptoms": [
+            "aversion bathing washing",
+            "burning feet at night uncovers",
+            "hot patient",
+            "hunger 11am emptiness stomach",
+            "itching skin worse warmth washing",
+            "theorizing philosophizing",
+            "worse standing"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            3,
+            1,
+            2
+          ],
+          "modalities": [
+            "heat_cold:agg"
+          ],
+          "top1": "sulph",
+          "top2": "lyc",
+          "top3": "mez",
+          "top1Score": 100,
+          "gap": 15
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 2,
+      "name": "Pulsatilla",
+      "expected": "puls",
+      "runs": [
+        {
+          "symptoms": [
+            "consolation ameliorates",
+            "discharges yellow green bland mild",
+            "thirstless",
+            "weeping tearful"
+          ],
+          "weights": [
+            3,
+            3,
+            3,
+            2
+          ],
+          "modalities": [
+            "consolation:amel",
+            "heat_cold:agg",
+            "open_air:amel"
+          ],
+          "top1": "nat-m",
+          "top2": "puls",
+          "top3": "sep",
+          "top1Score": 92,
+          "gap": 17
+        },
+        {
+          "symptoms": [
+            "consolation ameliorates",
+            "discharges yellow green bland mild",
+            "thirstless",
+            "weeping tearful"
+          ],
+          "weights": [
+            3,
+            3,
+            3,
+            2
+          ],
+          "modalities": [
+            "consolation:amel",
+            "heat_cold:agg",
+            "open_air:amel"
+          ],
+          "top1": "nat-m",
+          "top2": "puls",
+          "top3": "sep",
+          "top1Score": 92,
+          "gap": 17
+        },
+        {
+          "symptoms": [
+            "consolation ameliorates",
+            "discharges yellow green bland mild",
+            "thirstless",
+            "weeping tearful"
+          ],
+          "weights": [
+            3,
+            3,
+            3,
+            2
+          ],
+          "modalities": [
+            "consolation:amel",
+            "heat_cold:agg",
+            "open_air:amel"
+          ],
+          "top1": "nat-m",
+          "top2": "puls",
+          "top3": "sep",
+          "top1Score": 92,
+          "gap": 17
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 3,
+      "name": "Arsenicum",
+      "expected": "ars",
+      "runs": [
+        {
+          "symptoms": [
+            "anxiety health hypochondria",
+            "burning pains better warm applications",
+            "chilly",
+            "fastidious orderly pedantic",
+            "restlessness",
+            "thirst small sips frequently",
+            "worse after midnight 1am 2am"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "ars",
+          "top2": "rhus-t",
+          "top3": "lyc",
+          "top1Score": 100,
+          "gap": 13
+        },
+        {
+          "symptoms": [
+            "anxiety health hypochondria",
+            "burning pains better warm applications",
+            "chilly",
+            "fastidious orderly pedantic",
+            "restlessness",
+            "thirst small sips frequently",
+            "worse after midnight 1am 2am"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "ars",
+          "top2": "rhus-t",
+          "top3": "lyc",
+          "top1Score": 100,
+          "gap": 13
+        },
+        {
+          "symptoms": [
+            "anxiety health hypochondria",
+            "burning pains better warm applications",
+            "chilly",
+            "fastidious orderly pedantic",
+            "restlessness",
+            "thirst small sips frequently",
+            "worse after midnight 1am 2am"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "ars",
+          "top2": "rhus-t",
+          "top3": "lyc",
+          "top1Score": 100,
+          "gap": 13
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 4,
+      "name": "Nat-m",
+      "expected": "nat-m",
+      "runs": [
+        {
+          "symptoms": [
+            "consolation aggravates",
+            "desire salt",
+            "grief suppressed old silent",
+            "headache sun",
+            "herpes lips",
+            "reserved closed introversion"
+          ],
+          "weights": [
+            3,
+            2,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [
+            "consolation:agg"
+          ],
+          "top1": "ign",
+          "top2": "nat-m",
+          "top3": "ph-ac",
+          "top1Score": 100,
+          "gap": 0
+        },
+        {
+          "symptoms": [
+            "consolation aggravates",
+            "desire salt",
+            "grief suppressed old silent",
+            "headache sun",
+            "herpes lips",
+            "reserved closed introversion"
+          ],
+          "weights": [
+            3,
+            2,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [
+            "consolation:agg"
+          ],
+          "top1": "ign",
+          "top2": "nat-m",
+          "top3": "ph-ac",
+          "top1Score": 100,
+          "gap": 0
+        },
+        {
+          "symptoms": [
+            "consolation aggravates",
+            "desire salt",
+            "grief suppressed old silent",
+            "headache sun",
+            "herpes lips",
+            "reserved closed introversion"
+          ],
+          "weights": [
+            3,
+            2,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [
+            "consolation:agg"
+          ],
+          "top1": "ign",
+          "top2": "nat-m",
+          "top3": "ph-ac",
+          "top1Score": 100,
+          "gap": 0
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 5,
+      "name": "Lachesis",
+      "expected": "lach",
+      "runs": [
+        {
+          "symptoms": [
+            "hot flushes menopause climacteric",
+            "intolerance tight clothing around neck",
+            "jealousy",
+            "left side complaints",
+            "loquacity talkative",
+            "worse after sleep"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            2,
+            3
+          ],
+          "modalities": [],
+          "top1": "lach",
+          "top2": "lyc",
+          "top3": "sulph",
+          "top1Score": 100,
+          "gap": 40
+        },
+        {
+          "symptoms": [
+            "hot flushes menopause climacteric",
+            "intolerance tight clothing around neck",
+            "jealousy",
+            "left side complaints",
+            "loquacity talkative",
+            "worse after sleep"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            2,
+            3
+          ],
+          "modalities": [],
+          "top1": "lach",
+          "top2": "lyc",
+          "top3": "sulph",
+          "top1Score": 100,
+          "gap": 40
+        },
+        {
+          "symptoms": [
+            "hot flushes menopause climacteric",
+            "intolerance tight clothing around neck",
+            "jealousy",
+            "left side complaints",
+            "loquacity talkative",
+            "worse after sleep"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            2,
+            3
+          ],
+          "modalities": [],
+          "top1": "lach",
+          "top2": "lyc",
+          "top3": "sulph",
+          "top1Score": 100,
+          "gap": 40
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 6,
+      "name": "Nux-v",
+      "expected": "nux-v",
+      "runs": [
+        {
+          "symptoms": [
+            "chilly",
+            "constipation ineffectual urging",
+            "irritability",
+            "sensitive to noise",
+            "worse morning"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "lyc",
+          "top2": "nux-v",
+          "top3": "sil",
+          "top1Score": 100,
+          "gap": 0
+        },
+        {
+          "symptoms": [
+            "chilly",
+            "constipation ineffectual urging",
+            "irritability",
+            "sensitive to noise",
+            "worse morning"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "lyc",
+          "top2": "nux-v",
+          "top3": "sil",
+          "top1Score": 100,
+          "gap": 0
+        },
+        {
+          "symptoms": [
+            "chilly",
+            "constipation ineffectual urging",
+            "irritability",
+            "sensitive to noise",
+            "worse morning"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "lyc",
+          "top2": "nux-v",
+          "top3": "sil",
+          "top1Score": 100,
+          "gap": 0
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 7,
+      "name": "Rhus-t",
+      "expected": "rhus-t",
+      "runs": [
+        {
+          "symptoms": [
+            "restlessness",
+            "stiffness joints morning first motion",
+            "stiffness joints worse first motion better continued",
+            "worse damp cold weather",
+            "worse rest"
+          ],
+          "weights": [
+            1,
+            3,
+            3,
+            2,
+            2
+          ],
+          "modalities": [
+            "motion_rest:amel"
+          ],
+          "top1": "rhus-t",
+          "top2": "tarent",
+          "top3": "puls",
+          "top1Score": 100,
+          "gap": 31
+        },
+        {
+          "symptoms": [
+            "restlessness",
+            "stiffness joints morning first motion",
+            "stiffness joints worse first motion better continued",
+            "worse damp cold weather",
+            "worse rest"
+          ],
+          "weights": [
+            1,
+            3,
+            3,
+            2,
+            2
+          ],
+          "modalities": [
+            "motion_rest:amel"
+          ],
+          "top1": "rhus-t",
+          "top2": "tarent",
+          "top3": "puls",
+          "top1Score": 100,
+          "gap": 31
+        },
+        {
+          "symptoms": [
+            "restlessness",
+            "stiffness joints morning first motion",
+            "stiffness joints worse first motion better continued",
+            "worse cold damp wet weather",
+            "worse rest"
+          ],
+          "weights": [
+            1,
+            3,
+            3,
+            2,
+            2
+          ],
+          "modalities": [
+            "motion_rest:amel"
+          ],
+          "top1": "rhus-t",
+          "top2": "tarent",
+          "top3": "puls",
+          "top1Score": 100,
+          "gap": 31
+        }
+      ],
+      "stable": false,
+      "differences": [
+        "симптом \"worse damp cold weather\" присутствует в 2/3 прогонах",
+        "симптом \"worse cold damp wet weather\" присутствует в 1/3 прогонах"
+      ],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0.33
+    },
+    {
+      "id": 8,
+      "name": "Bryonia",
+      "expected": "bry",
+      "runs": [
+        {
+          "symptoms": [
+            "arthritis joints inflammation",
+            "dryness mucous membranes",
+            "irritability",
+            "lies perfectly still motionless",
+            "thirst large quantities",
+            "wants to be left alone",
+            "worse slightest motion"
+          ],
+          "weights": [
+            2,
+            2,
+            2,
+            3,
+            3,
+            2,
+            3
+          ],
+          "modalities": [
+            "company_alone:agg",
+            "motion_rest:agg"
+          ],
+          "top1": "bry",
+          "top2": "puls",
+          "top3": "ars",
+          "top1Score": 100,
+          "gap": 22
+        },
+        {
+          "symptoms": [
+            "arthritis joints inflammation",
+            "dryness mucous membranes",
+            "irritability",
+            "lies perfectly still",
+            "thirst large quantities",
+            "wants to be left alone",
+            "worse slightest motion"
+          ],
+          "weights": [
+            2,
+            2,
+            2,
+            3,
+            3,
+            2,
+            3
+          ],
+          "modalities": [
+            "company_alone:agg",
+            "motion_rest:agg"
+          ],
+          "top1": "bry",
+          "top2": "puls",
+          "top3": "ars",
+          "top1Score": 100,
+          "gap": 22
+        },
+        {
+          "symptoms": [
+            "arthritis joints inflammation",
+            "dryness mucous membranes",
+            "irritability",
+            "lies perfectly still motionless",
+            "thirst large quantities",
+            "wants to be left alone",
+            "worse slightest motion"
+          ],
+          "weights": [
+            2,
+            2,
+            2,
+            3,
+            3,
+            2,
+            3
+          ],
+          "modalities": [
+            "company_alone:agg",
+            "motion_rest:agg"
+          ],
+          "top1": "bry",
+          "top2": "puls",
+          "top3": "ars",
+          "top1Score": 100,
+          "gap": 22
+        }
+      ],
+      "stable": false,
+      "differences": [
+        "симптом \"lies perfectly still motionless\" присутствует в 2/3 прогонах",
+        "симптом \"lies perfectly still\" присутствует в 1/3 прогонах"
+      ],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0.25
+    },
+    {
+      "id": 9,
+      "name": "Belladonna",
+      "expected": "bell",
+      "runs": [
+        {
+          "symptoms": [
+            "delirium fever",
+            "face red hot congested",
+            "fever sudden high temperature",
+            "headache throbbing pulsating worse light noise",
+            "pupils dilated"
+          ],
+          "weights": [
+            2,
+            3,
+            3,
+            3,
+            2
+          ],
+          "modalities": [],
+          "top1": "bell",
+          "top2": "stram",
+          "top3": "op",
+          "top1Score": 100,
+          "gap": 38
+        },
+        {
+          "symptoms": [
+            "delirium fever",
+            "face red hot congested",
+            "fever sudden high temperature",
+            "headache throbbing pulsating worse light noise",
+            "pupils dilated"
+          ],
+          "weights": [
+            2,
+            3,
+            3,
+            3,
+            2
+          ],
+          "modalities": [],
+          "top1": "bell",
+          "top2": "stram",
+          "top3": "op",
+          "top1Score": 100,
+          "gap": 38
+        },
+        {
+          "symptoms": [
+            "delirium fever",
+            "face red hot congested",
+            "fever sudden high temperature",
+            "headache throbbing pulsating worse light noise",
+            "pupils dilated"
+          ],
+          "weights": [
+            2,
+            3,
+            3,
+            3,
+            2
+          ],
+          "modalities": [],
+          "top1": "bell",
+          "top2": "stram",
+          "top3": "op",
+          "top1Score": 100,
+          "gap": 38
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 10,
+      "name": "Chamomilla",
+      "expected": "cham",
+      "runs": [
+        {
+          "symptoms": [
+            "capricious irritable",
+            "one cheek red other pale",
+            "pain teeth unbearable intolerable",
+            "stool green",
+            "wants to be carried"
+          ],
+          "weights": [
+            2,
+            3,
+            3,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "cham",
+          "top2": "cina",
+          "top3": "carc",
+          "top1Score": 100,
+          "gap": 21
+        },
+        {
+          "symptoms": [
+            "capricious irritable",
+            "one cheek red other pale",
+            "pain teeth unbearable intolerable",
+            "restlessness cannot be quieted",
+            "stool green",
+            "wants to be carried"
+          ],
+          "weights": [
+            2,
+            3,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "cham",
+          "top2": "cina",
+          "top3": "carc",
+          "top1Score": 100,
+          "gap": 16
+        },
+        {
+          "symptoms": [
+            "capricious irritable",
+            "one cheek red other pale",
+            "pain teeth unbearable intolerable",
+            "stool green",
+            "wants to be carried"
+          ],
+          "weights": [
+            2,
+            3,
+            3,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "cham",
+          "top2": "cina",
+          "top3": "carc",
+          "top1Score": 100,
+          "gap": 21
+        }
+      ],
+      "stable": true,
+      "differences": [
+        "симптом \"restlessness cannot be quieted\" присутствует в 1/3 прогонах"
+      ],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0.17
+    },
+    {
+      "id": 11,
+      "name": "Sepia",
+      "expected": "sep",
+      "runs": [
+        {
+          "symptoms": [
+            "bearing down sensation prolapse",
+            "better vigorous exercise",
+            "desire sour",
+            "indifference family husband children",
+            "yellow spots face chloasma"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "motion_rest:amel"
+          ],
+          "top1": "sep",
+          "top2": "phos",
+          "top3": "lil-t",
+          "top1Score": 100,
+          "gap": 28
+        },
+        {
+          "symptoms": [
+            "bearing down sensation prolapse",
+            "better vigorous exercise",
+            "desire sour",
+            "indifference family husband children",
+            "yellow spots face chloasma"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "motion_rest:amel"
+          ],
+          "top1": "sep",
+          "top2": "phos",
+          "top3": "lil-t",
+          "top1Score": 100,
+          "gap": 28
+        },
+        {
+          "symptoms": [
+            "bearing down sensation prolapse",
+            "better vigorous exercise",
+            "desire sour",
+            "indifference family husband children",
+            "yellow spots face chloasma"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "motion_rest:amel"
+          ],
+          "top1": "sep",
+          "top2": "phos",
+          "top3": "lil-t",
+          "top1Score": 100,
+          "gap": 28
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 12,
+      "name": "Lycopodium",
+      "expected": "lyc",
+      "runs": [
+        {
+          "symptoms": [
+            "anxiety anticipatory",
+            "desire sweets",
+            "dictatorial domineering",
+            "distension abdomen after few mouthfuls",
+            "right side complaints",
+            "worse 4-8pm afternoon evening"
+          ],
+          "weights": [
+            2,
+            2,
+            2,
+            3,
+            2,
+            3
+          ],
+          "modalities": [],
+          "top1": "lyc",
+          "top2": "ars",
+          "top3": "arg-n",
+          "top1Score": 100,
+          "gap": 9
+        },
+        {
+          "symptoms": [
+            "anxiety anticipation",
+            "desire sweets",
+            "dictatorial domineering",
+            "distension abdomen after few mouthfuls",
+            "right side complaints",
+            "worse 4-8pm afternoon evening"
+          ],
+          "weights": [
+            2,
+            2,
+            2,
+            3,
+            2,
+            3
+          ],
+          "modalities": [],
+          "top1": "lyc",
+          "top2": "ars",
+          "top3": "arg-n",
+          "top1Score": 100,
+          "gap": 9
+        },
+        {
+          "symptoms": [
+            "anxiety anticipatory",
+            "desire sweets",
+            "distension abdomen after few mouthfuls",
+            "domineering dictatorial",
+            "right side complaints",
+            "worse 4-8pm afternoon evening"
+          ],
+          "weights": [
+            2,
+            2,
+            3,
+            2,
+            2,
+            3
+          ],
+          "modalities": [],
+          "top1": "lyc",
+          "top2": "ars",
+          "top3": "arg-n",
+          "top1Score": 100,
+          "gap": 9
+        }
+      ],
+      "stable": false,
+      "differences": [
+        "симптом \"anxiety anticipatory\" присутствует в 2/3 прогонах",
+        "симптом \"dictatorial domineering\" присутствует в 2/3 прогонах",
+        "симптом \"anxiety anticipation\" присутствует в 1/3 прогонах",
+        "симптом \"domineering dictatorial\" присутствует в 1/3 прогонах"
+      ],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0.5
+    },
+    {
+      "id": 13,
+      "name": "Phosphorus",
+      "expected": "phos",
+      "runs": [
+        {
+          "symptoms": [
+            "burning pain between scapulae",
+            "fear dark thunderstorm alone",
+            "hemorrhage bright red blood",
+            "sympathetic compassionate",
+            "thirst cold water"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "carc",
+          "top2": "phos",
+          "top3": "stram",
+          "top1Score": 100,
+          "gap": 0
+        },
+        {
+          "symptoms": [
+            "burning pain between scapulae",
+            "fear dark thunderstorm alone",
+            "hemorrhage bright red blood",
+            "sympathetic compassionate",
+            "thirst cold water"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "carc",
+          "top2": "phos",
+          "top3": "stram",
+          "top1Score": 100,
+          "gap": 0
+        },
+        {
+          "symptoms": [
+            "burning pain between scapulae",
+            "fear dark thunderstorm alone",
+            "hemorrhage bright red blood",
+            "sympathetic compassionate",
+            "thirst cold water"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "carc",
+          "top2": "phos",
+          "top3": "stram",
+          "top1Score": 100,
+          "gap": 0
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 14,
+      "name": "Aurum",
+      "expected": "aur",
+      "runs": [
+        {
+          "symptoms": [
+            "depression deep melancholy",
+            "guilt self-reproach",
+            "hypertension high blood pressure",
+            "pain bones",
+            "perfectionist demanding self",
+            "suicidal disposition thoughts",
+            "worse night"
+          ],
+          "weights": [
+            3,
+            2,
+            1,
+            2,
+            2,
+            3,
+            2
+          ],
+          "modalities": [],
+          "top1": "aur",
+          "top2": "ars",
+          "top3": "carc",
+          "top1Score": 98,
+          "gap": 3
+        },
+        {
+          "symptoms": [
+            "conscientious demanding of self",
+            "depression deep melancholy",
+            "guilt self-reproach",
+            "hypertension high blood pressure",
+            "pain bones",
+            "suicidal disposition thoughts",
+            "worse night"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            1,
+            2,
+            3,
+            2
+          ],
+          "modalities": [],
+          "top1": "aur",
+          "top2": "bry",
+          "top3": "ars",
+          "top1Score": 98,
+          "gap": 26
+        },
+        {
+          "symptoms": [
+            "conscientious demanding of self",
+            "depression deep melancholy",
+            "guilt self-reproach",
+            "hypertension high blood pressure",
+            "pain bones",
+            "suicidal disposition thoughts",
+            "worse night"
+          ],
+          "weights": [
+            2,
+            3,
+            2,
+            1,
+            2,
+            3,
+            2
+          ],
+          "modalities": [],
+          "top1": "aur",
+          "top2": "bry",
+          "top3": "ars",
+          "top1Score": 98,
+          "gap": 26
+        }
+      ],
+      "stable": false,
+      "differences": [
+        "top-3 варьируется: ars,aur,carc | ars,aur,bry | ars,aur,bry",
+        "симптом \"perfectionist demanding self\" присутствует в 1/3 прогонах",
+        "симптом \"conscientious demanding of self\" присутствует в 2/3 прогонах"
+      ],
+      "top1Consistent": true,
+      "top3Consistent": false,
+      "symptomVariance": 0.25
+    },
+    {
+      "id": 15,
+      "name": "Kali-c",
+      "expected": "kali-c",
+      "runs": [
+        {
+          "symptoms": [
+            "chilly",
+            "pain lumbar",
+            "pains stitching sharp",
+            "swelling edema upper eyelids",
+            "worse after midnight 2-4am"
+          ],
+          "weights": [
+            2,
+            1,
+            2,
+            2,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "kali-c",
+          "top2": "ars",
+          "top3": "sil",
+          "top1Score": 100,
+          "gap": 5
+        },
+        {
+          "symptoms": [
+            "chilly",
+            "pain lumbar",
+            "pains stitching sharp",
+            "swelling edema upper eyelids",
+            "worse after midnight 2-4am"
+          ],
+          "weights": [
+            2,
+            1,
+            2,
+            2,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "kali-c",
+          "top2": "ars",
+          "top3": "sil",
+          "top1Score": 100,
+          "gap": 5
+        },
+        {
+          "symptoms": [
+            "chilly",
+            "pain lumbar",
+            "pains stitching sharp",
+            "swelling edema upper eyelids",
+            "worse after midnight 2-4am"
+          ],
+          "weights": [
+            2,
+            1,
+            2,
+            2,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "kali-c",
+          "top2": "ars",
+          "top3": "sil",
+          "top1Score": 100,
+          "gap": 5
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 16,
+      "name": "Colocynthis",
+      "expected": "coloc",
+      "runs": [
+        {
+          "symptoms": [
+            "colic violent cramping doubling up",
+            "complaints after anger indignation",
+            "diarrhea from pain colic"
+          ],
+          "weights": [
+            3,
+            3,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel",
+            "pressure:amel"
+          ],
+          "top1": "coloc",
+          "top2": "cham",
+          "top3": "nux-v",
+          "top1Score": 100,
+          "gap": 19
+        },
+        {
+          "symptoms": [
+            "ailments from anger indignation",
+            "colic violent cramping doubling up",
+            "diarrhea from pain colic"
+          ],
+          "weights": [
+            3,
+            3,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel",
+            "pressure:amel"
+          ],
+          "top1": "coloc",
+          "top2": "staph",
+          "top3": "cham",
+          "top1Score": 100,
+          "gap": 4
+        },
+        {
+          "symptoms": [
+            "ailments from anger indignation",
+            "colic violent cramping doubling up",
+            "diarrhea from pain colic"
+          ],
+          "weights": [
+            3,
+            3,
+            3
+          ],
+          "modalities": [
+            "heat_cold:amel",
+            "pressure:amel"
+          ],
+          "top1": "coloc",
+          "top2": "staph",
+          "top3": "cham",
+          "top1Score": 100,
+          "gap": 4
+        }
+      ],
+      "stable": false,
+      "differences": [
+        "top-3 варьируется: cham,coloc,nux-v | cham,coloc,staph | cham,coloc,staph",
+        "симптом \"complaints after anger indignation\" присутствует в 1/3 прогонах",
+        "симптом \"ailments from anger indignation\" присутствует в 2/3 прогонах"
+      ],
+      "top1Consistent": true,
+      "top3Consistent": false,
+      "symptomVariance": 0.5
+    },
+    {
+      "id": 17,
+      "name": "Arnica",
+      "expected": "arn",
+      "runs": [
+        {
+          "symptoms": [
+            "bed feels hard",
+            "bruises contusions ecchymoses",
+            "fear touched being",
+            "says nothing wrong feels well"
+          ],
+          "weights": [
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "pressure:agg"
+          ],
+          "top1": "arn",
+          "top2": "cupr",
+          "top3": "rhus-t",
+          "top1Score": 100,
+          "gap": 54
+        },
+        {
+          "symptoms": [
+            "bed feels too hard",
+            "bruises contusions ecchymoses",
+            "fear touched being approached",
+            "says nothing wrong feels well"
+          ],
+          "weights": [
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "pressure:agg"
+          ],
+          "top1": "arn",
+          "top2": "cupr",
+          "top3": "rhus-t",
+          "top1Score": 100,
+          "gap": 54
+        },
+        {
+          "symptoms": [
+            "bed feels too hard",
+            "bruises contusions ecchymoses",
+            "fear touched being approached",
+            "says nothing wrong feels well"
+          ],
+          "weights": [
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [
+            "pressure:agg"
+          ],
+          "top1": "arn",
+          "top2": "cupr",
+          "top3": "rhus-t",
+          "top1Score": 100,
+          "gap": 54
+        }
+      ],
+      "stable": false,
+      "differences": [
+        "симптом \"bed feels hard\" присутствует в 1/3 прогонах",
+        "симптом \"fear touched being\" присутствует в 1/3 прогонах",
+        "симптом \"bed feels too hard\" присутствует в 2/3 прогонах",
+        "симптом \"fear touched being approached\" присутствует в 2/3 прогонах"
+      ],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0.67
+    },
+    {
+      "id": 18,
+      "name": "Silicea",
+      "expected": "sil",
+      "runs": [
+        {
+          "symptoms": [
+            "chilly",
+            "delicate constitution fragile",
+            "headache occiput",
+            "obstinate stubborn",
+            "perspiration feet offensive odor",
+            "suppuration tendency",
+            "thin lean emaciated"
+          ],
+          "weights": [
+            2,
+            2,
+            2,
+            2,
+            3,
+            2,
+            2
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "sil",
+          "top2": "calc",
+          "top3": "nit-ac",
+          "top1Score": 100,
+          "gap": 16
+        },
+        {
+          "symptoms": [
+            "chilly",
+            "delicate constitution fragile",
+            "headache occiput",
+            "obstinate stubborn",
+            "perspiration feet offensive odor",
+            "suppuration tendency",
+            "thin lean emaciated"
+          ],
+          "weights": [
+            2,
+            2,
+            2,
+            2,
+            3,
+            2,
+            2
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "sil",
+          "top2": "calc",
+          "top3": "nit-ac",
+          "top1Score": 100,
+          "gap": 16
+        },
+        {
+          "symptoms": [
+            "chilly",
+            "delicate constitution fragile",
+            "headache occiput",
+            "obstinate stubborn",
+            "perspiration feet offensive odor",
+            "suppuration tendency",
+            "thin lean emaciation"
+          ],
+          "weights": [
+            2,
+            2,
+            2,
+            2,
+            3,
+            2,
+            2
+          ],
+          "modalities": [
+            "heat_cold:amel"
+          ],
+          "top1": "sil",
+          "top2": "calc",
+          "top3": "nit-ac",
+          "top1Score": 100,
+          "gap": 2
+        }
+      ],
+      "stable": false,
+      "differences": [
+        "симптом \"thin lean emaciated\" присутствует в 2/3 прогонах",
+        "симптом \"thin lean emaciation\" присутствует в 1/3 прогонах"
+      ],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0.25
+    },
+    {
+      "id": 19,
+      "name": "Stramonium",
+      "expected": "stram",
+      "runs": [
+        {
+          "symptoms": [
+            "convulsions from fright",
+            "delusions hallucinations",
+            "fear dark",
+            "fear water hydrophobia",
+            "pupils dilated",
+            "violent aggressive behavior"
+          ],
+          "weights": [
+            3,
+            2,
+            2,
+            3,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "stram",
+          "top2": "op",
+          "top3": "hyos",
+          "top1Score": 100,
+          "gap": 20
+        },
+        {
+          "symptoms": [
+            "convulsions from fright",
+            "delusions hallucinations",
+            "fear dark",
+            "fear water hydrophobia",
+            "pupils dilated",
+            "violent aggressive behavior"
+          ],
+          "weights": [
+            3,
+            2,
+            2,
+            3,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "stram",
+          "top2": "op",
+          "top3": "hyos",
+          "top1Score": 100,
+          "gap": 20
+        },
+        {
+          "symptoms": [
+            "convulsions from fright",
+            "delusions hallucinations",
+            "fear dark",
+            "fear water hydrophobia",
+            "pupils dilated",
+            "violent aggressive behavior"
+          ],
+          "weights": [
+            3,
+            2,
+            2,
+            3,
+            2,
+            2
+          ],
+          "modalities": [],
+          "top1": "stram",
+          "top2": "op",
+          "top3": "hyos",
+          "top1Score": 100,
+          "gap": 20
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    },
+    {
+      "id": 20,
+      "name": "Veratrum",
+      "expected": "verat",
+      "runs": [
+        {
+          "symptoms": [
+            "coldness icy body temperature",
+            "collapse prostration sudden",
+            "face pale",
+            "thirst ice cold water",
+            "vomiting diarrhea simultaneous cold sweat"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [],
+          "top1": "verat",
+          "top2": "acon",
+          "top3": "puls",
+          "top1Score": 100,
+          "gap": 12
+        },
+        {
+          "symptoms": [
+            "coldness icy body temperature",
+            "collapse prostration sudden",
+            "face pale",
+            "thirst ice cold water",
+            "vomiting diarrhea simultaneous cold sweat"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [],
+          "top1": "verat",
+          "top2": "acon",
+          "top3": "puls",
+          "top1Score": 100,
+          "gap": 12
+        },
+        {
+          "symptoms": [
+            "coldness icy body temperature",
+            "collapse prostration sudden",
+            "face pale",
+            "thirst ice cold water",
+            "vomiting diarrhea simultaneous cold sweat"
+          ],
+          "weights": [
+            3,
+            3,
+            2,
+            3,
+            3
+          ],
+          "modalities": [],
+          "top1": "verat",
+          "top2": "acon",
+          "top3": "puls",
+          "top1Score": 100,
+          "gap": 12
+        }
+      ],
+      "stable": true,
+      "differences": [],
+      "top1Consistent": true,
+      "top3Consistent": true,
+      "symptomVariance": 0
+    }
+  ]
+}
