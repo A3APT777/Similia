@@ -208,16 +208,16 @@ export function selectBestClarifyQuestion(
     if (isUsefulQuestion(question, results)) return question
   }
 
-  // === Шаг 3: Выбрать лучший BASE ===
-  const bases = available
-    .filter(a => a.type === 'BASE' && separatesTop3(a, top3))
+  // === Шаг 3: Выбрать лучший BASE (или любой доступный) ===
+  const candidates = available
+    .filter(a => separatesTop3(a, top3))
     .map(a => ({
       axis: a,
-      questionGain: a.impact * a.coverage * Math.max(1, 12 - currentGap), // чем меньше gap, тем важнее вопрос
+      questionGain: a.impact * a.coverage * (1 / (currentGap + 1)),
     }))
     .sort((a, b) => b.questionGain - a.questionGain)
 
-  for (const { axis, questionGain } of bases) {
+  for (const { axis, questionGain } of candidates) {
     const question = buildQuestion(axis, top3, constellations, questionGain)
     if (isUsefulQuestion(question, results)) return question
   }
