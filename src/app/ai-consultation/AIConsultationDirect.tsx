@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { analyzeText } from '@/lib/actions/ai-consultation'
+import { analyzeText, logClarifyResult } from '@/lib/actions/ai-consultation'
 import type { ConsensusResult } from '@/lib/mdri/types'
-import type { ClarifyQuestion, ClarifyOption } from '@/lib/mdri/question-gain'
-import { selectBestClarifyQuestion, applyClarifyBonus } from '@/lib/mdri/question-gain'
+import type { ClarifyQuestion } from '@/lib/mdri/question-gain'
+import { applyClarifyBonus } from '@/lib/mdri/question-gain'
 import type { Lang } from '@/hooks/useLanguage'
 import './ai-styles.css'
 
@@ -82,9 +82,8 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   const [result, setResult] = useState<ConsensusResult | null>(null)
   const [error, setError] = useState('')
   const [selectedPatient, setSelectedPatient] = useState<string>('')
-  const [clarifyQuestion, setClarifyQuestion] = useState<ClarifyQuestion | null>(null)
-  const [clarifyUsed, setClarifyUsed] = useState(false)
-  const [showComparison, setShowComparison] = useState(false)
+  const [clarifyCount, setClarifyCount] = useState(0)       // макс 2 вопроса
+  const [top1Flipped, setTop1Flipped] = useState(false)     // контроль oscillation
   const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -128,9 +127,9 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
     }
   }
 
-  // QuestionGain: вопрос уже вычислен на сервере и передан в result
+  // QuestionGain: вопрос вычислен на сервере
   const clarifyQ = result?._clarifyQuestion ?? null
-  const needsClarify = !clarifyUsed && clarifyQ !== null
+  const needsClarify = clarifyCount < 2 && clarifyQ !== null
 
   function handleClarifyAnswer(optionLabel: string) {
     if (!result?.mdriResults || !clarifyQ) return
@@ -143,25 +142,61 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
       return
     }
 
-    // Применить bonus/penalty без rerun engine (мгновенно)
-    const adjusted = result.mdriResults.map(r => {
-      let bonus = 0
-      if (option.supports?.includes(r.remedy) && option.boost) bonus += option.boost
-      if (option.weakens?.includes(r.remedy) && option.penalty) bonus += option.penalty
-      return { ...r, totalScore: Math.max(0, r.totalScore + bonus) }
-    }).sort((a, b) => b.totalScore - a.totalScore)
+    // Единственный источник bonus-логики: applyClarifyBonus (с 20% clamp)
+    const oldTop1 = result.mdriResults[0]?.remedy
+    const adjusted = applyClarifyBonus(result.mdriResults, option)
+    const newTop1 = adjusted[0]?.remedy
 
+    // Stability: если top-1 уже менялся — второй flip запрещён
+    const flipBlocked = newTop1 !== oldTop1 && top1Flipped
+    if (flipBlocked) {
+      setClarifyCount(prev => prev + 1)
+      // Логирование: flip заблокирован
+      logClarifyResult({
+        clarifyUsed: true, clarifyFeature: clarifyQ.feature, clarifyGain: clarifyQ.gain,
+        clarifyAnswer: optionLabel, top1Changed: false, flipBlocked: true,
+        beforeTop3: result.mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+        afterTop3: adjusted.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+        gapBefore: result.mdriResults[0].totalScore - (result.mdriResults[1]?.totalScore ?? 0),
+        gapAfter: adjusted[0].totalScore - (adjusted[1]?.totalScore ?? 0),
+      }).catch(() => {})
+      return
+    }
+
+    if (newTop1 !== oldTop1) setTop1Flipped(true)
     setResult({ ...result, mdriResults: adjusted, finalRemedy: adjusted[0]?.remedy ?? result.finalRemedy })
-    setClarifyUsed(true)
+    setClarifyCount(prev => prev + 1)
+
+    // Логирование clarify
+    logClarifyResult({
+      clarifyUsed: true, clarifyFeature: clarifyQ.feature, clarifyGain: clarifyQ.gain,
+      clarifyAnswer: optionLabel, top1Changed: newTop1 !== oldTop1, flipBlocked: false,
+      beforeTop3: result.mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+      afterTop3: adjusted.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+      gapBefore: result.mdriResults[0].totalScore - (result.mdriResults[1]?.totalScore ?? 0),
+      gapAfter: adjusted[0].totalScore - (adjusted[1]?.totalScore ?? 0),
+    }).catch(() => {})
   }
 
   function handleComparisonChoice(remedy: string) {
     if (!result?.mdriResults) return
-    const adjusted = result.mdriResults.map(r => ({
-      ...r, totalScore: r.remedy === remedy ? r.totalScore + 20 : r.totalScore,
-    })).sort((a, b) => b.totalScore - a.totalScore)
+    const oldTop1 = result.mdriResults[0]?.remedy
+
+    // Comparison choice = boost через applyClarifyBonus
+    const boostOption = { label: remedy, supports: [remedy], boost: 20 }
+    const adjusted = applyClarifyBonus(result.mdriResults, boostOption)
+    const newTop1 = adjusted[0]?.remedy
+
+    // Stability: второй flip запрещён
+    if (newTop1 !== oldTop1 && top1Flipped) {
+      setClarifyCount(prev => prev + 1)
+      setStep('result')
+      return
+    }
+
+    if (newTop1 !== oldTop1) setTop1Flipped(true)
     setResult({ ...result, mdriResults: adjusted, finalRemedy: adjusted[0]?.remedy ?? result.finalRemedy })
-    setClarifyUsed(true)
+    setClarifyCount(prev => prev + 1)
     setStep('result')
   }
 
@@ -506,7 +541,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
           </button>
 
           <button
-            onClick={() => { setStep('input'); setResult(null); setText(''); setClarifyUsed(false) }}
+            onClick={() => { setStep('input'); setResult(null); setText(''); setClarifyCount(0); setTop1Flipped(false) }}
             className="w-full py-3 text-[13px] rounded-full transition-all duration-200 hover:bg-black/[0.03]"
             style={{ color: 'var(--sim-text-muted)', border: '1px solid var(--sim-border)' }}
           >

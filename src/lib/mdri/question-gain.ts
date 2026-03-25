@@ -170,6 +170,28 @@ function getKeyFeatureDescription(remedy: string, constellations: Record<string,
   return bestSym
 }
 
+// === Feature reuse guard ===
+
+function normalizeText(s: string): string {
+  return s.toLowerCase().replace(/[.,;()\[\]]/g, '').trim()
+}
+
+/**
+ * Hard skip: feature уже покрыт существующими симптомами.
+ * Если ≥50% слов feature совпадают с любым symptom → skip.
+ */
+function isFeatureCovered(feature: string, existingSymptoms: MDRISymptom[]): boolean {
+  const fWords = normalizeText(feature).split(/\s+/).filter(w => w.length > 2)
+  if (fWords.length === 0) return false
+
+  for (const s of existingSymptoms) {
+    const sWords = normalizeText(s.rubric).split(/\s+/).filter(w => w.length > 2)
+    const matches = fWords.filter(fw => sWords.some(sw => sw.includes(fw) || fw.includes(sw)))
+    if (matches.length >= Math.ceil(fWords.length * 0.5)) return true
+  }
+  return false
+}
+
 // === Главные функции ===
 
 export function selectBestClarifyQuestion(
@@ -210,7 +232,10 @@ export function selectBestClarifyQuestion(
     // Должен иметь русский перевод
     if (!findFeatureTranslation(feature)) continue
 
-    // Fix 4: отсечка — врач не может ответить на этот вопрос
+    // Hard skip: feature уже покрыт существующими симптомами
+    if (isFeatureCovered(feature, existingSymptoms)) continue
+
+    // Отсечка: врач не может ответить на этот вопрос
     const an = answerability(feature)
     if (an < 0.5) continue
 
@@ -218,15 +243,7 @@ export function selectBestClarifyQuestion(
     const ci = clinicalImportance(feature)
     const fc = featureConfidence(feature, top3[0].remedy, top3[1].remedy, constellations)
 
-    // Fix 3: penalty за повторные features (частичное пересечение с существующими)
-    const partialOverlap = existingSymptoms.some(s => {
-      const sWords = s.rubric.toLowerCase().split(/\s+/)
-      const fWords = feature.toLowerCase().split(/\s+/)
-      return fWords.some(fw => sWords.some(sw => sw.includes(fw) || fw.includes(sw)))
-    })
-    const overlapPenalty = partialOverlap ? 0.5 : 1.0
-
-    const gain = (0.45 * sp + 0.25 * ci + 0.20 * an + 0.10 * fc) * overlapPenalty
+    const gain = 0.45 * sp + 0.25 * ci + 0.20 * an + 0.10 * fc
 
     if (gain > bestGain) {
       bestGain = gain

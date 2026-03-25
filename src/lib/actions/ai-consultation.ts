@@ -1084,6 +1084,43 @@ export async function logDoctorChoice(consultationId: string, chosenRemedy: stri
 }
 
 /**
+ * Логирование результата clarify (QuestionGain)
+ */
+export async function logClarifyResult(data: {
+  clarifyUsed: boolean
+  clarifyFeature?: string
+  clarifyGain?: number
+  clarifyAnswer?: string
+  beforeTop3?: { remedy: string; score: number }[]
+  afterTop3?: { remedy: string; score: number }[]
+  top1Changed?: boolean
+  gapBefore?: number
+  gapAfter?: number
+  flipBlocked?: boolean
+  skipReason?: string
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  try {
+    // Записываем в последний лог пользователя
+    const { data: lastLog } = await supabase.from('ai_analysis_log')
+      .select('id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (lastLog) {
+      await supabase.from('ai_analysis_log')
+        .update({ clarify_log: data })
+        .eq('id', lastLog.id)
+    }
+  } catch { /* silent */ }
+}
+
+/**
  * Clarify Engine v3: discriminator-first.
  *
  * Flow: shouldClarify → selectPair → buildMatrix → selectDiscriminator →
