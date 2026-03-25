@@ -178,6 +178,14 @@ export type ConsensusResult = {
   // Structured data для clarify engine (не для UI)
   _parsedSymptoms?: MDRISymptom[]
   _parsedModalities?: MDRIModality[]
+  // QuestionGain: лучший вопрос (вычислен на сервере)
+  _clarifyQuestion?: {
+    question: string
+    feature: string
+    gain: number
+    options: { label: string; supports?: string[]; weakens?: string[]; boost?: number; penalty?: number; neutral?: boolean }[]
+    fallbackComparison: { remedy: string; keyFeature: string }[]
+  } | null
 }
 
 // === Suggestions (hybrid parsing) ===

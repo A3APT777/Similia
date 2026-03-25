@@ -203,6 +203,13 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       // Structured data для clarify engine
       _parsedSymptoms: symptoms,
       _parsedModalities: modalities,
+      // QuestionGain: лучший уточняющий вопрос (вычислен на сервере)
+      _clarifyQuestion: (() => {
+        try {
+          const { selectBestClarifyQuestion } = require('@/lib/mdri/question-gain')
+          return selectBestClarifyQuestion(mdriResults, data.constellations, symptoms)
+        } catch { return null }
+      })(),
     }
     log(`result: ${topRemedy}`)
 
@@ -247,6 +254,24 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
 
 // --- Вспомогательные ---
 
+// Получить AI-статус врача (для UI)
+export async function getAIStatus(): Promise<{ isAIPro: boolean; credits: number }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { isAIPro: false, credits: 0 }
+
+  const { data: settings } = await supabase
+    .from('doctor_settings')
+    .select('subscription_plan, ai_credits')
+    .eq('doctor_id', user.id)
+    .single()
+
+  return {
+    isAIPro: settings?.subscription_plan === 'ai_pro',
+    credits: settings?.ai_credits ?? 0,
+  }
+}
+
 async function checkAIAccess(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -261,7 +286,6 @@ async function checkAIAccess(
 
   const isAIPro = settings.subscription_plan === 'ai_pro'
   const hasCredits = (settings.ai_credits ?? 0) > 0
-  // if (!isAIPro && !hasCredits) {
   if (!isAIPro && !hasCredits) {
     throw new Error('NO_AI_ACCESS')
   }
@@ -271,22 +295,13 @@ async function deductAICredit(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
 ) {
-  const { data: settings } = await supabase
-    .from('doctor_settings')
-    .select('subscription_plan, ai_credits')
-    .eq('doctor_id', userId)
-    .single()
-
-  // AI Pro — не списываем
-  if (settings?.subscription_plan === 'ai_pro') return
-
-  // Списать 1 кредит
-  if (settings && (settings.ai_credits ?? 0) > 0) {
-    await supabase
-      .from('doctor_settings')
-      .update({ ai_credits: (settings.ai_credits ?? 1) - 1 })
-      .eq('doctor_id', userId)
+  // Атомарное списание через SQL-функцию (защита от race condition)
+  const { data, error } = await supabase.rpc('deduct_ai_credit', { p_doctor_id: userId })
+  if (error) {
+    console.error('[deductAICredit] RPC error:', error)
   }
+  // data = true если списано, false если нет кредитов (AI Pro не списывает, возвращает true)
+  return data as boolean
 }
 
 function formatCaseForAI(

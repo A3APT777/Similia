@@ -2,16 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { analyzeText, generateDifferentialClarifying, rerunWithClarifications } from '@/lib/actions/ai-consultation'
+import { analyzeText } from '@/lib/actions/ai-consultation'
 import type { ConsensusResult } from '@/lib/mdri/types'
-import type { DifferentialQuestion } from '@/lib/mdri/differential'
+import type { ClarifyQuestion, ClarifyOption } from '@/lib/mdri/question-gain'
+import { selectBestClarifyQuestion, applyClarifyBonus } from '@/lib/mdri/question-gain'
 import type { Lang } from '@/hooks/useLanguage'
+import './ai-styles.css'
 
 type Patient = { id: string; name: string; constitutional_type: string | null }
 
 type Props = {
   patients: Patient[]
   lang: Lang
+  aiStatus?: { isAIPro: boolean; credits: number }
 }
 
 const PLACEHOLDERS_RU = [
@@ -72,17 +75,16 @@ function AnimatedPlaceholder({ texts, active }: { texts: string[]; active: boole
   )
 }
 
-export default function AIConsultationDirect({ patients, lang }: Props) {
+export default function AIConsultationDirect({ patients, lang, aiStatus }: Props) {
   const router = useRouter()
   const [text, setText] = useState('')
   const [step, setStep] = useState<'input' | 'analyzing' | 'result' | 'clarify' | 'assign'>('input')
   const [result, setResult] = useState<ConsensusResult | null>(null)
   const [error, setError] = useState('')
   const [selectedPatient, setSelectedPatient] = useState<string>('')
-  const [clarifyQuestions, setClarifyQuestions] = useState<DifferentialQuestion[]>([])
-  const [clarifyAnswers, setClarifyAnswers] = useState<Record<string, string>>({})
-  const [clarifyLoading, setClarifyLoading] = useState(false)
+  const [clarifyQuestion, setClarifyQuestion] = useState<ClarifyQuestion | null>(null)
   const [clarifyUsed, setClarifyUsed] = useState(false)
+  const [showComparison, setShowComparison] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -126,64 +128,41 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
     }
   }
 
-  // Нужна ли уточнение?
-  const needsClarify = result && !clarifyUsed && (
-    result.productConfidence?.level === 'clarify' ||
-    result.productConfidence?.level === 'insufficient' ||
-    result.productConfidence?.showDiff === true ||
-    (result.mdriResults?.length >= 2 && result.mdriResults[0].totalScore - result.mdriResults[1].totalScore < 8)
-  )
+  // QuestionGain: вопрос уже вычислен на сервере и передан в result
+  const clarifyQ = result?._clarifyQuestion ?? null
+  const needsClarify = !clarifyUsed && clarifyQ !== null
 
-  async function handleClarify() {
-    if (!result?.mdriResults || !result._parsedSymptoms) return
-    setClarifyLoading(true)
-    try {
-      const clarifyResult = await generateDifferentialClarifying({
-        results: result.mdriResults,
-        symptoms: result._parsedSymptoms,
-        modalities: result._parsedModalities ?? [],
-      })
-      if (clarifyResult.questions.length > 0) {
-        setClarifyQuestions(clarifyResult.questions)
-        setClarifyAnswers({})
-        setStep('clarify')
-      }
-    } catch (e) {
-      console.error('Clarify error:', e)
-    } finally {
-      setClarifyLoading(false)
+  function handleClarifyAnswer(optionLabel: string) {
+    if (!result?.mdriResults || !clarifyQ) return
+    const option = clarifyQ.options.find(o => o.label === optionLabel)
+    if (!option) return
+
+    if (option.neutral) {
+      // "Не знаю" → показать сравнение top-3
+      setStep('clarify')
+      return
     }
+
+    // Применить bonus/penalty без rerun engine (мгновенно)
+    const adjusted = result.mdriResults.map(r => {
+      let bonus = 0
+      if (option.supports?.includes(r.remedy) && option.boost) bonus += option.boost
+      if (option.weakens?.includes(r.remedy) && option.penalty) bonus += option.penalty
+      return { ...r, totalScore: Math.max(0, r.totalScore + bonus) }
+    }).sort((a, b) => b.totalScore - a.totalScore)
+
+    setResult({ ...result, mdriResults: adjusted, finalRemedy: adjusted[0]?.remedy ?? result.finalRemedy })
+    setClarifyUsed(true)
   }
 
-  async function handleClarifySubmit() {
-    if (!result?._parsedSymptoms) return
-
-    const additionalSymptoms: string[] = []
-    for (const q of clarifyQuestions) {
-      const selectedLabel = clarifyAnswers[q.key]
-      if (!selectedLabel) continue
-      const option = q.options?.find(o => o.label === selectedLabel)
-      if (option?.rubric) {
-        additionalSymptoms.push(option.rubric)
-      } else {
-        additionalSymptoms.push(selectedLabel)
-      }
-    }
-
-    if (additionalSymptoms.length === 0 && Object.keys(clarifyAnswers).length === 0) return
-
+  function handleComparisonChoice(remedy: string) {
+    if (!result?.mdriResults) return
+    const adjusted = result.mdriResults.map(r => ({
+      ...r, totalScore: r.remedy === remedy ? r.totalScore + 20 : r.totalScore,
+    })).sort((a, b) => b.totalScore - a.totalScore)
+    setResult({ ...result, mdriResults: adjusted, finalRemedy: adjusted[0]?.remedy ?? result.finalRemedy })
     setClarifyUsed(true)
-    setStep('analyzing')
-    try {
-      const clarifyText = additionalSymptoms.length > 0
-        ? additionalSymptoms.join('. ')
-        : Object.values(clarifyAnswers).filter(Boolean).join('. ')
-      const res = await analyzeText({ text: text.trim() + '\n\nУточнение: ' + clarifyText })
-      setResult(res)
-      setStep('result')
-    } catch {
-      setStep('result')
-    }
+    setStep('result')
   }
 
   // ═══════════════════════════════════════
@@ -194,6 +173,29 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
 
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Баннер кредитов */}
+        {aiStatus && !aiStatus.isAIPro && (
+          <div className="mb-6 flex items-center justify-between rounded-full px-4 py-2.5" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.12)' }}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: aiStatus.credits > 0 ? 'var(--sim-green)' : '#dc2626' }} />
+              <span className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>
+                {aiStatus.credits > 0
+                  ? `${aiStatus.credits} ${aiStatus.credits === 1 ? 'анализ' : aiStatus.credits < 5 ? 'анализа' : 'анализов'} доступно`
+                  : 'Нет доступных анализов'}
+              </span>
+            </div>
+            <span className="text-[11px]" style={{ color: 'var(--sim-text-muted)', opacity: 0.7 }}>
+              1 анализ = 1 кредит
+            </span>
+          </div>
+        )}
+        {aiStatus?.isAIPro && (
+          <div className="mb-6 flex items-center gap-2 rounded-full px-4 py-2.5" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.12)' }}>
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--sim-green)' }} />
+            <span className="text-[12px]" style={{ color: 'var(--sim-green)' }}>AI Pro — безлимитные анализы</span>
+          </div>
+        )}
+
         {/* Заголовок */}
         <div className="mb-8">
           <div className="mb-6" style={{ height: '2px', background: 'linear-gradient(to right, var(--sim-green), rgba(45,106,79,0.1))' }} />
@@ -210,18 +212,9 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
           </p>
         </div>
 
-        {/* Анимированный input */}
-        <div
-          className="relative rounded-2xl overflow-hidden"
-          style={{
-            backgroundColor: 'var(--sim-bg-card)',
-            border: `1px solid ${isFocused ? 'var(--sim-green)' : 'var(--sim-border)'}`,
-            boxShadow: isFocused
-              ? '0 0 0 4px rgba(45,106,79,0.06), 0 8px 32px rgba(0,0,0,0.06)'
-              : '0 2px 8px rgba(0,0,0,0.03)',
-            transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-        >
+        {/* Анимированный input с gradient border */}
+        <div className={`ai-input-wrapper ${isFocused ? 'focused' : ''}`}>
+        <div className="ai-input-inner relative">
           {/* Placeholder анимация */}
           {!hasContent && (
             <AnimatedPlaceholder texts={placeholders} active={isFocused} />
@@ -264,25 +257,21 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
             <button
               onClick={handleAnalyze}
               disabled={!hasContent}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12px] font-medium transition-all duration-500"
-              style={(() => {
-                const len = text.trim().length
-                const progress = Math.min(len / 20, 1) // 0→1 за 20 символов
-                return {
-                  backgroundColor: `rgba(45, 106, 79, ${progress * 1})`,
-                  color: progress > 0.5 ? '#fff' : 'var(--sim-text-muted)',
-                  border: progress < 0.3 ? '1px solid var(--sim-border)' : 'none',
-                  transform: `scale(${0.95 + progress * 0.05})`,
-                  opacity: 0.5 + progress * 0.5,
-                }
-              })()}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[13px] font-semibold transition-all duration-300"
+              style={{
+                backgroundColor: hasContent ? '#1e3a2f' : 'rgba(45,106,79,0.1)',
+                color: hasContent ? '#ffffff' : '#8a7e6c',
+                border: 'none',
+                boxShadow: hasContent ? '0 4px 12px rgba(30,58,47,0.3)' : 'none',
+              }}
             >
-              {lang === 'ru' ? 'Анализировать' : 'Analyze'}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7" />
+                <path d="M21 12a9 9 0 11-6.219-8.56" />
               </svg>
+              {lang === 'ru' ? 'Анализировать' : 'Analyze'}
             </button>
           </div>
+        </div>
         </div>
 
         {/* Ошибка */}
@@ -309,22 +298,50 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
   // ═══════════════════════════════════════
   if (step === 'analyzing') {
     return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
-          <svg className="w-5 h-5 animate-spin" style={{ color: 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+        {/* Orb animation container */}
+        <div className="relative w-48 h-48 mx-auto mb-8">
+          <div className="orb orb-1" style={{ top: '20%', left: '15%' }} />
+          <div className="orb orb-2" style={{ top: '45%', right: '10%' }} />
+          <div className="orb orb-3" style={{ bottom: '15%', left: '30%' }} />
+          {/* Center icon */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center glass-card">
+              <svg className="w-7 h-7" style={{ color: 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.25}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+              </svg>
+            </div>
+          </div>
         </div>
-        <h2
-          className="text-[24px] font-light mb-2"
-          style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)' }}
-        >
-          {lang === 'ru' ? 'Анализирую...' : 'Analyzing...'}
-        </h2>
-        <p className="text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>
-          {lang === 'ru' ? 'Реперторный анализ + анализ паттернов' : 'Repertory analysis + pattern matching'}
-        </p>
+
+        <div className="text-center">
+          <h2
+            className="text-[28px] font-light mb-3 shimmer-text"
+            style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)' }}
+          >
+            {lang === 'ru' ? 'Анализирую случай' : 'Analyzing case'}
+          </h2>
+
+          {/* Analysis steps - appear one by one */}
+          <div className="space-y-2 max-w-xs mx-auto">
+            {[
+              { text: lang === 'ru' ? 'Реперторизация по Кенту' : 'Kent repertorization', delay: '0.2s' },
+              { text: lang === 'ru' ? 'Анализ полярностей' : 'Polarity analysis', delay: '1.5s' },
+              { text: lang === 'ru' ? 'Иерархия симптомов' : 'Symptom hierarchy', delay: '3s' },
+              { text: lang === 'ru' ? 'Констелляции и паттерны' : 'Constellations & patterns', delay: '4.5s' },
+              { text: lang === 'ru' ? 'Формирование рекомендации' : 'Building recommendation', delay: '6s' },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className="analysis-step flex items-center gap-2 justify-center"
+                style={{ animationDelay: s.delay }}
+              >
+                <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--sim-green)' }} />
+                <span className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>{s.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -344,52 +361,99 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
           {lang === 'ru' ? 'Результат анализа' : 'Analysis Result'}
         </h2>
 
-        {/* Топ препарат */}
-        <div className="rounded-xl p-5 mb-4" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
+        {/* Топ препарат — glassmorphism card */}
+        <div className="result-card glass-card rounded-2xl p-6 mb-4" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: 'var(--sim-text-muted)' }}>
               {lang === 'ru' ? 'Рекомендация' : 'Recommendation'}
             </p>
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(45,106,79,0.06)', color: 'var(--sim-green)' }}>
+            <span className="text-[11px] font-medium px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(45,106,79,0.08)', color: 'var(--sim-green)' }}>
               {result.productConfidence?.label || result.method}
             </span>
           </div>
           <p
-            className="text-[32px] font-light tracking-[-0.02em]"
+            className="text-[36px] sm:text-[42px] font-light tracking-[-0.03em] leading-tight"
             style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)' }}
           >
             {result.finalRemedy}
           </p>
           {result.mdriResults?.[0]?.potency && (
-            <p className="text-sm mt-1" style={{ color: 'var(--sim-green)' }}>
+            <p className="text-[15px] mt-2 font-medium" style={{ color: 'var(--sim-green)' }}>
               {typeof result.mdriResults[0].potency === 'string'
                 ? result.mdriResults[0].potency
                 : result.mdriResults[0].potency.potency}
             </p>
           )}
+
+          {/* Confidence meter */}
+          {result.mdriResults?.[0]?.totalScore && (
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] uppercase tracking-[0.08em]" style={{ color: 'var(--sim-text-muted)' }}>
+                  {lang === 'ru' ? 'Уверенность' : 'Confidence'}
+                </span>
+                <span className="text-[11px] font-medium" style={{ color: 'var(--sim-green)' }}>
+                  {result.productConfidence?.level === 'high' ? (lang === 'ru' ? 'Высокая' : 'High')
+                    : result.productConfidence?.level === 'moderate' ? (lang === 'ru' ? 'Средняя' : 'Moderate')
+                    : (lang === 'ru' ? 'Требует уточнения' : 'Needs clarification')}
+                </span>
+              </div>
+              <div className="confidence-track">
+                <div
+                  className="confidence-fill"
+                  style={{
+                    width: result.productConfidence?.level === 'high' ? '90%'
+                      : result.productConfidence?.level === 'moderate' ? '60%'
+                      : '35%',
+                    background: result.productConfidence?.level === 'high'
+                      ? 'linear-gradient(90deg, var(--sim-green), #5a9e7c)'
+                      : result.productConfidence?.level === 'moderate'
+                        ? 'linear-gradient(90deg, #c8a035, #dbb84d)'
+                        : 'linear-gradient(90deg, #d97706, #f59e0b)',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {result.aiResult?.reasoning && (
-            <p className="text-[13px] mt-3 leading-relaxed" style={{ color: 'var(--sim-text-muted)' }}>
+            <p className="text-[13px] mt-4 leading-[1.7]" style={{ color: 'var(--sim-text-muted)' }}>
               {result.aiResult.reasoning}
             </p>
           )}
         </div>
 
-        {/* Альтернативы */}
+        {/* Альтернативы — staggered glass cards */}
         {result.mdriResults && result.mdriResults.length > 1 && (
-          <div className="rounded-xl p-4 mb-6" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
-            <p className="text-[11px] font-medium uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--sim-text-muted)' }}>
+          <div className="result-card glass-card rounded-2xl p-5 mb-6" style={{ animationDelay: '0.3s' }}>
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] mb-4" style={{ color: 'var(--sim-text-muted)' }}>
               {lang === 'ru' ? 'Альтернативы' : 'Alternatives'}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-0">
               {result.mdriResults.slice(1, 5).map((r, i) => {
                 const top1Score = result.mdriResults[0]?.totalScore ?? 100
                 const gap = top1Score - r.totalScore
-                const level = gap < 10 ? 'Близкая альтернатива' : gap < 30 ? 'Возможная альтернатива' : 'Маловероятен'
-                const levelColor = gap < 10 ? 'var(--sim-accent, #2d6a4f)' : 'var(--sim-text-muted)'
+                const pct = Math.max(10, Math.round((r.totalScore / top1Score) * 100))
                 return (
-                  <div key={i} className="flex items-center justify-between py-1.5" style={{ borderBottom: i < Math.min(result.mdriResults.length - 2, 3) ? '1px solid var(--sim-border)' : 'none' }}>
-                    <span className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{r.remedy}</span>
-                    <span className="text-[11px]" style={{ color: levelColor }}>{level}</span>
+                  <div key={i} className="py-3" style={{ borderBottom: i < Math.min(result.mdriResults.length - 2, 3) ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[14px] font-medium" style={{ color: 'var(--sim-text)' }}>{r.remedy}</span>
+                      <span className="text-[11px] font-medium" style={{ color: gap < 10 ? 'var(--sim-green)' : 'var(--sim-text-muted)' }}>
+                        {pct}%
+                      </span>
+                    </div>
+                    <div className="confidence-track">
+                      <div
+                        className="confidence-fill"
+                        style={{
+                          width: `${pct}%`,
+                          background: gap < 10
+                            ? 'linear-gradient(90deg, var(--sim-green), #5a9e7c)'
+                            : 'linear-gradient(90deg, var(--sim-border), rgba(45,106,79,0.2))',
+                          transitionDelay: `${0.3 + i * 0.15}s`,
+                        }}
+                      />
+                    </div>
                   </div>
                 )
               })}
@@ -397,41 +461,53 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
           </div>
         )}
 
-        {/* Блок уточнения */}
-        {needsClarify && (
-          <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(217, 119, 6, 0.04)', border: '1px solid rgba(217, 119, 6, 0.15)' }}>
-            <p className="text-[12px] font-medium text-amber-700 mb-1">
-              {lang === 'ru' ? 'Рекомендуется уточнение' : 'Clarification recommended'}
-            </p>
-            <p className="text-[11px] text-amber-600 mb-3">
-              {lang === 'ru'
-                ? 'Несколько препаратов близки по соответствию. Ответьте на 2-3 вопроса для повышения точности.'
-                : 'Several remedies are close. Answer 2-3 questions to improve accuracy.'}
-            </p>
-            <button
-              onClick={handleClarify}
-              disabled={clarifyLoading}
-              className="w-full py-2 text-[12px] font-medium rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors border border-amber-200"
-            >
-              {clarifyLoading
-                ? (lang === 'ru' ? 'Генерирую вопросы...' : 'Generating questions...')
-                : (lang === 'ru' ? 'Уточнить' : 'Clarify')}
-            </button>
+        {/* Уточняющий вопрос — QuestionGain (1 лучший вопрос, без API) */}
+        {needsClarify && clarifyQ && (
+          <div className="result-card glass-card rounded-2xl p-5 mb-5" style={{ animationDelay: '0.5s', borderColor: 'rgba(200,160,53,0.2)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="w-4 h-4" style={{ color: '#c8a035' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+              <p className="text-[13px] font-medium" style={{ color: '#92780a' }}>
+                {clarifyQ.question}
+              </p>
+            </div>
+            <div className="space-y-2 mt-3">
+              {clarifyQ.options.map(opt => (
+                <button
+                  key={opt.label}
+                  onClick={() => handleClarifyAnswer(opt.label)}
+                  className="w-full text-left py-2.5 px-4 text-[13px] rounded-xl transition-all duration-200 hover:opacity-90"
+                  style={{
+                    backgroundColor: opt.neutral ? 'transparent' : 'rgba(146,120,10,0.06)',
+                    color: opt.neutral ? 'var(--sim-text-muted)' : 'var(--sim-text)',
+                    border: `1px solid ${opt.neutral ? 'var(--sim-border)' : 'rgba(146,120,10,0.2)'}`,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Действия */}
-        <div className="space-y-3">
+        <div className="result-card space-y-3" style={{ animationDelay: '0.6s' }}>
           <button
             onClick={() => setStep('assign')}
-            className="btn btn-primary w-full py-3"
+            className="w-full py-3.5 text-[14px] font-semibold rounded-full transition-all duration-300 hover:opacity-90"
+            style={{
+              backgroundColor: '#1e3a2f',
+              color: '#ffffff',
+              boxShadow: '0 4px 16px rgba(30,58,47,0.3)',
+            }}
           >
             {lang === 'ru' ? 'Назначить пациенту' : 'Assign to patient'}
           </button>
 
           <button
             onClick={() => { setStep('input'); setResult(null); setText(''); setClarifyUsed(false) }}
-            className="w-full py-3 text-sm rounded-full transition-all duration-200 hover:bg-black/[0.03]"
+            className="w-full py-3 text-[13px] rounded-full transition-all duration-200 hover:bg-black/[0.03]"
             style={{ color: 'var(--sim-text-muted)', border: '1px solid var(--sim-border)' }}
           >
             {lang === 'ru' ? 'Новый анализ' : 'New analysis'}
@@ -442,83 +518,52 @@ export default function AIConsultationDirect({ patients, lang }: Props) {
   }
 
   // ═══════════════════════════════════════
-  // Шаг 3.5: Уточняющие вопросы
+  // Шаг 3.5: Сравнение top-3 (fallback при "Не знаю")
   // ═══════════════════════════════════════
   if (step === 'clarify') {
+    const comparison = clarifyQ?.fallbackComparison ?? result?.mdriResults?.slice(0, 3).map(r => ({
+      remedy: r.remedy,
+      keyFeature: r.remedyName || r.remedy,
+    })) ?? []
+
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-6" style={{ height: '2px', background: 'linear-gradient(to right, rgba(217,119,6,0.6), rgba(217,119,6,0.1))' }} />
+        <div className="mb-6" style={{ height: '3px', background: 'linear-gradient(to right, #c8a035, rgba(200,160,53,0.1))', borderRadius: '2px' }} />
         <h2
-          className="text-[24px] font-light mb-2"
+          className="text-[28px] font-light mb-2"
           style={{ fontFamily: 'var(--font-cormorant, Georgia, serif)', color: 'var(--sim-text)' }}
         >
-          {lang === 'ru' ? 'Уточняющие вопросы' : 'Clarifying questions'}
+          {lang === 'ru' ? 'Что ближе к пациенту?' : 'Which fits the patient?'}
         </h2>
-        <p className="text-[13px] mb-6" style={{ color: 'var(--sim-text-muted)' }}>
+        <p className="text-[13px] mb-8" style={{ color: 'var(--sim-text-muted)' }}>
           {lang === 'ru'
-            ? 'Эти вопросы помогут различить близкие препараты. Выберите подходящий вариант.'
-            : 'These questions help differentiate close remedies.'}
+            ? 'Три ближайших препарата. Выберите наиболее подходящий.'
+            : 'Three closest remedies. Choose the best fit.'}
         </p>
-        <div className="space-y-4 mb-6">
-          {clarifyQuestions.map((q, idx) => (
-            <div key={q.key} className="rounded-xl p-4" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
-              <p className="text-[13px] font-medium mb-2" style={{ color: 'var(--sim-text)' }}>
-                {idx + 1}. {q.question}
+        <div className="space-y-3 mb-8">
+          {comparison.map((c, idx) => (
+            <button
+              key={c.remedy}
+              onClick={() => handleComparisonChoice(c.remedy)}
+              className="result-card w-full text-left glass-card rounded-2xl p-5 transition-all duration-200 hover:scale-[1.01]"
+              style={{ animationDelay: `${0.1 + idx * 0.12}s`, cursor: 'pointer' }}
+            >
+              <p className="text-[16px] font-semibold uppercase tracking-wide" style={{ color: 'var(--sim-text)' }}>
+                {c.remedy}
               </p>
-              {q.why_it_matters && (
-                <p className="text-[11px] mb-2" style={{ color: 'var(--sim-text-muted)' }}>
-                  {q.why_it_matters}
-                </p>
-              )}
-              {q.options && q.options.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {q.options.map(opt => {
-                    const optId = opt.label
-                    return (
-                      <button
-                        key={optId}
-                        onClick={() => setClarifyAnswers(prev => ({ ...prev, [q.key]: optId }))}
-                        className={`text-[12px] px-3 py-1.5 rounded-full border transition-all ${
-                          clarifyAnswers[q.key] === optId
-                            ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]'
-                            : 'border-[rgba(0,0,0,0.1)] hover:border-[#2d6a4f]'
-                        }`}
-                        style={{ color: clarifyAnswers[q.key] === optId ? undefined : 'var(--sim-text)' }}
-                      >
-                        {opt.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  placeholder={lang === 'ru' ? 'Ваш ответ...' : 'Your answer...'}
-                  value={clarifyAnswers[q.key] || ''}
-                  onChange={e => setClarifyAnswers(prev => ({ ...prev, [q.key]: e.target.value }))}
-                  className="w-full text-[13px] px-3 py-2 rounded-lg border"
-                  style={{ borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg)', color: 'var(--sim-text)' }}
-                />
-              )}
-            </div>
+              <p className="text-[13px] mt-1" style={{ color: 'var(--sim-text-muted)' }}>
+                {c.keyFeature}
+              </p>
+            </button>
           ))}
         </div>
-        <div className="space-y-3">
-          <button
-            onClick={handleClarifySubmit}
-            disabled={Object.keys(clarifyAnswers).length === 0}
-            className="btn btn-primary w-full py-3 disabled:opacity-50"
-          >
-            {lang === 'ru' ? 'Уточнить и пересчитать' : 'Clarify and recalculate'}
-          </button>
-          <button
-            onClick={() => setStep('result')}
-            className="w-full py-3 text-sm rounded-full transition-all duration-200 hover:bg-black/[0.03]"
-            style={{ color: 'var(--sim-text-muted)' }}
-          >
-            {lang === 'ru' ? 'Пропустить' : 'Skip'}
-          </button>
-        </div>
+        <button
+          onClick={() => { setClarifyUsed(true); setStep('result') }}
+          className="w-full py-3 text-[13px] rounded-full transition-all duration-200 hover:bg-black/[0.03]"
+          style={{ color: 'var(--sim-text-muted)' }}
+        >
+          {lang === 'ru' ? 'Оставить текущий результат' : 'Keep current result'}
+        </button>
       </div>
     )
   }
