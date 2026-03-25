@@ -210,12 +210,23 @@ export function selectBestClarifyQuestion(
     // Должен иметь русский перевод
     if (!findFeatureTranslation(feature)) continue
 
+    // Fix 4: отсечка — врач не может ответить на этот вопрос
+    const an = answerability(feature)
+    if (an < 0.5) continue
+
     const sp = separationPower(feature, top3, constellations)
     const ci = clinicalImportance(feature)
-    const an = answerability(feature)
     const fc = featureConfidence(feature, top3[0].remedy, top3[1].remedy, constellations)
 
-    const gain = 0.45 * sp + 0.25 * ci + 0.20 * an + 0.10 * fc
+    // Fix 3: penalty за повторные features (частичное пересечение с существующими)
+    const partialOverlap = existingSymptoms.some(s => {
+      const sWords = s.rubric.toLowerCase().split(/\s+/)
+      const fWords = feature.toLowerCase().split(/\s+/)
+      return fWords.some(fw => sWords.some(sw => sw.includes(fw) || fw.includes(sw)))
+    })
+    const overlapPenalty = partialOverlap ? 0.5 : 1.0
+
+    const gain = (0.45 * sp + 0.25 * ci + 0.20 * an + 0.10 * fc) * overlapPenalty
 
     if (gain > bestGain) {
       bestGain = gain
@@ -281,12 +292,17 @@ function buildClarifyQuestion(
 }
 
 function isUsefulQuestion(question: ClarifyQuestion, results: MDRIResult[]): boolean {
-  const currentTop1 = results[0].remedy
+  const oldTop1 = results[0].remedy
+  const oldGap = results[0].totalScore - (results[1]?.totalScore ?? 0)
 
   for (const option of question.options) {
     if (option.neutral) continue
     const adjusted = applyClarifyBonus(results, option)
-    if (adjusted[0].remedy !== currentTop1) return true
+    const newTop1 = adjusted[0].remedy
+    const newGap = adjusted[0].totalScore - (adjusted[1]?.totalScore ?? 0)
+
+    if (newTop1 !== oldTop1) return true           // сменил top-1
+    if ((newGap - oldGap) >= 5) return true         // увеличил gap на 5+
   }
 
   return false
@@ -299,9 +315,10 @@ export function applyClarifyBonus(
   if (answer.neutral) return results
 
   const adjusted = results.map(r => {
+    const maxBonus = Math.round(r.totalScore * 0.2) // макс 20% от score
     let bonus = 0
-    if (answer.supports?.includes(r.remedy) && answer.boost) bonus += answer.boost
-    if (answer.weakens?.includes(r.remedy) && answer.penalty) bonus += answer.penalty
+    if (answer.supports?.includes(r.remedy) && answer.boost) bonus += Math.min(answer.boost, maxBonus)
+    if (answer.weakens?.includes(r.remedy) && answer.penalty) bonus += Math.max(answer.penalty, -maxBonus)
     return { ...r, totalScore: Math.max(0, r.totalScore + bonus) }
   })
 
