@@ -87,8 +87,10 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
       id: true, date: true, type: true, status: true, notes: true,
       scheduledAt: true, structuredSymptoms: true, clinicalAssessment: true,
       doctorDynamics: true, remedy: true, potency: true, pellets: true,
-      dosage: true, complaints: true, modalityWorseText: true,
+      dosage: true, complaints: true, observations: true, recommendations: true,
+      reactionToPrevious: true, modalityWorseText: true,
       modalityBetterText: true, mentalText: true, generalText: true, caseState: true,
+      mode: true,
     },
     orderBy: [
       { scheduledAt: { sort: 'asc', nulls: 'first' } },
@@ -143,6 +145,9 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                 {patient.phone && <span>{patient.phone}</span>}
                 {patient.email && <span>{patient.email}</span>}
               </div>
+              {patient.constitutionalType && (
+                <p className="text-sm text-gray-600 mt-1">Конституция: <strong>{patient.constitutionalType}</strong></p>
+              )}
               <p className="text-xs text-gray-400 mt-1.5">
                 {t(lang).export.firstVisit} {formatLocalDate(patient.firstVisitDate || '')} · {completed.length} {t(lang).export.consultations}
               </p>
@@ -228,6 +233,14 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                       </div>
 
                       <div className="px-4 py-3 space-y-3">
+                        {/* Реакция на предыдущий препарат */}
+                        {c.reactionToPrevious?.trim() && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Реакция на предыдущий препарат</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.reactionToPrevious}</p>
+                          </div>
+                        )}
+
                         {/* Жалобы */}
                         {c.complaints?.trim() && (
                           <div>
@@ -266,6 +279,14 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                           </div>
                         )}
 
+                        {/* Наблюдения */}
+                        {c.observations?.trim() && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Наблюдения врача</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.observations}</p>
+                          </div>
+                        )}
+
                         {/* Заметки */}
                         {c.notes?.trim() && (
                           <div>
@@ -282,6 +303,14 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                           </div>
                         )}
 
+                        {/* Рекомендации */}
+                        {c.recommendations?.trim() && (
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Рекомендации</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.recommendations}</p>
+                          </div>
+                        )}
+
                         {/* Назначение */}
                         {c.remedy && (
                           <div className="flex items-center gap-3 pt-1 border-t border-gray-100">
@@ -291,6 +320,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                                 {c.remedy}{c.potency ? ` ${c.potency}` : ''}{c.pellets ? ` · ${c.pellets} ${t(lang).export.pellets}` : ''}
                               </p>
                               {c.dosage && <p className="text-xs text-gray-500 mt-0.5">{c.dosage}</p>}
+                              {c.mode && <p className="text-xs text-gray-400 mt-0.5">{c.mode}</p>}
                             </div>
 
                             {/* Ответ пациента */}
