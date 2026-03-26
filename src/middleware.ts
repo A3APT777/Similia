@@ -111,8 +111,8 @@ export async function middleware(request: NextRequest) {
     `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://yastatic.net`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
-    `img-src 'self' data: blob: https://mc.yandex.ru https://mc.yandex.com`,
-    `connect-src 'self' https://mc.yandex.ru https://mc.yandex.com https://mc.webvisor.org`,
+    `img-src 'self' data: blob: https://mc.yandex.ru https://mc.yandex.com https://mc.webvisor.org https://*.webvisor.com`,
+    `connect-src 'self' https://mc.yandex.ru https://mc.yandex.com https://mc.webvisor.org https://*.webvisor.com https://yastatic.net`,
     `frame-ancestors 'self' https://metrika.yandex.ru https://metrika.yandex.by https://metrica.yandex.com https://metrica.yandex.com.tr https://webvisor.com https://*.webvisor.com`,
   ].join('; ')
 
