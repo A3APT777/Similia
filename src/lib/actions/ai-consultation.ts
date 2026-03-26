@@ -447,19 +447,38 @@ async function callSonnetHomeopath(caseText: string): Promise<AIHomeopathResult 
 // Кэш русских labels от Sonnet (rubric → labelRu)
 const _labelRuCache = new Map<string, string>()
 
+// Retry при 529/overloaded — до 3 попыток с задержкой
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2, delayMs = 2000): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      const isOverloaded = msg.includes('529') || msg.includes('overloaded') || msg.includes('Overloaded')
+      if (isOverloaded && attempt < maxRetries) {
+        console.log(`[retry] attempt ${attempt + 1}/${maxRetries}, waiting ${delayMs}ms...`)
+        await new Promise(r => setTimeout(r, delayMs * (attempt + 1)))
+        continue
+      }
+      throw e
+    }
+  }
+  throw new Error('withRetry: exhausted')
+}
+
 async function parseTextWithSonnet(text: string): Promise<{
   symptoms: MDRISymptom[]
   modalities: MDRIModality[]
   familyHistory: string[]
 }> {
   const client = getAnthropicClient()
-  const response = await client.messages.create({
+  const response = await withRetry(() => client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 2000,
-    temperature: 0.1, // Стабильность парсинга: один текст = один результат
+    temperature: 0.1,
     system: PARSING_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: text }],
-  })
+  }))
 
   const responseText = response.content[0].type === 'text' ? response.content[0].text : '{}'
   const jsonStr = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
@@ -507,13 +526,13 @@ async function verifyTop5(
   const candidates = top5.map((r, i) => `${i + 1}. ${r.remedy}`).join('\n')
   const userMessage = `Текст пациента:\n"${originalText}"\n\nКандидаты от реперторизации (в текущем порядке):\n${candidates}`
 
-  const response = await client.messages.create({
+  const response = await withRetry(() => client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 800,
     temperature: 0.1,
     system: VERIFIER_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userMessage }],
-  })
+  }))
 
   const text = response.content[0].type === 'text' ? response.content[0].text : ''
   const jsonStr = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
