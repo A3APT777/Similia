@@ -201,6 +201,7 @@ model IntakeForm {
   expiresAt   DateTime? @map("expires_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   completedAt DateTime? @map("completed_at")
+  viewedAt    DateTime? @map("viewed_at")
 
   doctor      User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   patient     Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -425,6 +426,8 @@ model AiAnalysisLog {
   errorType       String?   @map("error_type")
   clarifyLog      Json?     @map("clarify_log")
   inputText       String?   @map("input_text")
+  // Фидбэк врача: несогласие с рекомендацией
+  disagreement    Json?     @map("disagreement") // { chosenRemedy, reason, timestamp }
   createdAt       DateTime  @default(now()) @map("created_at")
 
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)

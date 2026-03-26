@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { analyzeText, logClarifyResult, logDoctorFeedback } from '@/lib/actions/ai-consultation'
+import { analyzeText, logClarifyResult, logDoctorFeedback, logDisagreement } from '@/lib/actions/ai-consultation'
 import type { ConsensusResult } from '@/lib/mdri/types'
 import type { ClarifyQuestion } from '@/lib/mdri/question-gain'
 import { applyClarifyBonus } from '@/lib/mdri/question-gain'
@@ -231,6 +231,8 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   const [isFocused, setIsFocused] = useState(false)
   const [showRubrics, setShowRubrics] = useState(false)
   const [showLenses, setShowLenses] = useState(false)
+  const [disagreeStep, setDisagreeStep] = useState<'none' | 'choose' | 'reason' | 'done'>('none')
+  const [disagreeRemedy, setDisagreeRemedy] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const hasContent = text.trim().length > 0
@@ -928,19 +930,120 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
         {/* Действия */}
         <div className="result-card space-y-3" style={{ animationDelay: '0.6s' }}>
-          <button
-            onClick={() => setStep('assign')}
-            className="w-full py-3.5 text-[14px] font-semibold rounded-full bg-[#1e3a2f] text-white shadow-[0_4px_16px_rgba(30,58,47,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(30,58,47,0.35)] active:translate-y-0"
-          >
-            {lang === 'ru' ? 'Назначить пациенту' : 'Assign to patient'}
-          </button>
+          {disagreeStep === 'none' && (
+            <>
+              <button
+                onClick={() => setStep('assign')}
+                className="w-full py-3.5 text-[14px] font-semibold rounded-full bg-[#1e3a2f] text-white shadow-[0_4px_16px_rgba(30,58,47,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(30,58,47,0.35)] active:translate-y-0"
+              >
+                {lang === 'ru' ? 'Назначить пациенту' : 'Assign to patient'}
+              </button>
 
-          <button
-            onClick={() => { setStep('input'); setResult(null); setText(''); setClarifyCount(0); setTop1Flipped(false); setShowRubrics(false); setShowLenses(false) }}
-            className="w-full py-3 text-[13px] rounded-full border border-gray-200 text-[#6b7280] transition-all duration-200 hover:bg-black/[0.02]"
-          >
-            {lang === 'ru' ? 'Новый анализ' : 'New analysis'}
-          </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDisagreeStep('choose')}
+                  className="flex-1 py-3 text-[13px] rounded-full border border-[#c8a035]/30 text-[#92780a] transition-all duration-200 hover:bg-[#c8a035]/[0.04]"
+                >
+                  {lang === 'ru' ? 'Другое средство' : 'Different remedy'}
+                </button>
+                <button
+                  onClick={() => { setStep('input'); setResult(null); setText(''); setClarifyCount(0); setTop1Flipped(false); setShowRubrics(false); setShowLenses(false); setDisagreeStep('none') }}
+                  className="flex-1 py-3 text-[13px] rounded-full border border-gray-200 text-[#6b7280] transition-all duration-200 hover:bg-black/[0.02]"
+                >
+                  {lang === 'ru' ? 'Новый анализ' : 'New analysis'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Шаг 1: ввод средства */}
+          {disagreeStep === 'choose' && (
+            <div className="rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/[0.03] p-5">
+              <p className="text-[13px] text-[#1a1a1a] mb-3">
+                {lang === 'ru' ? 'Какое средство вы бы назначили?' : 'Which remedy would you prescribe?'}
+              </p>
+              <input
+                type="text"
+                value={disagreeRemedy}
+                onChange={e => setDisagreeRemedy(e.target.value)}
+                placeholder={lang === 'ru' ? 'Например: Puls.' : 'e.g. Puls.'}
+                className="w-full px-4 py-2.5 text-[13px] rounded-xl border border-gray-200 bg-white outline-none focus:border-[#2d6a4f] mb-3"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { if (disagreeRemedy.trim()) setDisagreeStep('reason') }}
+                  disabled={!disagreeRemedy.trim()}
+                  className="flex-1 py-2.5 text-[13px] rounded-full bg-[#2d6a4f] text-white font-medium disabled:opacity-40 transition-all"
+                >
+                  {lang === 'ru' ? 'Далее' : 'Next'}
+                </button>
+                <button
+                  onClick={() => { setDisagreeStep('none'); setDisagreeRemedy('') }}
+                  className="px-4 py-2.5 text-[13px] rounded-full text-[#6b7280] hover:underline"
+                >
+                  {lang === 'ru' ? 'Отмена' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Шаг 2: причина */}
+          {disagreeStep === 'reason' && (
+            <div className="rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/[0.03] p-5">
+              <p className="text-[13px] text-[#1a1a1a] mb-3">
+                {lang === 'ru'
+                  ? `Почему ${disagreeRemedy} а не ${result?.finalRemedy}?`
+                  : `Why ${disagreeRemedy} instead of ${result?.finalRemedy}?`}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'symptom', ru: 'Не учтён ключевой симптом', en: 'Key symptom missed' },
+                  { id: 'thermal', ru: 'Неправильная термика', en: 'Wrong thermal' },
+                  { id: 'etiology', ru: 'Этиология указывает на другое', en: 'Etiology points elsewhere' },
+                  { id: 'experience', ru: 'Клинический опыт', en: 'Clinical experience' },
+                  { id: 'miasm', ru: 'Миазматическое соответствие', en: 'Miasmatic match' },
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => {
+                      logDisagreement(disagreeRemedy.trim(), r.id).catch(() => {})
+                      setDisagreeStep('done')
+                    }}
+                    className="text-[12px] px-4 py-2 rounded-full border border-[#c8a035]/20 text-[#92780a] hover:bg-[#c8a035]/[0.06] transition-all"
+                  >
+                    {lang === 'ru' ? r.ru : r.en}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    logDisagreement(disagreeRemedy.trim(), 'other').catch(() => {})
+                    setDisagreeStep('done')
+                  }}
+                  className="text-[12px] px-4 py-2 rounded-full border border-gray-200 text-[#6b7280] hover:bg-black/[0.02] transition-all"
+                >
+                  {lang === 'ru' ? 'Другая причина' : 'Other reason'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Шаг 3: спасибо */}
+          {disagreeStep === 'done' && (
+            <div className="rounded-2xl border border-[#2d6a4f]/15 bg-[#2d6a4f]/[0.03] p-5 text-center">
+              <p className="text-[13px] text-[#2d6a4f] font-medium mb-1">
+                {lang === 'ru' ? 'Спасибо за обратную связь' : 'Thank you for the feedback'}
+              </p>
+              <p className="text-[12px] text-[#6b7280]">
+                {lang === 'ru' ? 'Это поможет улучшить систему' : 'This helps improve the system'}
+              </p>
+              <button
+                onClick={() => { setDisagreeStep('none'); setDisagreeRemedy('') }}
+                className="mt-3 text-[12px] text-[#2d6a4f] hover:underline"
+              >
+                {lang === 'ru' ? '← Вернуться к результату' : '← Back to result'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )

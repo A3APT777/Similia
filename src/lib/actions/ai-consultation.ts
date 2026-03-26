@@ -1290,6 +1290,42 @@ export async function logDoctorFeedback(chosenRemedy: string) {
 }
 
 /**
+ * Врач не согласен с рекомендацией — выбрал другое средство.
+ * Логирует расхождение + причину для калибровки engine.
+ */
+export async function logDisagreement(chosenRemedy: string, reason: string) {
+  const { userId } = await requireAuth()
+
+  try {
+    const lastLog = await prisma.aiAnalysisLog.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, engineTop3: true },
+    })
+
+    if (lastLog) {
+      let correctPosition: number | null = null
+      if (lastLog.engineTop3) {
+        const top3 = lastLog.engineTop3 as Array<{ remedy: string }>
+        const idx = top3.findIndex(r =>
+          r.remedy.toLowerCase().replace(/\.$/, '') === chosenRemedy.toLowerCase().replace(/\.$/, '')
+        )
+        correctPosition = idx >= 0 ? idx + 1 : null
+      }
+
+      await prisma.aiAnalysisLog.update({
+        where: { id: lastLog.id },
+        data: {
+          doctorChoice: chosenRemedy,
+          correctPosition,
+          disagreement: { chosenRemedy, reason, timestamp: new Date().toISOString() },
+        },
+      })
+    }
+  } catch { /* silent */ }
+}
+
+/**
  * Clarify Engine v3: discriminator-first.
  *
  * Flow: shouldClarify -> selectPair -> buildMatrix -> selectDiscriminator ->

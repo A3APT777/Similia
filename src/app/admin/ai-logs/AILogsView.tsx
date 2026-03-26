@@ -3,8 +3,19 @@
 import { useState } from 'react'
 import type { AIAnalysisLog } from '@/lib/actions/admin'
 
+type DisagreementPattern = {
+  engineRemedy: string
+  chosenRemedy: string
+  count: number
+  uniqueDoctors: number
+  reasons: string[]
+  lastDate: Date
+  alert: boolean
+}
+
 type Props = {
   logs: AIAnalysisLog[]
+  disagreementPatterns: DisagreementPattern[]
 }
 
 const CONFIDENCE_LABELS: Record<string, string> = {
@@ -21,7 +32,7 @@ const CONFIDENCE_COLORS: Record<string, { bg: string; color: string }> = {
   insufficient: { bg: '#fee2e2', color: '#dc2626' },
 }
 
-export default function AILogsView({ logs }: Props) {
+export default function AILogsView({ logs, disagreementPatterns }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'mismatch' | 'no_choice' | 'conflict'>('all')
 
@@ -58,6 +69,63 @@ export default function AILogsView({ logs }: Props) {
             </p>
           </div>
         </div>
+
+        {/* Оповещения: 7+ врачей выбрали другое средство */}
+        {disagreementPatterns.filter(p => p.alert).length > 0 && (
+          <div className="mb-6 space-y-3">
+            {disagreementPatterns.filter(p => p.alert).map((p, i) => (
+              <div key={i} className="rounded-xl px-5 py-4 border-2 border-[#dc2626]/30" style={{ backgroundColor: '#fef2f2' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[16px]">🚨</span>
+                  <span className="text-[14px] font-bold" style={{ color: '#dc2626' }}>Требует внимания</span>
+                </div>
+                <p className="text-[13px]" style={{ color: '#1a1a1a' }}>
+                  <strong>{p.uniqueDoctors} врачей</strong> выбрали <strong>{p.chosenRemedy}</strong> вместо <strong>{p.engineRemedy}</strong> ({p.count} раз)
+                </p>
+                {p.reasons.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {[...new Set(p.reasons)].map((r, j) => (
+                      <span key={j} className="text-[11px] px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fde8e8', color: '#dc2626' }}>
+                        {r === 'thermal' ? 'Термика' : r === 'symptom' ? 'Ключевой симптом' : r === 'etiology' ? 'Этиология' : r === 'experience' ? 'Клин. опыт' : r === 'miasm' ? 'Миазм' : r}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Расхождения (все, не только оповещения) */}
+        {disagreementPatterns.length > 0 && (
+          <div className="mb-6 rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}>
+            <div className="px-5 py-3" style={{ borderBottom: '1px solid var(--sim-border)' }}>
+              <h3 className="text-[14px] font-semibold" style={{ color: 'var(--sim-text)' }}>
+                Расхождения с врачами ({disagreementPatterns.length})
+              </h3>
+            </div>
+            <div className="divide-y" style={{ borderColor: 'var(--sim-border)' }}>
+              {disagreementPatterns.map((p, i) => (
+                <div key={i} className="px-5 py-3 flex items-center gap-4">
+                  <div className="flex-1">
+                    <span className="text-[13px]" style={{ color: 'var(--sim-text)' }}>
+                      {p.engineRemedy} → <strong>{p.chosenRemedy}</strong>
+                    </span>
+                  </div>
+                  <span className="text-[12px] px-2.5 py-1 rounded-full font-medium" style={{
+                    backgroundColor: p.alert ? '#fef2f2' : 'var(--sim-bg-muted)',
+                    color: p.alert ? '#dc2626' : 'var(--sim-text-muted)',
+                  }}>
+                    {p.uniqueDoctors} {p.uniqueDoctors === 1 ? 'врач' : p.uniqueDoctors < 5 ? 'врача' : 'врачей'}
+                  </span>
+                  <span className="text-[11px]" style={{ color: 'var(--sim-text-hint)' }}>
+                    {p.count}×
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">

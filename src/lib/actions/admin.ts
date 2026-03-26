@@ -254,6 +254,57 @@ export async function getAIAnalysisLogs(limit = 50) {
   return data
 }
 
+/**
+ * Агрегация расхождений: группировка по "engine рекомендовал X, врачи выбрали Y"
+ * Возвращает паттерны где 2+ разных врача не согласились одинаково.
+ */
+export async function getDisagreementPatterns() {
+  await requireAdmin()
+
+  const logs = await prisma.aiAnalysisLog.findMany({
+    where: { disagreement: { not: null } },
+    select: {
+      id: true,
+      userId: true,
+      engineTop3: true,
+      disagreement: true,
+      inputText: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  // Группируем: "engine top-1 → chosen remedy" → кол-во уникальных врачей
+  const patterns: Record<string, { engineRemedy: string; chosenRemedy: string; reasons: string[]; uniqueDoctors: Set<string>; count: number; lastDate: Date }> = {}
+
+  for (const log of logs) {
+    const d = log.disagreement as { chosenRemedy?: string; reason?: string } | null
+    if (!d?.chosenRemedy) continue
+    const top1 = (log.engineTop3 as Array<{ remedy: string }> | null)?.[0]?.remedy ?? 'unknown'
+    const key = `${top1}→${d.chosenRemedy}`
+
+    if (!patterns[key]) {
+      patterns[key] = { engineRemedy: top1, chosenRemedy: d.chosenRemedy, reasons: [], uniqueDoctors: new Set(), count: 0, lastDate: log.createdAt }
+    }
+    patterns[key].count++
+    patterns[key].uniqueDoctors.add(log.userId)
+    if (d.reason) patterns[key].reasons.push(d.reason)
+    if (log.createdAt > patterns[key].lastDate) patterns[key].lastDate = log.createdAt
+  }
+
+  return Object.values(patterns)
+    .map(p => ({
+      engineRemedy: p.engineRemedy,
+      chosenRemedy: p.chosenRemedy,
+      count: p.count,
+      uniqueDoctors: p.uniqueDoctors.size,
+      reasons: p.reasons,
+      lastDate: p.lastDate,
+      alert: p.uniqueDoctors.size >= 7, // Оповещение: 7+ разных врачей
+    }))
+    .sort((a, b) => b.uniqueDoctors - a.uniqueDoctors)
+}
+
 export type AIAnalysisLog = {
   id: string
   userId: string
@@ -273,6 +324,7 @@ export type AIAnalysisLog = {
   lowCount: number | null
   mentalCount: number | null
   errorType: string | null  // parsing / input / engine (ручная пометка)
+  disagreement: { chosenRemedy: string; reason: string; timestamp: string } | null
 }
 
 // Смена пароля (для настроек, не админки)

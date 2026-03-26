@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { getAIAnalysisLogs } from '@/lib/actions/admin'
+import { getAIAnalysisLogs, getDisagreementPatterns } from '@/lib/actions/admin'
 import AILogsView from './AILogsView'
 
 export default async function AILogsPage() {
@@ -16,7 +16,10 @@ export default async function AILogsPage() {
 
   if (!admin) redirect('/dashboard')
 
-  const logs = await getAIAnalysisLogs(100)
+  const [logs, patterns] = await Promise.all([
+    getAIAnalysisLogs(100),
+    getDisagreementPatterns(),
+  ])
 
-  return <AILogsView logs={logs} />
+  return <AILogsView logs={logs} disagreementPatterns={patterns} />
 }
