@@ -571,12 +571,13 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                 const gap = top1Score - r.totalScore
                 const pct = Math.max(10, Math.round((r.totalScore / top1Score) * 100))
                 // Индикатор близости
-                const gapLabel = gap < 5
+                // Индикатор по проценту от лидера, не абсолютному gap
+                const gapLabel = pct >= 90
                   ? (lang === 'ru' ? 'Близкая' : 'Close')
-                  : gap < 15
+                  : pct >= 70
                     ? (lang === 'ru' ? 'Возможная' : 'Possible')
                     : (lang === 'ru' ? 'Маловероятная' : 'Unlikely')
-                const gapColor = gap < 5 ? '#2d6a4f' : gap < 15 ? '#c8a035' : '#6b7280'
+                const gapColor = pct >= 90 ? '#2d6a4f' : pct >= 70 ? '#c8a035' : '#6b7280'
 
                 return (
                   <div key={i} className="py-3" style={{ borderBottom: i < Math.min(result.mdriResults.length - 2, 3) ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
