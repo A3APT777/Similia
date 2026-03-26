@@ -33,6 +33,26 @@ const MIASM_REMEDIES: Record<string, { nosode: string; keys: string[] }> = {
 
 const NOSODES = new Set(['med', 'psor', 'tub', 'syph', 'carc', 'bac'])
 
+// Термика средств (Кент: один из главных дифференциальных признаков)
+// chilly = зябкий, hot = жаркий. Ключи lowercase без точки.
+const REMEDY_THERMAL: Record<string, 'chilly' | 'hot'> = {
+  // Зябкие (chilly)
+  'ars': 'chilly', 'nux-v': 'chilly', 'calc': 'chilly', 'sil': 'chilly',
+  'hep': 'chilly', 'kali-c': 'chilly', 'bar-c': 'chilly', 'psor': 'chilly',
+  'graph': 'chilly', 'rhus-t': 'chilly', 'ferr': 'chilly', 'mag-p': 'chilly',
+  'bry': 'chilly', 'cocc': 'chilly', 'dulc': 'chilly', 'phos': 'chilly',
+  'nat-m': 'chilly', 'sep': 'chilly', 'ign': 'chilly', 'con': 'chilly',
+  'staph': 'chilly', 'petr': 'chilly', 'caust': 'chilly', 'chin': 'chilly',
+  'coloc': 'chilly', 'spong': 'chilly', 'dros': 'chilly', 'nit-ac': 'chilly',
+  'kali-bi': 'chilly', 'ran-b': 'chilly', 'cimic': 'chilly', 'caps': 'chilly',
+  // Жаркие (hot)
+  'sulph': 'hot', 'puls': 'hot', 'lach': 'hot', 'apis': 'hot',
+  'iod': 'hot', 'med': 'hot', 'lyc': 'hot', 'arg-n': 'hot',
+  'op': 'hot', 'all-c': 'hot', 'ant-c': 'hot', 'fl-ac': 'hot',
+  'nat-s': 'hot', 'plat': 'hot', 'sec': 'hot', 'thuj': 'hot',
+  'stram': 'hot', 'camph': 'hot', 'pic-ac': 'hot',
+}
+
 // Этиология → ведущие препараты (Organon §5: causa — высший уровень)
 // Ключ: подстрока rubric, значение: [препараты со score]
 const ETIOLOGY_REMEDIES: Record<string, { top: string[]; secondary: string[] }> = {
@@ -170,7 +190,7 @@ function extractCaseData(symptoms: MDRISymptom[], modalities: MDRIModality[]): C
 
     // Thermal
     if (r.includes('chill') || r.includes('cold') || r.includes('froz')) thermal = 'chilly'
-    if (r.includes('hot patient') || r.includes('hot ') || r.includes('warm agg')) thermal = 'hot'
+    if (r.includes('hot patient') || r === 'hot' || r.includes('warm agg') || r.includes('worse heat') || r.includes('heat agg')) thermal = 'hot'
     // Thirst
     if (r.includes('thirst') && r.includes('large')) thirst = 'large'
     if (r.includes('small sip') || r.includes('sip')) thirst = 'small_sips'
@@ -1159,6 +1179,15 @@ export function analyzePipeline(
     }
 
     let total = baseScore * constellationMult * polarityMult
+
+    // Thermal contradiction (Кент: термика — главный general дифференциал)
+    // Жаркий пациент + зябкий препарат → penalty 0.60, и наоборот
+    if (caseData.thermal) {
+      const remThermal = REMEDY_THERMAL[remNorm]
+      if (remThermal && remThermal !== caseData.thermal) {
+        total *= 0.60
+      }
+    }
 
     // Miasm (Ганеман "Хронические болезни": семейный анамнез → нозод)
     if (isChronic && mi > 0) {
