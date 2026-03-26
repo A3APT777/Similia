@@ -103,6 +103,53 @@ const AXES: DiffAxis[] = [
       { label: 'Жаркий, предпочитает прохладу, духота хуже', supports: ['Sulph.','Puls.','Lach.','Apis.','Iod.','Med.','Lyc.'], weakens: ['Ars.','Nux-v.','Calc.','Sil.','Hep.'] },
     ],
   },
+  // Новые оси — Фаза 3 аудита
+  {
+    name: 'consolation', type: 'BASE', impact: 0.60, coverage: 0.35,
+    question: 'Как пациент реагирует на утешение, сочувствие?',
+    values: [
+      { label: 'Хуже от утешения, не хочет чтобы жалели', supports: ['Nat-m.','Sep.','Sil.','Ign.'], weakens: ['Puls.','Phos.','Ars.'] },
+      { label: 'Лучше от утешения, ищет сочувствие', supports: ['Puls.','Phos.','Ars.','Stram.'], weakens: ['Nat-m.','Sep.','Sil.'] },
+    ],
+  },
+  {
+    name: 'desire_food', type: 'BASE', impact: 0.45, coverage: 0.40,
+    question: 'Есть ли выраженные пищевые пристрастия?',
+    values: [
+      { label: 'Любит солёное', supports: ['Nat-m.','Phos.','Verat.','Arg-n.'], weakens: ['Puls.','Sep.'] },
+      { label: 'Любит сладкое', supports: ['Lyc.','Arg-n.','Sulph.','Chin.'], weakens: ['Nat-m.','Calc.'] },
+      { label: 'Отвращение к жирному', supports: ['Puls.','Sep.','Nat-m.'], weakens: ['Nux-v.','Calc.'] },
+      { label: 'Любит яйца', supports: ['Calc.'], weakens: ['Ferr.'] },
+    ],
+  },
+  {
+    name: 'perspiration', type: 'BASE', impact: 0.42, coverage: 0.30,
+    question: 'Есть ли особенности потоотделения?',
+    values: [
+      { label: 'Потеет голова ночью (подушка мокрая)', supports: ['Calc.','Sil.','Merc.'], weakens: ['Sulph.','Bell.'] },
+      { label: 'Потеют и пахнут стопы', supports: ['Sil.','Bar-c.','Graph.'], weakens: ['Calc.','Lyc.'] },
+      { label: 'Обильный пот, но не облегчает', supports: ['Merc.','Hep.'], weakens: ['Nat-m.','Bry.'] },
+      { label: 'Холодный пот', supports: ['Verat.','Carb-v.','Ars.'], weakens: ['Bell.','Sulph.'] },
+    ],
+  },
+  {
+    name: 'sleep_position', type: 'BASE', impact: 0.55, coverage: 0.20,
+    question: 'В каком положении спит пациент?',
+    values: [
+      { label: 'На животе', supports: ['Med.','Calc-p.','Stram.'], weakens: ['Ars.','Puls.'] },
+      { label: 'На спине, раскинув руки', supports: ['Puls.','Nux-v.'], weakens: ['Med.'] },
+      { label: 'В позе эмбриона, на боку', supports: ['Bry.','Calc.'], weakens: ['Med.','Puls.'] },
+    ],
+  },
+  {
+    name: 'onset', type: 'BASE', impact: 0.48, coverage: 0.35,
+    question: 'Как начались жалобы?',
+    values: [
+      { label: 'Внезапно, остро', supports: ['Acon.','Bell.','Apis.','Stram.'], weakens: ['Calc.','Sil.','Lyc.'] },
+      { label: 'Постепенно, нарастали со временем', supports: ['Calc.','Sil.','Lyc.','Sulph.','Nat-m.'], weakens: ['Acon.','Bell.'] },
+      { label: 'После конкретного события (горе, стресс, болезнь)', supports: ['Nat-m.','Ign.','Staph.','Sep.'], weakens: ['Sulph.','Calc.'] },
+    ],
+  },
 ]
 
 // === Вспомогательные ===
@@ -132,6 +179,11 @@ function isFeatureCovered(axisName: string, existingSymptoms: MDRISymptom[]): bo
     side: ['left', 'right', 'side'],
     company: ['company', 'alone', 'solitude', 'desire company', 'aversion company'],
     thermal: ['chilly', 'hot patient', 'cold agg', 'heat agg', 'warm', 'frozen'],
+    consolation: ['consolation', 'sympathy', 'pity'],
+    desire_food: ['desire salt', 'desire sweets', 'desire sour', 'desire eggs', 'aversion fat', 'desire fat'],
+    perspiration: ['perspiration', 'sweat', 'sweating'],
+    sleep_position: ['sleep abdomen', 'sleep back', 'sleep position', 'sleep side'],
+    onset: ['ailments from', 'sudden', 'acute', 'gradual'],
   }
 
   const keywords = AXIS_KEYWORDS[axisName] ?? []
