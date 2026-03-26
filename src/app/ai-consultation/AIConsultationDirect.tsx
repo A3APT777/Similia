@@ -623,9 +623,6 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
             >
               {remedy.remedy}
             </p>
-            {potencyText && (
-              <p className="text-[14px] mt-1 font-medium text-[#2d6a4f]">{potencyText}</p>
-            )}
             {/* Краткое описание средства */}
             {REMEDY_DESCRIPTIONS_RU[remedy.remedy] && lang === 'ru' && (
               <p className="text-[12px] mt-2 text-[#6b7280] leading-relaxed">
@@ -733,12 +730,6 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                 {result.finalRemedy}
               </p>
 
-              {/* Потенция — без reasoning текста */}
-              {top1?.potency && (
-                <p className="text-[15px] mt-2 font-medium text-[#2d6a4f]">
-                  {typeof top1.potency === 'string' ? top1.potency : top1.potency.potency}
-                </p>
-              )}
 
               {/* Обоснование */}
               {result.aiResult?.reasoning && (
@@ -1136,18 +1127,9 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         >
           {lang === 'ru' ? 'Кому назначить?' : 'Assign to whom?'}
         </h2>
-        {(() => {
-          const chosen = assignRemedy || result?.finalRemedy || ''
-          const chosenData = result?.mdriResults?.find(r => r.remedy === chosen)
-          const potency = chosenData?.potency
-            ? (typeof chosenData.potency === 'string' ? chosenData.potency : chosenData.potency.potency)
-            : '30C'
-          return (
-            <p className="text-[13px] mb-6 text-[#6b7280]">
-              {chosen} {potency}
-            </p>
-          )
-        })()}
+        <p className="text-[13px] mb-6 text-[#6b7280]">
+          {assignRemedy || result?.finalRemedy || ''}
+        </p>
 
         {patients.length === 0 ? (
           <div className="text-center py-8">
