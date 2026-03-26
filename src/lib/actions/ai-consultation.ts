@@ -119,6 +119,41 @@ export async function analyzeCase(input: z.input<typeof analyzeSchema>): Promise
 /**
  * Анализ свободного текста — Sonnet парсит -> MDRI считает
  */
+/**
+ * Шаг 1: Парсинг текста — без engine, только Sonnet + проверка достаточности.
+ * Возвращает parsed данные + список недостающей информации.
+ */
+export async function parseOnly(input: { text: string }): Promise<{
+  _error?: string
+  hasMental: boolean
+  hasGeneral: boolean
+  hasModalities: boolean
+  symptomCount: number
+  missing: string[]  // какой информации не хватает
+}> {
+  const text = input.text?.trim()
+  if (!text || text.length < 10) return { _error: 'TOO_SHORT', hasMental: false, hasGeneral: false, hasModalities: false, symptomCount: 0, missing: [] }
+
+  const { userId } = await requireAuth()
+  try { await checkAIAccess(userId) } catch { return { _error: 'NO_AI_ACCESS', hasMental: false, hasGeneral: false, hasModalities: false, symptomCount: 0, missing: [] } }
+
+  const parseResult = await parseTextWithSonnet(text)
+  const merged = mergeWithFallback(text, parseResult.symptoms, parseResult.modalities, parseResult.familyHistory)
+
+  const hasMental = merged.symptoms.some(s => s.category === 'mental')
+  const hasGeneral = merged.symptoms.some(s => s.category === 'general')
+  const hasModalities = merged.modalities.length > 0
+  const symptomCount = merged.symptoms.length
+
+  const missing: string[] = []
+  if (!hasModalities) missing.push('modalities')
+  if (!hasGeneral) missing.push('general')
+  if (!hasMental) missing.push('mental')
+  if (symptomCount < 5) missing.push('few_symptoms')
+
+  return { hasMental, hasGeneral, hasModalities, symptomCount, missing }
+}
+
 export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Promise<ConsensusResult & { _error?: string }> {
   const parsed = analyzeTextSchema.parse(input)
   const { userId } = await requireAuth()

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { analyzeText, logClarifyResult, logDoctorFeedback, logDisagreement } from '@/lib/actions/ai-consultation'
+import { analyzeText, parseOnly, logClarifyResult, logDoctorFeedback, logDisagreement } from '@/lib/actions/ai-consultation'
 import type { ConsensusResult } from '@/lib/mdri/types'
 import type { ClarifyQuestion } from '@/lib/mdri/question-gain'
 import { applyClarifyBonus } from '@/lib/mdri/question-gain'
@@ -227,7 +227,8 @@ function getRemedyDescription(remedy: string, keyFeature: string, lang: Lang): s
 export default function AIConsultationDirect({ patients, lang, aiStatus }: Props) {
   const router = useRouter()
   const [text, setText] = useState('')
-  const [step, setStep] = useState<'input' | 'analyzing' | 'result' | 'clarify' | 'assign'>('input')
+  const [step, setStep] = useState<'input' | 'pre-clarify' | 'analyzing' | 'result' | 'clarify' | 'assign'>('input')
+  const [preClarifyAnswers, setPreClarifyAnswers] = useState<Record<string, string>>({})
   const [result, setResult] = useState<ConsensusResult | null>(null)
   const [error, setError] = useState('')
   const [selectedPatient, setSelectedPatient] = useState<string>('')
@@ -254,9 +255,18 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
   useEffect(() => { adjustHeight() }, [text, isFocused, adjustHeight])
 
+  // Полный текст для анализа = исходный текст + ответы на pre-clarify
+  function getFullText(extraAnswers?: Record<string, string>) {
+    const answers = extraAnswers ?? preClarifyAnswers
+    const parts = [text.trim()]
+    for (const [, answer] of Object.entries(answers)) {
+      if (answer) parts.push(answer)
+    }
+    return parts.join('. ')
+  }
+
   async function handleAnalyze() {
     if (!text.trim()) return
-    // Минимум 30 символов для осмысленного анализа
     if (text.trim().length < 30) {
       setError(lang === 'ru'
         ? 'Опишите подробнее — укажите жалобы, модальности (когда хуже/лучше), характер пациента.'
@@ -266,13 +276,32 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
     setStep('analyzing')
     setError('')
     try {
-      const res = await analyzeText({ text: text.trim() })
-      // Server action возвращает _error вместо throw (Next.js теряет error.message)
-      if ('_error' in res && res._error === 'NO_AI_ACCESS') {
-        setError('NO_AI_ACCESS')
-        setStep('input')
+      // Шаг 1: парсинг + проверка достаточности
+      const check = await parseOnly({ text: text.trim() })
+      if (check._error === 'NO_AI_ACCESS') { setError('NO_AI_ACCESS'); setStep('input'); return }
+      if (check._error === 'TOO_SHORT') { setError(lang === 'ru' ? 'Текст слишком короткий.' : 'Text too short.'); setStep('input'); return }
+
+      // Если не хватает важной информации — спросить перед engine
+      if (check.missing.length > 0) {
+        setPreClarifyAnswers({})
+        setStep('pre-clarify')
         return
       }
+
+      // Всё есть — запускаем engine
+      await runEngine(text.trim())
+    } catch {
+      setError(lang === 'ru' ? 'Ошибка AI-анализа. Попробуйте ещё раз.' : 'AI analysis error. Try again.')
+      setStep('input')
+    }
+  }
+
+  async function runEngine(fullText: string) {
+    setStep('analyzing')
+    setError('')
+    try {
+      const res = await analyzeText({ text: fullText })
+      if ('_error' in res && res._error === 'NO_AI_ACCESS') { setError('NO_AI_ACCESS'); setStep('input'); return }
       setResult(res)
       setStep('result')
     } catch {
@@ -586,6 +615,125 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ═══════════════════════════════════════
+  // Этап 2.5: Уточнение перед анализом
+  // ═══════════════════════════════════════
+  if (step === 'pre-clarify') {
+    const PRE_QUESTIONS = [
+      {
+        id: 'thermal',
+        question: lang === 'ru' ? 'Пациент скорее зябкий или жаркий?' : 'Is the patient chilly or hot?',
+        options: [
+          { label: lang === 'ru' ? 'Зябкий, мёрзнет, любит тепло' : 'Chilly, likes warmth', value: 'Зябкий, мёрзнет, тепло лучше' },
+          { label: lang === 'ru' ? 'Жаркий, духота хуже, любит прохладу' : 'Hot, worse in stuffy rooms', value: 'Жаркий, хуже от тепла, лучше на свежем воздухе' },
+          { label: lang === 'ru' ? 'Не выражено' : 'Not pronounced', value: '' },
+        ],
+      },
+      {
+        id: 'thirst',
+        question: lang === 'ru' ? 'Как пьёт воду?' : 'How does the patient drink?',
+        options: [
+          { label: lang === 'ru' ? 'Много, большими глотками' : 'Large quantities', value: 'Жажда сильная, пьёт много большими глотками' },
+          { label: lang === 'ru' ? 'Часто, мелкими глотками' : 'Frequent small sips', value: 'Пьёт часто мелкими глотками' },
+          { label: lang === 'ru' ? 'Почти не пьёт, жажды нет' : 'Almost no thirst', value: 'Жажды нет, почти не пьёт' },
+          { label: lang === 'ru' ? 'Не знаю' : "Don't know", value: '' },
+        ],
+      },
+      {
+        id: 'modality_motion',
+        question: lang === 'ru' ? 'Как влияет движение?' : 'Effect of motion?',
+        options: [
+          { label: lang === 'ru' ? 'Хуже от движения, лучше в покое' : 'Worse from motion', value: 'Хуже от движения, лучше лёжа в покое' },
+          { label: lang === 'ru' ? 'Лучше от движения, не может сидеть' : 'Better from motion', value: 'Лучше от движения, хуже от покоя' },
+          { label: lang === 'ru' ? 'Не замечено' : 'Not noticed', value: '' },
+        ],
+      },
+      {
+        id: 'modality_time',
+        question: lang === 'ru' ? 'В какое время хуже?' : 'Time of aggravation?',
+        options: [
+          { label: lang === 'ru' ? 'Утром' : 'Morning', value: 'Хуже утром' },
+          { label: lang === 'ru' ? 'Днём' : 'Afternoon', value: 'Хуже днём' },
+          { label: lang === 'ru' ? 'Вечером (16-20ч)' : 'Evening', value: 'Хуже вечером 16-20 часов' },
+          { label: lang === 'ru' ? 'Ночью' : 'Night', value: 'Хуже ночью' },
+        ],
+      },
+      {
+        id: 'consolation',
+        question: lang === 'ru' ? 'Как реагирует на утешение, сочувствие?' : 'Reaction to consolation?',
+        options: [
+          { label: lang === 'ru' ? 'Хуже от утешения' : 'Worse from consolation', value: 'Утешение хуже, не хочет чтобы жалели' },
+          { label: lang === 'ru' ? 'Лучше от утешения, ищет сочувствие' : 'Better from consolation', value: 'Утешение помогает, ищет сочувствие' },
+          { label: lang === 'ru' ? 'Не выражено' : 'Not pronounced', value: '' },
+        ],
+      },
+      {
+        id: 'food',
+        question: lang === 'ru' ? 'Пищевые пристрастия?' : 'Food desires?',
+        options: [
+          { label: lang === 'ru' ? 'Любит солёное' : 'Desires salt', value: 'Любит солёное' },
+          { label: lang === 'ru' ? 'Любит сладкое' : 'Desires sweets', value: 'Любит сладкое' },
+          { label: lang === 'ru' ? 'Не переносит жирное' : 'Aversion to fat', value: 'Отвращение к жирной пище' },
+          { label: lang === 'ru' ? 'Не выражено' : 'Not pronounced', value: '' },
+        ],
+      },
+    ]
+
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+        <h2
+          className="text-[24px] sm:text-[28px] font-light mb-2 text-[#1a1a1a]"
+          style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)' }}
+        >
+          {lang === 'ru' ? 'Уточните для точного анализа' : 'Clarify for accurate analysis'}
+        </h2>
+        <p className="text-[13px] text-[#6b7280] mb-6">
+          {lang === 'ru'
+            ? 'В описании не хватает ключевой информации. Ответьте на вопросы — это повысит точность.'
+            : 'Key information is missing. Answer the questions to improve accuracy.'}
+        </p>
+
+        <div className="space-y-5">
+          {PRE_QUESTIONS.map(q => (
+            <div key={q.id} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5">
+              <p className="text-[13px] font-medium text-[#1a1a1a] mb-3">{q.question}</p>
+              <div className="flex flex-wrap gap-2">
+                {q.options.map(opt => (
+                  <button
+                    key={opt.label}
+                    onClick={() => setPreClarifyAnswers(prev => ({ ...prev, [q.id]: opt.value }))}
+                    className={`text-[12px] px-4 py-2 rounded-full transition-all duration-200 ${
+                      preClarifyAnswers[q.id] === opt.value
+                        ? 'bg-[#2d6a4f] text-white'
+                        : 'bg-[#f7f3ed] text-[#1a1a1a] hover:bg-[#2d6a4f]/[0.08]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <button
+            onClick={() => runEngine(getFullText())}
+            className="w-full py-3.5 text-[14px] font-semibold rounded-full bg-[#1e3a2f] text-white shadow-[0_4px_16px_rgba(30,58,47,0.3)] transition-all duration-200 hover:-translate-y-0.5"
+          >
+            {lang === 'ru' ? 'Анализировать' : 'Analyze'}
+          </button>
+          <button
+            onClick={() => runEngine(text.trim())}
+            className="w-full py-2.5 text-[12px] rounded-full text-[#6b7280] hover:underline"
+          >
+            {lang === 'ru' ? 'Пропустить и анализировать как есть' : 'Skip and analyze as is'}
+          </button>
         </div>
       </div>
     )
