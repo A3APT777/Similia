@@ -56,6 +56,8 @@ export default function LandingPage() {
           from { opacity: 0; }
           to { opacity: 1; }
         }
+        @keyframes lr-ai-border { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+        @keyframes aiShimmerLine { 0%{left:-50%} 100%{left:150%} }
 
         .lr-reveal { animation: lr-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .lr-delay-1 { animation-delay: 0.1s; }
@@ -344,27 +346,38 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* AI Pro */}
-            <div className="p-8 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.06)' }}>
-              <p className="text-[11px] font-medium tracking-[0.15em] uppercase mb-3" style={{ color: '#6366f1' }}>AI Pro</p>
-              <div className="mb-1">
-                <span className="lr-serif text-[40px] font-light" style={{ color: '#1a1a0a' }}>1 990 ₽</span>
-                <span className="text-[14px] ml-1" style={{ color: '#8a7e6c' }}>/мес</span>
+            {/* AI Pro — футуристичная карточка */}
+            <div className="group relative rounded-2xl p-px transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_25px_80px_rgba(99,102,241,0.2)]">
+              <div className="absolute inset-0 rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 25%, #a78bfa 50%, #6366f1 75%, #818cf8 100%)', backgroundSize: '300% 300%', animation: 'lr-ai-border 4s ease infinite' }} />
+              <div className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-700 blur-xl" style={{ background: 'linear-gradient(135deg, #6366f1, #a78bfa, #6366f1)' }} />
+              <div className="relative rounded-2xl p-8 flex flex-col overflow-hidden" style={{ backgroundColor: '#0f0b2e' }}>
+                <div className="absolute top-0 left-0 right-0 h-px overflow-hidden">
+                  <div style={{ animation: 'aiShimmerLine 3s ease-in-out infinite', background: 'linear-gradient(90deg, transparent, rgba(129,140,248,0.6), transparent)', height: '1px', width: '50%', position: 'absolute' }} />
+                </div>
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 60% 50% at 80% 20%, rgba(99,102,241,0.12) 0%, transparent 70%)' }} />
+                <div className="relative z-10 inline-flex items-center gap-1.5 self-start px-3 py-1 rounded-full text-[11px] font-semibold tracking-wider mb-6" style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#a78bfa', border: '1px solid rgba(99,102,241,0.2)' }}>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                  AI PRO
+                </div>
+                <div className="relative z-10 mb-1">
+                  <span className="lr-serif text-[40px] font-light text-white">1 990 ₽</span>
+                  <span className="text-[14px] text-white/40 ml-1">/мес</span>
+                </div>
+                <p className="relative z-10 text-[12px] text-white/40 mb-6">всё из Стандарта + AI-движок</p>
+                <ul className="relative z-10 space-y-3 mb-8 flex-1">
+                  {['Безлимит AI-консультаций', '8-линзовый MDRI-анализ', 'AI-гомеопат + арбитр', 'Персональные AI-анкеты', 'Рекомендация потенции'].map(f => (
+                    <li key={f} className="flex items-start gap-2.5 text-[14px] text-white/80">
+                      <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="relative z-10">
+                  <Link href="/pricing" className="block w-full text-center py-3.5 rounded-full text-[14px] font-semibold text-white transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:-translate-y-px" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)' }}>
+                    Подробнее
+                  </Link>
+                </div>
               </div>
-              <p className="text-[13px] mb-6" style={{ color: '#8a7e6c' }}>всё из Стандарта + AI</p>
-              <ul className="space-y-3 mb-8">
-                {['Безлимит AI-консультаций', '8-линзовый MDRI-анализ', 'AI-гомеопат + арбитр', 'AI-анкеты', 'Рекомендация потенции'].map(f => (
-                  <li key={f} className="flex items-start gap-2.5 text-[14px]" style={{ color: '#1a1a0a' }}>
-                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="#6366f1" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/pricing" className="block text-center text-[14px] font-medium py-3.5 rounded-full transition-all text-[#6366f1] hover:bg-[#6366f1] hover:text-white" style={{ border: '1px solid rgba(99,102,241,0.3)' }}>
-                Подробнее
-              </Link>
             </div>
           </div>
 
