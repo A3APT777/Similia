@@ -27,6 +27,7 @@ echo -e "Branch: ${YELLOW}${BRANCH}${NC}"
 
 # --- 2. Build ---
 echo -e "\n${GREEN}[1/6] Building...${NC}"
+npx prisma generate 2>/dev/null
 NODE_OPTIONS='--max-old-space-size=6144' npx next build
 if [ ! -f ".next/BUILD_ID" ]; then
   echo -e "${RED}BUILD_ID not found! Build failed.${NC}"
