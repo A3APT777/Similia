@@ -795,12 +795,18 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
           <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#6b7280]">
             {lang === 'ru' ? 'Рекомендация' : 'Recommendation'}
           </p>
-          <div className="flex items-center gap-2">
-            <Gauge size="small" value={gaugeValue} colors={gaugeColors} showValue={false} />
-            <span className="text-[11px] font-medium text-[#2d6a4f]">
+          {confLevel === 'clarify' || confLevel === 'insufficient' ? (
+            <span className="text-[11px] font-medium px-3 py-1 rounded-full bg-[#c8a035]/10 text-[#92780a]">
               {confidenceLabel(confLevel, lang)}
             </span>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Gauge size="small" value={gaugeValue} colors={gaugeColors} showValue={false} />
+              <span className="text-[11px] font-medium text-[#2d6a4f]">
+                {confidenceLabel(confLevel, lang)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Hero: один или два кандидата */}
@@ -838,14 +844,25 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                       onClick={() => {
                         setResult({ ...result, finalRemedy: r.remedy, mdriResults: [r, ...(result.mdriResults?.filter(m => m.remedy !== r.remedy) ?? [])] })
                       }}
-                      className="py-3 px-4 rounded-xl text-left border border-gray-200 hover:border-[#2d6a4f] hover:bg-[#2d6a4f]/[0.03] transition-all duration-200 cursor-pointer"
+                      className={`py-3 px-4 rounded-xl text-left transition-all duration-200 cursor-pointer ${
+                        result.finalRemedy === r.remedy
+                          ? 'border-2 border-[#2d6a4f] bg-[#2d6a4f]/[0.04] shadow-sm'
+                          : 'border border-gray-200 hover:border-[#2d6a4f]/40 opacity-70 hover:opacity-100'
+                      }`}
                     >
-                      <p
-                        className="text-[18px] font-light text-[#1a1a1a] mb-1"
-                        style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)' }}
-                      >
-                        {r.remedy}
-                      </p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p
+                          className="text-[18px] font-light text-[#1a1a1a]"
+                          style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)' }}
+                        >
+                          {r.remedy}
+                        </p>
+                        {result.finalRemedy === r.remedy && (
+                          <svg className="w-4 h-4 text-[#2d6a4f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                       {REMEDY_DESCRIPTIONS_RU[r.remedy] && lang === 'ru' && (
                         <p className="text-[11px] text-[#6b7280] leading-relaxed">
                           {REMEDY_DESCRIPTIONS_RU[r.remedy]}
