@@ -233,6 +233,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   const [showLenses, setShowLenses] = useState(false)
   const [disagreeStep, setDisagreeStep] = useState<'none' | 'choose' | 'reason' | 'done'>('none')
   const [disagreeRemedy, setDisagreeRemedy] = useState('')
+  const [assignRemedy, setAssignRemedy] = useState('')  // Какое средство назначаем (пусто = Top-1)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const hasContent = text.trim().length > 0
@@ -857,9 +858,17 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                           {gapLabel}
                         </span>
                       </div>
-                      <span className="text-[13px] font-medium tabular-nums" style={{ color: gapColor }}>
-                        {pct}%
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-medium tabular-nums" style={{ color: gapColor }}>
+                          {pct}%
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setAssignRemedy(r.remedy); setStep('assign') }}
+                          className="text-[10px] px-2.5 py-1 rounded-full border border-[#2d6a4f]/20 text-[#2d6a4f] hover:bg-[#2d6a4f]/[0.05] transition-all"
+                        >
+                          {lang === 'ru' ? 'Назначить' : 'Assign'}
+                        </button>
+                      </div>
                     </div>
                     <div className="h-1 rounded-full bg-gray-100 overflow-hidden">
                       <div
@@ -940,7 +949,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
           {disagreeStep === 'none' && (
             <>
               <button
-                onClick={() => setStep('assign')}
+                onClick={() => { setAssignRemedy(''); setStep('assign') }}
                 className="w-full py-3.5 text-[14px] font-semibold rounded-full bg-[#1e3a2f] text-white shadow-[0_4px_16px_rgba(30,58,47,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(30,58,47,0.35)] active:translate-y-0"
               >
                 {lang === 'ru' ? 'Назначить пациенту' : 'Assign to patient'}
@@ -1127,9 +1136,18 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         >
           {lang === 'ru' ? 'Кому назначить?' : 'Assign to whom?'}
         </h2>
-        <p className="text-[13px] mb-6 text-[#6b7280]">
-          {result?.finalRemedy} {typeof result?.mdriResults?.[0]?.potency === 'string' ? result.mdriResults[0].potency : result?.mdriResults?.[0]?.potency?.potency || '30C'}
-        </p>
+        {(() => {
+          const chosen = assignRemedy || result?.finalRemedy || ''
+          const chosenData = result?.mdriResults?.find(r => r.remedy === chosen)
+          const potency = chosenData?.potency
+            ? (typeof chosenData.potency === 'string' ? chosenData.potency : chosenData.potency.potency)
+            : '30C'
+          return (
+            <p className="text-[13px] mb-6 text-[#6b7280]">
+              {chosen} {potency}
+            </p>
+          )
+        })()}
 
         {patients.length === 0 ? (
           <div className="text-center py-8">
@@ -1177,10 +1195,11 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         {selectedPatient && (
           <button
             onClick={() => {
-              const chosenRemedy = result?.finalRemedy || ''
+              const chosenRemedy = assignRemedy || result?.finalRemedy || ''
               logDoctorFeedback(chosenRemedy).catch(() => {})
               const rx = encodeURIComponent(chosenRemedy)
-              const p = result?.mdriResults?.[0]?.potency
+              const chosenData = result?.mdriResults?.find(r => r.remedy === chosenRemedy)
+              const p = chosenData?.potency ?? result?.mdriResults?.[0]?.potency
               const potency = encodeURIComponent(typeof p === 'string' ? p : p?.potency || '30C')
               router.push(`/patients/${selectedPatient}?rx=${rx}&potency=${potency}`)
             }}
