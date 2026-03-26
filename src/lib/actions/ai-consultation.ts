@@ -57,7 +57,12 @@ const analyzeTextSchema = z.object({
 
 function getAnthropicClient() {
   // Таймаут 30с — защита от зависших запросов к API
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!, timeout: 30_000 })
+  // ANTHROPIC_BASE_URL — proxy через Hetzner (Timeweb IP заблокирован Anthropic)
+  return new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY!,
+    baseURL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
+    timeout: 30_000,
+  })
 }
 
 // --- Основные Actions ---

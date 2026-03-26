@@ -89,6 +89,11 @@
   --font-display:       var(--sim-font-serif);
 }
 
+/* ── Типографика — утилиты ─────────────────────────────────── */
+.heading-serif {
+  font-family: var(--sim-font-serif);
+}
+
 /* ── Глобальный фон ────────────────────────────────────────── */
 body {
   background-color: var(--sim-bg);

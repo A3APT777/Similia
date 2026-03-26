@@ -1,19 +1,12 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import CheckoutButton from './CheckoutButton'
+import Logo from '@/components/Logo'
 
 export const metadata: Metadata = {
   title: 'Тарифы — Similia',
   description: 'Цены и тарифы сервиса Similia для гомеопатов',
 }
-
-const Logo = () => (
-  <svg width={28} height={28} viewBox="0 0 36 36" fill="none">
-    <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9" />
-    <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="var(--sim-forest)" opacity="0.65" />
-    <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round" />
-  </svg>
-)
 
 function Check() {
   return (
@@ -31,8 +24,8 @@ export default function PricingPage() {
       <header className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: 'rgba(247,243,237,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <Logo />
-            <span className="text-[22px] font-light" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-forest)', letterSpacing: '0.04em' }}>Similia</span>
+            <Logo size={28} />
+            <span className="heading-serif text-[22px] font-light" style={{ color: 'var(--sim-forest)', letterSpacing: '0.04em' }}>Similia</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Link href="/login" className="text-[14px] px-5 py-2.5 rounded-full transition-colors" style={{ color: '#8a7e6c' }}>Войти</Link>
@@ -47,7 +40,7 @@ export default function PricingPage() {
           {/* Заголовок */}
           <div className="text-center mb-6">
             <p className="text-[13px] font-medium tracking-[0.15em] uppercase mb-4" style={{ color: 'var(--sim-green)' }}>Тарифы</p>
-            <h1 className="text-[clamp(36px,5vw,56px)] font-light leading-[1.1] mb-4" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", letterSpacing: '-0.02em', color: 'var(--sim-text)' }}>
+            <h1 className="heading-serif text-[clamp(36px,5vw,56px)] font-light leading-[1.1] mb-4" style={{ letterSpacing: '-0.02em', color: 'var(--sim-text)' }}>
               Без обязательств.
             </h1>
             <p className="text-[16px] max-w-[400px] mx-auto" style={{ color: '#8a7e6c' }}>
@@ -69,7 +62,7 @@ export default function PricingPage() {
             <div className="rounded-xl p-8" style={{ backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.06)' }}>
               <p className="text-[12px] font-medium tracking-[0.1em] uppercase mb-3" style={{ color: '#8a7e6c' }}>Базовый</p>
               <div className="mb-6">
-                <span className="text-[40px] font-light" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-text)' }}>0 ₽</span>
+                <span className="heading-serif text-[40px] font-light" style={{ color: 'var(--sim-text)' }}>0 ₽</span>
               </div>
               <ul className="space-y-3 mb-8">
                 {['До 5 пациентов', 'Реперторий Кента', 'Карточки и консультации', 'Анкеты и опросы'].map(f => (
@@ -90,7 +83,7 @@ export default function PricingPage() {
               </div>
               <p className="text-[12px] font-medium tracking-[0.1em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Стандарт</p>
               <div className="mb-1">
-                <span className="text-[40px] font-light text-white" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>290 ₽</span>
+                <span className="heading-serif text-[40px] font-light text-white">290 ₽</span>
                 <span className="text-[14px] ml-1" style={{ color: 'rgba(255,255,255,0.4)' }}>/мес</span>
               </div>
               <p className="text-[12px] mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>или 2 900 ₽/год</p>
@@ -135,7 +128,7 @@ export default function PricingPage() {
                   AI PRO
                 </div>
                 <div className="relative z-10 mb-1">
-                  <span className="text-[40px] font-light text-white" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>1 990 ₽</span>
+                  <span className="heading-serif text-[40px] font-light text-white">1 990 ₽</span>
                   <span className="text-[14px] text-white/40 ml-1">/мес</span>
                 </div>
                 <p className="relative z-10 text-[12px] text-white/40 mb-6">всё из Стандарта + AI-движок</p>
@@ -158,7 +151,7 @@ export default function PricingPage() {
           {/* AI пакеты */}
           <div id="packages" className="max-w-[700px] mx-auto rounded-xl p-8" style={{ backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.04)' }}>
             <div className="text-center mb-6">
-              <h2 className="text-[24px] font-light mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-text)' }}>
+              <h2 className="heading-serif text-[24px] font-light mb-2" style={{ color: 'var(--sim-text)' }}>
                 Пакеты AI-консультаций
               </h2>
               <p className="text-[14px]" style={{ color: '#8a7e6c' }}>
@@ -172,7 +165,7 @@ export default function PricingPage() {
                 { count: 50, price: 1990, per: '40 ₽/шт', plan: 'ai_pack_50' as const },
               ].map(pkg => (
                 <div key={pkg.count} className="text-center">
-                  <p className="text-[28px] font-light mb-0.5" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-green)' }}>{pkg.count}</p>
+                  <p className="heading-serif text-[28px] font-light mb-0.5" style={{ color: 'var(--sim-green)' }}>{pkg.count}</p>
                   <p className="text-[12px] mb-3" style={{ color: '#8a7e6c' }}>{pkg.per}</p>
                   <CheckoutButton
                     plan={pkg.plan}

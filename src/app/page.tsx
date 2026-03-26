@@ -1,15 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import RefCookieSetter from '@/components/RefCookieSetter'
-
-// ─── Логотип ───
-const Logo = ({ size = 24 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
-    <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9" />
-    <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65" />
-    <path d="M18 8 Q18 18 18 28" stroke="#1a3020" strokeWidth="0.8" strokeLinecap="round" />
-  </svg>
-)
+import Logo from '@/components/Logo'
 
 // ─── Иконка стрелка ───
 const ArrowIcon = () => (

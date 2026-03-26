@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import Logo from '@/components/Logo'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 import RefCookieSetter from '@/components/RefCookieSetter'
@@ -86,16 +87,13 @@ export default function RegisterPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-2.5 mb-12">
-            <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
-              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
-              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
-            </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[20px] font-normal text-[#f7f3ed] tracking-wide">
+            <Logo size={28} variant="light" />
+            <span className="heading-serif text-[20px] font-normal text-[#f7f3ed] tracking-wide">
               Similia
             </span>
           </div>
 
-          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[42px] font-light text-white/95 leading-[1.15] mb-4 tracking-tight">
+          <h2 className="heading-serif text-[42px] font-light text-white/95 leading-[1.15] mb-4 tracking-tight">
             {t(lang).auth.registerHero.split('\n').map((line, i, arr) => (
               <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
             ))}
@@ -107,7 +105,7 @@ export default function RegisterPage() {
 
         <div className="relative z-10">
           <div className="pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[18px] italic font-light text-white/35 mb-1.5">
+            <p className="heading-serif text-[18px] italic font-light text-white/35 mb-1.5">
               «Similia similibus curantur»
             </p>
             <p className="text-[11px] text-white/20 tracking-widest">
@@ -123,16 +121,13 @@ export default function RegisterPage() {
 
           {/* Мобильный логотип */}
           <div className="lg:hidden flex items-center gap-2.5 mb-10">
-            <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
-              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9"/>
-              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65"/>
-            </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[20px] font-normal text-[#1a3020] tracking-wide">
+            <Logo size={26} />
+            <span className="heading-serif text-[20px] font-normal text-[#1a3020] tracking-wide">
               Similia
             </span>
           </div>
 
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[32px] font-light text-[#1a1a0a] mb-2 tracking-tight">
+          <h1 className="heading-serif text-[32px] font-light text-[#1a1a0a] mb-2 tracking-tight">
             {t(lang).auth.createAccount}
           </h1>
           <p className="text-[15px] text-[#8a7e6c] mb-10">

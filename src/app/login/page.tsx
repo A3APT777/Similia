@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Logo from '@/components/Logo'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
@@ -51,16 +52,13 @@ export default function LoginPage() {
         {/* Логотип */}
         <div className="relative z-10">
           <div className="flex items-center gap-2.5 mb-12">
-            <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
-              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
-              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
-            </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: '#f7f3ed', letterSpacing: '0.02em' }}>
+            <Logo size={28} variant="light" />
+            <span className="heading-serif" style={{ fontSize: '20px', fontWeight: 400, color: '#f7f3ed', letterSpacing: '0.02em' }}>
               Similia
             </span>
           </div>
 
-          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '42px', fontWeight: 300, lineHeight: 1.15, letterSpacing: '-0.02em' }} className="text-white/95 mb-4">
+          <h2 className="heading-serif text-white/95 mb-4" style={{ fontSize: '42px', fontWeight: 300, lineHeight: 1.15, letterSpacing: '-0.02em' }}>
             {t(lang).auth.loginHero.split('\n').map((line, i, arr) => (
               <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
             ))}
@@ -73,7 +71,7 @@ export default function LoginPage() {
         {/* Цитата */}
         <div className="relative z-10">
           <div className="pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[18px] italic font-light text-white/35 mb-1.5">
+            <p className="heading-serif text-[18px] italic font-light text-white/35 mb-1.5">
               «Similia similibus curantur»
             </p>
             <p className="text-[11px] text-white/20 tracking-widest">
@@ -89,16 +87,13 @@ export default function LoginPage() {
 
           {/* Мобильный логотип */}
           <div className="lg:hidden flex items-center gap-2.5 mb-10">
-            <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
-              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9"/>
-              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65"/>
-            </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[20px] font-normal text-[#1a3020] tracking-wide">
+            <Logo size={26} />
+            <span className="heading-serif text-[20px] font-normal text-[#1a3020] tracking-wide">
               Similia
             </span>
           </div>
 
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[32px] font-light text-[#1a1a0a] mb-2 tracking-tight">
+          <h1 className="heading-serif text-[32px] font-light text-[#1a1a0a] mb-2 tracking-tight">
             {t(lang).auth.welcome}
           </h1>
           <p className="text-[15px] text-[#8a7e6c] mb-10">
