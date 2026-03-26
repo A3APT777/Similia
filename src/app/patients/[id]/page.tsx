@@ -90,6 +90,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
     mental_text: c.mentalText,
     general_text: c.generalText,
     ai_result: c.aiResult,
+    source: c.source,
   }))
 
   const lastCompleted = consultationsMapped.find(c => c.status === 'completed')
@@ -400,9 +401,16 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
                 >
                   {currentPrescription.remedy}
                 </span>
-                <span className="text-lg font-light" style={{ color: 'var(--sim-green)' }}>
-                  {currentPrescription.potency}
-                </span>
+                {currentPrescription.potency && (
+                  <span className="text-lg font-light" style={{ color: 'var(--sim-green)' }}>
+                    {currentPrescription.potency}
+                  </span>
+                )}
+                {currentPrescription.source === 'ai' && (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>
+                    AI-анализ
+                  </span>
+                )}
               </div>
 
               {currentPrescription.dosage && (

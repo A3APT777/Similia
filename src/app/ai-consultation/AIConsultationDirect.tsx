@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { analyzeText, parseOnly, logClarifyResult, logDoctorFeedback, logDisagreement } from '@/lib/actions/ai-consultation'
+import { createAIConsultation, savePrescription } from '@/lib/actions/consultations'
 import type { ConsensusResult } from '@/lib/mdri/types'
 import type { ClarifyQuestion } from '@/lib/mdri/question-gain'
 import { applyClarifyBonus } from '@/lib/mdri/question-gain'
@@ -1326,14 +1327,19 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
         {selectedPatient && (
           <button
-            onClick={() => {
+            onClick={async () => {
               const chosenRemedy = assignRemedy || result?.finalRemedy || ''
               logDoctorFeedback(chosenRemedy).catch(() => {})
-              const rx = encodeURIComponent(chosenRemedy)
-              const chosenData = result?.mdriResults?.find(r => r.remedy === chosenRemedy)
-              const p = chosenData?.potency ?? result?.mdriResults?.[0]?.potency
-              const potency = encodeURIComponent(typeof p === 'string' ? p : p?.potency || '30C')
-              router.push(`/patients/${selectedPatient}?rx=${rx}&potency=${potency}`)
+              try {
+                // Создать AI-консультацию с назначением
+                const aiNotes = `AI-анализ: ${chosenRemedy}\n\nТекст: ${text.trim().slice(0, 500)}`
+                const consultationId = await createAIConsultation(selectedPatient, 'chronic', aiNotes)
+                await savePrescription(consultationId, chosenRemedy, '', null, '')
+                router.push(`/patients/${selectedPatient}/consultations/${consultationId}`)
+              } catch {
+                // Fallback — просто открыть карточку
+                router.push(`/patients/${selectedPatient}`)
+              }
             }}
             className="w-full py-3.5 rounded-full bg-[#1e3a2f] text-white text-[14px] font-semibold shadow-[0_4px_16px_rgba(30,58,47,0.3)] transition-all duration-200 hover:-translate-y-0.5"
           >
