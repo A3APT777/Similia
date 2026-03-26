@@ -826,7 +826,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
               {lang === 'ru' ? 'Альтернативы' : 'Alternatives'}
             </p>
             <div className="space-y-0">
-              {result.mdriResults.slice(isEqual ? 2 : 1, isEqual ? 6 : 5).map((r, i) => {
+              {[...result.mdriResults.slice(isEqual ? 2 : 1, isEqual ? 6 : 5)].sort((a, b) => b.totalScore - a.totalScore).map((r, i) => {
                 const top1Score = result.mdriResults[0]?.totalScore ?? 100
                 const gap = top1Score - r.totalScore
                 const pct = Math.max(10, Math.round((r.totalScore / top1Score) * 100))
