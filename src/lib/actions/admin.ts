@@ -249,9 +249,14 @@ export async function getAIAnalysisLogs(limit = 50) {
   const data = await prisma.aiAnalysisLog.findMany({
     orderBy: { createdAt: 'desc' },
     take: limit,
+    include: { user: { select: { email: true, name: true } } },
   })
 
-  return data
+  return data.map(d => ({
+    ...d,
+    doctorEmail: d.user?.email ?? null,
+    doctorName: d.user?.name ?? null,
+  }))
 }
 
 /**
@@ -323,8 +328,10 @@ export type AIAnalysisLog = {
   mediumCount: number | null
   lowCount: number | null
   mentalCount: number | null
-  errorType: string | null  // parsing / input / engine (ручная пометка)
+  errorType: string | null
   disagreement: { chosenRemedy: string; reason: string; timestamp: string } | null
+  doctorEmail: string | null
+  doctorName: string | null
 }
 
 // Смена пароля (для настроек, не админки)

@@ -210,8 +210,13 @@ function LogCard({ log, expanded, onToggle, isLast }: {
         className="w-full text-left px-5 py-4 flex items-center gap-4 transition-colors"
         style={{ backgroundColor: expanded ? 'var(--sim-bg-muted)' : 'transparent' }}
       >
-        {/* Date */}
-        <span className="text-xs w-28 shrink-0" style={{ color: 'var(--sim-text-hint)' }}>{timeStr}</span>
+        {/* Date + Doctor */}
+        <div className="w-36 shrink-0">
+          <span className="text-xs block" style={{ color: 'var(--sim-text-hint)' }}>{timeStr}</span>
+          {log.doctorEmail && (
+            <span className="text-[10px] block truncate" style={{ color: 'var(--sim-text-muted)' }}>{log.doctorName || log.doctorEmail.split('@')[0]}</span>
+          )}
+        </div>
 
         {/* Top-3 */}
         <div className="flex gap-1.5 flex-1 items-center">
@@ -271,6 +276,29 @@ function LogCard({ log, expanded, onToggle, isLast }: {
       {/* Details */}
       {expanded && (
         <div className="px-5 pb-5 pt-2 space-y-4" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
+          {/* Текст врача */}
+          {log.inputText && (
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--sim-text-muted)' }}>
+                Текст врача {log.doctorEmail && <span className="normal-case font-normal">({log.doctorEmail})</span>}
+              </div>
+              <p className="text-[12px] leading-relaxed rounded-lg p-3" style={{ backgroundColor: 'var(--sim-bg-card)', color: 'var(--sim-text)', border: '1px solid var(--sim-border)' }}>
+                {log.inputText.length > 300 ? log.inputText.slice(0, 300) + '...' : log.inputText}
+              </p>
+            </div>
+          )}
+
+          {/* Disagreement */}
+          {log.disagreement && (
+            <div className="rounded-lg px-3 py-2" style={{ backgroundColor: '#fef3c7', border: '1px solid #fde68a' }}>
+              <p className="text-[12px]" style={{ color: '#92400e' }}>
+                Врач выбрал <strong>{(log.disagreement as any).chosenRemedy}</strong> — причина: {
+                  { thermal: 'термика', symptom: 'ключевой симптом', etiology: 'этиология', experience: 'клин. опыт', miasm: 'миазм', other: 'другое' }[(log.disagreement as any).reason] ?? (log.disagreement as any).reason
+                }
+              </p>
+            </div>
+          )}
+
           {/* Input */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--sim-text-muted)' }}>
