@@ -115,14 +115,24 @@ export async function analyzeCase(input: z.input<typeof analyzeSchema>): Promise
  * Анализ свободного текста — Sonnet парсит -> MDRI считает
  */
 export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Promise<ConsensusResult> {
+  // Логирование в файл — PM2 stdout не показывает server action console.log
+  const fs = await import('fs')
+  const debugLog = (msg: string) => {
+    try { fs.appendFileSync('/tmp/analyzeText.log', new Date().toISOString() + ' ' + msg + '\n') } catch {}
+  }
+
+  debugLog('ENTRY')
   const parsed = analyzeTextSchema.parse(input)
+  debugLog('parsed ok, text=' + parsed.text.substring(0, 50))
   const { userId } = await requireAuth()
+  debugLog('auth ok, userId=' + userId)
 
   await checkAIAccess(userId)
+  debugLog('access ok')
 
   // Детальное логирование с таймингами
   const t0 = Date.now()
-  const log = (step: string) => console.log(`[analyzeText] ${step}: ${Date.now() - t0}ms`)
+  const log = (step: string) => { console.log(`[analyzeText] ${step}: ${Date.now() - t0}ms`); debugLog(step) }
 
   try {
     log('START')
@@ -249,7 +259,10 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     return result
   } catch (e) {
     const elapsed = Date.now() - t0
-    console.error(`[analyzeText] FAILED at ${elapsed}ms:`, e instanceof Error ? e.message : e)
+    const msg = e instanceof Error ? e.message : String(e)
+    const stack = e instanceof Error ? e.stack?.substring(0, 300) : ''
+    console.error(`[analyzeText] FAILED at ${elapsed}ms:`, msg)
+    debugLog(`FAILED at ${elapsed}ms: ${msg}\n${stack}`)
     throw e
   }
 }

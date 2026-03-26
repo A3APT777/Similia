@@ -22,7 +22,7 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[24px] font-light mb-3" style={{ color: 'var(--sim-text)' }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-text)' }} className="text-[24px] font-light mb-3">
             Ссылка недействительна
           </h1>
           <p className="text-[14px] leading-relaxed" style={{ color: 'var(--sim-text-muted)' }}>
@@ -43,7 +43,7 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[24px] font-light mb-3" style={{ color: 'var(--sim-text)' }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-text)' }} className="text-[24px] font-light mb-3">
             Анкета заполнена
           </h1>
           <p className="text-[14px] leading-relaxed" style={{ color: 'var(--sim-text-muted)' }}>
