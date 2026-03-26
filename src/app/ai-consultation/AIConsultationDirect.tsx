@@ -113,56 +113,12 @@ function confidenceLabel(level?: string, lang: Lang = 'ru') {
   return labels[level || '']?.[lang] || (lang === 'ru' ? 'Анализ' : 'Analysis')
 }
 
-// Перевод глав реперториума для отображения рубрик
-const CHAPTER_TRANSLATIONS: Record<string, string> = {
-  'MIND': 'Психика',
-  'HEAD': 'Голова',
-  'EYE': 'Глаза',
-  'EAR': 'Уши',
-  'NOSE': 'Нос',
-  'FACE': 'Лицо',
-  'MOUTH': 'Рот',
-  'THROAT': 'Горло',
-  'STOMACH': 'Желудок',
-  'ABDOMEN': 'Живот',
-  'RECTUM': 'Прямая кишка',
-  'STOOL': 'Стул',
-  'BLADDER': 'Мочевой пузырь',
-  'KIDNEYS': 'Почки',
-  'URETHRA': 'Уретра',
-  'URINE': 'Моча',
-  'GENITALIA': 'Половые органы',
-  'GENITALIA MALE': 'Муж. половые органы',
-  'GENITALIA FEMALE': 'Жен. половые органы',
-  'LARYNX': 'Гортань',
-  'RESPIRATION': 'Дыхание',
-  'COUGH': 'Кашель',
-  'EXPECTORATION': 'Мокрота',
-  'CHEST': 'Грудная клетка',
-  'BACK': 'Спина',
-  'EXTREMITIES': 'Конечности',
-  'SLEEP': 'Сон',
-  'DREAMS': 'Сновидения',
-  'CHILL': 'Озноб',
-  'FEVER': 'Лихорадка',
-  'PERSPIRATION': 'Потоотделение',
-  'SKIN': 'Кожа',
-  'GENERALITIES': 'Общие',
-  'VERTIGO': 'Головокружение',
-}
-
-// Перевод рубрики: "MIND - IRRITABILITY - morning" → "Психика — раздражительность — утром"
-function translateRubric(rubric: string): string {
-  const parts = rubric.split(' - ')
-  if (parts.length === 0) return rubric
-
-  // Перевести главу
-  const chapter = CHAPTER_TRANSLATIONS[parts[0].toUpperCase()] || parts[0]
-
-  // Остальные части — оставляем как есть, но lowercase
-  const rest = parts.slice(1).map(p => p.toLowerCase()).join(' — ')
-
-  return rest ? `${chapter} — ${rest}` : chapter
+// Категории учтённых симптомов
+const SYMPTOM_CATEGORIES: Record<string, { ru: string; en: string; icon: string }> = {
+  mental: { ru: 'Психика', en: 'Mental', icon: '🧠' },
+  general: { ru: 'Общие', en: 'General', icon: '🌡' },
+  modality: { ru: 'Модальности', en: 'Modalities', icon: '⚡' },
+  particular: { ru: 'Частные', en: 'Particular', icon: '📍' },
 }
 
 // Перевод названий линз + пояснения для врача
@@ -215,7 +171,7 @@ function lensInfo(name: string, score: number, details: string, lang: Lang): { l
   }
 }
 
-// Перевод keyFeature для fallback comparison — краткое описание ключевой черты средства
+// Описания средств для UI — ключевые черты на языке гомеопата
 const REMEDY_DESCRIPTIONS_RU: Record<string, string> = {
   'Sep.': 'Равнодушие к близким, опущение, лучше от активных упражнений',
   'Puls.': 'Плаксивая, переменчивая, хуже в тепле, жажды нет',
@@ -234,6 +190,28 @@ const REMEDY_DESCRIPTIONS_RU: Record<string, string> = {
   'Aur.': 'Депрессия, ответственность, хуже ночью, сердце',
   'Med.': 'Спешка, экстремы, сон на животе, лучше у моря',
   'Thuj.': 'Скрытность, фиксации, бородавки, хуже от влажности',
+  'Bell.': 'Внезапное начало, жар, покраснение, пульсация, хуже от света',
+  'Bry.': 'Хуже от движения, сухость, жажда большими глотками, раздражительность',
+  'Rhus-t.': 'Лучше от движения, беспокойство, хуже в покое и сырости',
+  'Acon.': 'Страх смерти, внезапное начало после холодного ветра',
+  'Apis': 'Отёки, жалящие боли, лучше от холода, хуже от тепла',
+  'Arg-n.': 'Тревога ожидания, спешка, тяга к сладкому, понос от волнения',
+  'Cham.': 'Невыносимая боль, капризность, одна щека красная',
+  'Cina': 'Скрежет зубами, раздражительность у детей, глисты',
+  'Cocc.': 'Укачивание, головокружение, слабость, бессонница от тревоги',
+  'Gels.': 'Слабость, дрожь, тяжесть век, грипп, страх перед экзаменом',
+  'Hep.': 'Крайняя чувствительность к боли и холоду, нагноения',
+  'Ip.': 'Постоянная тошнота, чистый язык при тошноте, кровотечения',
+  'Kali-c.': 'Боли в 2-4 часа ночи, зябкий, отёки, ригидность',
+  'Lil-t.': 'Спешка, раздражительность, опущение матки, сердцебиение',
+  'Merc.': 'Слюнотечение, потливость ночью, язвы, хуже от перемен температуры',
+  'Nat-c.': 'Чувствительность к жаре, слабое пищеварение, молоко хуже',
+  'Nat-s.': 'Хуже от сырости, астма, депрессия утром, печень',
+  'Nit-ac.': 'Занозистые боли, трещины, раздражительность, тяга к жиру',
+  'Ph-ac.': 'Апатия от горя, безразличие, выпадение волос, понос',
+  'Plat.': 'Высокомерие, онемение, повышенная чувствительность половых органов',
+  'Stram.': 'Страхи темноты, насилие, яркий бред, жажда, зрачки расширены',
+  'Verat.': 'Холодный пот, коллапс, рвота с поносом, жажда холодного',
 }
 
 function getRemedyDescription(remedy: string, keyFeature: string, lang: Lang): string {
@@ -568,144 +546,217 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   // ═══════════════════════════════════════
   if (step === 'result' && result) {
     const top1 = result.mdriResults?.[0]
+    const top2 = result.mdriResults?.[1]
     const confLevel = result.productConfidence?.level
     const gaugeValue = confidenceToGaugeValue(confLevel)
     const gaugeColors = confidenceGaugeColors(confLevel)
 
-    return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        {/* Hero-карточка Top-1 с Shine Border */}
+    // Равноценные кандидаты: productConfidence говорит equal ИЛИ top-2 >= 95% от top-1
+    const top2Pct = top1 && top2 ? Math.round((top2.totalScore / top1.totalScore) * 100) : 0
+    const isEqual = result.productConfidence?.showAsEqual === true || top2Pct >= 95
+
+    // Функция для отрисовки hero-карточки средства
+    const renderHeroCard = (remedy: typeof top1, isSecondary = false) => {
+      if (!remedy) return null
+      const potencyText = remedy.potency
+        ? (typeof remedy.potency === 'string' ? remedy.potency : remedy.potency.potency)
+        : null
+
+      return (
         <ShineBorder
           borderRadius={20}
           borderWidth={1.5}
           duration={10}
-          color={confLevel === 'high' ? ['#2d6a4f', '#5a9e7c'] : confLevel === 'good' ? ['#5a9e7c', '#c8a035'] : ['#c8a035', '#d97706']}
-          className="w-full !min-w-0 !bg-white !p-0 mb-5 result-card"
-          style={{ animationDelay: '0.1s' } as React.CSSProperties}
+          color={isEqual ? ['#c8a035', '#d97706'] : confLevel === 'high' ? ['#2d6a4f', '#5a9e7c'] : confLevel === 'good' ? ['#5a9e7c', '#c8a035'] : ['#c8a035', '#d97706']}
+          className={`w-full !min-w-0 !bg-white !p-0 ${isSecondary ? '' : 'result-card'}`}
+          style={isSecondary ? undefined : { animationDelay: '0.1s' } as React.CSSProperties}
         >
-          <div className="p-6 sm:p-8">
-            {/* Метка + Confidence */}
-            <div className="flex items-center justify-between mb-5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#6b7280]">
-                {lang === 'ru' ? 'Рекомендация' : 'Recommendation'}
-              </p>
-              <div className="flex items-center gap-2">
-                <Gauge
-                  size="small"
-                  value={gaugeValue}
-                  colors={gaugeColors}
-                  showValue={false}
-                />
-                <span className="text-[11px] font-medium text-[#2d6a4f]">
-                  {confidenceLabel(confLevel, lang)}
-                </span>
-              </div>
-            </div>
-
-            {/* Название средства */}
+          <div className="p-5 sm:p-6">
             <p
-              className="text-[36px] sm:text-[44px] font-light tracking-[-0.03em] leading-tight text-[#1a1a1a]"
+              className={`${isEqual ? 'text-[28px] sm:text-[32px]' : 'text-[36px] sm:text-[44px]'} font-light tracking-[-0.03em] leading-tight text-[#1a1a1a]`}
               style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)' }}
             >
-              {result.finalRemedy}
+              {remedy.remedy}
             </p>
-
-            {/* Потенция */}
-            {top1?.potency && (
-              <p className="text-[15px] mt-2 font-medium text-[#2d6a4f]">
-                {typeof top1.potency === 'string' ? top1.potency : top1.potency.potency}
-                {typeof top1.potency !== 'string' && top1.potency.reasoning && (
-                  <span className="text-[12px] text-[#6b7280] font-normal ml-2">
-                    — {top1.potency.reasoning}
-                  </span>
-                )}
+            {potencyText && (
+              <p className="text-[14px] mt-1 font-medium text-[#2d6a4f]">{potencyText}</p>
+            )}
+            {/* Краткое описание средства */}
+            {REMEDY_DESCRIPTIONS_RU[remedy.remedy] && lang === 'ru' && (
+              <p className="text-[12px] mt-2 text-[#6b7280] leading-relaxed">
+                {REMEDY_DESCRIPTIONS_RU[remedy.remedy]}
               </p>
-            )}
-
-            {/* Обоснование: почему это средство */}
-            {result.aiResult?.reasoning && (
-              <div className="mt-5 pt-5 border-t border-black/[0.04]">
-                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#6b7280] mb-2">
-                  {lang === 'ru' ? 'Почему это средство' : 'Why this remedy'}
-                </p>
-                <p className="text-[13px] leading-[1.7] text-[#6b7280]">
-                  {result.aiResult.reasoning}
-                </p>
-              </div>
-            )}
-
-            {/* Совпавшие рубрики (если есть) */}
-            {top1?.matchedRubrics && top1.matchedRubrics.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-black/[0.04]">
-                <button
-                  onClick={() => setShowRubrics(!showRubrics)}
-                  className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity cursor-pointer"
-                >
-                  <svg
-                    className={`w-3 h-3 transition-transform duration-200 ${showRubrics ? 'rotate-90' : ''}`}
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                  {lang === 'ru'
-                    ? `${top1.matchedRubrics.length} совпавших рубрик`
-                    : `${top1.matchedRubrics.length} matched rubrics`}
-                </button>
-                {showRubrics && (
-                  <div className="mt-3 space-y-1.5">
-                    {top1.matchedRubrics.map((r, i) => (
-                      <div key={i} className="flex items-start gap-2 text-[12px] text-[#6b7280]">
-                        <span className="text-[#2d6a4f] mt-0.5">•</span>
-                        <span>{lang === 'ru' ? translateRubric(r) : r}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 6 линз — детализация */}
-            {top1?.lenses && top1.lenses.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-black/[0.04]">
-                <button
-                  onClick={() => setShowLenses(!showLenses)}
-                  className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity cursor-pointer"
-                >
-                  <svg
-                    className={`w-3 h-3 transition-transform duration-200 ${showLenses ? 'rotate-90' : ''}`}
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                  {lang === 'ru' ? 'Детализация по методам' : 'Method breakdown'}
-                </button>
-                {showLenses && (
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {top1.lenses.map((lens, i) => {
-                      const info = lensInfo(lens.name, lens.score, lens.details, lang)
-                      return (
-                        <div key={i} className="rounded-xl bg-[#f7f3ed] p-3">
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#6b7280] mb-1">{info.label}</p>
-                          <p className="text-[18px] font-light text-[#1a1a1a]">{info.displayScore}</p>
-                          <p className="text-[10px] text-[#6b7280]/70 mt-0.5">{info.hint}</p>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
             )}
           </div>
         </ShineBorder>
+      )
+    }
 
-        {/* Альтернативы — Top 2-5 */}
-        {result.mdriResults && result.mdriResults.length > 1 && (
+    // Активные линзы (скрываем 0%)
+    const activeLenses = top1?.lenses?.filter(l => l.score > 0) ?? []
+
+    // Группировка usedSymptoms по категориям
+    const symptomGroups = (result.usedSymptoms ?? []).reduce((acc, s) => {
+      if (!acc[s.type]) acc[s.type] = []
+      acc[s.type].push(s.label)
+      return acc
+    }, {} as Record<string, string[]>)
+
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+        {/* Метка + Confidence */}
+        <div className="flex items-center justify-between mb-5">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#6b7280]">
+            {lang === 'ru' ? 'Рекомендация' : 'Recommendation'}
+          </p>
+          <div className="flex items-center gap-2">
+            <Gauge size="small" value={gaugeValue} colors={gaugeColors} showValue={false} />
+            <span className="text-[11px] font-medium text-[#2d6a4f]">
+              {confidenceLabel(confLevel, lang)}
+            </span>
+          </div>
+        </div>
+
+        {/* Hero: один или два кандидата */}
+        {isEqual && top2 ? (
+          <div className="mb-5">
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {renderHeroCard(top1)}
+              {renderHeroCard(top2, true)}
+            </div>
+            {/* Плашка: нужно уточнить */}
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#c8a035]/[0.06] border border-[#c8a035]/15">
+              <svg className="w-4 h-4 text-[#c8a035] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <p className="text-[12px] text-[#92780a]">
+                {lang === 'ru'
+                  ? 'Оба средства подходят одинаково. Ответьте на вопрос ниже, чтобы определиться.'
+                  : 'Both remedies fit equally. Answer the question below to decide.'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <ShineBorder
+            borderRadius={20}
+            borderWidth={1.5}
+            duration={10}
+            color={confLevel === 'high' ? ['#2d6a4f', '#5a9e7c'] : confLevel === 'good' ? ['#5a9e7c', '#c8a035'] : ['#c8a035', '#d97706']}
+            className="w-full !min-w-0 !bg-white !p-0 mb-5 result-card"
+            style={{ animationDelay: '0.1s' } as React.CSSProperties}
+          >
+            <div className="p-6 sm:p-8">
+              <p
+                className="text-[36px] sm:text-[44px] font-light tracking-[-0.03em] leading-tight text-[#1a1a1a]"
+                style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)' }}
+              >
+                {result.finalRemedy}
+              </p>
+
+              {/* Потенция — без reasoning текста */}
+              {top1?.potency && (
+                <p className="text-[15px] mt-2 font-medium text-[#2d6a4f]">
+                  {typeof top1.potency === 'string' ? top1.potency : top1.potency.potency}
+                </p>
+              )}
+
+              {/* Обоснование */}
+              {result.aiResult?.reasoning && (
+                <div className="mt-5 pt-5 border-t border-black/[0.04]">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#6b7280] mb-2">
+                    {lang === 'ru' ? 'Почему это средство' : 'Why this remedy'}
+                  </p>
+                  <p className="text-[13px] leading-[1.7] text-[#6b7280]">
+                    {result.aiResult.reasoning}
+                  </p>
+                </div>
+              )}
+
+              {/* Учтённые симптомы — вместо matchedRubrics */}
+              {Object.keys(symptomGroups).length > 0 && (
+                <div className="mt-4 pt-4 border-t border-black/[0.04]">
+                  <button
+                    onClick={() => setShowRubrics(!showRubrics)}
+                    className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity cursor-pointer"
+                  >
+                    <svg className={`w-3 h-3 transition-transform duration-200 ${showRubrics ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    {lang === 'ru'
+                      ? `Учтённые симптомы (${result.usedSymptoms?.length ?? 0})`
+                      : `Used symptoms (${result.usedSymptoms?.length ?? 0})`}
+                  </button>
+                  {showRubrics && (
+                    <div className="mt-3 space-y-3">
+                      {(['mental', 'general', 'modality', 'particular'] as const).map(cat => {
+                        const items = symptomGroups[cat]
+                        if (!items?.length) return null
+                        const catInfo = SYMPTOM_CATEGORIES[cat]
+                        return (
+                          <div key={cat}>
+                            <p className="text-[10px] font-medium uppercase tracking-wider text-[#6b7280] mb-1">
+                              {lang === 'ru' ? catInfo.ru : catInfo.en}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {items.map((label, i) => (
+                                <span key={i} className="text-[11px] px-2.5 py-1 rounded-full bg-[#2d6a4f]/[0.05] text-[#1a1a1a]">
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Детализация по методам — только линзы с score > 0 */}
+              {activeLenses.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-black/[0.04]">
+                  <button
+                    onClick={() => setShowLenses(!showLenses)}
+                    className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity cursor-pointer"
+                  >
+                    <svg className={`w-3 h-3 transition-transform duration-200 ${showLenses ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    {lang === 'ru' ? 'Детализация по методам' : 'Method breakdown'}
+                  </button>
+                  {showLenses && (
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {activeLenses.map((lens, i) => {
+                        const info = lensInfo(lens.name, lens.score, lens.details, lang)
+                        const barColor = lens.score >= 60 ? '#2d6a4f' : lens.score >= 30 ? '#c8a035' : '#6b7280'
+                        return (
+                          <div key={i} className="rounded-xl bg-[#f7f3ed] p-3">
+                            <p className="text-[10px] font-medium uppercase tracking-wider text-[#6b7280] mb-1">{info.label}</p>
+                            <p className="text-[18px] font-light text-[#1a1a1a]">{info.displayScore}</p>
+                            {/* Progress bar */}
+                            <div className="h-1 rounded-full bg-black/[0.06] mt-1.5 overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${lens.score}%`, backgroundColor: barColor }} />
+                            </div>
+                            <p className="text-[10px] text-[#6b7280]/70 mt-1">{info.hint}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </ShineBorder>
+        )}
+
+        {/* Альтернативы — при equal пропускаем top-2 (он в hero) */}
+        {result.mdriResults && result.mdriResults.length > (isEqual ? 2 : 1) && (
           <div className="result-card bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] p-5 sm:p-6 mb-5" style={{ animationDelay: '0.3s' }}>
             <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#6b7280] mb-4">
               {lang === 'ru' ? 'Альтернативы' : 'Alternatives'}
             </p>
             <div className="space-y-0">
-              {result.mdriResults.slice(1, 5).map((r, i) => {
+              {result.mdriResults.slice(isEqual ? 2 : 1, isEqual ? 6 : 5).map((r, i) => {
                 const top1Score = result.mdriResults[0]?.totalScore ?? 100
                 const gap = top1Score - r.totalScore
                 const pct = Math.max(10, Math.round((r.totalScore / top1Score) * 100))
