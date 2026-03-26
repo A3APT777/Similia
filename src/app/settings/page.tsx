@@ -152,11 +152,11 @@ export default async function SettingsPage() {
                       {lang === 'ru' ? 'AI Pro — 1 990 ₽/мес' : 'AI Pro — $19.90/mo'}
                     </Link>
                     <Link
-                      href="/pricing#packages"
+                      href="/pricing"
                       className="flex-1 text-center text-xs font-semibold px-3 py-2 rounded-full border transition-colors"
                       style={{ borderColor: 'rgba(99,102,241,0.3)', color: '#6366f1' }}
                     >
-                      {lang === 'ru' ? 'Пакет 5 шт — 299 ₽' : 'Pack of 5 — $2.99'}
+                      {lang === 'ru' ? 'Все тарифы' : 'All plans'}
                     </Link>
                   </div>
                 </div>

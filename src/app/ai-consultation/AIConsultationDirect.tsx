@@ -280,7 +280,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
     try {
       // Шаг 1: парсинг + проверка достаточности
       const check = await parseOnly({ text: text.trim() })
-      if (check._error === 'NO_AI_ACCESS') { setError('NO_AI_ACCESS'); setStep('input'); return }
+      if (check._error === 'NO_AI_ACCESS' || check._error === 'AI_MONTHLY_LIMIT') { setError(check._error); setStep('input'); return }
       if (check._error === 'TOO_SHORT') { setError(lang === 'ru' ? 'Текст слишком короткий.' : 'Text too short.'); setStep('input'); return }
 
       // Если не хватает важной информации — спросить перед engine
@@ -304,7 +304,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
     setError('')
     try {
       const res = await analyzeText({ text: fullText })
-      if ('_error' in res && res._error === 'NO_AI_ACCESS') { setError('NO_AI_ACCESS'); setStep('input'); return }
+      if ('_error' in res && (res._error === 'NO_AI_ACCESS' || res._error === 'AI_MONTHLY_LIMIT')) { setError(res._error); setStep('input'); return }
       setResult(res)
       setStep('result')
     } catch {
@@ -501,8 +501,22 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         </div>
 
         {/* Ошибка */}
-        {error && error !== 'NO_AI_ACCESS' && (
+        {error && error !== 'NO_AI_ACCESS' && error !== 'AI_MONTHLY_LIMIT' && (
           <p className="text-[13px] mt-3 text-[#dc2626]">{error}</p>
+        )}
+
+        {/* Месячный лимит исчерпан */}
+        {error === 'AI_MONTHLY_LIMIT' && (
+          <div className="mt-4 rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/[0.04] p-5">
+            <p className="text-[14px] font-medium text-[#1a1a1a] mb-2">
+              {lang === 'ru' ? 'Лимит анализов исчерпан' : 'Monthly limit reached'}
+            </p>
+            <p className="text-[13px] text-[#6b7280] leading-relaxed">
+              {lang === 'ru'
+                ? 'Вы использовали 100 AI-анализов в этом месяце. Лимит обновится 1-го числа следующего месяца.'
+                : 'You have used 100 AI analyses this month. The limit resets on the 1st of next month.'}
+            </p>
+          </div>
         )}
 
         {/* Нет доступа к AI */}

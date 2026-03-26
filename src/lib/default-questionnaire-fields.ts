@@ -16,6 +16,11 @@ export const DEFAULT_PRIMARY_FIELDS: TemplateField[] = [
   { id: 'previous_treatment', label: 'Предыдущее лечение', hint: 'Какие препараты принимали? Помогало ли?', type: 'textarea', required: false },
   { id: 'allergies', label: 'Аллергии', hint: 'На что есть аллергия?', type: 'text', required: false },
   { id: 'medications', label: 'Текущие препараты', hint: 'Что принимаете сейчас?', type: 'textarea', required: false },
+  // Гинекологический анамнез — необязательные, врач может убрать в настройках
+  { id: 'menstrual_cycle', label: 'Менструальный цикл', hint: 'Регулярность, длительность цикла, продолжительность менструации', type: 'textarea', required: false },
+  { id: 'menstrual_character', label: 'Характер менструаций', hint: 'Обильность, цвет, наличие сгустков, болезненность (до/во время/после)', type: 'textarea', required: false },
+  { id: 'menstrual_concomitant', label: 'Сопутствующие симптомы', hint: 'Изменения настроения, головные боли, тошнота, отёки до/во время менструации', type: 'textarea', required: false },
+  { id: 'gynecological_history', label: 'Гинекологический анамнез', hint: 'Беременности, роды, аборты, операции, выделения, климакс', type: 'textarea', required: false },
 ]
 
 // Острый случай

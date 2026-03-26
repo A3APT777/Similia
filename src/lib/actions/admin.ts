@@ -221,22 +221,21 @@ export async function adminToggleAIPro(doctorId: string, enable: boolean) {
   }
 }
 
-// Добавить AI-кредиты врачу
+// Добавить AI-кредиты врачу (атомарный increment)
 export async function adminAddAICredits(doctorId: string, credits: number) {
   await requireAdmin()
 
-  const settings = await prisma.doctorSettings.findUnique({
-    where: { doctorId },
-    select: { aiCredits: true },
-  })
-
-  const currentCredits = settings?.aiCredits ?? 0
-
   try {
+    // Сначала создаём запись если не существует
     await prisma.doctorSettings.upsert({
       where: { doctorId },
-      update: { aiCredits: currentCredits + credits },
-      create: { doctorId, aiCredits: currentCredits + credits },
+      update: {},
+      create: { doctorId },
+    })
+    // Атомарный increment — без race condition
+    await prisma.doctorSettings.update({
+      where: { doctorId },
+      data: { aiCredits: { increment: credits } },
     })
   } catch (error) {
     console.error('[adminAddAICredits]', error)

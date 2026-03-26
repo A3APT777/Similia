@@ -63,18 +63,14 @@ export default function HelpButton() {
             ))}
 
             <div className="pt-2 border-t space-y-1" style={{ borderColor: 'var(--sim-border)' }}>
-              <button
-                onClick={() => {
-                  localStorage.removeItem('welcome_shown')
-                  localStorage.setItem('onboarding_step', '0')
-                  setOpen(false)
-                  window.location.reload()
-                }}
-                className="w-full text-left text-sm py-2 px-3 rounded-lg transition-colors hover:bg-[var(--sim-bg-muted)]"
+              <Link
+                href="/guide"
+                className="block text-sm py-2 px-3 rounded-lg transition-colors hover:bg-[var(--sim-bg-muted)]"
                 style={{ color: 'var(--sim-green)' }}
+                onClick={() => setOpen(false)}
               >
-                Пройти обучение
-              </button>
+                Руководство по работе
+              </Link>
               <Link
                 href="mailto:simillia@mail.ru"
                 className="block text-sm py-2 px-3 rounded-lg transition-colors hover:bg-[var(--sim-bg-muted)]"

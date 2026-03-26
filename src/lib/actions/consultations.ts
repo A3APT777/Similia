@@ -196,6 +196,36 @@ export async function cancelConsultation(consultationId: string, patientId: stri
   redirect(`/patients/${patientId}`)
 }
 
+// Удалить консультацию (только пустые или отменённые)
+export async function deleteConsultation(consultationId: string, patientId: string) {
+  uuidSchema.parse(consultationId)
+  uuidSchema.parse(patientId)
+  const { userId } = await requireAuth()
+
+  // Проверяем что консультация принадлежит врачу
+  const consultation = await prisma.consultation.findFirst({
+    where: { id: consultationId, doctorId: userId },
+    select: { status: true, notes: true, remedy: true },
+  })
+
+  if (!consultation) {
+    throw new Error('Консультация не найдена')
+  }
+
+  // Разрешаем удаление только пустых/отменённых — не удалять завершённые с данными
+  const hasData = consultation.notes || consultation.remedy
+  if (consultation.status === 'completed' && hasData) {
+    throw new Error('Нельзя удалить завершённую консультацию с данными. Используйте отмену.')
+  }
+
+  await prisma.consultation.deleteMany({
+    where: { id: consultationId, doctorId: userId },
+  })
+
+  revalidatePath(`/patients/${patientId}`)
+  redirect(`/patients/${patientId}`)
+}
+
 // Автосохранение заметок
 export async function updateConsultationNotes(id: string, notes: string) {
   uuidSchema.parse(id)
@@ -452,25 +482,6 @@ export async function completeConsultation(id: string): Promise<void> {
   }
 
   revalidatePath('/dashboard')
-}
-
-// Удалить консультацию
-export async function deleteConsultation(id: string, patientId: string) {
-  uuidSchema.parse(id)
-  uuidSchema.parse(patientId)
-  const { userId } = await requireAuth()
-
-  try {
-    await prisma.consultation.deleteMany({
-      where: { id, doctorId: userId },
-    })
-  } catch (error) {
-    console.error('[deleteConsultation]', error)
-    throw new Error('Не удалось удалить консультацию')
-  }
-
-  revalidatePath('/dashboard')
-  redirect(`/patients/${patientId}`)
 }
 
 // Сохранить данные реперториума

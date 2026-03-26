@@ -132,24 +132,6 @@ export async function submitNewPatientBooking(
     return { success: false, error: 'К сожалению, врач не может принять больше пациентов на текущем тарифе' }
   }
 
-  // Создаём пациента
-  let patient
-  try {
-    patient = await prisma.patient.create({
-      data: {
-        doctorId: tokenData.doctorId,
-        name: validatedData.name,
-        birthDate: validatedData.birth_date || null,
-        phone: validatedData.phone,
-        email: validatedData.email || null,
-        firstVisitDate: new Date().toISOString().split('T')[0],
-      },
-    })
-  } catch (err) {
-    console.error('[submitNewPatientBooking] patient insert error:', err)
-    return { success: false, error: 'Ошибка создания пациента' }
-  }
-
   // Проверка конфликтов — нет ли записи на это время
   const scheduledAt = new Date(`${validatedData.date}T${validatedData.time}:00`)
   const dayStart = new Date(`${validatedData.date}T00:00:00`)
@@ -173,64 +155,69 @@ export async function submitNewPatientBooking(
   })
 
   if (hasConflict) {
-    // Откатываем пациента
-    await prisma.patient.delete({ where: { id: patient.id } })
     return { success: false, error: 'Это время уже занято. Выберите другое.' }
   }
 
-  // Создаём консультацию (запись)
+  // Всё в одной транзакции — пациент + консультация + анкета + токен
+  let patient
   try {
-    await prisma.consultation.create({
-      data: {
-        doctorId: tokenData.doctorId,
-        patientId: patient.id,
-        scheduledAt,
-        status: 'scheduled',
-        source: 'online',
-      },
+    patient = await prisma.$transaction(async (tx) => {
+      // Создаём пациента
+      const p = await tx.patient.create({
+        data: {
+          doctorId: tokenData.doctorId,
+          name: validatedData.name,
+          birthDate: validatedData.birth_date || null,
+          phone: validatedData.phone,
+          email: validatedData.email || null,
+          firstVisitDate: new Date().toISOString().split('T')[0],
+        },
+      })
+
+      // Создаём консультацию
+      await tx.consultation.create({
+        data: {
+          doctorId: tokenData.doctorId,
+          patientId: p.id,
+          scheduledAt,
+          status: 'scheduled',
+          source: 'online',
+        },
+      })
+
+      // Сохраняем анкету
+      const intakeData = {
+        complaints: validatedData.complaints,
+        duration: validatedData.duration,
+        previous_treatment: validatedData.previous_treatment || '',
+        allergies: validatedData.allergies || '',
+        medications: validatedData.medications,
+        medications_list: validatedData.medications === 'yes' ? (validatedData.medications_list || '') : '',
+      }
+
+      await tx.intakeForm.create({
+        data: {
+          doctorId: tokenData.doctorId,
+          patientId: p.id,
+          patientName: validatedData.name,
+          type: 'primary',
+          status: 'completed',
+          answers: intakeData,
+          token: generateToken(),
+        },
+      })
+
+      // Помечаем токен как использованный
+      await tx.newPatientToken.update({
+        where: { token },
+        data: { used: true },
+      })
+
+      return p
     })
   } catch (err) {
-    console.error('[submitNewPatientBooking] consultation insert error:', err)
-    // Откатываем пациента
-    await prisma.patient.delete({ where: { id: patient.id } })
-    return { success: false, error: 'Ошибка записи на приём. Попробуйте ещё раз.' }
-  }
-
-  // Сохраняем анкету в intake_forms
-  const intakeData = {
-    complaints: validatedData.complaints,
-    duration: validatedData.duration,
-    previous_treatment: validatedData.previous_treatment || '',
-    allergies: validatedData.allergies || '',
-    medications: validatedData.medications,
-    medications_list: validatedData.medications === 'yes' ? (validatedData.medications_list || '') : '',
-  }
-
-  try {
-    await prisma.intakeForm.create({
-      data: {
-        doctorId: tokenData.doctorId,
-        patientId: patient.id,
-        patientName: validatedData.name,
-        type: 'primary',
-        status: 'completed',
-        answers: intakeData,
-        token: generateToken(),
-      },
-    })
-  } catch (err) {
-    console.error('[submitNewPatientBooking] intake_forms insert error:', err)
-    // Не блокируем запись из-за анкеты — консультация уже создана
-  }
-
-  // Помечаем токен как использованный
-  try {
-    await prisma.newPatientToken.update({
-      where: { token },
-      data: { used: true },
-    })
-  } catch (err) {
-    console.error('[submitNewPatientBooking] token update error:', err)
+    console.error('[submitNewPatientBooking] transaction error:', err)
+    return { success: false, error: 'Ошибка записи. Попробуйте ещё раз.' }
   }
 
   revalidatePath('/dashboard')

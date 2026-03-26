@@ -52,11 +52,10 @@ export async function submitPhotoUpload(
     return { success: false, error: 'Неподдерживаемый формат файла' }
   }
 
-  // Сохраняем файл на диск
+  // Сохраняем файл в приватную директорию (не public/)
   const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', uploadToken.patientId)
+  const uploadDir = path.join(process.cwd(), 'private-uploads', uploadToken.patientId)
   const filePath = path.join(uploadDir, fileName)
-  const publicUrl = `/uploads/${uploadToken.patientId}/${fileName}`
 
   try {
     await mkdir(uploadDir, { recursive: true })
@@ -67,14 +66,20 @@ export async function submitPhotoUpload(
     return { success: false, error: 'Ошибка сохранения файла' }
   }
 
+  // URL будет заполнен после создания записи (нужен id для API route)
   try {
-    await prisma.patientPhoto.create({
+    const photo = await prisma.patientPhoto.create({
       data: {
         patientId: uploadToken.patientId,
         doctorId: uploadToken.doctorId,
-        url: publicUrl,
+        url: '', // временно
         fileName,
       },
+    })
+    // Обновляем URL на приватный API route
+    await prisma.patientPhoto.update({
+      where: { id: photo.id },
+      data: { url: `/api/photos/${photo.id}` },
     })
   } catch (err) {
     console.error('[submitPhotoUpload] DB error:', err)

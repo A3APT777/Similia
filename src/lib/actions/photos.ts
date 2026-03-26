@@ -19,17 +19,30 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
   if (file.size > MAX_PHOTO_SIZE_BYTES) throw new Error('Файл слишком большой. Максимум 10 МБ.')
   if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type.toLowerCase())) throw new Error('Разрешены только фотографии (JPEG, PNG, WebP, HEIC).')
 
-  // TODO: реализовать сохранение файла на диск и генерацию публичного URL
-  const fileName = `${Date.now()}.${ext || 'jpg'}`
-  const url = `/uploads/${userId}/${patientId}/${fileName}`
+  const { writeFile, mkdir } = await import('fs/promises')
+  const path = await import('path')
 
-  await prisma.patientPhoto.create({
+  const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext || 'jpg'}`
+  const uploadDir = path.join(process.cwd(), 'private-uploads', patientId)
+  const filePath = path.join(uploadDir, fileName)
+
+  // Сохраняем файл в приватную директорию
+  await mkdir(uploadDir, { recursive: true })
+  const buffer = Buffer.from(await file.arrayBuffer())
+  await writeFile(filePath, buffer)
+
+  // Создаём запись, затем обновляем URL с id
+  const photo = await prisma.patientPhoto.create({
     data: {
       patientId,
       doctorId: userId,
-      url,
+      url: '', // временно
       fileName,
     },
+  })
+  await prisma.patientPhoto.update({
+    where: { id: photo.id },
+    data: { url: `/api/photos/${photo.id}` },
   })
 }
 
@@ -45,7 +58,22 @@ export async function deletePhoto(id: string): Promise<void> {
 
   if (!photo) return
 
-  // TODO: удалить файл с диска по photo.url
+  // Удаляем файл с диска
+  try {
+    const path = await import('path')
+    const { unlink } = await import('fs/promises')
+    // Находим файл по patientId + fileName
+    const fullPhoto = await prisma.patientPhoto.findFirst({
+      where: { id: photo.id },
+      select: { fileName: true, patientId: true },
+    })
+    if (fullPhoto) {
+      const filePath = path.join(process.cwd(), 'private-uploads', fullPhoto.patientId, fullPhoto.fileName)
+      await unlink(filePath).catch(() => {}) // Не блокируем если файл уже удалён
+    }
+  } catch {
+    // Не блокируем удаление записи из-за ошибки файловой системы
+  }
 
   await prisma.patientPhoto.delete({
     where: { id: photo.id },

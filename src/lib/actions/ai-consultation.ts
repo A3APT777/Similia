@@ -329,6 +329,8 @@ export async function getAIStatus(): Promise<{ isAIPro: boolean; credits: number
   }
 }
 
+const AI_PRO_MONTHLY_CAP = 100 // Максимум анализов в месяц для AI Pro
+
 async function checkAIAccess(userId: string) {
   const settings = await prisma.doctorSettings.findUnique({
     where: { doctorId: userId },
@@ -343,8 +345,27 @@ async function checkAIAccess(userId: string) {
   const isAIPro = settings.subscriptionPlan === 'ai_pro'
   const hasCredits = (settings.aiCredits ?? 0) > 0
   console.log(`[checkAIAccess] userId=${userId} plan=${settings.subscriptionPlan} credits=${settings.aiCredits} isAIPro=${isAIPro}`)
+
   if (!isAIPro && !hasCredits) {
     throw new Error('NO_AI_ACCESS')
+  }
+
+  // Месячный лимит для AI Pro — защита от злоупотреблений
+  if (isAIPro) {
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+
+    const usageThisMonth = await prisma.aiAnalysisLog.count({
+      where: {
+        userId,
+        createdAt: { gte: monthStart },
+      },
+    })
+
+    if (usageThisMonth >= AI_PRO_MONTHLY_CAP) {
+      throw new Error('AI_MONTHLY_LIMIT')
+    }
   }
 }
 

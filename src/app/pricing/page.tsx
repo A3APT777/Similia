@@ -48,7 +48,7 @@ export default function PricingPage() {
             </p>
           </div>
 
-          {/* Баннер бета */}
+          {/* Баннер акции */}
           <div className="max-w-[600px] mx-auto mb-16 rounded-full px-6 py-3 text-center" style={{ backgroundColor: 'rgba(45,106,79,0.08)', border: '1px solid rgba(45,106,79,0.12)' }}>
             <p className="text-[13px] font-medium" style={{ color: 'var(--sim-green)' }}>
               Все пользователи получают Стандарт бесплатно до 31 мая 2026

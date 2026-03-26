@@ -143,41 +143,50 @@ export default function LandingPage() {
         <div className="max-w-[1200px] mx-auto px-6">
 
           <p className="text-[11px] font-medium tracking-[0.2em] uppercase mb-4" style={{ color: '#2d6a4f' }}>
-            Возможности
+            Как это работает
           </p>
           <h2 className="lr-serif text-[clamp(32px,4vw,56px)] font-light leading-[1.1] mb-20" style={{ letterSpacing: '-0.02em', maxWidth: '600px' }}>
-            Всё что нужно.<br />
-            Ничего лишнего.
+            Один день<br />
+            из практики.
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {[
               {
-                num: '01',
-                title: 'Реперторий Кента',
-                desc: '74 482 рубрики. Поиск на русском и латыни. Грейды, вес, элиминация — как в настольном софте, но в браузере.',
+                time: '09:00',
+                scenario: 'Подготовка к приёму',
+                desc: 'Пациентка прислала анкету по ссылке вчера вечером. Вы открываете карточку — жалобы, модальности, психика уже на экране. 15 минут сэкономлены.',
+                accent: 'Анкеты по ссылке',
               },
               {
-                num: '02',
-                title: 'Карточки пациентов',
-                desc: 'Жалобы, назначения, динамика — вся история в одном месте. Откройте карточку и сразу увидите полную картину.',
+                time: '10:30',
+                scenario: 'Реперторизация',
+                desc: 'Хронический случай. Вводите «головная боль хуже утром» — находите рубрику за секунды. Добавляете в корзину, расставляете грейды. Как RadarOpus, но в браузере.',
+                accent: 'Реперторий Кента',
               },
               {
-                num: '03',
-                title: 'Анкета до приёма',
-                desc: 'Отправьте ссылку — пациент заполнит дома за 15 минут. На приёме вы уже знаете жалобы, модальности, психику.',
+                time: '14:00',
+                scenario: 'Назначение',
+                desc: 'Завершаете приём — выбираете препарат, потенцию, форму. Отправляете рецепт пациенту по ссылке. Он открывает на телефоне без регистрации.',
+                accent: 'Рецепт по ссылке',
               },
               {
-                num: '04',
-                title: 'Динамика лечения',
-                desc: 'Опрос самочувствия после приёма. Пациент отвечает за 2 минуты. Вы видите прогресс без звонков.',
+                time: '19:00',
+                scenario: 'Контроль динамики',
+                desc: 'Через 2 недели отправляете опрос самочувствия. Пациент отвечает за 2 минуты. В карточке появляется оценка — без звонков и переписки.',
+                accent: 'Follow-up',
               },
             ].map((f, i) => (
               <div key={i} className="p-10 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.06)]" style={{ backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.04)' }}>
-                <div className="text-[11px] font-medium tracking-[0.15em] uppercase mb-6" style={{ color: '#2d6a4f' }}>
-                  {f.num}
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-[11px] font-medium tracking-[0.15em] uppercase" style={{ color: '#2d6a4f' }}>
+                    {f.time}
+                  </span>
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'rgba(45,106,79,0.08)', color: '#2d6a4f' }}>
+                    {f.accent}
+                  </span>
                 </div>
-                <h3 className="text-[18px] font-medium mb-3" style={{ color: '#1a1a0a' }}>{f.title}</h3>
+                <h3 className="text-[18px] font-medium mb-3" style={{ color: '#1a1a0a' }}>{f.scenario}</h3>
                 <p className="text-[15px] leading-[1.7]" style={{ color: '#8a7e6c' }}>
                   {f.desc}
                 </p>
@@ -211,10 +220,10 @@ export default function LandingPage() {
                 AI-ассистент
               </p>
               <h2 className="lr-serif text-[clamp(32px,4vw,52px)] font-light text-white leading-[1.1] mb-6" style={{ letterSpacing: '-0.02em' }}>
-                Консенсус<br />трёх моделей.
+                AI подсказывает<br />препарат.
               </h2>
               <p className="text-[16px] leading-[1.7] mb-8" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                MDRI Engine анализирует случай через 8 линз: Kent, Polarity, Hierarchy, Constellation, Negative, Miasm, Relationships, Potency. Параллельно работает AI-гомеопат. При разногласии — арбитраж.
+                Опишите случай — движок проанализирует симптомы по реперторию и предложит Top-3 препарата с обоснованием. Вы принимаете решение, AI экономит время.
               </p>
               <div className="flex items-center gap-8 mb-10">
                 <div>
@@ -233,16 +242,24 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Линзы — видимы и на мобильных */}
+            {/* Как это работает */}
             <div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3">
-                {['Kent', 'Polarity', 'Hierarchy', 'Constellation', 'Miasm', 'Potency', 'Negative', 'Relations'].map((lens, i) => (
-                  <div key={i} className="px-4 py-3 rounded-xl text-center" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.75)' }}>{lens}</p>
+              <div className="space-y-3">
+                {[
+                  { step: '1', title: 'Опишите случай', desc: 'Введите симптомы пациента или возьмите из анкеты' },
+                  { step: '2', title: 'Анализ за секунды', desc: 'Движок проверяет по реперторию Кента (74 000+ рубрик)' },
+                  { step: '3', title: 'Top-3 препарата', desc: 'С обоснованием, уровнем уверенности и предупреждениями' },
+                  { step: '4', title: 'Ваше решение', desc: 'Подтвердите выбор или скорректируйте — AI учится на вашей практике' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-4 px-5 py-4 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <span className="lr-serif text-[24px] font-light shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>{item.step}</span>
+                    <div>
+                      <p className="text-[14px] font-medium text-white mb-0.5">{item.title}</p>
+                      <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{item.desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-              <p className="text-[12px] mt-4 text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>8 линз анализа</p>
             </div>
           </div>
         </div>

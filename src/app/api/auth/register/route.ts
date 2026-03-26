@@ -43,18 +43,18 @@ export async function POST(req: Request) {
       },
     })
 
-    // Бета-акция: регистрация до 31.03.2026 → Standard до 31.05.2026
-    const betaDeadline = new Date('2026-03-31T23:59:59Z')
-    const isBetaUser = new Date() <= betaDeadline
+    // Акция запуска: регистрация до 31.03.2026 → Standard до 31.05.2026
+    const promoDeadline = new Date('2026-03-31T23:59:59Z')
+    const isPromoUser = new Date() <= promoDeadline
 
     await prisma.subscription.create({
       data: {
         doctorId: user.id,
-        planId: isBetaUser ? 'standard' : 'free',
+        planId: isPromoUser ? 'standard' : 'free',
         status: 'active',
         billingPeriod: 'monthly',
         currentPeriodStart: new Date(),
-        currentPeriodEnd: isBetaUser
+        currentPeriodEnd: isPromoUser
           ? new Date('2026-05-31T23:59:59Z')
           : new Date('2099-12-31T23:59:59Z'),
       },
