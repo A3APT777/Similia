@@ -250,6 +250,13 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
   async function handleAnalyze() {
     if (!text.trim()) return
+    // Минимум 30 символов для осмысленного анализа
+    if (text.trim().length < 30) {
+      setError(lang === 'ru'
+        ? 'Опишите подробнее — укажите жалобы, модальности (когда хуже/лучше), характер пациента.'
+        : 'Please provide more detail — symptoms, modalities, patient character.')
+      return
+    }
     setStep('analyzing')
     setError('')
     try {
