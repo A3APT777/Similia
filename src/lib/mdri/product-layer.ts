@@ -142,6 +142,17 @@ const KEYWORD_RULES: KeywordRule[] = [
     symptom: { rubric: 'sleep position on abdomen', category: 'general', weight: 3 },
     certainty: 'high' },
 
+  // Кожа — peculiar модальности
+  { patterns: ['экзема хуже зимой', 'зимой хуже кожа', 'трещины зимой', 'кожа хуже зимой', 'хуже зимой, лучше летом', 'хуже зимой лучше летом'],
+    symptom: { rubric: 'eczema cracks worse winter better summer', category: 'particular', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['голод ночью', 'ночью голод', 'просыпается от голода ночью', 'ест ночью'],
+    symptom: { rubric: 'hunger night must eat', category: 'general', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['укачива', 'тошнота в транспорт', 'морская болезн', 'в машине тошн'],
+    symptom: { rubric: 'nausea motion sickness travel', category: 'general', weight: 2 },
+    certainty: 'high' },
+
   // Peculiar keynotes малых средств
   { patterns: ['периодическ', 'через день', 'каждый второй день', 'с периодичн'],
     symptom: { rubric: 'periodicity intermittent complaints', category: 'general', weight: 3 },
@@ -496,6 +507,12 @@ const PECULIAR_RUBRIC_PATTERNS = [
   'sleep position abdomen',
   'desire ice cream cold',
   'capricious asks then refuses',
+  // Petr keynotes
+  'eczema cracks worse winter',
+  'hunger night must eat',
+  // Mag-p keynotes
+  'cramp spasm better warm pressure bending',
+  'right side cramp spasm',
 ]
 
 // Паттерны в РУССКОМ тексте которые подтверждают w=3
@@ -509,6 +526,12 @@ const PECULIAR_TEXT_PATTERNS: { textPattern: string; rubricContains: string }[] 
   { textPattern: 'не переносит тесн', rubricContains: 'tight clothing' },
   { textPattern: 'на море лучше', rubricContains: 'sea' },
   { textPattern: 'одна щека красная', rubricContains: 'one cheek' },
+  { textPattern: 'хуже зимой', rubricContains: 'eczema' },
+  { textPattern: 'хуже зимой', rubricContains: 'crack' },
+  { textPattern: 'голод ночью', rubricContains: 'hunger' },
+  { textPattern: 'ест ночью', rubricContains: 'hunger' },
+  { textPattern: 'справа хуже', rubricContains: 'right' },
+  { textPattern: 'справа хуже', rubricContains: 'cramp' },
   { textPattern: 'жжение.*лучше от тепла', rubricContains: 'burning' },
   { textPattern: 'первое движение хуже', rubricContains: 'first motion' },
   { textPattern: 'расходится', rubricContains: 'first motion' },
