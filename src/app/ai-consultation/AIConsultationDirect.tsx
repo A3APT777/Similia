@@ -256,11 +256,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
       setStep('result')
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Ошибка'
-      if (msg === 'NO_AI_ACCESS') {
-        setError(lang === 'ru' ? 'Нет доступа к AI. Оформите подписку AI Pro или купите пакет кредитов.' : 'No AI access. Subscribe to AI Pro or buy credits.')
-      } else {
-        setError(lang === 'ru' ? 'Ошибка AI-анализа. Попробуйте ещё раз.' : 'AI analysis error. Try again.')
-      }
+      setError(msg === 'NO_AI_ACCESS' ? 'NO_AI_ACCESS' : (lang === 'ru' ? 'Ошибка AI-анализа. Попробуйте ещё раз.' : 'AI analysis error. Try again.'))
       setStep('input')
     }
   }
@@ -460,8 +456,42 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         </div>
 
         {/* Ошибка */}
-        {error && (
+        {error && error !== 'NO_AI_ACCESS' && (
           <p className="text-[13px] mt-3 text-[#dc2626]">{error}</p>
+        )}
+
+        {/* Нет доступа к AI */}
+        {error === 'NO_AI_ACCESS' && (
+          <div className="mt-4 rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/[0.04] p-5">
+            <p className="text-[14px] font-medium text-[#1a1a1a] mb-2">
+              {lang === 'ru' ? 'Нет доступа к AI-анализу' : 'No AI access'}
+            </p>
+            <p className="text-[13px] text-[#6b7280] leading-relaxed mb-3">
+              {lang === 'ru'
+                ? 'Для AI-анализа нужна подписка AI Pro или кредиты. Вы можете:'
+                : 'AI analysis requires an AI Pro subscription or credits. You can:'}
+            </p>
+            <ul className="space-y-2 text-[13px] text-[#6b7280]">
+              <li className="flex items-start gap-2">
+                <span className="text-[#2d6a4f] mt-0.5">•</span>
+                <span>
+                  {lang === 'ru' ? 'Подключить подписку AI Pro — ' : 'Subscribe to AI Pro — '}
+                  <a href="/pricing" className="text-[#2d6a4f] font-medium hover:underline">
+                    {lang === 'ru' ? 'тарифы' : 'pricing'}
+                  </a>
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#2d6a4f] mt-0.5">•</span>
+                <span>
+                  {lang === 'ru' ? 'Получить бесплатные кредиты за приглашённых коллег — ' : 'Earn free credits by inviting colleagues — '}
+                  <a href="/referral" className="text-[#2d6a4f] font-medium hover:underline">
+                    {lang === 'ru' ? 'реферальная программа' : 'referral program'}
+                  </a>
+                </span>
+              </li>
+            </ul>
+          </div>
         )}
 
         {/* Подпись */}
