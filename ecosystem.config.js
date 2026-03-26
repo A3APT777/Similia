@@ -4,6 +4,7 @@ module.exports = {
       name: 'similia',
       script: 'server.js',
       cwd: '/root/projects/similia',
+      node_args: '--max-old-space-size=2048 --stack-size=65536',
       max_restarts: 5,
       min_uptime: '10s',
       restart_delay: 5000,
