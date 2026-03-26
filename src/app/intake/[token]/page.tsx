@@ -8,45 +8,53 @@ import type { TemplateField } from '@/lib/actions/questionnaire-templates'
 export default async function IntakePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
 
-  // Публичная страница — без auth, ищем анкету по токену
   const intake = await prisma.intakeForm.findUnique({
     where: { token },
   })
 
-  // Токен не найден или ссылка просрочена
+  // Ссылка недействительна
   if (!intake || (intake.expiresAt && new Date(intake.expiresAt) < new Date())) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--sim-bg)' }}>
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}>
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="var(--sim-text-hint)" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Ссылка недействительна</h1>
-          <p className="text-gray-500 text-sm">Срок действия этой ссылки истёк. Попросите врача отправить новую.</p>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[24px] font-light mb-3" style={{ color: 'var(--sim-text)' }}>
+            Ссылка недействительна
+          </h1>
+          <p className="text-[14px] leading-relaxed" style={{ color: 'var(--sim-text-muted)' }}>
+            Срок действия этой ссылки истёк. Попросите врача отправить новую.
+          </p>
         </div>
       </div>
     )
   }
 
+  // Анкета уже заполнена
   if (intake.status === 'completed') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--sim-bg)' }}>
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="var(--sim-green)" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Анкета уже заполнена</h1>
-          <p className="text-gray-500 text-sm">Спасибо! Ваши ответы получены. Врач ознакомится с ними перед консультацией.</p>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[24px] font-light mb-3" style={{ color: 'var(--sim-text)' }}>
+            Анкета заполнена
+          </h1>
+          <p className="text-[14px] leading-relaxed" style={{ color: 'var(--sim-text-muted)' }}>
+            Спасибо! Ваши ответы получены. Врач ознакомится с ними перед консультацией.
+          </p>
         </div>
       </div>
     )
   }
 
-  // Предзаполнение данных если анкета привязана к существующему пациенту
+  // Предзаполнение данных
   let prefilled: { name?: string; phone?: string; birth_date?: string; email?: string } | undefined
   if (intake.patientId) {
     const patient = await prisma.patient.findUnique({
@@ -63,7 +71,7 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
     }
   }
 
-  // Расписание врача + кастомный шаблон анкеты
+  // Расписание + шаблон анкеты
   const [scheduleData, customTemplate] = await Promise.all([
     prisma.doctorSchedule.findFirst({
       where: { doctorId: intake.doctorId },

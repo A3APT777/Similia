@@ -20,6 +20,7 @@ const PUBLIC_PATHS = [
   '/api/yookassa-webhook',
   '/api/health',
   '/api/test-ai',
+  '/api/test-ai2',
   '/api/auth',
   '/checkout',
   '/pricing',
