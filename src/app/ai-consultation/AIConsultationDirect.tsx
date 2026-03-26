@@ -876,9 +876,9 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
         <button
           onClick={() => setStep('result')}
-          className="w-full py-3 text-[13px] rounded-full text-[#6b7280] hover:underline transition-colors"
+          className="w-full py-3 text-[13px] rounded-full text-[#6b7280] border border-gray-200 hover:bg-black/[0.02] transition-all duration-200"
         >
-          {lang === 'ru' ? 'Оставить текущий результат' : 'Keep current result'}
+          {lang === 'ru' ? '← Вернуться к результату' : '← Back to result'}
         </button>
       </div>
     )
