@@ -135,15 +135,12 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     const { symptoms: sonnetSymptoms, modalities: sonnetModalities, familyHistory } = parseResult
     log(`parallel done: ${sonnetSymptoms.length} symptoms, ${data.repertory.length} rubrics`)
 
-    // Шаг 2.5: Product Safety Layer — keyword fallback + soft validation + familyHistory
-    const merged = mergeWithFallback(
+    // Шаг 2.5: Product Safety Layer — keyword fallback + soft validation
+    const { symptoms, modalities, warnings } = mergeWithFallback(
       parsed.text,
       sonnetSymptoms,
       sonnetModalities,
-      familyHistory,
     )
-    const { symptoms, modalities, warnings } = merged
-    const mergedFamilyHistory = merged.familyHistory
     const fallbackAdded = {
       symptoms: symptoms.length - sonnetSymptoms.length,
       modalities: modalities.length - sonnetModalities.length,
@@ -163,24 +160,11 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     log(`profile inferred: ${profile.acuteOrChronic}/${profile.vitality}/${profile.sensitivity}/${profile.age}`)
 
     // Шаг 3: MDRI Engine v5 (НЕ МЕНЯТЬ — заблокирован)
-    const mdriResults = analyzeWithIdf(data, symptoms, modalities, mergedFamilyHistory, profile)
+    const mdriResults = analyzeWithIdf(data, symptoms, modalities, familyHistory, profile)
     log(`MDRI v5 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
 
-    // Шаг 3.5: Верификатор — confirmation по Materia Medica (Кент: проверка портрета)
-    // Sonnet смотрит на top-5 + оригинальный текст и переранжирует
-    try {
-      const reranked = await verifyTop5(parsed.text, mdriResults.slice(0, 5))
-      if (reranked) {
-        // Заменяем top-5 на переранжированные, остальные оставляем
-        const rest = mdriResults.slice(5)
-        mdriResults.length = 0
-        mdriResults.push(...reranked, ...rest)
-        log(`verifier done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
-      }
-    } catch (e) {
-      // Верификатор не критичен — если упал, продолжаем с результатами engine
-      log(`verifier skipped: ${e instanceof Error ? e.message : 'unknown error'}`)
-    }
+    // Шаг 3.5: Верификатор ОТКЛЮЧЁН для диагностики
+    // TODO: вернуть после фикса 500
 
     // Шаг 4: Confidence Layer — независимая оценка уверенности
     const productConfidence = computeConfidence(symptoms, modalities, mdriResults, warnings)
