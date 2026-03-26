@@ -264,21 +264,56 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy, init
           <label className="block text-[11px] font-medium mb-1.5" style={{ color: 'var(--sim-text-muted)' }}>
             {lang === 'ru' ? 'Форма приёма' : 'Administration'}
           </label>
+          {/* Форма приёма — одна из трёх */}
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {(lang === 'ru'
+              ? ['Сухая доза', 'Раствор', 'Ольфакция']
+              : ['Dry dose', 'Solution', 'Olfaction']
+            ).map(chip => {
+              const isActive = dosage.includes(chip)
+              const siblings = lang === 'ru' ? ['Сухая доза', 'Раствор', 'Ольфакция'] : ['Dry dose', 'Solution', 'Olfaction']
+              return (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => setDosage(prev => {
+                    // Убираем другие из группы, ставим выбранный
+                    let cleaned = prev
+                    siblings.forEach(s => { cleaned = cleaned.replace(s, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim() })
+                    return isActive ? cleaned : (cleaned ? cleaned + ', ' + chip : chip)
+                  })}
+                  className="px-2.5 py-1.5 text-[11px] rounded-full border transition-all duration-200"
+                  style={isActive ? chipActive : chipInactive}
+                >
+                  {chip}
+                </button>
+              )
+            })}
+          </div>
+          {/* Режим — один из трёх */}
           <div className="flex flex-wrap gap-1.5">
             {(lang === 'ru'
-              ? ['Сухая доза', 'Раствор', 'Ольфакция', 'Однократно', 'Ежедневно', 'По необходимости']
-              : ['Dry dose', 'Solution', 'Olfaction', 'Single dose', 'Daily', 'As needed']
-            ).map(chip => (
-              <button
-                key={chip}
-                type="button"
-                onClick={() => setDosage(prev => prev.includes(chip) ? prev.replace(chip, '').trim() : (prev ? prev + ', ' + chip : chip))}
-                className="px-2.5 py-1.5 text-[11px] rounded-full border transition-all duration-200"
-                style={dosage.includes(chip) ? chipActive : chipInactive}
-              >
-                {chip}
-              </button>
-            ))}
+              ? ['Однократно', 'Ежедневно', 'По необходимости']
+              : ['Single dose', 'Daily', 'As needed']
+            ).map(chip => {
+              const isActive = dosage.includes(chip)
+              const siblings = lang === 'ru' ? ['Однократно', 'Ежедневно', 'По необходимости'] : ['Single dose', 'Daily', 'As needed']
+              return (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => setDosage(prev => {
+                    let cleaned = prev
+                    siblings.forEach(s => { cleaned = cleaned.replace(s, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim() })
+                    return isActive ? cleaned : (cleaned ? cleaned + ', ' + chip : chip)
+                  })}
+                  className="px-2.5 py-1.5 text-[11px] rounded-full border transition-all duration-200"
+                  style={isActive ? chipActive : chipInactive}
+                >
+                  {chip}
+                </button>
+              )
+            })}
           </div>
         </div>
 

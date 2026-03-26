@@ -10,6 +10,7 @@ import FollowupSection from './FollowupSection'
 import ScheduleButton from '@/components/ScheduleButton'
 import TimelineWithFilter from './TimelineWithFilter'
 import IntakeView from './IntakeView'
+import IntakeSection from './IntakeSection'
 import PhotoSection from './PhotoSection'
 import CancelAppointmentButton from './CancelAppointmentButton'
 import TreatmentProgress from './TreatmentProgress'
@@ -46,10 +47,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
 
   const consultations = await prisma.consultation.findMany({
     where: { patientId: id },
-    orderBy: [
-      { scheduledAt: { sort: 'desc', nulls: 'first' } },
-      { date: 'desc' },
-    ],
+    orderBy: { createdAt: 'desc' },
   })
 
   const consultationIds = consultations.map(c => c.id)
@@ -74,6 +72,8 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
   // Маппинг консультаций camelCase → snake_case для совместимости с UI
   const consultationsMapped = consultations.map(c => ({
     ...c,
+    // Защита: если date пустой — используем createdAt
+    date: c.date || c.createdAt.toISOString().split('T')[0],
     patient_id: c.patientId,
     doctor_id: c.doctorId,
     scheduled_at: c.scheduledAt?.toISOString() ?? null,
@@ -116,6 +116,8 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
 
   const completedPrimaryIntake = intakeForms.find(f => f.type === 'primary') || null
   const completedAcuteIntake = intakeForms.find(f => f.type === 'acute') || null
+  // Есть ли непросмотренные заполненные анкеты
+  const hasUnviewedIntakes = intakeForms.some(f => f.status === 'completed' && !f.viewedAt)
   // Маппинг для совместимости с UI
   const primaryIntakeMapped = completedPrimaryIntake ? {
     ...completedPrimaryIntake,
@@ -446,20 +448,26 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
           )}
 
           {/* ── Анкеты ── */}
-          <details className="mb-5 group">
+          <IntakeSection unviewedIntakeIds={intakeForms.filter(f => f.status === 'completed' && !f.viewedAt).map(f => f.id)}>
             <summary className="flex items-center justify-between py-3 cursor-pointer select-none" style={{ borderBottom: '1px solid var(--sim-border)' }}>
               <div className="flex items-center gap-2">
                 <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
                   {t(lang).patientCard.intakes}
                 </p>
-                {(completedPrimaryIntake || completedAcuteIntake) && (
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#059669' }} />
+                {hasUnviewedIntakes && (
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--sim-green)' }} />
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <a href={`/patients/${id}/intake-edit`} className="text-[12px] font-medium transition-colors hover:underline" style={{ color: 'var(--sim-green)' }}>
-                  {lang === 'ru' ? 'Заполнить' : 'Fill'}
-                </a>
+                {completedPrimaryIntake ? (
+                  <a href={`/patients/${id}/intake-edit`} className="text-[12px] font-medium transition-colors hover:underline" style={{ color: 'var(--sim-green)' }}>
+                    {lang === 'ru' ? 'Редактировать' : 'Edit'}
+                  </a>
+                ) : (
+                  <a href={`/patients/${id}/intake-edit`} className="text-[12px] font-medium transition-colors hover:underline" style={{ color: 'var(--sim-green)' }}>
+                    {lang === 'ru' ? 'Заполнить первичную' : 'Fill primary'}
+                  </a>
+                )}
                 <svg className="w-3.5 h-3.5 transition-transform duration-200 group-open:rotate-180" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                 </svg>
@@ -474,7 +482,14 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
                 </p>
               )}
             </div>
-          </details>
+          </IntakeSection>
+
+          {/* ── Динамика лечения ── */}
+          {consultationsMapped.length > 0 && (
+            <div className="mb-5">
+              <TreatmentProgress consultations={consultationsMapped} followupByConsultation={followupByConsultation} />
+            </div>
+          )}
 
           {/* ── История ── */}
           {consultationsMapped.length === 0 ? (
@@ -495,7 +510,6 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
                 </svg>
               </summary>
               <div className="pt-4">
-                <TreatmentProgress consultations={consultationsMapped} followupByConsultation={followupByConsultation} />
                 <TimelineWithFilter patientId={id} consultations={consultationsMapped} followupByConsultation={followupByConsultation} />
               </div>
             </details>

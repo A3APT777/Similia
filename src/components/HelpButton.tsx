@@ -1,7 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+
+// Страницы где кнопка помощи не нужна (публичные формы пациента)
+const HIDDEN_PATHS = ['/intake/', '/followup/', '/upload/', '/survey/', '/new/', '/rx/', '/verify']
 
 const HELP_ITEMS = [
   {
@@ -20,6 +24,10 @@ const HELP_ITEMS = [
 
 export default function HelpButton() {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+
+  // Скрываем на публичных формах пациента
+  if (HIDDEN_PATHS.some(p => pathname.startsWith(p))) return null
 
   return (
     <>

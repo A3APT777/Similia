@@ -218,3 +218,14 @@ export async function bookIntakeAppointment(
   })
   return { success: true, appointmentDate: `${dateFormatted} в ${time}` }
 }
+
+// Пометить анкету как просмотренную врачом
+export async function markIntakeViewed(intakeId: string): Promise<void> {
+  uuidSchema.parse(intakeId)
+  const { userId } = await requireAuth()
+
+  await prisma.intakeForm.updateMany({
+    where: { id: intakeId, doctorId: userId, viewedAt: null },
+    data: { viewedAt: new Date() },
+  })
+}

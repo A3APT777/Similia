@@ -13,9 +13,10 @@ import LunarPhaseWidget from './LunarPhaseWidget'
 import AddPatientWidget from './AddPatientWidget'
 import { getAccessiblePatientIds } from '@/lib/actions/subscription'
 import UnpaidWidget from './UnpaidWidget'
+import DemoBanner from './DemoBanner'
 
 import { getUnpaidPatients } from '@/lib/actions/payments'
-import { seedDemoData } from '@/lib/actions/seed'
+// seedDemoData убран — новые врачи начинают с пустого dashboard
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   // Авторизация через NextAuth
@@ -31,20 +32,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     return 'пациентов доверяют'
   }
 
-  // Создаём демо-данные при первом входе (если пациентов нет)
+  // Количество пациентов для статистики
   const patientCount = await prisma.patient.count({ where: { doctorId: userId } })
-  // Первый вход — создаём демо и сразу редиректим на карточку
+
+  // Первый вход — создаём демо-пациента с заполненной историей
   if (patientCount === 0) {
+    const { seedDemoData } = await import('@/lib/actions/seed')
     await seedDemoData().catch(() => null)
-    // Находим первого демо-пациента для редиректа
-    const demoPatient = await prisma.patient.findFirst({
-      where: { doctorId: userId, isDemo: true },
-      select: { id: true },
-    })
-    if (demoPatient) {
-      redirect(`/patients/${demoPatient.id}?welcome=1`)
-    }
   }
+
+  // Находим демо-пациента для баннера
+  const demoPatient = await prisma.patient.findFirst({
+    where: { doctorId: userId, isDemo: true },
+    select: { id: true, name: true },
+  })
 
   const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
   const threeMonthsAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -124,12 +125,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       take: 200,
     })),
   ])
-
-  // Graceful downgrade — определяем заблокированных пациентов
-  const { ids: accessibleIds, isLimited } = await getAccessiblePatientIds()
-  const lockedPatientIds = isLimited
-    ? (patients || []).filter(p => !accessibleIds.includes(p.id)).map(p => p.id)
-    : []
 
   // Один запрос для всех последних консультаций вместо N+1
   const patientIds = (patients || []).map(p => p.id)
@@ -262,6 +257,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {/* ─── Левая колонка ─── */}
         <div className="flex-1 min-w-0 w-full">
 
+          {/* Баннер для новых пользователей с демо-пациентом */}
+          {demoPatient && <DemoBanner demoPatientId={demoPatient.id} demoPatientName={demoPatient.name} />}
+
+
           {/* Hero-баннер — Forest Mist */}
           <div data-tour="stats" className="relative overflow-hidden rounded-xl mb-5 lg:mb-7" style={{ border: '1px solid rgba(45,106,79,0.12)' }}>
             {/* Зелёный акцент — верхняя линия */}
@@ -277,7 +276,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </h1>
 
               {/* Три равноценных стат-карточки (с 5+ пациентов) */}
-              {totalPatients >= 3 && <HeroStatCards
+              {totalPatients >= 0 && <HeroStatCards
                 todayCount={todayCount}
                 totalPatients={totalPatients}
                 pendingCount={pendingCount}
@@ -325,7 +324,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <div className="mb-4" />
 
           {/* AI Pro карточка */}
-          {totalPatients >= 3 && <Link
+          {totalPatients >= 0 && <Link
             href="/ai-consultation"
             className="group block mb-5 px-5 py-4 rounded-xl transition-all duration-300 hover:shadow-sm"
             style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}
@@ -388,12 +387,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </p>
 
           <div id="patients-section" data-tour="patient-list" className="scroll-mt-6">
-            <PatientListClient patients={patientsWithConsultations} filterPending={filterPending} filterOverdue={filterOverdue} lockedPatientIds={lockedPatientIds} />
+            <PatientListClient patients={patientsWithConsultations} filterPending={filterPending} filterOverdue={filterOverdue}  />
           </div>
         </div>
 
         {/* ─── Правая колонка (с 5+ пациентов) ─── */}
-        {totalPatients >= 3 && <div className="w-full lg:w-[280px] lg:shrink-0 lg:sticky lg:top-7 space-y-4">
+        {<div className="w-full lg:w-[280px] lg:shrink-0 lg:sticky lg:top-7 space-y-4">
           <LunarPhaseWidget lang={lang} />
           <div id="appointments-section" className="scroll-mt-6">
             <CalendarWidget

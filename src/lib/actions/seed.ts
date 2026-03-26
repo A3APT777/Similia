@@ -47,6 +47,7 @@ export async function seedDemoData(): Promise<void> {
       email: 'ivanova.ms@example.com',
       constitutionalType: 'Natrum Muriaticum',
       isDemo: true,
+      paidSessions: 99,
       notes: '⚠️ Демо-пациент\nХроническая мигрень с аурой. Высокая эмоциональная чувствительность. Предпочитает тихую, спокойную обстановку на приёме.',
       firstVisitDate: daysAgo(62),
     },

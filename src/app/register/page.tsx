@@ -51,23 +51,19 @@ export default function RegisterPage() {
         return
       }
 
-      // Автоматический вход после регистрации
-      const signInResult = await signIn('credentials', { email, password, redirect: false })
-
-      if (signInResult?.error) {
-        setLoading(false)
-        router.push('/login')
+      // Redirect на страницу ввода кода подтверждения
+      if (data.needsVerification) {
+        sessionStorage.setItem('verify_email', email)
+        sessionStorage.setItem('verify_p', password)
+        window.location.href = '/verify'
         return
       }
 
-      // Сброс флагов тура
-      localStorage.removeItem('tour_completed')
-      localStorage.removeItem('tour_active')
-      localStorage.removeItem('tour_consult_active')
-      localStorage.removeItem('tour_patient_active')
-      localStorage.removeItem('tour_repertory_active')
-      localStorage.removeItem('tour_success')
-      window.location.href = '/dashboard'
+      // Fallback — если верификация не нужна (старые аккаунты)
+      const signInResult = await signIn('credentials', { email, password, redirect: false })
+      if (!signInResult?.error) {
+        window.location.href = '/dashboard'
+      }
     } catch {
       setError(translateAuthError('network'))
       setLoading(false)

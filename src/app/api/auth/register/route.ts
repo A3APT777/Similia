@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
+import { sendVerificationCode, generateVerificationCode } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
@@ -14,59 +15,76 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } })
+    const normalizedEmail = email.toLowerCase().trim()
+
+    // Проверяем не занят ли email
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } })
     if (existing) {
+      // Если email не подтверждён — разрешаем повторную отправку кода
+      if (!existing.emailVerified) {
+        const code = generateVerificationCode()
+        await prisma.$executeRaw`
+          INSERT INTO verification_codes (email, code, expires_at)
+          VALUES (${normalizedEmail}, ${code}, NOW() + INTERVAL '15 minutes')
+        `
+        await sendVerificationCode(normalizedEmail, code)
+        return NextResponse.json({ success: true, needsVerification: true })
+      }
       return NextResponse.json({ error: 'User already exists' }, { status: 409 })
     }
 
+    // Создаём пользователя (emailVerified = null — не подтверждён)
     const passwordHash = await bcrypt.hash(password, 12)
     const user = await prisma.user.create({
       data: {
-        email: email.toLowerCase().trim(),
+        email: normalizedEmail,
         passwordHash,
         name,
       },
     })
 
-    // Create default subscription (free plan active until end of beta)
+    // Бета-акция: регистрация до 31.03.2026 → Standard до 31.05.2026
+    const betaDeadline = new Date('2026-03-31T23:59:59Z')
+    const isBetaUser = new Date() <= betaDeadline
+
     await prisma.subscription.create({
       data: {
         doctorId: user.id,
-        planId: 'standard',
+        planId: isBetaUser ? 'standard' : 'free',
         status: 'active',
         billingPeriod: 'monthly',
         currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date('2026-05-31T23:59:59Z'),
+        currentPeriodEnd: isBetaUser
+          ? new Date('2026-05-31T23:59:59Z')
+          : new Date('2099-12-31T23:59:59Z'),
       },
     })
 
-    // Create default doctor settings
     await prisma.doctorSettings.create({
-      data: {
-        doctorId: user.id,
-      },
-    }).catch(() => null) // Ignore if already exists
+      data: { doctorId: user.id },
+    }).catch(() => null)
 
-    // Handle referral code if provided
+    // Реферальный код
     if (referralCode) {
       try {
-        const refCode = await prisma.referralCode.findUnique({
-          where: { code: referralCode },
-        })
+        const refCode = await prisma.referralCode.findUnique({ where: { code: referralCode } })
         if (refCode) {
           await prisma.referralInvitation.create({
-            data: {
-              referrerId: refCode.doctorId,
-              inviteeId: user.id,
-            },
+            data: { referrerId: refCode.doctorId, inviteeId: user.id },
           })
         }
-      } catch {
-        // Non-critical — don't fail registration
-      }
+      } catch { /* не критично */ }
     }
 
-    return NextResponse.json({ success: true })
+    // Генерируем код и отправляем на email
+    const code = generateVerificationCode()
+    await prisma.$executeRaw`
+      INSERT INTO verification_codes (email, code, expires_at)
+      VALUES (${normalizedEmail}, ${code}, NOW() + INTERVAL '15 minutes')
+    `
+    await sendVerificationCode(normalizedEmail, code)
+
+    return NextResponse.json({ success: true, needsVerification: true })
   } catch (err) {
     console.error('[register] error:', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

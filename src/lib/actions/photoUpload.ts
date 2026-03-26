@@ -3,6 +3,8 @@
 import { requireAuth, generateToken } from '@/lib/server-utils'
 import { prisma } from '@/lib/prisma'
 import { ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES, MAX_PHOTO_SIZE_BYTES } from '@/lib/utils'
+import { writeFile, mkdir } from 'fs/promises'
+import path from 'path'
 
 // Врач создаёт токен для загрузки фото пациентом
 export async function createPhotoUploadToken(patientId: string): Promise<string> {
@@ -23,35 +25,24 @@ export async function createPhotoUploadToken(patientId: string): Promise<string>
   return token
 }
 
-// Публичная загрузка фото по токену (без авторизации — пациент с телефона)
+// Публичная загрузка фото по токену
 export async function submitPhotoUpload(
   token: string,
   formData: FormData,
 ): Promise<{ success: boolean; error?: string }> {
-  // Проверяем токен (публичная операция — prisma напрямую)
   const uploadToken = await prisma.photoUploadToken.findUnique({
     where: { token },
     select: { doctorId: true, patientId: true, expiresAt: true },
   })
 
-  if (!uploadToken) {
-    return { success: false, error: 'Ссылка недействительна' }
-  }
-
+  if (!uploadToken) return { success: false, error: 'Ссылка недействительна' }
   if (uploadToken.expiresAt && new Date(uploadToken.expiresAt) < new Date()) {
     return { success: false, error: 'Срок действия ссылки истёк' }
   }
 
   const file = formData.get('file') as File
-
-  if (!file || file.size === 0) {
-    return { success: false, error: 'Файл не выбран' }
-  }
-
-  if (file.size > MAX_PHOTO_SIZE_BYTES) {
-    return { success: false, error: 'Файл слишком большой. Максимум 10 МБ.' }
-  }
-
+  if (!file || file.size === 0) return { success: false, error: 'Файл не выбран' }
+  if (file.size > MAX_PHOTO_SIZE_BYTES) return { success: false, error: 'Файл слишком большой. Максимум 10 МБ.' }
   if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type.toLowerCase())) {
     return { success: false, error: 'Разрешены только фотографии (JPEG, PNG, WebP, HEIC)' }
   }
@@ -61,28 +52,39 @@ export async function submitPhotoUpload(
     return { success: false, error: 'Неподдерживаемый формат файла' }
   }
 
-  // TODO: реализовать сохранение файла на диск и генерацию публичного URL
-  const fileName = `${Date.now()}.${ext}`
-  const url = `/uploads/${uploadToken.doctorId}/${uploadToken.patientId}/${fileName}`
+  // Сохраняем файл на диск
+  const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', uploadToken.patientId)
+  const filePath = path.join(uploadDir, fileName)
+  const publicUrl = `/uploads/${uploadToken.patientId}/${fileName}`
+
+  try {
+    await mkdir(uploadDir, { recursive: true })
+    const buffer = Buffer.from(await file.arrayBuffer())
+    await writeFile(filePath, buffer)
+  } catch (err) {
+    console.error('[submitPhotoUpload] file write error:', err)
+    return { success: false, error: 'Ошибка сохранения файла' }
+  }
 
   try {
     await prisma.patientPhoto.create({
       data: {
         patientId: uploadToken.patientId,
         doctorId: uploadToken.doctorId,
-        url,
+        url: publicUrl,
         fileName,
       },
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Неизвестная ошибка'
-    return { success: false, error: `Ошибка сохранения: ${message}` }
+    console.error('[submitPhotoUpload] DB error:', err)
+    return { success: false, error: 'Ошибка сохранения записи' }
   }
 
   return { success: true }
 }
 
-// Получить инфо о токене (для страницы загрузки) — публичная операция
+// Получить инфо о токене — публичная операция
 export async function getPhotoUploadToken(token: string) {
   const data = await prisma.photoUploadToken.findUnique({
     where: { token },
@@ -95,10 +97,12 @@ export async function getPhotoUploadToken(token: string) {
 
   if (!data) return null
 
-  // Совместимость с прежним форматом: { patient_id, expires_at, patients: { name } }
   return {
     patientId: data.patientId,
     expiresAt: data.expiresAt,
     patient: data.patient,
+    // Совместимость со старым форматом
+    expires_at: data.expiresAt?.toISOString() ?? '',
+    patients: data.patient,
   }
 }

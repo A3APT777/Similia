@@ -356,8 +356,8 @@ export default function PatientTimeline({ patientId, consultations, followupByCo
     }
   })
 
-  // Финальная сортировка всех событий по времени
-  events.sort((a, b) => a.sortKey - b.sortKey)
+  // Финальная сортировка: новые события сверху
+  events.sort((a, b) => b.sortKey - a.sortKey)
 
   return (
     <div className="relative">

@@ -81,11 +81,11 @@ export async function decrementPaidSession(
 
   // Один атомарный запрос: декремент только если paid_sessions > 0
   const affected: number = await prisma.$executeRaw`
-    UPDATE "Patient"
-    SET "paidSessions" = "paidSessions" - 1
-    WHERE id = ${patientId}
-      AND "doctorId" = ${userId}
-      AND "paidSessions" > 0
+    UPDATE patients
+    SET paid_sessions = paid_sessions - 1
+    WHERE id = ${patientId}::uuid
+      AND doctor_id = ${userId}::uuid
+      AND paid_sessions > 0
   `
 
   // Если 0 строк затронуто — баланс уже 0 или пациент не найден

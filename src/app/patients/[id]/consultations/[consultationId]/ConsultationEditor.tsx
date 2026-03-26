@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { decrementPaidSession } from '@/lib/actions/payments'
 import { completeConsultation } from '@/lib/actions/consultations'
 import { Consultation, Patient, PreVisitSurvey } from '@/types'
@@ -50,6 +51,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
 
   const [showPrescription, setShowPrescription] = useState(false)
   const [showZeroWarning, setShowZeroWarning] = useState(false)
+  const [showSharePrompt, setShowSharePrompt] = useState(false)
   const [pendingPrescription, setPendingPrescription] = useState<{ abbrev: string; potency: string; dosage: string } | null>(null)
   const [mobileTab, setMobileTab] = useState<'editor' | 'context'>('editor')
   const [repertoryData, setRepertoryData] = useState(consultation.repertory_data)
@@ -237,15 +239,11 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
 
     await saveAll()
 
-    // Если препарат уже назначен (через InlineRx или autosave) — завершаем без модала
+    // Если препарат уже назначен — завершаем и показываем предложение отправить
     const hasRemedy = savedRx?.remedy || consultation.remedy
     if (hasRemedy) {
-      const rxName = savedRx?.remedy || consultation.remedy || ''
-      const rxPot = savedRx?.potency || consultation.potency || ''
-      toast(lang === 'ru'
-        ? `Приём завершён · ${rxName}${rxPot ? ' ' + rxPot : ''} назначен`
-        : `Consultation done · ${rxName}${rxPot ? ' ' + rxPot : ''} prescribed`)
       await handleConsultationDone()
+      setShowSharePrompt(true)
       return
     }
 
@@ -399,6 +397,44 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
           initialPotency={pendingPrescription?.potency ?? savedRx?.potency}
           initialDosage={pendingPrescription?.dosage ?? savedRx?.dosage}
         />
+      )}
+
+      {/* Предложение отправить назначение после завершения */}
+      {showSharePrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true">
+          <div className="relative rounded-2xl p-6 w-[calc(100%-2rem)] max-w-[380px] shadow-2xl" style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid var(--sim-border)' }}>
+            <div className="text-center mb-5">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="var(--sim-green)" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p className="text-[17px] font-medium mb-1" style={{ color: 'var(--sim-text)' }}>
+                {lang === 'ru' ? 'Приём завершён' : 'Consultation done'}
+              </p>
+              <p className="text-[14px]" style={{ color: 'var(--sim-text-muted)' }}>
+                {savedRx?.remedy || consultation.remedy}{' '}
+                {savedRx?.potency || consultation.potency}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Link
+                href={`/patients/${patient.id}`}
+                className="block w-full text-center py-3 rounded-full text-[14px] font-medium text-white transition-all hover:-translate-y-px hover:shadow-lg"
+                style={{ backgroundColor: 'var(--sim-green)' }}
+              >
+                {lang === 'ru' ? 'Перейти в карточку пациента' : 'Go to patient card'}
+              </Link>
+              <button
+                onClick={() => setShowSharePrompt(false)}
+                className="w-full text-center py-3 rounded-full text-[14px] font-medium transition-colors"
+                style={{ color: 'var(--sim-text-muted)' }}
+              >
+                {lang === 'ru' ? 'Остаться в консультации' : 'Stay in consultation'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Mobile tab bar */}

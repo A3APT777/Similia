@@ -143,26 +143,6 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         .sb-section-label:nth-of-type(2) { animation-delay: 200ms; }
         .sb-section-label:nth-of-type(3) { animation-delay: 300ms; }
 
-        /* Locked nav items */
-        .sb-locked {
-          cursor: default;
-          opacity: 0.25;
-          pointer-events: none;
-        }
-        .sb-lock-badge {
-          margin-left: auto;
-          font-size: 11px;
-          font-weight: 600;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(255,255,255,0.08);
-          color: rgba(255,255,255,0.3);
-        }
-
         /* User avatar hover glow */
         .sb-avatar {
           transition: all 300ms ease;
@@ -196,22 +176,8 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         {/* Primary */}
         <div className="space-y-0.5 mb-5">
           {navLink('/dashboard', t(lang).nav.home, IconHome, 'nav-dashboard')}
-          {(realPatientCount ?? 0) >= 1
-            ? navLink('/repertory', lang === 'ru' ? 'Реперторий' : 'Repertory', IconBook, 'nav-repertory')
-            : <div className="sb-nav-link sb-locked" title={lang === 'ru' ? 'Добавьте пациента' : 'Add a patient'}>
-                <span className="sb-icon">{IconBook}</span>
-                <span>{lang === 'ru' ? 'Реперторий' : 'Repertory'}</span>
-                <span className="sb-lock-badge">1</span>
-              </div>
-          }
-          {(realPatientCount ?? 0) >= 1
-            ? navLink('/ai-consultation', lang === 'ru' ? 'AI-анализ' : 'AI Analysis', IconAI, 'nav-ai')
-            : <div className="sb-nav-link sb-locked" title={lang === 'ru' ? 'Проведите первую консультацию' : 'Complete first consultation'}>
-                <span className="sb-icon">{IconAI}</span>
-                <span>{lang === 'ru' ? 'AI-анализ' : 'AI Analysis'}</span>
-                <span className="sb-lock-badge">1</span>
-              </div>
-          }
+          {navLink('/repertory', lang === 'ru' ? 'Реперторий' : 'Repertory', IconBook, 'nav-repertory')}
+          {navLink('/ai-consultation', lang === 'ru' ? 'AI-анализ' : 'AI Analysis', IconAI, 'nav-ai')}
           {navLink('/patients/new', t(lang).nav.newPatient, IconUser, 'new-patient')}
         </div>
 
@@ -221,14 +187,7 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         {/* Secondary */}
         <div className="space-y-0.5">
           {navLink('/settings', t(lang).nav.settings, IconSettings, 'nav-settings')}
-          {(realPatientCount ?? 0) >= 3
-            ? navLink('/referral', lang === 'ru' ? 'Рефералы' : 'Referrals', IconReferral, 'nav-referral')
-            : <div className="sb-nav-link sb-locked" title={lang === 'ru' ? 'Доступно с 3 пациентами' : 'Available with 3 patients'}>
-                <span className="sb-icon">{IconReferral}</span>
-                <span>{lang === 'ru' ? 'Рефералы' : 'Referrals'}</span>
-                <span className="sb-lock-badge">3</span>
-              </div>
-          }
+          {navLink('/referral', lang === 'ru' ? 'Рефералы' : 'Referrals', IconReferral, 'nav-referral')}
           {isAdmin && navLink('/admin', lang === 'ru' ? 'Админ' : 'Admin', IconAdmin, 'nav-admin')}
           <button
             onClick={() => setShowFeedback(true)}

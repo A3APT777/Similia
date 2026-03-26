@@ -37,6 +37,7 @@ export async function createConsultation(patientId: string, type: ConsultationTy
     data: {
       patientId,
       doctorId: userId,
+      date: new Date().toISOString().split('T')[0],
       notes: '',
       status: 'in_progress',
       type,
@@ -344,7 +345,7 @@ export async function updateConsultationFields(
   if (parsed.structured_symptoms !== undefined) update.structuredSymptoms = parsed.structured_symptoms
   if (parsed.mode !== undefined) update.mode = parsed.mode
   if (parsed.case_state !== undefined) update.caseState = parsed.case_state
-  if (parsed.clinical_assessment !== undefined) update.clinicalAssessment = parsed.clinical_assessment
+  if (parsed.clinical_assessment !== undefined) update.clinicalAssessment = parsed.clinical_assessment ? JSON.stringify(parsed.clinical_assessment) : null
   if (parsed.modality_worse_text !== undefined) update.modalityWorseText = parsed.modality_worse_text
   if (parsed.modality_better_text !== undefined) update.modalityBetterText = parsed.modality_better_text
   if (parsed.mental_text !== undefined) update.mentalText = parsed.mental_text
@@ -367,10 +368,10 @@ const consultationAllSchema = z.object({
   complaints: z.string().max(50000).optional(),
   observations: z.string().max(50000).optional(),
   recommendations: z.string().max(10000).optional(),
-  structured_symptoms: z.array(z.record(z.string(), z.unknown())).max(200).optional(),
-  mode: z.string().max(20).optional(),
+  structured_symptoms: z.any().optional(),
+  mode: z.string().max(20).nullable().optional(),
   case_state: z.string().max(30).nullable().optional(),
-  clinical_assessment: z.record(z.string(), z.unknown()).nullable().optional(),
+  clinical_assessment: z.any().nullable().optional(),
   modality_worse_text: z.string().max(10000).optional(),
   modality_better_text: z.string().max(10000).optional(),
   mental_text: z.string().max(10000).optional(),
@@ -396,7 +397,7 @@ export async function updateConsultationAll(
   if (parsed.structured_symptoms !== undefined) update.structuredSymptoms = parsed.structured_symptoms
   if (parsed.mode !== undefined) update.mode = parsed.mode
   if (parsed.case_state !== undefined) update.caseState = parsed.case_state
-  if (parsed.clinical_assessment !== undefined) update.clinicalAssessment = parsed.clinical_assessment
+  if (parsed.clinical_assessment !== undefined) update.clinicalAssessment = parsed.clinical_assessment ? JSON.stringify(parsed.clinical_assessment) : null
   if (parsed.modality_worse_text !== undefined) update.modalityWorseText = parsed.modality_worse_text
   if (parsed.modality_better_text !== undefined) update.modalityBetterText = parsed.modality_better_text
   if (parsed.mental_text !== undefined) update.mentalText = parsed.mental_text
@@ -405,12 +406,15 @@ export async function updateConsultationAll(
   if (parsed.reaction_to_previous !== undefined) update.reactionToPrevious = parsed.reaction_to_previous || null
 
   try {
-    await prisma.consultation.updateMany({
+    const result = await prisma.consultation.updateMany({
       where: { id, doctorId: userId },
       data: update,
     })
+    if (result.count === 0) {
+      console.error('[updateConsultationAll] 0 rows updated — consultation not found or wrong doctorId', { id, userId })
+    }
   } catch (error) {
-    console.error('[updateConsultationAll]', error)
+    console.error('[updateConsultationAll] FAILED:', error, { id, userId, updateKeys: Object.keys(update) })
     throw new Error('Не удалось сохранить данные консультации')
   }
 }
