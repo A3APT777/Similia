@@ -194,8 +194,8 @@ export function selectBestClarifyQuestion(
   const top3 = results.slice(0, 3)
   const currentGap = top3[0].totalScore - (top3[1]?.totalScore ?? 0)
 
-  // Не нужен clarify если gap большой
-  if (currentGap >= 12) return null
+  // Не нужен clarify если gap большой (18% — зона реальной конкуренции средств)
+  if (currentGap >= 18) return null
 
   // === Шаг 1: Убрать покрытые features ===
   const available = AXES.filter(axis => !isFeatureCovered(axis.name, existingSymptoms))
