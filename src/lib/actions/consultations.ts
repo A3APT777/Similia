@@ -28,7 +28,7 @@ export async function createConsultation(patientId: string, type: ConsultationTy
     where: { id: patientId, doctorId: userId },
     select: { id: true },
   })
-  if (!patient) throw new Error('Patient not found')
+  if (!patient) throw new Error('Пациент не найден или нет доступа')
 
   // Закрываем любые открытые консультации врача (один приём за раз)
   await closeOpenConsultations(userId)
@@ -60,7 +60,7 @@ export async function createAIConsultation(
     where: { id: patientId, doctorId: userId },
     select: { id: true },
   })
-  if (!patient) throw new Error('Patient not found')
+  if (!patient) throw new Error('Пациент не найден или нет доступа')
 
   const data = await prisma.consultation.create({
     data: {
@@ -93,7 +93,7 @@ export async function scheduleConsultation(
     where: { id: patientId, doctorId: userId },
     select: { id: true },
   })
-  if (!patient) throw new Error('Patient not found')
+  if (!patient) throw new Error('Пациент не найден или нет доступа')
 
   const date = scheduledAt.split('T')[0]
 

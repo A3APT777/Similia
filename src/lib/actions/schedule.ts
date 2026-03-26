@@ -16,9 +16,8 @@ export type DoctorSchedule = {
   lunch_end: string
 }
 
-// NOTE: Prisma-модель DoctorSchedule имеет per-day структуру (dayOfWeek, startTime, endTime).
-// Старая Supabase-таблица хранила всё в одной строке.
-// Используем $queryRaw для обратной совместимости, пока не обновим Prisma-схему.
+// Prisma-модель DoctorSchedule имеет per-day структуру (dayOfWeek, startTime, endTime).
+// Таблица хранит всё в одной строке — используем $queryRaw для совместимости.
 
 // Получить расписание врача
 export async function getDoctorScheduleAuth(): Promise<DoctorSchedule> {

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { getAppointmentsByMonth, scheduleConsultation, startConsultation } from '@/lib/actions/consultations'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
+import { toMskDateStr, toMskTime, todayMsk, nowMsk, getUrgency } from '@/lib/date-utils'
 
 type CalendarAppt = {
   id: string
@@ -18,34 +19,6 @@ type CalendarAppt = {
 type Patient = { id: string; name: string }
 
 const HOUR_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
-
-function toMskDateStr(iso: string) {
-  return new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
-}
-
-function toMskTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('ru-RU', {
-    timeZone: 'Europe/Moscow',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function todayMsk() {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
-}
-
-function nowMsk() {
-  const d = todayMsk().split('-').map(Number)
-  return { year: d[0], month: d[1] }
-}
-
-function getUrgency(scheduledAt: string): 'urgent' | 'soon' | null {
-  const diffMin = Math.round((new Date(scheduledAt).getTime() - Date.now()) / 60000)
-  if (diffMin >= -30 && diffMin <= 10) return 'urgent'
-  if (diffMin > 10 && diffMin <= 45) return 'soon'
-  return null
-}
 
 export default function CalendarWidget({ patients, lastRemedyMap }: { patients: Patient[]; lastRemedyMap?: Record<string, string> }) {
   const { lang } = useLanguage()

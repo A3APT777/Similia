@@ -1137,25 +1137,8 @@ export function analyzePipeline(
       }
     }
 
-    // Etiology Boost (Organon §5: causa — иерархически выше отдельных симптомов)
-    // Если пациент имеет "ailments from X" и средство имеет X в constellation — boost
-    const etiologySymptoms = symptoms.filter(s =>
-      s.present && s.weight >= 2 && s.rubric.toLowerCase().includes('ailments from')
-    )
-    if (etiologySymptoms.length > 0) {
-      const constellation = data.constellations[rem]
-      if (constellation) {
-        const hasCausaMatch = etiologySymptoms.some(es => {
-          const causa = es.rubric.toLowerCase().replace(/ailments from\s*/, '')
-          return constellation.clusters.some(cl =>
-            cl.symptoms.some(s => symMatch(causa, s.rubric))
-          )
-        })
-        if (hasCausaMatch) {
-          total *= 1.15  // +15% за совпадение этиологии с портретом средства
-        }
-      }
-    }
+    // Etiology Boost (Organon §5) — отключён, вызывает stack overflow в production
+    // TODO: переписать без symMatch в горячем цикле
 
     // Acute/Chronic
     if (isAcute && CHRONIC_REMEDIES.has(rem)) total *= 0.92

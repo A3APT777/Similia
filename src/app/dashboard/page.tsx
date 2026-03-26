@@ -180,7 +180,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const last = lastConsultationMap.get(patient.id) || null
     return {
       ...patient,
-      // Маппинг camelCase → snake_case для UI-совместимости
+      // TODO: перевести Patient type и PatientListClient на camelCase, убрать этот маппинг
       doctor_id: patient.doctorId,
       birth_date: patient.birthDate,
       first_visit_date: patient.firstVisitDate,

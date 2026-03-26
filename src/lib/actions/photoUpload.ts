@@ -61,8 +61,7 @@ export async function submitPhotoUpload(
     return { success: false, error: 'Неподдерживаемый формат файла' }
   }
 
-  // TODO: Заменить Supabase Storage на локальное хранение файлов
-  // Нужно: сохранить file на диск, сгенерировать URL
+  // TODO: реализовать сохранение файла на диск и генерацию публичного URL
   const fileName = `${Date.now()}.${ext}`
   const url = `/uploads/${uploadToken.doctorId}/${uploadToken.patientId}/${fileName}`
 

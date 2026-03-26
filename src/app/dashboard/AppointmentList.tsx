@@ -6,6 +6,7 @@ import { startConsultation } from '@/lib/actions/consultations'
 import { Consultation, Patient } from '@/types'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
+import { toMskDateStr, toMskTime } from '@/lib/date-utils'
 
 type AppointmentWithPatient = Consultation & { patients: Pick<Patient, 'id' | 'name' | 'phone'>; last_remedy?: string | null }
 
@@ -22,14 +23,6 @@ function getTimeLabel(scheduledAt: string, lang: 'ru' | 'en'): { label: string; 
   if (diffMin <= 10) return { label: t(lang).appointments.inMin(diffMin), variant: 'urgent' }
   if (diffMin <= 45) return { label: t(lang).appointments.inMin(diffMin), variant: 'soon' }
   return { label: '', variant: null }
-}
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })
-}
-
-function toMskDateStr(iso: string) {
-  return new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
 }
 
 function formatDayHeader(dateStr: string, lang: 'ru' | 'en'): string {
@@ -140,7 +133,7 @@ export default function AppointmentList({ appointments, compact = false }: Props
                 return (
                   <div key={appt.id} className={`flex items-center gap-2.5 px-4 py-2.5 ${isUrgent ? 'bg-amber-50/60' : done ? 'opacity-50' : ''}`}>
                     <span className={`text-[12px] font-mono font-semibold tabular-nums shrink-0 w-9 ${isUrgent ? 'text-amber-600' : 'text-gray-600'}`}>
-                      {formatTime(appt.scheduled_at!)}
+                      {toMskTime(appt.scheduled_at!)}
                     </span>
                     <Link
                       href={`/patients/${appt.patients.id}`}
@@ -210,7 +203,7 @@ export default function AppointmentList({ appointments, compact = false }: Props
                     <div className={`w-[3px] h-8 rounded-full shrink-0 ${isUrgent ? 'bg-amber-400' : live ? 'bg-[#2d6a4f]' : done ? 'bg-gray-100' : 'bg-emerald-200'}`} />
                     <div className="w-10 shrink-0">
                       <p className={`text-[13px] font-semibold tabular-nums leading-tight ${isUrgent ? 'text-amber-600' : done ? 'text-gray-400' : 'text-gray-800'}`}>
-                        {formatTime(appt.scheduled_at!)}
+                        {toMskTime(appt.scheduled_at!)}
                       </p>
                       {label && <p className={`text-xs mt-0.5 leading-none ${variant === 'urgent' ? 'text-amber-500' : variant === 'past' ? 'text-red-400' : 'text-gray-400'}`}>{label}</p>}
                     </div>
