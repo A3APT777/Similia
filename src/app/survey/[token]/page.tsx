@@ -1,5 +1,5 @@
 import { getPreVisitSurveyByToken } from '@/lib/actions/surveys'
-import { createServiceClient } from '@/lib/supabase/service'
+import { prisma } from '@/lib/prisma'
 import PreVisitSurveyForm from './PreVisitSurveyForm'
 
 export default async function SurveyPage({ params }: { params: Promise<{ token: string }> }) {
@@ -43,21 +43,39 @@ export default async function SurveyPage({ params }: { params: Promise<{ token: 
   }
 
   // Получаем имя пациента + кастомный шаблон врача
-  const supabase = createServiceClient()
+  // Prisma возвращает camelCase, но тип PreVisitSurvey — snake_case (cast)
+  const surveyAny = survey as any
+  const consultationId = surveyAny.consultationId ?? surveyAny.consultation_id
+  const patientId = surveyAny.patientId ?? surveyAny.patient_id
 
   // Найти doctor_id из consultation → doctor_id
-  const { data: consultation } = survey.consultation_id
-    ? await supabase.from('consultations').select('doctor_id').eq('id', survey.consultation_id).single()
-    : { data: null }
-  const doctorId = consultation?.doctor_id
+  let doctorId: string | undefined
+  if (consultationId) {
+    const consultation = await prisma.consultation.findUnique({
+      where: { id: consultationId },
+      select: { doctorId: true },
+    })
+    doctorId = consultation?.doctorId
+  }
 
-  const [{ data: patient }, { data: customTemplate }] = await Promise.all([
-    survey.patient_id
-      ? supabase.from('patients').select('name').eq('id', survey.patient_id).single()
-      : Promise.resolve({ data: null }),
+  const [patient, customTemplate] = await Promise.all([
+    patientId
+      ? prisma.patient.findUnique({
+          where: { id: patientId },
+          select: { name: true },
+        })
+      : Promise.resolve(null),
     doctorId
-      ? supabase.from('questionnaire_templates').select('fields').eq('doctor_id', doctorId).eq('type', 'pre_visit').single()
-      : Promise.resolve({ data: null }),
+      ? prisma.questionnaireTemplate.findUnique({
+          where: {
+            doctorId_type: {
+              doctorId,
+              type: 'pre_visit',
+            },
+          },
+          select: { fields: true },
+        })
+      : Promise.resolve(null),
   ])
 
   const customFields = customTemplate?.fields as import('@/lib/actions/questionnaire-templates').TemplateField[] | null

@@ -1,28 +1,32 @@
 import { getNewPatientToken, getDoctorSchedule } from '@/lib/actions/newPatient'
-import { createServiceClient } from '@/lib/supabase/service'
+import { prisma } from '@/lib/prisma'
 import NewPatientForm from './NewPatientForm'
 
 export default async function NewPatientPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const tokenData = await getNewPatientToken(token)
 
-  const isInvalid = !tokenData || tokenData.used || new Date(tokenData.expires_at) < new Date()
+  // getNewPatientToken возвращает camelCase из Prisma
+  const tokenAny = tokenData as any
+  const expiresAt = tokenAny?.expiresAt ?? tokenAny?.expires_at
+  const tokenDoctorId = tokenAny?.doctorId ?? tokenAny?.doctor_id
+  const tokenPatientId = tokenAny?.patientId ?? tokenAny?.patient_id
+
+  const isInvalid = !tokenData || tokenData.used || new Date(expiresAt) < new Date()
 
   let schedule = null
   let patientName: string | null = null
-  const isBookingOnly = tokenData?.patient_id ? true : false
+  const isBookingOnly = tokenPatientId ? true : false
 
   if (tokenData && !isInvalid) {
-    schedule = await getDoctorSchedule(tokenData.doctor_id)
+    schedule = await getDoctorSchedule(tokenDoctorId)
 
     // Если привязан к существующему пациенту — получаем имя
-    if (tokenData.patient_id) {
-      const supabase = createServiceClient()
-      const { data: patient } = await supabase
-        .from('patients')
-        .select('name')
-        .eq('id', tokenData.patient_id)
-        .single()
+    if (tokenPatientId) {
+      const patient = await prisma.patient.findUnique({
+        where: { id: tokenPatientId },
+        select: { name: true },
+      })
       patientName = patient?.name || null
     }
   }
@@ -67,10 +71,10 @@ export default async function NewPatientPage({ params }: { params: Promise<{ tok
               )}
               <NewPatientForm
                 token={token}
-                doctorId={tokenData!.doctor_id}
+                doctorId={tokenDoctorId}
                 schedule={schedule}
                 bookingOnly={isBookingOnly}
-                existingPatientId={tokenData!.patient_id || undefined}
+                existingPatientId={tokenPatientId || undefined}
               />
             </>
           )}

@@ -1,8 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 
 // Генерация кода XXXX-XXXX (без 0/O/1/l для читаемости)
 function generateCode(): string {
@@ -17,40 +16,37 @@ function generateCode(): string {
 
 // Получить или создать реферальный код (lazy creation)
 export async function getOrCreateReferralCode(): Promise<string> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Проверяем существующий код
-  const { data: existing } = await supabase
-    .from('referral_codes')
-    .select('code')
-    .eq('doctor_id', user.id)
-    .single()
+  const existing = await prisma.referralCode.findUnique({
+    where: { doctorId: userId },
+    select: { code: true },
+  })
 
   if (existing) return existing.code
 
   // Создаём новый (с retry при коллизии)
   for (let attempt = 0; attempt < 3; attempt++) {
     const code = generateCode()
-    const { data, error } = await supabase
-      .from('referral_codes')
-      .insert({ doctor_id: user.id, code })
-      .select('code')
-      .single()
-
-    if (!error) return data.code
-
-    // Конфликт по doctor_id — код уже создан (race condition)
-    if (error.code === '23505') {
-      const { data: retry } = await supabase
-        .from('referral_codes')
-        .select('code')
-        .eq('doctor_id', user.id)
-        .single()
-      if (retry) return retry.code
+    try {
+      const created = await prisma.referralCode.create({
+        data: { doctorId: userId, code },
+        select: { code: true },
+      })
+      return created.code
+    } catch (err: unknown) {
+      // Конфликт по doctorId — код уже создан (race condition)
+      const prismaError = err as { code?: string }
+      if (prismaError.code === 'P2002') {
+        const retry = await prisma.referralCode.findUnique({
+          where: { doctorId: userId },
+          select: { code: true },
+        })
+        if (retry) return retry.code
+      }
+      console.error('[referrals] create code attempt', attempt, err)
     }
-    console.error('[referrals] create code attempt', attempt, error)
   }
   throw new Error('Не удалось создать реферальный код')
 }
@@ -68,21 +64,19 @@ export async function getReferralStats(): Promise<{
     referrer_bonus_days: number
   }>
 }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   const code = await getOrCreateReferralCode()
 
-  const { data: invitations } = await supabase
-    .from('referral_invitations')
-    .select('created_at, bonus_applied, referrer_bonus_days')
-    .eq('referrer_id', user.id)
-    .order('created_at', { ascending: false })
+  const invitations = await prisma.referralInvitation.findMany({
+    where: { referrerId: userId },
+    select: { createdAt: true, bonusApplied: true, referrerBonusDays: true },
+    orderBy: { createdAt: 'desc' },
+  })
 
   const list = invitations || []
-  const totalPaid = list.filter(i => i.bonus_applied).length
-  const totalBonusDays = list.reduce((sum, i) => sum + (i.referrer_bonus_days || 0), 0)
+  const totalPaid = list.filter(i => i.bonusApplied).length
+  const totalBonusDays = list.reduce((sum, i) => sum + (i.referrerBonusDays || 0), 0)
 
   return {
     code,
@@ -90,15 +84,20 @@ export async function getReferralStats(): Promise<{
     totalPaid,
     totalBonusDays,
     maxBonusDays: 180,
-    invitations: list,
+    // Маппим camelCase → snake_case для совместимости с UI
+    invitations: list.map(i => ({
+      created_at: i.createdAt.toISOString(),
+      bonus_applied: i.bonusApplied,
+      referrer_bonus_days: i.referrerBonusDays,
+    })),
   }
 }
 
-// Вызвать начисление бонуса (из webhook)
+// Вызвать начисление бонуса (из webhook) — используем raw SQL т.к. логика в БД-функции
 export async function triggerReferralBonus(inviteeId: string): Promise<void> {
-  const supabase = createServiceClient()
-  const { error } = await supabase.rpc('apply_referral_bonus', { p_invitee_id: inviteeId })
-  if (error) {
+  try {
+    await prisma.$executeRaw`SELECT apply_referral_bonus(${inviteeId}::uuid)`
+  } catch (error) {
     console.error('[referrals] apply bonus error:', error)
     // Не throw — бонус не критичен, основная регистрация не должна падать
   }

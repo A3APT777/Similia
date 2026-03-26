@@ -1,11 +1,8 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { uuidSchema } from '@/lib/validation'
-import { z } from 'zod'
 import type { PreVisitSurvey } from '@/types'
 
 // Создать опросник для пациента (вызывает врач)
@@ -15,40 +12,34 @@ export async function createPreVisitSurvey(
 ): Promise<{ token: string }> {
   uuidSchema.parse(patientId)
   if (consultationId) uuidSchema.parse(consultationId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { data, error } = await supabase
-    .from('pre_visit_surveys')
-    .insert({
-      patient_id: patientId,
-      doctor_id: user.id,
-      consultation_id: consultationId || null,
+  try {
+    const survey = await prisma.preVisitSurvey.create({
+      data: {
+        patientId,
+        doctorId: userId,
+        consultationId: consultationId || null,
+      },
+      select: { token: true },
     })
-    .select('token')
-    .single()
 
-  if (error) {
-    console.error('[createPreVisitSurvey] error:', error)
+    return { token: survey.token }
+  } catch (err) {
+    console.error('[createPreVisitSurvey] error:', err)
     throw new Error('Не удалось создать опросник')
   }
-
-  return { token: data.token }
 }
 
 // Загрузить опросник по токену (публичная, для пациента)
 export async function getPreVisitSurveyByToken(token: string): Promise<PreVisitSurvey | null> {
-  const supabase = createServiceClient()
+  // Публичная операция — prisma напрямую
+  const data = await prisma.preVisitSurvey.findUnique({
+    where: { token },
+  })
 
-  const { data, error } = await supabase
-    .from('pre_visit_surveys')
-    .select('*')
-    .eq('token', token)
-    .single()
-
-  if (error || !data) return null
-  return data as PreVisitSurvey
+  if (!data) return null
+  return data as unknown as PreVisitSurvey
 }
 
 // Отправить ответы (публичная, вызывает пациент)
@@ -62,16 +53,14 @@ export async function submitPreVisitSurvey(
     throw new Error('Ответы слишком большие')
   }
 
-  const supabase = createServiceClient()
-
+  // Публичная операция — prisma напрямую
   // Проверяем что опросник существует и не просрочен
-  const { data: survey, error: fetchError } = await supabase
-    .from('pre_visit_surveys')
-    .select('id, status, expires_at')
-    .eq('token', token)
-    .single()
+  const survey = await prisma.preVisitSurvey.findUnique({
+    where: { token },
+    select: { id: true, status: true, expiresAt: true },
+  })
 
-  if (fetchError || !survey) {
+  if (!survey) {
     throw new Error('Опросник не найден')
   }
 
@@ -79,72 +68,66 @@ export async function submitPreVisitSurvey(
     throw new Error('Опросник уже заполнен')
   }
 
-  if (survey.expires_at && new Date(survey.expires_at) < new Date()) {
+  if (survey.expiresAt && new Date(survey.expiresAt) < new Date()) {
     throw new Error('Срок действия опросника истёк')
   }
 
-  const { error } = await supabase
-    .from('pre_visit_surveys')
-    .update({
-      answers,
-      status: 'completed',
-      completed_at: new Date().toISOString(),
+  try {
+    await prisma.preVisitSurvey.update({
+      where: { id: survey.id },
+      data: {
+        answers,
+        status: 'completed',
+        completedAt: new Date(),
+      },
     })
-    .eq('id', survey.id)
-
-  if (error) {
-    console.error('[submitPreVisitSurvey] error:', error)
+  } catch (err) {
+    console.error('[submitPreVisitSurvey] error:', err)
     throw new Error('Не удалось сохранить ответы')
   }
 }
 
-// Загрузить опросник по consultation_id (для правой панели)
+// Загрузить опросник по consultationId (для правой панели)
 export async function getPreVisitSurveyByConsultation(
   consultationId: string
 ): Promise<PreVisitSurvey | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const { userId } = await requireAuth()
 
-  const { data, error } = await supabase
-    .from('pre_visit_surveys')
-    .select('*')
-    .eq('consultation_id', consultationId)
-    .eq('doctor_id', user.id)
-    .eq('status', 'completed')
-    .order('completed_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  try {
+    const data = await prisma.preVisitSurvey.findFirst({
+      where: {
+        consultationId,
+        doctorId: userId,
+        status: 'completed',
+      },
+      orderBy: { completedAt: 'desc' },
+    })
 
-  if (error) {
-    console.error('[getPreVisitSurveyByConsultation] error:', error)
+    return data as unknown as PreVisitSurvey | null
+  } catch (err) {
+    console.error('[getPreVisitSurveyByConsultation] error:', err)
     return null
   }
-
-  return data as PreVisitSurvey | null
 }
 
 // Загрузить последний опросник пациента (для карточки)
 export async function getLatestPatientSurvey(
   patientId: string
 ): Promise<PreVisitSurvey | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const { userId } = await requireAuth()
 
-  const { data, error } = await supabase
-    .from('pre_visit_surveys')
-    .select('*')
-    .eq('patient_id', patientId)
-    .eq('doctor_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  try {
+    const data = await prisma.preVisitSurvey.findFirst({
+      where: {
+        patientId,
+        doctorId: userId,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
 
-  if (error) {
-    console.error('[getLatestPatientSurvey] error:', error)
+    return data as unknown as PreVisitSurvey | null
+  } catch (err) {
+    console.error('[getLatestPatientSurvey] error:', err)
     return null
   }
-
-  return data as PreVisitSurvey | null
 }

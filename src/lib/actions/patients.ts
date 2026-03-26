@@ -1,15 +1,14 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { patientSchema, validate } from '@/lib/validation'
 import { checkPatientLimit } from './subscription'
 
 export async function createPatient(formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Проверка лимита подписки
   const limit = await checkPatientLimit()
@@ -31,28 +30,25 @@ export async function createPatient(formData: FormData) {
   if (validationResult.error) throw new Error(validationResult.error)
   const validated = validationResult.data!
 
-  const { data, error } = await supabase
-    .from('patients')
-    .insert({
-      doctor_id: user.id,
-      ...validated,
-      first_visit_date: new Date().toISOString().split('T')[0],
-    })
-    .select()
-    .single()
+  const patient = await prisma.patient.create({
+    data: {
+      doctorId: userId,
+      name: validated.name,
+      birthDate: validated.birth_date,
+      phone: validated.phone,
+      email: validated.email,
+      notes: validated.notes,
+      constitutionalType: validated.constitutional_type,
+      gender: validated.gender,
+      firstVisitDate: new Date().toISOString().split('T')[0],
+    },
+  })
 
-  if (error) {
-    console.error('[createPatient] supabase error:', error)
-    throw new Error(error.message)
-  }
-
-  redirect(`/patients/${data.id}`)
+  redirect(`/patients/${patient.id}`)
 }
 
 export async function updatePatient(id: string, formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   const raw = {
     name: (formData.get('name') as string) || '',
@@ -68,38 +64,33 @@ export async function updatePatient(id: string, formData: FormData) {
   if (validationResult.error) throw new Error(validationResult.error)
   const validated = validationResult.data!
 
-  const { error } = await supabase
-    .from('patients')
-    .update({
-      ...validated,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-
-  if (error) {
-    console.error('[updatePatient] supabase error:', error)
-    throw new Error(error.message)
-  }
+  await prisma.patient.updateMany({
+    where: { id, doctorId: userId },
+    data: {
+      name: validated.name,
+      birthDate: validated.birth_date,
+      phone: validated.phone,
+      email: validated.email,
+      notes: validated.notes,
+      constitutionalType: validated.constitutional_type,
+      gender: validated.gender,
+    },
+  })
 
   revalidatePath(`/patients/${id}`)
   redirect(`/patients/${id}`)
 }
 
 export async function deletePatient(id: string): Promise<void> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  // Атомарное каскадное удаление через SQL-функцию (транзакция)
-  const { error } = await supabase.rpc('delete_patient_cascade', {
-    p_patient_id: id,
-    p_doctor_id: user.id,
+  // Каскадное удаление — Prisma schema имеет onDelete: Cascade на всех связях
+  const deleted = await prisma.patient.deleteMany({
+    where: { id, doctorId: userId },
   })
 
-  if (error) {
-    console.error('[deletePatient] error:', error)
-    throw new Error('Не удалось удалить пациента')
+  if (deleted.count === 0) {
+    throw new Error('Пациент не найден или нет доступа')
   }
 
   revalidatePath('/dashboard')

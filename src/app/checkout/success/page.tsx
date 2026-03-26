@@ -1,23 +1,22 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 
 export default async function CheckoutSuccessPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) redirect('/login')
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
 
   // Проверяем реальный статус подписки
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('plan_id, status, current_period_end, referral_bonus_days')
-    .eq('doctor_id', user.id)
-    .single()
+  const sub = await prisma.subscription.findUnique({
+    where: { doctorId: session.user.id },
+    select: { planId: true, status: true, currentPeriodEnd: true, referralBonusDays: true },
+  })
 
-  const isActive = sub?.plan_id === 'standard' && sub?.status === 'active'
-  const periodEnd = sub?.current_period_end
-    ? new Date(sub.current_period_end).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const isActive = sub?.planId === 'standard' && sub?.status === 'active'
+  const periodEnd = sub?.currentPeriodEnd
+    ? new Date(sub.currentPeriodEnd).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
     : ''
 
   return (
@@ -39,9 +38,9 @@ export default async function CheckoutSuccessPage() {
             <p className="text-sm mb-2" style={{ color: 'var(--sim-text-hint)' }}>
               Подписка действует до {periodEnd}
             </p>
-            {sub?.referral_bonus_days > 0 && (
+            {(sub?.referralBonusDays ?? 0) > 0 && (
               <p className="text-sm font-medium mb-4" style={{ color: 'var(--sim-amber)' }}>
-                🎁 Вам начислено {sub.referral_bonus_days} бонусных дней по реферальной программе
+                🎁 Вам начислено {sub!.referralBonusDays} бонусных дней по реферальной программе
               </p>
             )}
             <div className="mb-6" />

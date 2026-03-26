@@ -35,6 +35,22 @@ PARTICULAR — конкретные локальные жалобы:
 - головная боль, кашель, сыпь, боль в суставах, рвота, понос
 - Примеры: "головная боль от солнца" → particular, "зуд кожи" → particular
 
+## КОНТЕКСТ СИМПТОМА (qualifier) — ОЧЕНЬ ВАЖНО
+
+Если симптом имеет ПРИЧИНУ или КАЧЕСТВО — сохраняй связь в rubric. Не теряй контекст!
+
+Примеры:
+- "слабость от волнения" → weakness FROM anticipation (НЕ просто weakness)
+- "понос от испуга" → diarrhea FROM fright (НЕ просто diarrhea)
+- "оцепенение от страха перед экзаменом" → paralysis FROM anticipation examination (НЕ просто weakness)
+- "тошнота постоянная, рвота не помогает" → nausea constant NOT relieved by vomiting
+- "хрипы в груди, не может откашлять" → rattling mucus chest INABILITY to expectorate
+- "ослаб после длительного поноса" → debility FROM loss of fluids diarrhea
+- "головная боль после травмы головы" → headache FROM head injury concussion
+- "бессонница от тревоги" → insomnia FROM anxiety (НЕ просто insomnia)
+
+Правило: если есть "от/после/из-за" — это qualifier. Включай его в rubric. Qualifier повышает weight на 1 (max 3).
+
 ## WEIGHT (вес симптома) — КРИТИЧЕСКИ ВАЖНО
 
 Weight определяет значимость симптома для выбора. Правильный weight = правильный результат.

@@ -1,19 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+// NextAuth не использует callback-роут в таком формате.
+// Supabase exchangeCodeForSession убран — просто редирект на дашборд или логин.
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-
-  if (code) {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) {
-      return NextResponse.redirect(`${origin}/login`)
-    }
-  } else {
-    return NextResponse.redirect(`${origin}/login`)
-  }
-
+  const { origin } = new URL(request.url)
+  // Все auth-колбеки обрабатываются NextAuth через /api/auth/*
   return NextResponse.redirect(`${origin}/dashboard`)
 }

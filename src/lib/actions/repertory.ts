@@ -1,7 +1,9 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 export type RepertoryRubric = {
   id: number
@@ -71,98 +73,125 @@ export async function searchRepertory(
   if (!parsed.success) return { rubrics: [], total: 0 }
   const { query: q0, source: src, page: pg } = parsed.data
 
-  const supabase = await createClient()
-
-  let q = supabase
-    .from('repertory_rubrics')
-    .select('*', { count: 'exact' })
-    .eq('source', src)
-    .order('remedy_count', { ascending: false })
-    .range(pg * PAGE_SIZE, (pg + 1) * PAGE_SIZE - 1)
+  // Формируем условия WHERE
+  const conditions: Prisma.Sql[] = [Prisma.sql`source = ${src}`]
 
   // Фильтр по главам
   if (Array.isArray(chapters)) {
-    if (chapters.length === 1) q = q.eq('chapter', chapters[0])
-    else if (chapters.length > 1) q = q.in('chapter', chapters)
-    // пустой массив = без фильтра (все главы)
+    if (chapters.length === 1) {
+      conditions.push(Prisma.sql`chapter = ${chapters[0]}`)
+    } else if (chapters.length > 1) {
+      conditions.push(Prisma.sql`chapter IN (${Prisma.join(chapters)})`)
+    }
   } else if (chapters) {
-    q = q.eq('chapter', chapters)
+    conditions.push(Prisma.sql`chapter = ${chapters}`)
   }
 
+  // Поиск по словам с стеммингом
   if (q0.trim()) {
-    // Разбиваем по пробелам, ищем каждое слово отдельно (AND между словами)
     const words = q0.trim().replace(/[%_.,()\\[\]*]/g, '').split(/\s+/).filter(Boolean)
     for (const word of words) {
-      // Простой стемминг: обрезаем русские окончания для лучшего поиска
-      // «головная» → «голов», «слева» → «слев» / «лев», «давящая» → «давящ»
       const stem = stemRu(word)
-      q = q.or(`fullpath.ilike.%${stem}%,fullpath_ru.ilike.%${stem}%`)
+      const pattern = `%${stem}%`
+      conditions.push(Prisma.sql`(fullpath ILIKE ${pattern} OR fullpath_ru ILIKE ${pattern})`)
     }
   }
 
-  const { data, count, error } = await q
-  if (error) return { rubrics: [], total: 0 }
-  return { rubrics: (data as RepertoryRubric[]) || [], total: count || 0 }
+  const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+  const offset = pg * PAGE_SIZE
+
+  // Получаем общее количество и данные параллельно
+  const [countResult, data] = await Promise.all([
+    prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(*) as count FROM repertory_rubrics ${whereClause}
+    `,
+    prisma.$queryRaw<Array<{
+      id: number; source: string; chapter: string; fullpath: string;
+      fullpath_ru: string | null; remedies: unknown; remedy_count: number
+    }>>`
+      SELECT id, source, chapter, fullpath, fullpath_ru, remedies, remedy_count
+      FROM repertory_rubrics ${whereClause}
+      ORDER BY remedy_count DESC
+      LIMIT ${PAGE_SIZE} OFFSET ${offset}
+    `,
+  ])
+
+  const total = Number(countResult[0]?.count || 0)
+  return { rubrics: (data as RepertoryRubric[]) || [], total }
 }
 
 export async function getRubricsByIds(ids: number[]): Promise<RepertoryRubric[]> {
   const parsed = z.array(z.number().int().positive()).max(50).safeParse(ids)
   if (!parsed.success) return []
   if (!parsed.data.length) return []
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('repertory_rubrics')
-    .select('*')
-    .in('id', parsed.data)
-  return (data as RepertoryRubric[]) || []
+
+  const data = await prisma.repertoryRubric.findMany({
+    where: { id: { in: parsed.data } },
+  })
+
+  // Маппим camelCase → snake_case для совместимости с типом
+  return data.map(r => ({
+    id: r.id,
+    source: r.source || '',
+    chapter: r.chapter || '',
+    fullpath: r.fullpath || '',
+    fullpath_ru: r.fullpathRu || null,
+    remedies: (r.remedies as RepertoryRubric['remedies']) || [],
+    remedy_count: r.remedyCount || 0,
+  }))
 }
 
 export async function getPatientsSimple(): Promise<{ id: string; name: string; lastVisit: string | null }[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const { userId } = await requireAuth()
 
-  const { data } = await supabase
-    .from('patients')
-    .select('id, name, updated_at')
-    .eq('doctor_id', user.id)
-    .order('updated_at', { ascending: false })
-    .limit(20)
-  return (data || []).map((p: { id: string; name: string; updated_at: string | null }) => ({
+  const data = await prisma.patient.findMany({
+    where: { doctorId: userId },
+    select: { id: true, name: true, updatedAt: true },
+    orderBy: { updatedAt: 'desc' },
+    take: 20,
+  })
+
+  return data.map(p => ({
     id: p.id,
     name: p.name,
-    lastVisit: p.updated_at || null,
+    lastVisit: p.updatedAt?.toISOString() || null,
   }))
 }
 
 export async function getPatientConsultationsSimple(
   patientId: string
 ): Promise<{ id: string; date: string; status: string }[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const { userId } = await requireAuth()
 
-  const { data } = await supabase
-    .from('consultations')
-    .select('id, date, status')
-    .eq('patient_id', patientId)
-    .eq('doctor_id', user.id)
-    .neq('status', 'cancelled')
-    .order('date', { ascending: false })
-    .limit(15)
-  return (data as { id: string; date: string; status: string }[]) || []
+  const data = await prisma.consultation.findMany({
+    where: {
+      patientId,
+      doctorId: userId,
+      NOT: { status: 'cancelled' },
+    },
+    select: { id: true, date: true, status: true },
+    orderBy: { date: 'desc' },
+    take: 15,
+  })
+
+  return data.map(c => ({
+    id: c.id,
+    date: c.date || '',
+    status: c.status,
+  }))
 }
 
 export async function searchRemedyNames(query: string): Promise<{ name: string; abbrev: string }[]> {
   if (!query || query.trim().length < 2) return []
-  const supabase = await createClient()
   const clean = query.trim().replace(/[%_\\[\]*.,()]/g, '')
 
-  const { data } = await supabase
-    .from('repertory_rubrics')
-    .select('remedies')
-    .filter('remedies::text', 'ilike', `%${clean}%`)
-    .limit(5)
+  // Ищем рубрики, в JSON-поле remedies содержится текст запроса
+  const pattern = `%${clean}%`
+  const data = await prisma.$queryRaw<Array<{ remedies: unknown }>>`
+    SELECT remedies FROM repertory_rubrics
+    WHERE remedies::text ILIKE ${pattern}
+    LIMIT 5
+  `
 
   if (!data?.length) return []
 
@@ -189,13 +218,13 @@ export async function getTopRemediesFromRubricIds(
   entries: { rubricId: number; weight: 1 | 2 | 3; eliminate?: boolean }[]
 ): Promise<{ abbrev: string; name: string; score: number }[]> {
   if (!entries.length) return []
-  const supabase = await createClient()
   const ids = entries.map(e => e.rubricId)
 
-  const { data } = await supabase
-    .from('repertory_rubrics')
-    .select('id, remedies')
-    .in('id', ids)
+  const data = await prisma.repertoryRubric.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, remedies: true },
+  })
+
   if (!data?.length) return []
 
   type RubricRow = { id: number; remedies: { name: string; abbrev: string; grade: number }[] }
@@ -204,7 +233,7 @@ export async function getTopRemediesFromRubricIds(
   const eliminateRemedies = new Map<number, Set<string>>()
   const scores = new Map<string, { name: string; score: number }>()
 
-  for (const rubric of data as RubricRow[]) {
+  for (const rubric of data as unknown as RubricRow[]) {
     const entry = entryMap.get(rubric.id)
     if (!entry) continue
     if (entry.eliminate) {

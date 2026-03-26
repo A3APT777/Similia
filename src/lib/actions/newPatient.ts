@@ -1,24 +1,22 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { redirect } from 'next/navigation'
-import { randomUUID } from 'crypto'
+import { prisma } from '@/lib/prisma'
+import { requireAuth, generateToken } from '@/lib/server-utils'
 import { revalidatePath } from 'next/cache'
 import { newPatientBookingSchema, validate, uuidSchema } from '@/lib/validation'
 
 // Врач создаёт токен для записи нового пациента
 export async function createNewPatientToken(): Promise<string> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const token = randomUUID().replace(/-/g, '')
+  const token = generateToken()
 
-  await supabase.from('new_patient_tokens').insert({
-    doctor_id: user.id,
-    token,
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  await prisma.newPatientToken.create({
+    data: {
+      doctorId: userId,
+      token,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
   })
 
   return token
@@ -27,26 +25,24 @@ export async function createNewPatientToken(): Promise<string> {
 // Ссылка для записи существующего пациента (только календарь, без анкеты)
 export async function createBookingLinkForPatient(patientId: string): Promise<string> {
   uuidSchema.parse(patientId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Проверяем что пациент принадлежит врачу
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('id', patientId)
-    .eq('doctor_id', user.id)
-    .single()
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, doctorId: userId },
+    select: { id: true },
+  })
   if (!patient) throw new Error('Patient not found')
 
-  const token = randomUUID().replace(/-/g, '')
+  const token = generateToken()
 
-  await supabase.from('new_patient_tokens').insert({
-    doctor_id: user.id,
-    patient_id: patientId,
-    token,
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  await prisma.newPatientToken.create({
+    data: {
+      doctorId: userId,
+      patientId,
+      token,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
   })
 
   return token
@@ -54,40 +50,44 @@ export async function createBookingLinkForPatient(patientId: string): Promise<st
 
 // Получить инфо о токене (публично, без авторизации)
 export async function getNewPatientToken(token: string) {
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('new_patient_tokens')
-    .select('doctor_id, expires_at, used, patient_id')
-    .eq('token', token)
-    .single()
+  // Публичная операция — prisma напрямую
+  const data = await prisma.newPatientToken.findUnique({
+    where: { token },
+    select: { doctorId: true, expiresAt: true, used: true, patientId: true },
+  })
   return data
 }
 
 // Получить расписание врача (публично)
 export async function getDoctorSchedule(doctorId: string) {
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('doctor_schedules')
-    .select('*')
-    .eq('doctor_id', doctorId)
-    .single()
+  // Публичная операция — prisma напрямую
+  const data = await prisma.doctorSchedule.findFirst({
+    where: { doctorId },
+  })
   return data
 }
 
 // Получить занятые слоты для даты (публично)
 export async function getBookedSlots(doctorId: string, date: string): Promise<string[]> {
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('consultations')
-    .select('scheduled_at')
-    .eq('doctor_id', doctorId)
-    .gte('scheduled_at', `${date}T00:00:00`)
-    .lt('scheduled_at', `${date}T23:59:59`)
-    .neq('status', 'cancelled')
-  return (data || []).map(a => {
-    const d = new Date(a.scheduled_at)
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  // Публичная операция — prisma напрямую
+  const data = await prisma.consultation.findMany({
+    where: {
+      doctorId,
+      scheduledAt: {
+        gte: new Date(`${date}T00:00:00`),
+        lt: new Date(`${date}T23:59:59`),
+      },
+      status: { not: 'cancelled' },
+    },
+    select: { scheduledAt: true },
   })
+
+  return data
+    .filter(a => a.scheduledAt !== null)
+    .map(a => {
+      const d = new Date(a.scheduledAt!)
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    })
 }
 
 // Сохранить запись нового пациента (публично, пациент без авторизации)
@@ -112,77 +112,87 @@ export async function submitNewPatientBooking(
   if (validationResult.error) return { success: false, error: validationResult.error }
   const validatedData = validationResult.data!
 
-  const supabase = createServiceClient()
+  // Публичная операция — prisma напрямую
 
   // Проверяем токен
-  const { data: tokenData } = await supabase
-    .from('new_patient_tokens')
-    .select('doctor_id, expires_at, used')
-    .eq('token', token)
-    .single()
+  const tokenData = await prisma.newPatientToken.findUnique({
+    where: { token },
+    select: { doctorId: true, expiresAt: true, used: true },
+  })
 
   if (!tokenData) return { success: false, error: 'Ссылка недействительна' }
   if (tokenData.used) return { success: false, error: 'Ссылка уже была использована' }
-  if (new Date(tokenData.expires_at) < new Date()) return { success: false, error: 'Срок действия ссылки истёк' }
+  if (tokenData.expiresAt && new Date(tokenData.expiresAt) < new Date()) return { success: false, error: 'Срок действия ссылки истёк' }
 
-  // Создаём пациента (используем провалидированные данные)
-  const { data: patient, error: patientError } = await supabase
-    .from('patients')
-    .insert({
-      doctor_id: tokenData.doctor_id,
-      name: validatedData.name,
-      birth_date: validatedData.birth_date || null,
-      phone: validatedData.phone,
-      email: validatedData.email || null,
-      first_visit_date: new Date().toISOString().split('T')[0],
+  // Проверка лимита пациентов врача
+  const patientCount = await prisma.patient.count({ where: { doctorId: tokenData.doctorId, isDemo: false } })
+  const sub = await prisma.subscription.findUnique({ where: { doctorId: tokenData.doctorId }, include: { plan: true } })
+  const maxPatients = sub?.plan?.maxPatients ?? 5
+  if (maxPatients !== null && patientCount >= maxPatients) {
+    return { success: false, error: 'К сожалению, врач не может принять больше пациентов на текущем тарифе' }
+  }
+
+  // Создаём пациента
+  let patient
+  try {
+    patient = await prisma.patient.create({
+      data: {
+        doctorId: tokenData.doctorId,
+        name: validatedData.name,
+        birthDate: validatedData.birth_date || null,
+        phone: validatedData.phone,
+        email: validatedData.email || null,
+        firstVisitDate: new Date().toISOString().split('T')[0],
+      },
     })
-    .select()
-    .single()
-
-  if (patientError || !patient) {
-    console.error('[submitNewPatientBooking] patient insert error:', patientError)
+  } catch (err) {
+    console.error('[submitNewPatientBooking] patient insert error:', err)
     return { success: false, error: 'Ошибка создания пациента' }
   }
 
   // Проверка конфликтов — нет ли записи на это время
   const scheduledAt = new Date(`${validatedData.date}T${validatedData.time}:00`)
-  const dayStart = new Date(`${validatedData.date}T00:00:00`).toISOString()
-  const dayEnd = new Date(`${validatedData.date}T23:59:59`).toISOString()
-  const { data: existingAppointments } = await supabase
-    .from('consultations')
-    .select('scheduled_at')
-    .eq('doctor_id', tokenData.doctor_id)
-    .neq('status', 'cancelled')
-    .gte('scheduled_at', dayStart)
-    .lte('scheduled_at', dayEnd)
+  const dayStart = new Date(`${validatedData.date}T00:00:00`)
+  const dayEnd = new Date(`${validatedData.date}T23:59:59`)
+
+  const existingAppointments = await prisma.consultation.findMany({
+    where: {
+      doctorId: tokenData.doctorId,
+      status: { not: 'cancelled' },
+      scheduledAt: { gte: dayStart, lte: dayEnd },
+    },
+    select: { scheduledAt: true },
+  })
 
   const selectedMinutes = scheduledAt.getHours() * 60 + scheduledAt.getMinutes()
-  const hasConflict = (existingAppointments || []).some(a => {
-    if (!a.scheduled_at) return false
-    const existing = new Date(a.scheduled_at)
+  const hasConflict = existingAppointments.some(a => {
+    if (!a.scheduledAt) return false
+    const existing = new Date(a.scheduledAt)
     const existingMin = existing.getHours() * 60 + existing.getMinutes()
     return Math.abs(existingMin - selectedMinutes) < 60
   })
 
   if (hasConflict) {
     // Откатываем пациента
-    await supabase.from('patients').delete().eq('id', patient.id)
+    await prisma.patient.delete({ where: { id: patient.id } })
     return { success: false, error: 'Это время уже занято. Выберите другое.' }
   }
 
   // Создаём консультацию (запись)
-  const { error: consultationError } = await supabase.from('consultations').insert({
-    doctor_id: tokenData.doctor_id,
-    patient_id: patient.id,
-    scheduled_at: scheduledAt.toISOString(),
-    status: 'scheduled',
-    source: 'online',
-  })
-
-  if (consultationError) {
-    console.error('[submitNewPatientBooking] consultation insert error:', consultationError)
+  try {
+    await prisma.consultation.create({
+      data: {
+        doctorId: tokenData.doctorId,
+        patientId: patient.id,
+        scheduledAt,
+        status: 'scheduled',
+        source: 'online',
+      },
+    })
+  } catch (err) {
+    console.error('[submitNewPatientBooking] consultation insert error:', err)
     // Откатываем пациента
-    await supabase.from('patients').delete().eq('id', patient.id)
+    await prisma.patient.delete({ where: { id: patient.id } })
     return { success: false, error: 'Ошибка записи на приём. Попробуйте ещё раз.' }
   }
 
@@ -196,29 +206,31 @@ export async function submitNewPatientBooking(
     medications_list: validatedData.medications === 'yes' ? (validatedData.medications_list || '') : '',
   }
 
-  const { error: intakeError } = await supabase.from('intake_forms').insert({
-    doctor_id: tokenData.doctor_id,
-    patient_id: patient.id,
-    patient_name: validatedData.name,
-    type: 'primary',
-    status: 'completed',
-    answers: intakeData,
-    token: randomUUID().replace(/-/g, ''),
-  })
-
-  if (intakeError) {
-    console.error('[submitNewPatientBooking] intake_forms insert error:', intakeError)
+  try {
+    await prisma.intakeForm.create({
+      data: {
+        doctorId: tokenData.doctorId,
+        patientId: patient.id,
+        patientName: validatedData.name,
+        type: 'primary',
+        status: 'completed',
+        answers: intakeData,
+        token: generateToken(),
+      },
+    })
+  } catch (err) {
+    console.error('[submitNewPatientBooking] intake_forms insert error:', err)
     // Не блокируем запись из-за анкеты — консультация уже создана
   }
 
   // Помечаем токен как использованный
-  const { error: tokenUpdateError } = await supabase
-    .from('new_patient_tokens')
-    .update({ used: true })
-    .eq('token', token)
-
-  if (tokenUpdateError) {
-    console.error('[submitNewPatientBooking] token update error:', tokenUpdateError)
+  try {
+    await prisma.newPatientToken.update({
+      where: { token },
+      data: { used: true },
+    })
+  } catch (err) {
+    console.error('[submitNewPatientBooking] token update error:', err)
   }
 
   revalidatePath('/dashboard')
@@ -236,57 +248,63 @@ export async function bookExistingPatient(
   date: string,
   time: string,
 ): Promise<{ success: boolean; error?: string; appointmentDate?: string }> {
-  const supabase = createServiceClient()
+  // Публичная операция — prisma напрямую
 
   // Проверяем токен
-  const { data: tokenData } = await supabase
-    .from('new_patient_tokens')
-    .select('doctor_id, expires_at, used, patient_id')
-    .eq('token', token)
-    .single()
+  const tokenData = await prisma.newPatientToken.findUnique({
+    where: { token },
+    select: { doctorId: true, expiresAt: true, used: true, patientId: true },
+  })
 
   if (!tokenData) return { success: false, error: 'Ссылка недействительна' }
   if (tokenData.used) return { success: false, error: 'Ссылка уже использована' }
-  if (new Date(tokenData.expires_at) < new Date()) return { success: false, error: 'Срок действия истёк' }
-  if (!tokenData.patient_id) return { success: false, error: 'Некорректная ссылка' }
+  if (tokenData.expiresAt && new Date(tokenData.expiresAt) < new Date()) return { success: false, error: 'Срок действия истёк' }
+  if (!tokenData.patientId) return { success: false, error: 'Некорректная ссылка' }
 
   // Проверка конфликтов
   const scheduledAt = new Date(`${date}T${time}:00`)
-  const dayStart = new Date(`${date}T00:00:00`).toISOString()
-  const dayEnd = new Date(`${date}T23:59:59`).toISOString()
-  const { data: existing } = await supabase
-    .from('consultations')
-    .select('scheduled_at')
-    .eq('doctor_id', tokenData.doctor_id)
-    .neq('status', 'cancelled')
-    .gte('scheduled_at', dayStart)
-    .lte('scheduled_at', dayEnd)
+  const dayStart = new Date(`${date}T00:00:00`)
+  const dayEnd = new Date(`${date}T23:59:59`)
+
+  const existing = await prisma.consultation.findMany({
+    where: {
+      doctorId: tokenData.doctorId,
+      status: { not: 'cancelled' },
+      scheduledAt: { gte: dayStart, lte: dayEnd },
+    },
+    select: { scheduledAt: true },
+  })
 
   const selectedMin = scheduledAt.getHours() * 60 + scheduledAt.getMinutes()
-  const hasConflict = (existing || []).some(a => {
-    if (!a.scheduled_at) return false
-    const ex = new Date(a.scheduled_at)
+  const hasConflict = existing.some(a => {
+    if (!a.scheduledAt) return false
+    const ex = new Date(a.scheduledAt)
     return Math.abs((ex.getHours() * 60 + ex.getMinutes()) - selectedMin) < 60
   })
 
   if (hasConflict) return { success: false, error: 'Это время уже занято. Выберите другое.' }
 
   // Создаём консультацию
-  const { error } = await supabase.from('consultations').insert({
-    doctor_id: tokenData.doctor_id,
-    patient_id: tokenData.patient_id,
-    scheduled_at: scheduledAt.toISOString(),
-    status: 'scheduled',
-    source: 'online',
-  })
-
-  if (error) {
-    console.error('[bookExistingPatient]', error)
+  try {
+    await prisma.consultation.create({
+      data: {
+        doctorId: tokenData.doctorId,
+        patientId: tokenData.patientId,
+        scheduledAt,
+        status: 'scheduled',
+        source: 'online',
+      },
+    })
+  } catch (err) {
+    console.error('[bookExistingPatient]', err)
     return { success: false, error: 'Ошибка записи. Попробуйте ещё раз.' }
   }
 
   // Помечаем токен
-  await supabase.from('new_patient_tokens').update({ used: true }).eq('token', token)
+  await prisma.newPatientToken.update({
+    where: { token },
+    data: { used: true },
+  })
 
   revalidatePath('/dashboard')
 

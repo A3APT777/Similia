@@ -119,6 +119,56 @@ const KEYWORD_RULES: KeywordRule[] = [
   { patterns: ['потеет голова', 'голова потеет', 'подушка мокрая'],
     symptom: { rubric: 'perspiration head night', category: 'particular', weight: 3 },
     certainty: 'high' },
+
+  // Этиология — "после X" (Organon §5: causa иерархически выше симптомов)
+  { patterns: ['после прививки', 'после вакцин'],
+    symptom: { rubric: 'ailments from vaccination', category: 'general', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['после горя', 'после утраты', 'после потери близ'],
+    symptom: { rubric: 'ailments from grief', category: 'mental', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['после гнева', 'после ссоры', 'после обиды', 'после унижен'],
+    symptom: { rubric: 'ailments from anger indignation', category: 'mental', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['после травмы голов', 'после сотрясен', 'после чмт'],
+    symptom: { rubric: 'ailments from head injury concussion', category: 'general', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['после испуга', 'после шока', 'с испугу'],
+    symptom: { rubric: 'ailments from fright shock', category: 'mental', weight: 3 },
+    certainty: 'high' },
+
+  // Сон/поза — keynotes нозодов (Nash: Med #1 = sleep on abdomen)
+  { patterns: ['спит на животе', 'сон на животе', 'на животе спит'],
+    symptom: { rubric: 'sleep position on abdomen', category: 'general', weight: 3 },
+    certainty: 'high' },
+
+  // Peculiar keynotes малых средств
+  { patterns: ['периодическ', 'через день', 'каждый второй день', 'с периодичн'],
+    symptom: { rubric: 'periodicity intermittent complaints', category: 'general', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['не может откашл', 'не откашлив', 'мокрота не отход', 'хрипит но не откашл'],
+    symptom: { rubric: 'rattling mucus inability to expectorate', category: 'particular', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['тяжесть век', 'веки тяжёл', 'глаза не открыть'],
+    symptom: { rubric: 'eyelids heaviness drooping', category: 'particular', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['отстаёт в развитии', 'поздно пошёл', 'поздно заговорил'],
+    symptom: { rubric: 'slow development late walking talking', category: 'general', weight: 3 },
+    certainty: 'high' },
+  { patterns: ['укачивает', 'тошнит в транспорт', 'морская болезнь'],
+    symptom: { rubric: 'motion sickness nausea travel', category: 'general', weight: 2 },
+    certainty: 'high' },
+  { patterns: ['ослаб после понос', 'слабость после понос', 'после длительн.*понос'],
+    symptom: { rubric: 'debility from loss of fluids diarrhea', category: 'general', weight: 3 },
+    certainty: 'high' },
+
+  // Сторонность
+  { patterns: ['всё слева', 'жалобы слева', 'левосторонн'],
+    symptom: { rubric: 'left side complaints', category: 'general', weight: 2 },
+    certainty: 'high' },
+  { patterns: ['всё справа', 'жалобы справа', 'правосторонн'],
+    symptom: { rubric: 'right side complaints', category: 'general', weight: 2 },
+    certainty: 'high' },
 ]
 
 export type FallbackResult = {
@@ -176,11 +226,13 @@ export function mergeWithFallback(
   originalText: string,
   sonnetSymptoms: MDRISymptom[],
   sonnetModalities: MDRIModality[],
+  sonnetFamilyHistory?: string[],
 ): {
   symptoms: MDRISymptom[]
   modalities: MDRIModality[]
   warnings: ValidationWarning[]
   conflicts: string[]
+  familyHistory: string[]
 } {
   // keywordFallback мутирует sonnetModalities при high-certainty конфликте
   const fallback = keywordFallback(originalText, sonnetSymptoms, sonnetModalities)
@@ -206,7 +258,10 @@ export function mergeWithFallback(
   // Post-processing 3: гарантия модальностей из текста
   ensureModalities(modalities, originalText)
 
-  return { symptoms, modalities, warnings, conflicts: fallback.conflicts }
+  // Post-processing 4: гарантия семейного анамнеза из текста
+  const familyHistory = ensureFamilyHistory(sonnetFamilyHistory ?? [], originalText)
+
+  return { symptoms, modalities, warnings, conflicts: fallback.conflicts, familyHistory }
 }
 
 // =====================================================================
@@ -346,6 +401,53 @@ function ensureModalities(modalities: MDRIModality[], originalText: string) {
       modalities.push({ pairId: 'pressure', value: 'amel' })
     }
   }
+
+  // company_alone
+  if (!has('company_alone')) {
+    if (/хочет быть один|хочет одиноч|уходит от люд|один лучше/.test(text)) {
+      modalities.push({ pairId: 'company_alone', value: 'agg' })
+    } else if (/не хочет быть один|компани.{0,5}лучше|боится одиноч|хочет чтоб.{0,10}рядом/.test(text)) {
+      modalities.push({ pairId: 'company_alone', value: 'amel' })
+    }
+  }
+
+  // sea
+  if (!has('sea')) {
+    if (/на море лучше|у моря лучше|морской воздух/.test(text)) {
+      modalities.push({ pairId: 'sea', value: 'amel' })
+    }
+  }
+}
+
+// Гарантия семейного анамнеза из русского текста
+// Sonnet часто пропускает "бабушка болела ТБ" — критично для нозодов (Ганеман, "Хронические болезни")
+function ensureFamilyHistory(sonnetFH: string[], originalText: string): string[] {
+  const text = originalText.toLowerCase()
+  const result = [...sonnetFH]
+  const has = (keyword: string) => result.some(f => f.toLowerCase().includes(keyword))
+
+  const FAMILY_PATTERNS: { patterns: RegExp; disease: string }[] = [
+    { patterns: /(?:бабушк|дедушк|мат|отец|мам|пап|родител|сестр|брат|в семье|семейн|наследств).*(?:туберкул|тбц|тб\b)/i, disease: 'tuberculosis' },
+    { patterns: /(?:туберкул|тбц|тб\b).*(?:бабушк|дедушк|мат|отец|мам|пап|родител|сестр|брат|в семье)/i, disease: 'tuberculosis' },
+    { patterns: /(?:бабушк|дедушк|мат|отец|мам|пап|родител|в семье|семейн).*(?:рак|онкол|опухол)/i, disease: 'cancer' },
+    { patterns: /(?:рак|онкол|опухол).*(?:бабушк|дедушк|мат|отец|мам|пап|родител|в семье)/i, disease: 'cancer' },
+    { patterns: /(?:бабушк|дедушк|мат|отец|мам|пап|в семье).*(?:астм)/i, disease: 'asthma' },
+    { patterns: /(?:бабушк|дедушк|мат|отец|мам|пап|в семье).*(?:диабет|сахарн)/i, disease: 'diabetes' },
+    { patterns: /(?:бабушк|дедушк|мат|отец|мам|пап|в семье).*(?:псориаз|экзем)/i, disease: 'psoriasis' },
+    { patterns: /(?:бабушк|дедушк|мат|отец|мам|пап|в семье).*(?:бородавк|кондилом|папиллом)/i, disease: 'warts' },
+    { patterns: /(?:бабушк|дедушк|мат|отец|мам|пап|в семье).*(?:сердц|инфаркт|инсульт)/i, disease: 'heart disease' },
+    { patterns: /(?:бабушк|дедушк|мат|отец|мам|пап|в семье).*(?:алкогол)/i, disease: 'alcoholism' },
+    // Обратный порядок для "страдал от кондилом отец"
+    { patterns: /(?:кондилом|папиллом|бородавк).*(?:отец|мат|бабушк|дедушк|в семье)/i, disease: 'condylomata' },
+  ]
+
+  for (const rule of FAMILY_PATTERNS) {
+    if (rule.patterns.test(text) && !has(rule.disease)) {
+      result.push(rule.disease)
+    }
+  }
+
+  return result
 }
 
 // =====================================================================

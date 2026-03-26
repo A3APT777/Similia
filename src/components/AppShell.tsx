@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import SidebarShell from './SidebarShell'
 import { getSubscription } from '@/lib/actions/subscription'
@@ -9,22 +11,21 @@ function getInitials(name: string): string {
 }
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const name = user.user_metadata?.name || user.email || ''
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
+
+  const userId = session.user.id
+  const name = session.user.name || session.user.email || ''
   const initials = getInitials(name)
   const firstName = name.split(' ')[0] || name
 
-  const [subscription, patientCountResult, realPatientCountResult, adminCheck] = await Promise.all([
+  const [subscription, patientCount, realPatientCount, adminRecord] = await Promise.all([
     getSubscription(),
-    supabase.from('patients').select('id', { count: 'exact', head: true }).eq('doctor_id', user.id),
-    supabase.from('patients').select('id', { count: 'exact', head: true }).eq('doctor_id', user.id).eq('is_demo', false),
-    supabase.from('admin_users').select('user_id').eq('user_id', user.id).single(),
+    prisma.patient.count({ where: { doctorId: userId } }),
+    prisma.patient.count({ where: { doctorId: userId, isDemo: false } }),
+    prisma.adminUser.findUnique({ where: { userId } }).catch(() => null),
   ])
-  const patientCount = patientCountResult.count ?? 0
-  const realPatientCount = realPatientCountResult.count ?? 0
-  const isAdmin = !!adminCheck.data
+  const isAdmin = !!adminRecord
 
   return (
     <SidebarShell firstName={firstName} initials={initials} subscription={subscription} patientCount={patientCount} realPatientCount={realPatientCount} isAdmin={isAdmin}>

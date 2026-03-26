@@ -1,13 +1,13 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { getReferralStats } from '@/lib/actions/referrals'
 import ReferralClient from './ReferralClient'
 
 export default async function ReferralPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
 
   const stats = await getReferralStats()
 

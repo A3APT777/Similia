@@ -1,6 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { redirect } from 'next/navigation'
 import { uuidSchema, addPaidSessionsSchema } from '@/lib/validation'
 import { z } from 'zod'
@@ -8,162 +9,153 @@ import { z } from 'zod'
 const followupDaysSchema = z.number().int().min(1).max(365)
 const enabledSchema = z.boolean()
 
+// Получить настройки врача (оплата и напоминания)
 export async function getDoctorSettings(): Promise<{ paid_sessions_enabled: boolean; followup_reminder_days: number }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { paid_sessions_enabled: true, followup_reminder_days: 30 }
+  const { userId } = await requireAuth()
 
-  const { data } = await supabase
-    .from('doctor_settings')
-    .select('paid_sessions_enabled, followup_reminder_days')
-    .eq('doctor_id', user.id)
-    .single()
+  const settings = await prisma.doctorSettings.findUnique({
+    where: { doctorId: userId },
+    select: { paidSessionsEnabled: true, followupReminderDays: true },
+  })
 
   return {
-    paid_sessions_enabled: data?.paid_sessions_enabled ?? false,
-    followup_reminder_days: data?.followup_reminder_days ?? 30,
+    paid_sessions_enabled: settings?.paidSessionsEnabled ?? false,
+    followup_reminder_days: settings?.followupReminderDays ?? 30,
   }
 }
 
+// Обновить интервал напоминаний для фоллоу-апов
 export async function updateFollowupReminderDays(days: number): Promise<void> {
   const validated = followupDaysSchema.parse(days)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('doctor_settings')
-    .upsert(
-      { doctor_id: user.id, followup_reminder_days: validated, updated_at: new Date().toISOString() },
-      { onConflict: 'doctor_id' }
-    )
-  if (error) {
-    console.error('[updateFollowupReminderDays] error:', error)
-    throw new Error('Не удалось сохранить')
-  }
+  await prisma.doctorSettings.upsert({
+    where: { doctorId: userId },
+    update: { followupReminderDays: validated },
+    create: { doctorId: userId, followupReminderDays: validated },
+  })
 }
 
+// Включить/выключить трекинг оплаченных сеансов
 export async function updatePaidSessionsEnabled(enabled: boolean): Promise<void> {
   const validated = enabledSchema.parse(enabled)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('doctor_settings')
-    .upsert(
-      { doctor_id: user.id, paid_sessions_enabled: validated, updated_at: new Date().toISOString() },
-      { onConflict: 'doctor_id' }
-    )
-  if (error) {
-    console.error('[updatePaidSessionsEnabled] error:', error)
-    throw new Error('Не удалось сохранить')
-  }
+  await prisma.doctorSettings.upsert({
+    where: { doctorId: userId },
+    update: { paidSessionsEnabled: validated },
+    create: { doctorId: userId, paidSessionsEnabled: validated },
+  })
 }
 
+// Добавить оплаченные сеансы пациенту (атомарный инкремент)
 export async function addPaidSessions(patientId: string, amount: number, note: string): Promise<void> {
   uuidSchema.parse(patientId)
   addPaidSessionsSchema.parse({ amount, note })
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  // Атомарное обновление через RPC — защита от race condition
-  const { error: rpcError } = await supabase.rpc('increment_paid_sessions', {
-    p_patient_id: patientId,
-    p_doctor_id: user.id,
-    p_amount: amount,
+  // Атомарное обновление — защита от race condition
+  await prisma.patient.update({
+    where: { id: patientId, doctorId: userId },
+    data: { paidSessions: { increment: amount } },
   })
-  if (rpcError) { console.error('[addPaidSessions] rpc:', rpcError); throw new Error('Не удалось обновить оплату') }
 
-  const { error: histError } = await supabase.from('payment_history').insert({
-    patient_id: patientId,
-    doctor_id: user.id,
-    amount,
-    note: note.trim() || null,
+  // Запись в историю платежей
+  await prisma.paymentHistory.create({
+    data: {
+      patientId,
+      doctorId: userId,
+      amount,
+      note: note.trim() || null,
+    },
   })
-  if (histError) console.error('[addPaidSessions] history:', histError)
 }
 
+// Списать один оплаченный сеанс (при создании консультации)
+// Атомарный декремент — защита от TOCTOU race condition
 export async function decrementPaidSession(
   patientId: string
 ): Promise<{ prevCount: number; newCount: number }> {
   uuidSchema.parse(patientId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { prevCount: 0, newCount: 0 }
+  const { userId } = await requireAuth()
 
-  const { data, error: rpcError } = await supabase.rpc('decrement_paid_session', {
-    p_patient_id: patientId,
-    p_doctor_id: user.id,
+  // Один атомарный запрос: декремент только если paid_sessions > 0
+  const affected: number = await prisma.$executeRaw`
+    UPDATE "Patient"
+    SET "paidSessions" = "paidSessions" - 1
+    WHERE id = ${patientId}
+      AND "doctorId" = ${userId}
+      AND "paidSessions" > 0
+  `
+
+  // Если 0 строк затронуто — баланс уже 0 или пациент не найден
+  if (affected === 0) return { prevCount: 0, newCount: 0 }
+
+  // Получаем новое значение после декремента
+  const updated = await prisma.patient.findFirst({
+    where: { id: patientId, doctorId: userId },
+    select: { paidSessions: true },
   })
-  if (rpcError) { console.error('[decrementPaidSession] rpc:', rpcError); return { prevCount: 0, newCount: 0 } }
 
-  const result = data?.[0] || { prev_count: 0, new_count: 0 }
-  const prevCount = result.prev_count ?? 0
-  const newCount = result.new_count ?? 0
+  const newCount = updated?.paidSessions ?? 0
+  const prevCount = newCount + 1
 
-  if (prevCount > 0) {
-    await supabase.from('payment_history').insert({
-      patient_id: patientId,
-      doctor_id: user.id,
+  // Запись в историю платежей
+  await prisma.paymentHistory.create({
+    data: {
+      patientId,
+      doctorId: userId,
       amount: -1,
       note: 'авто',
-    })
-  }
+    },
+  })
 
   return { prevCount, newCount }
 }
 
+// Получить историю платежей пациента (последние 10 записей)
 export async function getPaymentHistory(patientId: string): Promise<
   { id: string; amount: number; note: string | null; created_at: string }[]
 > {
   uuidSchema.parse(patientId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const { userId } = await requireAuth()
 
-  const { data } = await supabase
-    .from('payment_history')
-    .select('id, amount, note, created_at')
-    .eq('patient_id', patientId)
-    .eq('doctor_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(10)
-  return data || []
+  const rows = await prisma.paymentHistory.findMany({
+    where: { patientId, doctorId: userId },
+    select: { id: true, amount: true, note: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  })
+
+  // Сохраняем формат ответа для совместимости с UI
+  return rows.map(r => ({
+    id: r.id,
+    amount: r.amount,
+    note: r.note,
+    created_at: r.createdAt.toISOString(),
+  }))
 }
 
+// Получить пациентов без оплаченных сеансов (для уведомлений)
 export async function getUnpaidPatients(): Promise<{ id: string; name: string }[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const { userId } = await requireAuth()
 
-  const { data: settings } = await supabase
-    .from('doctor_settings')
-    .select('paid_sessions_enabled')
-    .eq('doctor_id', user.id)
-    .single()
+  const settings = await prisma.doctorSettings.findUnique({
+    where: { doctorId: userId },
+    select: { paidSessionsEnabled: true },
+  })
 
-  if (settings?.paid_sessions_enabled === false) return []
+  if (settings?.paidSessionsEnabled === false) return []
 
-  const { data: zeroPatients } = await supabase
-    .from('patients')
-    .select('id, name')
-    .eq('doctor_id', user.id)
-    .eq('paid_sessions', 0)
+  // Пациенты с нулём сеансов, у которых есть история платежей
+  const zeroPatients = await prisma.patient.findMany({
+    where: {
+      doctorId: userId,
+      paidSessions: 0,
+      paymentHistory: { some: { doctorId: userId } },
+    },
+    select: { id: true, name: true },
+  })
 
-  if (!zeroPatients || zeroPatients.length === 0) return []
-
-  const patientIds = zeroPatients.map(p => p.id)
-
-  // Показываем только пациентов, которым ранее начислялись оплаченные сеансы
-  // (есть записи в payment_history), но сейчас paid_sessions === 0
-  const { data: withHistory } = await supabase
-    .from('payment_history')
-    .select('patient_id')
-    .in('patient_id', patientIds)
-    .eq('doctor_id', user.id)
-
-  const paidBefore = new Set((withHistory || []).map(h => h.patient_id))
-  return zeroPatients.filter(p => paidBefore.has(p.id))
+  return zeroPatients
 }

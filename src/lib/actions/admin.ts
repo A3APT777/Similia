@@ -1,105 +1,126 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { redirect } from 'next/navigation'
 
 // Проверка что пользователь — админ
 async function requireAdmin() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId, user } = await requireAuth()
 
-  const { data: admin } = await supabase
-    .from('admin_users')
-    .select('user_id')
-    .eq('user_id', user.id)
-    .single()
+  const admin = await prisma.adminUser.findUnique({
+    where: { userId },
+  })
 
   if (!admin) redirect('/dashboard')
-  return user
+  return { userId, user }
 }
 
 // Статистика платформы
 export async function getAdminStats() {
   await requireAdmin()
-  const service = createServiceClient()
 
   const [
-    { count: totalUsers },
-    { count: totalPatients },
-    { count: totalConsultations },
-    { count: totalPayments },
-    { data: recentPayments },
+    totalUsers,
+    totalPatients,
+    totalConsultations,
+    totalPayments,
+    recentPayments,
+    users,
+    subscriptions,
+    referrals,
   ] = await Promise.all([
-    service.from('patients').select('*', { count: 'exact', head: true }).eq('is_demo', false),
-    service.from('patients').select('*', { count: 'exact', head: true }).eq('is_demo', false),
-    service.from('consultations').select('*', { count: 'exact', head: true }),
-    service.from('subscription_payments').select('*', { count: 'exact', head: true }).eq('status', 'succeeded'),
-    service.from('subscription_payments').select('*').eq('status', 'succeeded').order('created_at', { ascending: false }).limit(5),
+    prisma.user.count(),
+    prisma.patient.count({ where: { isDemo: false } }),
+    prisma.consultation.count(),
+    prisma.subscriptionPayment.count({ where: { status: 'succeeded' } }),
+    prisma.subscriptionPayment.findMany({
+      where: { status: 'succeeded' },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+      },
+    }),
+    prisma.subscription.findMany({
+      include: { plan: true },
+    }),
+    prisma.referralInvitation.findMany(),
   ])
 
-  // Получаем всех пользователей через auth admin API
-  const { data: { users } } = await service.auth.admin.listUsers()
-
-  // Подписки
-  const { data: subscriptions } = await service
-    .from('subscriptions')
-    .select('*, subscription_plans(*)')
-
-  // Рефералы
-  const { data: referrals } = await service
-    .from('referral_invitations')
-    .select('*')
-
   return {
-    totalUsers: users?.length || 0,
-    totalPatients: totalPatients || 0,
-    totalConsultations: totalConsultations || 0,
-    totalPayments: totalPayments || 0,
-    recentPayments: recentPayments || [],
-    users: users || [],
-    subscriptions: subscriptions || [],
-    referrals: referrals || [],
+    totalUsers,
+    totalPatients,
+    totalConsultations,
+    totalPayments,
+    recentPayments,
+    users: users.map(u => ({
+      id: u.id,
+      email: u.email,
+      user_metadata: { name: u.name },
+      created_at: u.createdAt.toISOString(),
+    })),
+    subscriptions,
+    referrals,
   }
 }
 
 // Список врачей с деталями
 export async function getAdminDoctors() {
   await requireAdmin()
-  const service = createServiceClient()
 
-  const { data: { users } } = await service.auth.admin.listUsers()
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      createdAt: true,
+    },
+  })
 
   // Получаем количество пациентов и консультаций для каждого врача
   const doctorDetails = await Promise.all(
-    (users || []).map(async (user) => {
+    users.map(async (user) => {
       const [
-        { count: patientCount },
-        { count: consultationCount },
-        { data: subscription },
-        { data: referralCode },
-        { data: doctorSettings },
+        patientCount,
+        consultationCount,
+        subscription,
+        referralCode,
+        doctorSettings,
       ] = await Promise.all([
-        service.from('patients').select('*', { count: 'exact', head: true }).eq('doctor_id', user.id).eq('is_demo', false),
-        service.from('consultations').select('*', { count: 'exact', head: true }).eq('doctor_id', user.id),
-        service.from('subscriptions').select('*, subscription_plans(*)').eq('doctor_id', user.id).single(),
-        service.from('referral_codes').select('code').eq('doctor_id', user.id).single(),
-        service.from('doctor_settings').select('subscription_plan, ai_credits').eq('doctor_id', user.id).single(),
+        prisma.patient.count({ where: { doctorId: user.id, isDemo: false } }),
+        prisma.consultation.count({ where: { doctorId: user.id } }),
+        prisma.subscription.findUnique({
+          where: { doctorId: user.id },
+          include: { plan: true },
+        }),
+        prisma.referralCode.findUnique({
+          where: { doctorId: user.id },
+          select: { code: true },
+        }),
+        prisma.doctorSettings.findUnique({
+          where: { doctorId: user.id },
+          select: { subscriptionPlan: true, aiCredits: true },
+        }),
       ])
 
       return {
         id: user.id,
         email: user.email,
-        name: user.user_metadata?.name || user.user_metadata?.full_name || '',
-        createdAt: user.created_at,
-        lastSignIn: user.last_sign_in_at,
-        patientCount: patientCount || 0,
-        consultationCount: consultationCount || 0,
-        subscription: subscription,
-        referralCode: referralCode?.code || null,
-        aiPro: doctorSettings?.subscription_plan === 'ai_pro',
-        aiCredits: doctorSettings?.ai_credits ?? 0,
+        name: user.name ?? '',
+        createdAt: user.createdAt.toISOString(),
+        lastSignIn: null, // NextAuth не хранит last_sign_in
+        patientCount,
+        consultationCount,
+        subscription,
+        referralCode: referralCode?.code ?? null,
+        aiPro: doctorSettings?.subscriptionPlan === 'ai_pro',
+        aiCredits: doctorSettings?.aiCredits ?? 0,
       }
     })
   )
@@ -117,18 +138,16 @@ export async function adminUpdateSubscription(doctorId: string, planId: string, 
     throw new Error(`Недопустимый тариф: ${planId}`)
   }
 
-  const service = createServiceClient()
-
-  const { error } = await service
-    .from('subscriptions')
-    .update({
-      plan_id: planId,
-      status: 'active',
-      current_period_end: periodEnd,
+  try {
+    await prisma.subscription.update({
+      where: { doctorId },
+      data: {
+        planId,
+        status: 'active',
+        currentPeriodEnd: new Date(periodEnd),
+      },
     })
-    .eq('doctor_id', doctorId)
-
-  if (error) {
+  } catch (error) {
     console.error('[adminUpdateSubscription]', error)
     throw new Error('Не удалось обновить подписку')
   }
@@ -137,32 +156,28 @@ export async function adminUpdateSubscription(doctorId: string, planId: string, 
 // Все платежи
 export async function getAdminPayments() {
   await requireAdmin()
-  const service = createServiceClient()
 
-  const { data: payments } = await service
-    .from('subscription_payments')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(100)
+  const payments = await prisma.subscriptionPayment.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  })
 
-  return payments || []
+  return payments
 }
 
 // Включить/выключить AI Pro для врача
 export async function adminToggleAIPro(doctorId: string, enable: boolean) {
   await requireAdmin()
-  const service = createServiceClient()
 
   // Обновляем doctor_settings (для AI-кредитов)
-  const { error: settingsError } = await service
-    .from('doctor_settings')
-    .upsert({
-      doctor_id: doctorId,
-      subscription_plan: enable ? 'ai_pro' : null,
-    }, { onConflict: 'doctor_id' })
-
-  if (settingsError) {
-    console.error('[adminToggleAIPro] settings error:', settingsError)
+  try {
+    await prisma.doctorSettings.upsert({
+      where: { doctorId },
+      update: { subscriptionPlan: enable ? 'ai_pro' : null },
+      create: { doctorId, subscriptionPlan: enable ? 'ai_pro' : null },
+    })
+  } catch (error) {
+    console.error('[adminToggleAIPro] settings error:', error)
     throw new Error('Не удалось обновить AI Pro')
   }
 
@@ -170,29 +185,36 @@ export async function adminToggleAIPro(doctorId: string, enable: boolean) {
   if (enable) {
     const periodEnd = new Date()
     periodEnd.setFullYear(periodEnd.getFullYear() + 1) // AI Pro на 1 год
-    const { error: subError } = await service
-      .from('subscriptions')
-      .upsert({
-        doctor_id: doctorId,
-        plan_id: 'ai_pro',
-        status: 'active',
-        current_period_end: periodEnd.toISOString(),
-        cancel_at_period_end: false,
-      }, { onConflict: 'doctor_id' })
-
-    if (subError) {
-      console.error('[adminToggleAIPro] subscription error:', subError)
+    try {
+      await prisma.subscription.upsert({
+        where: { doctorId },
+        update: {
+          planId: 'ai_pro',
+          status: 'active',
+          currentPeriodEnd: periodEnd,
+          cancelAtPeriodEnd: false,
+        },
+        create: {
+          doctorId,
+          planId: 'ai_pro',
+          status: 'active',
+          currentPeriodEnd: periodEnd,
+          cancelAtPeriodEnd: false,
+        },
+      })
+    } catch (error) {
+      console.error('[adminToggleAIPro] subscription error:', error)
       throw new Error('Не удалось обновить подписку')
     }
   } else {
     // Откат на standard
-    const { error: subError } = await service
-      .from('subscriptions')
-      .update({ plan_id: 'standard' })
-      .eq('doctor_id', doctorId)
-
-    if (subError) {
-      console.error('[adminToggleAIPro] rollback error:', subError)
+    try {
+      await prisma.subscription.update({
+        where: { doctorId },
+        data: { planId: 'standard' },
+      })
+    } catch (error) {
+      console.error('[adminToggleAIPro] rollback error:', error)
     }
   }
 }
@@ -200,24 +222,21 @@ export async function adminToggleAIPro(doctorId: string, enable: boolean) {
 // Добавить AI-кредиты врачу
 export async function adminAddAICredits(doctorId: string, credits: number) {
   await requireAdmin()
-  const service = createServiceClient()
 
-  const { data: settings } = await service
-    .from('doctor_settings')
-    .select('ai_credits')
-    .eq('doctor_id', doctorId)
-    .single()
+  const settings = await prisma.doctorSettings.findUnique({
+    where: { doctorId },
+    select: { aiCredits: true },
+  })
 
-  const currentCredits = settings?.ai_credits ?? 0
+  const currentCredits = settings?.aiCredits ?? 0
 
-  const { error } = await service
-    .from('doctor_settings')
-    .upsert({
-      doctor_id: doctorId,
-      ai_credits: currentCredits + credits,
-    }, { onConflict: 'doctor_id' })
-
-  if (error) {
+  try {
+    await prisma.doctorSettings.upsert({
+      where: { doctorId },
+      update: { aiCredits: currentCredits + credits },
+      create: { doctorId, aiCredits: currentCredits + credits },
+    })
+  } catch (error) {
     console.error('[adminAddAICredits]', error)
     throw new Error('Не удалось добавить кредиты')
   }
@@ -226,62 +245,64 @@ export async function adminAddAICredits(doctorId: string, credits: number) {
 // AI Analysis Logs — просмотр для аналитики
 export async function getAIAnalysisLogs(limit = 50) {
   await requireAdmin()
-  const service = createServiceClient()
 
-  const { data } = await service
-    .from('ai_analysis_log')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit)
+  const data = await prisma.aiAnalysisLog.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  })
 
-  return data || []
+  return data
 }
 
 export type AIAnalysisLog = {
   id: string
-  user_id: string
-  consultation_id: string | null
-  created_at: string
-  confirmed_input: Array<{ rubric: string; type: string; priority: string; weight: number }>
-  engine_top3: Array<{ remedy: string; score: number }>
-  doctor_choice: string | null
-  correct_position: number | null  // 1, 2, 3 или null (не в top-3)
-  confidence_level: string | null
+  userId: string
+  consultationId: string | null
+  createdAt: Date
+  confirmedInput: Array<{ rubric: string; type: string; priority: string; weight: number }> | null
+  engineTop3: Array<{ remedy: string; score: number }> | null
+  doctorChoice: string | null
+  correctPosition: number | null  // 1, 2, 3 или null (не в top-3)
+  confidenceLevel: string | null
   warnings: Array<{ type: string; message: string }> | null
-  symptom_count: number
-  modality_count: number
-  has_conflict: boolean
-  high_count: number
-  medium_count: number
-  low_count: number
-  mental_count: number
-  error_type: string | null  // parsing / input / engine (ручная пометка)
+  symptomCount: number | null
+  modalityCount: number | null
+  hasConflict: boolean | null
+  highCount: number | null
+  mediumCount: number | null
+  lowCount: number | null
+  mentalCount: number | null
+  errorType: string | null  // parsing / input / engine (ручная пометка)
 }
 
 // Смена пароля (для настроек, не админки)
 export async function changePassword(currentPassword: string, newPassword: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   if (newPassword.length < 8) {
     throw new Error('Пароль должен содержать минимум 8 символов')
   }
 
-  // Проверяем текущий пароль
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: user.email!,
-    password: currentPassword,
+  // Получаем пользователя с хешем пароля
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true, email: true },
   })
+  if (!user || !user.passwordHash) {
+    throw new Error('Пользователь не найден или пароль не установлен')
+  }
 
-  if (signInError) {
+  // Проверяем текущий пароль через bcrypt
+  const bcrypt = await import('bcryptjs')
+  const isValid = await bcrypt.compare(currentPassword, user.passwordHash)
+  if (!isValid) {
     throw new Error('Неверный текущий пароль')
   }
 
-  const { error } = await supabase.auth.updateUser({ password: newPassword })
-
-  if (error) {
-    console.error('[changePassword]', error)
-    throw new Error('Не удалось сменить пароль')
-  }
+  // Хешируем и сохраняем новый пароль
+  const newHash = await bcrypt.hash(newPassword, 12)
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: newHash },
+  })
 }

@@ -137,36 +137,10 @@ export async function loadMDRIData(): Promise<MDRIData> {
     constellationsRaw = JSON.parse(fs.readFileSync(path.join(dataDir, 'constellations.json'), 'utf-8'))
     polaritiesRaw = JSON.parse(fs.readFileSync(path.join(dataDir, 'polarities.json'), 'utf-8'))
     clinicalRaw = JSON.parse(fs.readFileSync(path.join(dataDir, 'clinical.json'), 'utf-8'))
-  } catch {
-    // JSON файлов нет — загрузить из Supabase (fallback)
-    console.warn('[MDRI] Edge cache not found, loading from Supabase...')
-    const { createServiceClient } = await import('@/lib/supabase/service')
-    const supabase = createServiceClient()
-
-    const PAGE_SIZE = 5000
-    let offset = 0
-    let hasMore = true
-    while (hasMore) {
-      const { data } = await supabase
-        .from('repertory_rubrics')
-        .select('fullpath, chapter, remedies')
-        .in('source', ['publicum', 'kent'])
-        .range(offset, offset + PAGE_SIZE - 1)
-      if (data && data.length > 0) {
-        repertoryRaw.push(...data)
-        offset += data.length
-        hasMore = data.length === PAGE_SIZE
-      } else {
-        hasMore = false
-      }
-    }
-
-    const { data: c } = await supabase.from('mdri_constellations').select('*').limit(5000)
-    constellationsRaw = (c ?? []) as typeof constellationsRaw
-    const { data: p } = await supabase.from('mdri_polarities').select('*').limit(2000)
-    polaritiesRaw = (p ?? []) as typeof polaritiesRaw
-    const { data: cl } = await supabase.from('mdri_clinical_data').select('type, data').limit(500)
-    clinicalRaw = (cl ?? []) as typeof clinicalRaw
+  } catch (err) {
+    // JSON файлы ОБЯЗАТЕЛЬНЫ — данные больше не загружаются из Supabase
+    console.error('[MDRI] Не удалось загрузить JSON файлы данных:', err)
+    throw new Error('[MDRI] Edge cache (JSON) не найден. Запустите npx tsx scripts/prebuild-mdri.js')
   }
 
   // Парсинг

@@ -1,0 +1,554 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth (NextAuth) ───────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  passwordHash  String?   @map("password_hash")
+  name          String?
+  image         String?
+  phone         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  accounts      Account[]
+  sessions      Session[]
+
+  // Business relations
+  patients             Patient[]
+  consultations        Consultation[]
+  intakeForms          IntakeForm[]
+  newPatientTokens     NewPatientToken[]
+  photoUploadTokens    PhotoUploadToken[]
+  doctorSettings       DoctorSettings?
+  subscription         Subscription?
+  subscriptionPayments SubscriptionPayment[]
+  preVisitSurveys      PreVisitSurvey[]
+  prescriptionShares   PrescriptionShare[]
+  aiIntakeForms        AiIntakeForm[]
+  aiAnalysisLogs       AiAnalysisLog[]
+  referralCode         ReferralCode?
+  referralsGiven       ReferralInvitation[] @relation("Referrer")
+  referralReceived     ReferralInvitation?  @relation("Invitee")
+  adminUser            AdminUser?
+  paymentHistory       PaymentHistory[]
+  doctorSchedules      DoctorSchedule[]
+  questionnaireTemplates QuestionnaireTemplate[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── Patients ──────────────────────────────────────────────
+
+model Patient {
+  id                String    @id @default(uuid()) @db.Uuid
+  doctorId          String    @map("doctor_id") @db.Uuid
+  name              String
+  birthDate         String?   @map("birth_date")
+  phone             String?
+  email             String?
+  notes             String?
+  firstVisitDate    String?   @map("first_visit_date")
+  constitutionalType String?  @map("constitutional_type")
+  paidSessions      Int       @default(0) @map("paid_sessions")
+  isDemo            Boolean   @default(false) @map("is_demo")
+  gender            String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  doctor            User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  consultations     Consultation[]
+  intakeForms       IntakeForm[]
+  photoUploadTokens PhotoUploadToken[]
+  patientPhotos     PatientPhoto[]
+  preVisitSurveys   PreVisitSurvey[]
+  prescriptionShares PrescriptionShare[]
+  aiIntakeForms     AiIntakeForm[]
+  paymentHistory    PaymentHistory[]
+
+  @@index([doctorId], map: "idx_patients_doctor_id")
+  @@map("patients")
+}
+
+// ─── Consultations ─────────────────────────────────────────
+
+model Consultation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  patientId           String    @map("patient_id") @db.Uuid
+  doctorId            String    @map("doctor_id") @db.Uuid
+  date                String?
+  notes               String?
+  scheduledAt         DateTime? @map("scheduled_at")
+  status              String    @default("completed")
+  type                String    @default("chronic")
+  remedy              String?
+  potency             String?
+  dosage              String?
+  pellets             Int?
+  rubrics             String?
+  reactionToPrevious  String?   @map("reaction_to_previous")
+  source              String    @default("manual")
+  complaints          String    @default("")
+  observations        String    @default("")
+  recommendations     String    @default("")
+  repertoryData       Json      @default("[]") @map("repertory_data")
+  structuredSymptoms  Json?     @map("structured_symptoms")
+  mode                String?
+  caseState           String?   @map("case_state")
+  clinicalAssessment  String?   @map("clinical_assessment")
+  doctorDynamics      String?   @map("doctor_dynamics")
+  modalityWorseText   String?   @map("modality_worse_text")
+  modalityBetterText  String?   @map("modality_better_text")
+  mentalText          String?   @map("mental_text")
+  generalText         String?   @map("general_text")
+  aiResult            Json?     @map("ai_result")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  patient             Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor              User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  followups           Followup[]
+  preVisitSurveys     PreVisitSurvey[]
+  prescriptionShares  PrescriptionShare[]
+
+  @@index([doctorId], map: "idx_consultations_doctor_id")
+  @@index([patientId], map: "idx_consultations_patient_id")
+  @@index([scheduledAt], map: "idx_consultations_scheduled_at")
+  @@unique([doctorId, scheduledAt], map: "idx_no_double_booking")
+  @@map("consultations")
+}
+
+// ─── Followups ─────────────────────────────────────────────
+
+model Followup {
+  id             String    @id @default(uuid()) @db.Uuid
+  consultationId String    @map("consultation_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  token          String    @unique @default(uuid())
+  status         String    @default("pending")
+  comment        String?
+  sentAt         DateTime? @map("sent_at")
+  respondedAt    DateTime? @map("responded_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId], map: "idx_followups_consultation_id")
+  @@index([token], map: "idx_followups_token")
+  @@map("followups")
+}
+
+// ─── Intake Forms ──────────────────────────────────────────
+
+model IntakeForm {
+  id          String    @id @default(uuid()) @db.Uuid
+  token       String    @unique @default(uuid())
+  doctorId    String    @map("doctor_id") @db.Uuid
+  patientId   String?   @map("patient_id") @db.Uuid
+  patientName String?   @map("patient_name")
+  status      String    @default("pending")
+  answers     Json?
+  type        String    @default("primary")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  doctor      User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient     Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([token], map: "idx_intake_forms_token")
+  @@index([doctorId], map: "idx_intake_forms_doctor_id")
+  @@map("intake_forms")
+}
+
+// ─── New Patient Tokens ────────────────────────────────────
+
+model NewPatientToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  doctorId  String    @map("doctor_id") @db.Uuid
+  token     String    @unique @default(uuid())
+  expiresAt DateTime? @map("expires_at")
+  used      Boolean   @default(false)
+  patientId String?   @map("patient_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  doctor    User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([token], map: "idx_new_patient_tokens_token")
+  @@map("new_patient_tokens")
+}
+
+// ─── Patient Photos ────────────────────────────────────────
+
+model PatientPhoto {
+  id        String   @id @default(uuid()) @db.Uuid
+  patientId String   @map("patient_id") @db.Uuid
+  doctorId  String   @map("doctor_id") @db.Uuid
+  url       String
+  fileName  String?  @map("file_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId], map: "idx_patient_photos_patient_id")
+  @@map("patient_photos")
+}
+
+// ─── Photo Upload Tokens ───────────────────────────────────
+
+model PhotoUploadToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  patientId String    @map("patient_id") @db.Uuid
+  doctorId  String    @map("doctor_id") @db.Uuid
+  token     String    @unique @default(uuid())
+  expiresAt DateTime? @map("expires_at")
+  used      Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([token], map: "idx_photo_upload_tokens_token")
+  @@map("photo_upload_tokens")
+}
+
+// ─── Subscriptions ─────────────────────────────────────────
+
+model SubscriptionPlan {
+  id            String   @id
+  nameRu        String   @map("name_ru")
+  nameEn        String   @map("name_en")
+  priceMonthly  Int      @map("price_monthly")
+  priceYearly   Int      @map("price_yearly")
+  maxPatients   Int?     @map("max_patients")
+  features      Json     @default("{}")
+  sortOrder     Int      @default(0) @map("sort_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id                     String    @id @default(uuid()) @db.Uuid
+  doctorId               String    @unique @map("doctor_id") @db.Uuid
+  planId                 String    @map("plan_id")
+  status                 String    @default("active")
+  billingPeriod          String    @default("monthly") @map("billing_period")
+  currentPeriodStart     DateTime  @default(now()) @map("current_period_start")
+  currentPeriodEnd       DateTime  @map("current_period_end")
+  trialEnd               DateTime? @map("trial_end")
+  cancelAtPeriodEnd      Boolean   @default(false) @map("cancel_at_period_end")
+  yukassaPaymentMethodId String?   @map("yukassa_payment_method_id")
+  referralBonusDays      Int       @default(0) @map("referral_bonus_days")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  doctor                 User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  plan                   SubscriptionPlan @relation(fields: [planId], references: [id])
+  payments               SubscriptionPayment[]
+
+  @@map("subscriptions")
+}
+
+model SubscriptionPayment {
+  id               String   @id @default(uuid()) @db.Uuid
+  subscriptionId   String   @map("subscription_id") @db.Uuid
+  doctorId         String   @map("doctor_id") @db.Uuid
+  amount           Int
+  currency         String   @default("RUB")
+  status           String   @default("pending")
+  yukassaPaymentId String?  @unique @map("yukassa_payment_id")
+  receiptUrl       String?  @map("receipt_url")
+  description      String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  subscription     Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  doctor           User         @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("subscription_payments")
+}
+
+// ─── Doctor Settings ───────────────────────────────────────
+
+model DoctorSettings {
+  doctorId           String   @id @map("doctor_id") @db.Uuid
+  paidSessionsEnabled  Boolean @default(true) @map("paid_sessions_enabled")
+  followupReminderDays Int     @default(30) @map("followup_reminder_days")
+  aiCredits          Int      @default(0) @map("ai_credits")
+  prescriptionRules  String?  @map("prescription_rules")
+  subscriptionPlan   String?  @map("subscription_plan")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  doctor             User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("doctor_settings")
+}
+
+// ─── Pre-Visit Surveys ─────────────────────────────────────
+
+model PreVisitSurvey {
+  id             String    @id @default(uuid()) @db.Uuid
+  consultationId String?   @map("consultation_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  doctorId       String    @map("doctor_id") @db.Uuid
+  token          String    @unique @default(uuid())
+  answers        Json?
+  status         String    @default("pending")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+  expiresAt      DateTime? @map("expires_at")
+
+  consultation   Consultation? @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor         User          @relation(fields: [doctorId], references: [id])
+
+  @@index([token], map: "idx_pre_visit_surveys_token")
+  @@index([consultationId], map: "idx_pre_visit_surveys_consultation")
+  @@index([patientId], map: "idx_pre_visit_surveys_patient")
+  @@map("pre_visit_surveys")
+}
+
+// ─── Prescription Shares ───────────────────────────────────
+
+model PrescriptionShare {
+  id             String    @id @default(uuid()) @db.Uuid
+  consultationId String    @map("consultation_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  doctorId       String    @map("doctor_id") @db.Uuid
+  token          String    @unique @default(uuid())
+  customNote     String?   @map("custom_note")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  expiresAt      DateTime? @map("expires_at")
+
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor         User         @relation(fields: [doctorId], references: [id])
+
+  @@index([token], map: "idx_rx_shares_token")
+  @@index([consultationId], map: "idx_rx_shares_consultation")
+  @@map("prescription_shares")
+}
+
+// ─── AI Intake Forms ───────────────────────────────────────
+
+model AiIntakeForm {
+  id            String    @id @default(uuid()) @db.Uuid
+  patientId     String    @map("patient_id") @db.Uuid
+  doctorId      String    @map("doctor_id") @db.Uuid
+  token         String    @unique
+  questionsJson Json      @map("questions_json")
+  answersJson   Json?     @map("answers_json")
+  status        String    @default("pending")
+  expiresAt     DateTime  @map("expires_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  completedAt   DateTime? @map("completed_at")
+
+  patient       Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor        User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([token], map: "idx_ai_intake_token")
+  @@map("ai_intake_forms")
+}
+
+// ─── AI Analysis Log ───────────────────────────────────────
+
+model AiAnalysisLog {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  consultationId  String?   @map("consultation_id") @db.Uuid
+  confirmedInput  Json?     @map("confirmed_input")
+  engineTop3      Json?     @map("engine_top3")
+  doctorChoice    String?   @map("doctor_choice")
+  confidenceLevel String?   @map("confidence_level")
+  warnings        Json?
+  symptomCount    Int?      @map("symptom_count")
+  modalityCount   Int?      @map("modality_count")
+  hasConflict     Boolean?  @map("has_conflict")
+  correctPosition Int?      @map("correct_position")
+  highCount       Int?      @map("high_count")
+  mediumCount     Int?      @map("medium_count")
+  lowCount        Int?      @map("low_count")
+  mentalCount     Int?      @map("mental_count")
+  errorType       String?   @map("error_type")
+  clarifyLog      Json?     @map("clarify_log")
+  inputText       String?   @map("input_text")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analysis_log")
+}
+
+// ─── Referral System ───────────────────────────────────────
+
+model ReferralCode {
+  id        String   @id @default(uuid()) @db.Uuid
+  doctorId  String   @unique @map("doctor_id") @db.Uuid
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("referral_codes")
+}
+
+model ReferralInvitation {
+  id                    String   @id @default(uuid()) @db.Uuid
+  referrerId            String   @map("referrer_id") @db.Uuid
+  inviteeId             String   @unique @map("invitee_id") @db.Uuid
+  referrerBonusDays     Int      @default(0) @map("referrer_bonus_days")
+  inviteeBonusDays      Int      @default(0) @map("invitee_bonus_days")
+  referrerBonusAiCredits Int     @default(0) @map("referrer_bonus_ai_credits")
+  bonusApplied          Boolean  @default(false) @map("bonus_applied")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  referrer              User     @relation("Referrer", fields: [referrerId], references: [id])
+  invitee               User     @relation("Invitee", fields: [inviteeId], references: [id])
+
+  @@map("referral_invitations")
+}
+
+// ─── Admin ─────────────────────────────────────────────────
+
+model AdminUser {
+  userId    String   @id @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("admin_users")
+}
+
+// ─── Payment History ───────────────────────────────────────
+
+model PaymentHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  patientId String?  @map("patient_id") @db.Uuid
+  doctorId  String   @map("doctor_id") @db.Uuid
+  amount    Int
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("payment_history")
+}
+
+// ─── Doctor Schedules ──────────────────────────────────────
+
+model DoctorSchedule {
+  id        String   @id @default(uuid()) @db.Uuid
+  doctorId  String   @map("doctor_id") @db.Uuid
+  dayOfWeek Int      @map("day_of_week")
+  startTime String   @map("start_time")
+  endTime   String   @map("end_time")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("doctor_schedules")
+}
+
+// ─── Questionnaire Templates ───────────────────────────────
+
+model QuestionnaireTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  doctorId  String   @map("doctor_id") @db.Uuid
+  type      String
+  fields    Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, type])
+  @@map("questionnaire_templates")
+}
+
+// ─── Repertory (reference data) ────────────────────────────
+
+model RepertoryRubric {
+  id         Int     @id @default(autoincrement())
+  source     String?
+  chapter    String?
+  fullpath   String?
+  remedies   Json?
+  remedyCount Int?   @map("remedy_count")
+  fullpathRu String? @map("fullpath_ru")
+
+  @@map("repertory_rubrics")
+}
+
+// ─── MDRI Data ─────────────────────────────────────────────
+
+model MdriConstellation {
+  remedy      String  @id
+  name        String
+  clusters    Json
+  sineQuaNon  String[] @map("sine_qua_non")
+  excluders   String[] @default([])
+
+  @@map("mdri_constellations")
+}
+
+model MdriPolarity {
+  remedy     String @id
+  polarities Json
+
+  @@map("mdri_polarities")
+}

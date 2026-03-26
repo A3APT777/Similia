@@ -1,6 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
@@ -36,16 +37,12 @@ const templateSchema = z.object({
 
 // Получить шаблон врача (или null если использует дефолт)
 export async function getQuestionnaireTemplate(type: TemplateType): Promise<TemplateField[] | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { data } = await supabase
-    .from('questionnaire_templates')
-    .select('fields')
-    .eq('doctor_id', user.id)
-    .eq('type', type)
-    .single()
+  const data = await prisma.questionnaireTemplate.findUnique({
+    where: { doctorId_type: { doctorId: userId, type } },
+    select: { fields: true },
+  })
 
   if (!data) return null
   return data.fields as TemplateField[]
@@ -53,14 +50,10 @@ export async function getQuestionnaireTemplate(type: TemplateType): Promise<Temp
 
 // Получить шаблон по doctor_id (для публичных форм)
 export async function getTemplateByDoctorId(doctorId: string, type: TemplateType): Promise<TemplateField[] | null> {
-  const supabase = await createClient()
-
-  const { data } = await supabase
-    .from('questionnaire_templates')
-    .select('fields')
-    .eq('doctor_id', doctorId)
-    .eq('type', type)
-    .single()
+  const data = await prisma.questionnaireTemplate.findUnique({
+    where: { doctorId_type: { doctorId, type } },
+    select: { fields: true },
+  })
 
   if (!data) return null
   return data.fields as TemplateField[]
@@ -68,9 +61,7 @@ export async function getTemplateByDoctorId(doctorId: string, type: TemplateType
 
 // Сохранить шаблон
 export async function saveQuestionnaireTemplate(type: TemplateType, fields: TemplateField[]): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   try {
     templateSchema.parse({ type, fields })
@@ -78,16 +69,19 @@ export async function saveQuestionnaireTemplate(type: TemplateType, fields: Temp
     return { success: false, error: 'Некорректные данные шаблона' }
   }
 
-  const { error } = await supabase
-    .from('questionnaire_templates')
-    .upsert({
-      doctor_id: user.id,
-      type,
-      fields: JSON.parse(JSON.stringify(fields)),
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'doctor_id,type' })
-
-  if (error) {
+  try {
+    await prisma.questionnaireTemplate.upsert({
+      where: { doctorId_type: { doctorId: userId, type } },
+      update: {
+        fields: JSON.parse(JSON.stringify(fields)),
+      },
+      create: {
+        doctorId: userId,
+        type,
+        fields: JSON.parse(JSON.stringify(fields)),
+      },
+    })
+  } catch (error) {
     console.error('[saveQuestionnaireTemplate]', error)
     return { success: false, error: 'Ошибка сохранения' }
   }
@@ -97,29 +91,23 @@ export async function saveQuestionnaireTemplate(type: TemplateType, fields: Temp
 
 // Сбросить к дефолту
 export async function resetQuestionnaireTemplate(type: TemplateType): Promise<{ success: boolean }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  await supabase
-    .from('questionnaire_templates')
-    .delete()
-    .eq('doctor_id', user.id)
-    .eq('type', type)
+  await prisma.questionnaireTemplate.deleteMany({
+    where: { doctorId: userId, type },
+  })
 
   return { success: true }
 }
 
 // Получить все 3 шаблона для страницы настроек
 export async function getAllTemplates(): Promise<Record<TemplateType, TemplateField[] | null>> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { data } = await supabase
-    .from('questionnaire_templates')
-    .select('type, fields')
-    .eq('doctor_id', user.id)
+  const data = await prisma.questionnaireTemplate.findMany({
+    where: { doctorId: userId },
+    select: { type: true, fields: true },
+  })
 
   const result: Record<TemplateType, TemplateField[] | null> = {
     primary: null,
@@ -127,7 +115,7 @@ export async function getAllTemplates(): Promise<Record<TemplateType, TemplateFi
     pre_visit: null,
   }
 
-  for (const row of (data || [])) {
+  for (const row of data) {
     result[row.type as TemplateType] = row.fields as TemplateField[]
   }
 

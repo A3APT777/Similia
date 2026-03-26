@@ -1,6 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { ConsultationType } from '@/types'
@@ -9,50 +10,38 @@ import { z } from 'zod'
 
 // Закрыть все открытые консультации врача (перед началом новой)
 // Правило: у врача одновременно может быть активным только один приём
-async function closeOpenConsultations(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  doctorId: string
-) {
-  await supabase
-    .from('consultations')
-    .update({ status: 'completed' })
-    .eq('doctor_id', doctorId)
-    .eq('status', 'in_progress')
+async function closeOpenConsultations(doctorId: string) {
+  await prisma.consultation.updateMany({
+    where: { doctorId, status: 'in_progress' },
+    data: { status: 'completed' },
+  })
 }
 
 // Создать консультацию прямо сейчас и открыть редактор
 export async function createConsultation(patientId: string, type: ConsultationType = 'chronic') {
   uuidSchema.parse(patientId)
   consultationTypeSchema.parse(type)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Проверяем, что пациент принадлежит текущему врачу
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('id', patientId)
-    .eq('doctor_id', user.id)
-    .single()
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, doctorId: userId },
+    select: { id: true },
+  })
   if (!patient) throw new Error('Patient not found')
 
   // Закрываем любые открытые консультации врача (один приём за раз)
-  await closeOpenConsultations(supabase, user.id)
+  await closeOpenConsultations(userId)
 
-  const { data, error } = await supabase
-    .from('consultations')
-    .insert({
-      patient_id: patientId,
-      doctor_id: user.id,
+  const data = await prisma.consultation.create({
+    data: {
+      patientId,
+      doctorId: userId,
       notes: '',
       status: 'in_progress',
       type,
-    })
-    .select()
-    .single()
-
-  if (error) throw new Error(error.message)
+    },
+  })
 
   redirect(`/patients/${patientId}/consultations/${data.id}`)
 }
@@ -65,32 +54,26 @@ export async function createAIConsultation(
 ): Promise<string> {
   uuidSchema.parse(patientId)
   consultationTypeSchema.parse(type)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('id', patientId)
-    .eq('doctor_id', user.id)
-    .single()
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, doctorId: userId },
+    select: { id: true },
+  })
   if (!patient) throw new Error('Patient not found')
 
-  const { data, error } = await supabase
-    .from('consultations')
-    .insert({
-      patient_id: patientId,
-      doctor_id: user.id,
+  const data = await prisma.consultation.create({
+    data: {
+      patientId,
+      doctorId: userId,
       notes,
       status: 'in_progress',
       type,
       source: 'ai',
-    })
-    .select('id')
-    .single()
+    },
+    select: { id: true },
+  })
 
-  if (error) throw new Error(error.message)
   return data.id
 }
 
@@ -103,50 +86,42 @@ export async function scheduleConsultation(
   uuidSchema.parse(patientId)
   isoDateTimeSchema.parse(scheduledAt)
   consultationTypeSchema.parse(type)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Проверяем, что пациент принадлежит текущему врачу
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('id', patientId)
-    .eq('doctor_id', user.id)
-    .single()
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, doctorId: userId },
+    select: { id: true },
+  })
   if (!patient) throw new Error('Patient not found')
 
   const date = scheduledAt.split('T')[0]
 
-  const { error } = await supabase
-    .from('consultations')
-    .insert({
-      patient_id: patientId,
-      doctor_id: user.id,
+  await prisma.consultation.create({
+    data: {
+      patientId,
+      doctorId: userId,
       notes: '',
       date,
-      scheduled_at: scheduledAt,
+      scheduledAt: new Date(scheduledAt),
       status: 'scheduled',
       type,
-    })
-
-  if (error) throw new Error(error.message)
+    },
+  })
 }
 
 // Изменить тип консультации
 export async function updateConsultationType(id: string, type: ConsultationType): Promise<void> {
   uuidSchema.parse(id)
   consultationTypeSchema.parse(type)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({ type })
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.updateMany({
+      where: { id, doctorId: userId },
+      data: { type },
+    })
+  } catch (error) {
     console.error('[updateConsultationType]', error)
     throw new Error('Не удалось обновить тип')
   }
@@ -154,39 +129,45 @@ export async function updateConsultationType(id: string, type: ConsultationType)
 
 // Получить все запланированные приёмы за конкретный день (для проверки конфликтов)
 export async function getAppointmentsForDay(dayStart: string, dayEnd: string): Promise<string[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const { userId } = await requireAuth()
 
-  const { data, error } = await supabase
-    .from('consultations')
-    .select('scheduled_at')
-    .eq('doctor_id', user.id)
-    .neq('status', 'cancelled')
-    .gte('scheduled_at', dayStart)
-    .lte('scheduled_at', dayEnd)
+  try {
+    const data = await prisma.consultation.findMany({
+      where: {
+        doctorId: userId,
+        status: { not: 'cancelled' },
+        scheduledAt: {
+          gte: new Date(dayStart),
+          lte: new Date(dayEnd),
+        },
+      },
+      select: { scheduledAt: true },
+    })
 
-  if (error) { console.error('[getAppointmentsForDay]', error); return [] }
-  return (data || []).map(c => c.scheduled_at).filter(Boolean)
+    return data
+      .map(c => c.scheduledAt?.toISOString())
+      .filter((v): v is string => Boolean(v))
+  } catch (error) {
+    console.error('[getAppointmentsForDay]', error)
+    return []
+  }
 }
 
 // Начать запланированный приём — меняет статус и открывает редактор
 export async function startConsultation(consultationId: string, patientId: string) {
   uuidSchema.parse(consultationId)
   uuidSchema.parse(patientId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Закрываем любые открытые консультации врача (один приём за раз)
-  await closeOpenConsultations(supabase, user.id)
+  await closeOpenConsultations(userId)
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({ status: 'in_progress' })
-    .eq('id', consultationId)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.updateMany({
+      where: { id: consultationId, doctorId: userId },
+      data: { status: 'in_progress' },
+    })
+  } catch (error) {
     console.error('[startConsultation]', error)
     throw new Error('Не удалось начать приём')
   }
@@ -198,16 +179,14 @@ export async function startConsultation(consultationId: string, patientId: strin
 export async function cancelConsultation(consultationId: string, patientId: string) {
   uuidSchema.parse(consultationId)
   uuidSchema.parse(patientId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({ status: 'cancelled' })
-    .eq('id', consultationId)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.updateMany({
+      where: { id: consultationId, doctorId: userId },
+      data: { status: 'cancelled' },
+    })
+  } catch (error) {
     console.error('[cancelConsultation]', error)
     throw new Error('Не удалось отменить приём')
   }
@@ -216,23 +195,21 @@ export async function cancelConsultation(consultationId: string, patientId: stri
   redirect(`/patients/${patientId}`)
 }
 
-// Автосохранение заметок — переводит статус в completed
+// Автосохранение заметок
 export async function updateConsultationNotes(id: string, notes: string) {
   uuidSchema.parse(id)
   z.string().max(50000, 'Заметки слишком длинные').parse(notes)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({
-      notes,
-      updated_at: new Date().toISOString(),
+  try {
+    await prisma.consultation.updateMany({
+      where: { id, doctorId: userId },
+      data: {
+        notes,
+        updatedAt: new Date(),
+      },
     })
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-  if (error) {
+  } catch (error) {
     console.error('[updateConsultationNotes]', error)
     throw new Error('Не удалось сохранить заметки')
   }
@@ -240,33 +217,42 @@ export async function updateConsultationNotes(id: string, notes: string) {
 
 // Получить все приёмы за конкретный месяц (для календаря)
 export async function getAppointmentsByMonth(year: number, month: number) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const { userId } = await requireAuth()
 
   const MSK = 3 * 60 * 60 * 1000
   const lastDay = new Date(year, month, 0).getDate()
-  const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0) - MSK).toISOString()
-  const monthEnd = new Date(Date.UTC(year, month - 1, lastDay, 23, 59, 59) - MSK).toISOString()
+  const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0) - MSK)
+  const monthEnd = new Date(Date.UTC(year, month - 1, lastDay, 23, 59, 59) - MSK)
 
-  const { data } = await supabase
-    .from('consultations')
-    .select('id, scheduled_at, status, type, patient_id, patients(id, name)')
-    .eq('doctor_id', user.id)
-    .not('scheduled_at', 'is', null)
-    .neq('status', 'cancelled')
-    .gte('scheduled_at', monthStart)
-    .lte('scheduled_at', monthEnd)
-    .order('scheduled_at', { ascending: true })
+  const data = await prisma.consultation.findMany({
+    where: {
+      doctorId: userId,
+      scheduledAt: {
+        not: null,
+        gte: monthStart,
+        lte: monthEnd,
+      },
+      status: { not: 'cancelled' },
+    },
+    select: {
+      id: true,
+      scheduledAt: true,
+      status: true,
+      type: true,
+      patientId: true,
+      patient: { select: { id: true, name: true } },
+    },
+    orderBy: { scheduledAt: 'asc' },
+  })
 
-  return (data || []) as unknown as {
-    id: string
-    scheduled_at: string
-    status: string
-    type: ConsultationType
-    patient_id: string
-    patients: { id: string; name: string } | null
-  }[]
+  return data.map(c => ({
+    id: c.id,
+    scheduled_at: c.scheduledAt?.toISOString() ?? '',
+    status: c.status,
+    type: c.type as ConsultationType,
+    patient_id: c.patientId,
+    patients: c.patient ? { id: c.patient.id, name: c.patient.name } : null,
+  }))
 }
 
 // Сохранить назначение после консультации
@@ -282,16 +268,19 @@ export async function savePrescription(
   z.string().max(50).parse(potency)
   z.number().int().min(0).max(100).nullable().parse(pellets)
   z.string().max(500).parse(dosage)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({ remedy: remedy || null, potency: potency || null, pellets, dosage: dosage || null })
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.updateMany({
+      where: { id, doctorId: userId },
+      data: {
+        remedy: remedy || null,
+        potency: potency || null,
+        pellets,
+        dosage: dosage || null,
+      },
+    })
+  } catch (error) {
     console.error('[savePrescription]', error)
     throw new Error('Не удалось сохранить назначение')
   }
@@ -306,19 +295,17 @@ export async function updateConsultationExtra(
   uuidSchema.parse(id)
   z.string().max(5000).parse(rubrics)
   z.string().max(2000).parse(reactionToPrevious)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({
-      rubrics: rubrics || null,
-      reaction_to_previous: reactionToPrevious || null,
+  try {
+    await prisma.consultation.updateMany({
+      where: { id, doctorId: userId },
+      data: {
+        rubrics: rubrics || null,
+        reactionToPrevious: reactionToPrevious || null,
+      },
     })
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-  if (error) {
+  } catch (error) {
     console.error('[updateConsultationExtra]', error)
     throw new Error('Не удалось сохранить')
   }
@@ -346,66 +333,116 @@ export async function updateConsultationFields(
 ): Promise<void> {
   uuidSchema.parse(id)
   const parsed = consultationFieldsSchema.parse(fields)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  // Маппинг snake_case → camelCase для Prisma
+  const update: Record<string, unknown> = { updatedAt: new Date() }
   if (parsed.complaints !== undefined) update.complaints = parsed.complaints
   if (parsed.observations !== undefined) update.observations = parsed.observations
   if (parsed.recommendations !== undefined) update.recommendations = parsed.recommendations
-  if (parsed.repertory_data !== undefined) update.repertory_data = parsed.repertory_data
-  if (parsed.structured_symptoms !== undefined) update.structured_symptoms = parsed.structured_symptoms
+  if (parsed.repertory_data !== undefined) update.repertoryData = parsed.repertory_data
+  if (parsed.structured_symptoms !== undefined) update.structuredSymptoms = parsed.structured_symptoms
   if (parsed.mode !== undefined) update.mode = parsed.mode
-  if (parsed.case_state !== undefined) update.case_state = parsed.case_state
-  if (parsed.clinical_assessment !== undefined) update.clinical_assessment = parsed.clinical_assessment
-  if (parsed.modality_worse_text !== undefined) update.modality_worse_text = parsed.modality_worse_text
-  if (parsed.modality_better_text !== undefined) update.modality_better_text = parsed.modality_better_text
-  if (parsed.mental_text !== undefined) update.mental_text = parsed.mental_text
-  if (parsed.general_text !== undefined) update.general_text = parsed.general_text
+  if (parsed.case_state !== undefined) update.caseState = parsed.case_state
+  if (parsed.clinical_assessment !== undefined) update.clinicalAssessment = parsed.clinical_assessment
+  if (parsed.modality_worse_text !== undefined) update.modalityWorseText = parsed.modality_worse_text
+  if (parsed.modality_better_text !== undefined) update.modalityBetterText = parsed.modality_better_text
+  if (parsed.mental_text !== undefined) update.mentalText = parsed.mental_text
+  if (parsed.general_text !== undefined) update.generalText = parsed.general_text
 
-  const { error } = await supabase
-    .from('consultations')
-    .update(update)
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.updateMany({
+      where: { id, doctorId: userId },
+      data: update,
+    })
+  } catch (error) {
     console.error('[updateConsultationFields]', error)
     throw new Error('Не удалось сохранить поля')
   }
 }
 
-// Явно завершить консультацию (независимо от заполненности notes)
+// Единый автосохранение — все поля одним запросом (вместо 3 параллельных)
+const consultationAllSchema = z.object({
+  notes: z.string().max(50000).optional(),
+  complaints: z.string().max(50000).optional(),
+  observations: z.string().max(50000).optional(),
+  recommendations: z.string().max(10000).optional(),
+  structured_symptoms: z.array(z.record(z.string(), z.unknown())).max(200).optional(),
+  mode: z.string().max(20).optional(),
+  case_state: z.string().max(30).nullable().optional(),
+  clinical_assessment: z.record(z.string(), z.unknown()).nullable().optional(),
+  modality_worse_text: z.string().max(10000).optional(),
+  modality_better_text: z.string().max(10000).optional(),
+  mental_text: z.string().max(10000).optional(),
+  general_text: z.string().max(10000).optional(),
+  rubrics: z.string().max(5000).optional(),
+  reaction_to_previous: z.string().max(2000).optional(),
+})
+
+export async function updateConsultationAll(
+  id: string,
+  fields: z.infer<typeof consultationAllSchema>
+): Promise<void> {
+  uuidSchema.parse(id)
+  const parsed = consultationAllSchema.parse(fields)
+  const { userId } = await requireAuth()
+
+  // Маппинг snake_case → camelCase для Prisma
+  const update: Record<string, unknown> = { updatedAt: new Date() }
+  if (parsed.notes !== undefined) update.notes = parsed.notes
+  if (parsed.complaints !== undefined) update.complaints = parsed.complaints
+  if (parsed.observations !== undefined) update.observations = parsed.observations
+  if (parsed.recommendations !== undefined) update.recommendations = parsed.recommendations
+  if (parsed.structured_symptoms !== undefined) update.structuredSymptoms = parsed.structured_symptoms
+  if (parsed.mode !== undefined) update.mode = parsed.mode
+  if (parsed.case_state !== undefined) update.caseState = parsed.case_state
+  if (parsed.clinical_assessment !== undefined) update.clinicalAssessment = parsed.clinical_assessment
+  if (parsed.modality_worse_text !== undefined) update.modalityWorseText = parsed.modality_worse_text
+  if (parsed.modality_better_text !== undefined) update.modalityBetterText = parsed.modality_better_text
+  if (parsed.mental_text !== undefined) update.mentalText = parsed.mental_text
+  if (parsed.general_text !== undefined) update.generalText = parsed.general_text
+  if (parsed.rubrics !== undefined) update.rubrics = parsed.rubrics || null
+  if (parsed.reaction_to_previous !== undefined) update.reactionToPrevious = parsed.reaction_to_previous || null
+
+  try {
+    await prisma.consultation.updateMany({
+      where: { id, doctorId: userId },
+      data: update,
+    })
+  } catch (error) {
+    console.error('[updateConsultationAll]', error)
+    throw new Error('Не удалось сохранить данные консультации')
+  }
+}
+
+// Сохранить оценку динамики врачом
 export async function saveDoctorDynamics(id: string, dynamics: string): Promise<void> {
   uuidSchema.parse(id)
   z.string().max(100).parse(dynamics)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({ doctor_dynamics: dynamics, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.updateMany({
+      where: { id, doctorId: userId },
+      data: { doctorDynamics: dynamics, updatedAt: new Date() },
+    })
+  } catch (error) {
     console.error('[saveDoctorDynamics]', error)
     throw new Error('Не удалось сохранить динамику')
   }
 }
 
+// Явно завершить консультацию (независимо от заполненности notes)
 export async function completeConsultation(id: string): Promise<void> {
   uuidSchema.parse(id)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({ status: 'completed', updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.updateMany({
+      where: { id, doctorId: userId },
+      data: { status: 'completed', updatedAt: new Date() },
+    })
+  } catch (error) {
     console.error('[completeConsultation]', error)
     throw new Error('Не удалось завершить приём')
   }
@@ -413,19 +450,17 @@ export async function completeConsultation(id: string): Promise<void> {
   revalidatePath('/dashboard')
 }
 
+// Удалить консультацию
 export async function deleteConsultation(id: string, patientId: string) {
   uuidSchema.parse(id)
   uuidSchema.parse(patientId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .delete()
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.deleteMany({
+      where: { id, doctorId: userId },
+    })
+  } catch (error) {
     console.error('[deleteConsultation]', error)
     throw new Error('Не удалось удалить консультацию')
   }
@@ -434,21 +469,20 @@ export async function deleteConsultation(id: string, patientId: string) {
   redirect(`/patients/${patientId}`)
 }
 
+// Сохранить данные реперториума
 export async function saveRepertoryData(
   consultationId: string,
   data: { rubricId: number; fullpath: string; fullpath_ru?: string | null; weight: 1 | 2 | 3; eliminate?: boolean }[]
 ): Promise<void> {
   uuidSchema.parse(consultationId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('consultations')
-    .update({ repertory_data: data, updated_at: new Date().toISOString() })
-    .eq('id', consultationId)
-    .eq('doctor_id', user.id)
-  if (error) {
+  try {
+    await prisma.consultation.updateMany({
+      where: { id: consultationId, doctorId: userId },
+      data: { repertoryData: data as any, updatedAt: new Date() },
+    })
+  } catch (error) {
     console.error('[saveRepertoryData]', error)
     throw new Error('Не удалось сохранить данные реперториума')
   }

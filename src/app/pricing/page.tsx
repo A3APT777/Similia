@@ -78,7 +78,7 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register" className="block text-center text-[14px] font-medium py-3.5 rounded-full transition-all duration-200 hover:bg-[var(--sim-green)] hover:text-white" style={{ border: '1px solid var(--sim-green)', color: 'var(--sim-green)' }}>
+              <Link href="/register" className="block text-center text-[14px] font-medium py-3.5 rounded-full transition-all duration-200 text-[#2d6a4f] hover:bg-[#2d6a4f] hover:text-white" style={{ border: '1px solid #2d6a4f' }}>
                 Зарегистрироваться
               </Link>
             </div>
@@ -88,12 +88,12 @@ export default function PricingPage() {
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[11px] font-semibold tracking-wide" style={{ backgroundColor: 'var(--sim-green)', color: 'white' }}>
                 Рекомендуем
               </div>
-              <p className="text-[12px] font-medium tracking-[0.1em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Стандарт</p>
+              <p className="text-[12px] font-medium tracking-[0.1em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Стандарт</p>
               <div className="mb-1">
                 <span className="text-[40px] font-light text-white" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>290 ₽</span>
                 <span className="text-[14px] ml-1" style={{ color: 'rgba(255,255,255,0.4)' }}>/мес</span>
               </div>
-              <p className="text-[12px] mb-6" style={{ color: 'rgba(255,255,255,0.3)' }}>или 2 900 ₽/год</p>
+              <p className="text-[12px] mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>или 2 900 ₽/год</p>
               <ul className="space-y-3 mb-8">
                 {['Безлимит пациентов', 'Онлайн-запись', 'Экспорт в PDF', 'Напоминания', 'Поддержка по email'].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-[14px]" style={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -105,14 +105,14 @@ export default function PricingPage() {
                 <CheckoutButton
                   period="monthly"
                   label="290 ₽/мес"
-                  className="block w-full text-center py-3.5 rounded-full text-[14px] font-medium text-white transition-all hover:opacity-90"
-                  style={{ backgroundColor: 'var(--sim-green)' }}
+                  className="block w-full text-center py-3.5 rounded-full text-[14px] font-semibold transition-all hover:opacity-90"
+                  style={{ backgroundColor: '#ffffff', color: 'var(--sim-forest)' }}
                 />
                 <CheckoutButton
                   period="yearly"
                   label="2 900 ₽/год"
-                  className="block w-full text-center py-3.5 rounded-full text-[14px] font-medium transition-colors hover:bg-white/10"
-                  style={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  className="block w-full text-center py-3.5 rounded-full text-[14px] font-medium transition-colors hover:bg-white/20"
+                  style={{ color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.3)' }}
                 />
               </div>
             </div>
@@ -144,8 +144,8 @@ export default function PricingPage() {
                   plan="ai_pro"
                   period="yearly"
                   label="19 900 ₽/год"
-                  className="block w-full text-center py-3.5 rounded-full text-[14px] font-medium transition-colors hover:bg-[#2d6a4f] hover:text-white"
-                  style={{ color: 'var(--sim-green)', border: '1px solid rgba(45,106,79,0.3)' }}
+                  className="block w-full text-center py-3.5 rounded-full text-[14px] font-medium transition-colors text-[#2d6a4f] hover:bg-[#2d6a4f] hover:text-white"
+                  style={{ border: '1px solid rgba(45,106,79,0.3)' }}
                 />
               </div>
             </div>
@@ -173,8 +173,8 @@ export default function PricingPage() {
                   <CheckoutButton
                     plan={pkg.plan}
                     label={`${pkg.price} ₽`}
-                    className="w-full text-[13px] font-medium py-2.5 rounded-full transition-colors hover:bg-[#2d6a4f] hover:text-white"
-                    style={{ border: '1px solid rgba(45,106,79,0.2)', color: 'var(--sim-green)' }}
+                    className="w-full text-[13px] font-medium py-2.5 rounded-full transition-colors text-[#2d6a4f] hover:bg-[#2d6a4f] hover:text-white"
+                    style={{ border: '1px solid rgba(45,106,79,0.2)' }}
                   />
                 </div>
               ))}

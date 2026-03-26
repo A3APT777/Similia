@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import ConsultationEditor from './ConsultationEditor'
@@ -12,45 +14,104 @@ export default async function ConsultationPage({
   params: Promise<{ id: string; consultationId: string }>
 }) {
   const { id, consultationId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const [{ data: consultation }, { data: patient }] = await Promise.all([
-    supabase.from('consultations').select('*').eq('id', consultationId).eq('doctor_id', user.id).single(),
-    supabase.from('patients').select('*').eq('id', id).eq('doctor_id', user.id).single(),
+  // Авторизация через NextAuth
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
+  const userId = session.user.id
+
+  const [consultation, patient] = await Promise.all([
+    prisma.consultation.findFirst({ where: { id: consultationId, doctorId: userId } }),
+    prisma.patient.findFirst({ where: { id, doctorId: userId } }),
   ])
 
   if (!consultation || !patient) notFound()
 
-  const [{ data: previousConsultation }, { count: visitCount }] = await Promise.all([
-    supabase
-      .from('consultations')
-      .select('*')
-      .eq('patient_id', id)
-      .eq('doctor_id', user.id)
-      .neq('id', consultationId)
-      .lt('created_at', consultation.created_at)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single(),
-    supabase
-      .from('consultations')
-      .select('*', { count: 'exact', head: true })
-      .eq('patient_id', id)
-      .eq('doctor_id', user.id)
-      .neq('status', 'cancelled'),
+  const [previousConsultation, visitCount] = await Promise.all([
+    prisma.consultation.findFirst({
+      where: {
+        patientId: id,
+        doctorId: userId,
+        id: { not: consultationId },
+        createdAt: { lt: consultation.createdAt },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.consultation.count({
+      where: {
+        patientId: id,
+        doctorId: userId,
+        status: { not: 'cancelled' },
+      },
+    }),
   ])
 
-  const name = user?.user_metadata?.name || user?.email || ''
-  const [{ paid_sessions_enabled }, surveyByConsultation, { count: realPatientCount }, { data: primaryIntake }] = await Promise.all([
+  const name = session.user.name || session.user.email || ''
+  const [{ paid_sessions_enabled }, surveyByConsultation, realPatientCount, primaryIntake] = await Promise.all([
     getDoctorSettings(),
     getPreVisitSurveyByConsultation(consultationId),
-    supabase.from('patients').select('*', { count: 'exact', head: true }).eq('doctor_id', user.id).eq('is_demo', false),
-    supabase.from('intake_forms').select('answers').eq('patient_id', id).eq('doctor_id', user.id).eq('type', 'primary').eq('status', 'completed').order('created_at', { ascending: false }).limit(1).single(),
+    prisma.patient.count({ where: { doctorId: userId, isDemo: false } }),
+    prisma.intakeForm.findFirst({
+      where: { patientId: id, doctorId: userId, type: 'primary', status: 'completed' },
+      select: { answers: true },
+      orderBy: { createdAt: 'desc' },
+    }),
   ])
   // Fallback: если survey не привязан к консультации — берём последний completed для пациента
   const preVisitSurvey = surveyByConsultation || await getLatestPatientSurvey(id)
+
+  // Маппинг camelCase → snake_case для совместимости с ConsultationEditor
+  const consultationMapped = {
+    ...consultation,
+    patient_id: consultation.patientId,
+    doctor_id: consultation.doctorId,
+    scheduled_at: consultation.scheduledAt?.toISOString() ?? null,
+    created_at: consultation.createdAt.toISOString(),
+    updated_at: consultation.updatedAt.toISOString(),
+    reaction_to_previous: consultation.reactionToPrevious,
+    repertory_data: consultation.repertoryData,
+    structured_symptoms: consultation.structuredSymptoms,
+    case_state: consultation.caseState,
+    clinical_assessment: consultation.clinicalAssessment,
+    doctor_dynamics: consultation.doctorDynamics,
+    modality_worse_text: consultation.modalityWorseText,
+    modality_better_text: consultation.modalityBetterText,
+    mental_text: consultation.mentalText,
+    general_text: consultation.generalText,
+    ai_result: consultation.aiResult,
+  }
+
+  const patientMapped = {
+    ...patient,
+    doctor_id: patient.doctorId,
+    birth_date: patient.birthDate,
+    first_visit_date: patient.firstVisitDate,
+    constitutional_type: patient.constitutionalType,
+    paid_sessions: patient.paidSessions,
+    is_demo: patient.isDemo,
+    created_at: patient.createdAt.toISOString(),
+    updated_at: patient.updatedAt.toISOString(),
+  }
+
+  const previousMapped = previousConsultation ? {
+    ...previousConsultation,
+    patient_id: previousConsultation.patientId,
+    doctor_id: previousConsultation.doctorId,
+    scheduled_at: previousConsultation.scheduledAt?.toISOString() ?? null,
+    created_at: previousConsultation.createdAt.toISOString(),
+    updated_at: previousConsultation.updatedAt.toISOString(),
+    reaction_to_previous: previousConsultation.reactionToPrevious,
+    repertory_data: previousConsultation.repertoryData,
+    structured_symptoms: previousConsultation.structuredSymptoms,
+    case_state: previousConsultation.caseState,
+    clinical_assessment: previousConsultation.clinicalAssessment,
+    doctor_dynamics: previousConsultation.doctorDynamics,
+    modality_worse_text: previousConsultation.modalityWorseText,
+    modality_better_text: previousConsultation.modalityBetterText,
+    mental_text: previousConsultation.mentalText,
+    general_text: previousConsultation.generalText,
+    ai_result: previousConsultation.aiResult,
+  } : null
 
   return (
     <div className="min-h-[100dvh] bg-[var(--sim-bg-card, #f5f0e8)] flex flex-col">
@@ -72,14 +133,14 @@ export default async function ConsultationPage({
       </nav>
 
       <ConsultationEditor
-        consultation={consultation}
-        patient={patient}
-        previousConsultation={previousConsultation || null}
+        consultation={consultationMapped}
+        patient={patientMapped}
+        previousConsultation={previousMapped}
         paidSessionsEnabled={paid_sessions_enabled}
         visitNumber={visitCount ?? 1}
         preVisitSurvey={preVisitSurvey}
         primaryIntakeAnswers={primaryIntake?.answers || null}
-        showAI={(realPatientCount ?? 0) >= 5}
+        showAI={realPatientCount >= 5}
       />
     </div>
   )

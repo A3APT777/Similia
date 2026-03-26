@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import LogoutButton from '@/components/LogoutButton'
@@ -15,56 +17,86 @@ export default async function AIConsultationPage({
   params: Promise<{ patientId: string }>
 }) {
   const { patientId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
 
   // Проверка AI-доступа: нет подписки/кредитов → демо
   const sub = await getSubscription()
-  const { data: aiSettings } = await supabase
-    .from('doctor_settings')
-    .select('ai_credits, subscription_plan')
-    .eq('doctor_id', user.id)
-    .single()
-  const hasAI = aiSettings?.subscription_plan === 'ai_pro' || (aiSettings?.ai_credits ?? 0) > 0 || sub.features.ai_consultation
+  const aiSettings = await prisma.doctorSettings.findUnique({
+    where: { doctorId: session.user.id },
+    select: { aiCredits: true, subscriptionPlan: true },
+  })
+  const hasAI = aiSettings?.subscriptionPlan === 'ai_pro' || (aiSettings?.aiCredits ?? 0) > 0 || sub.features.ai_consultation
   if (!hasAI) redirect('/demo')
 
   const lang = await getLang()
   const s = t(lang)
 
   // Загрузить пациента
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('*')
-    .eq('id', patientId)
-    .eq('doctor_id', user.id)
-    .single()
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, doctorId: session.user.id },
+  })
 
   if (!patient) notFound()
 
   // Параллельно: последние 5 консультаций, последняя intake-анкета (обычная + AI)
-  const [
-    { data: consultations },
-    { data: intakeForms },
-  ] = await Promise.all([
-    supabase
-      .from('consultations')
-      .select('*')
-      .eq('patient_id', patientId)
-      .eq('doctor_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('intake_forms')
-      .select('*')
-      .eq('patient_id', patientId)
-      .eq('doctor_id', user.id)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(2),
+  const [consultations, intakeForms] = await Promise.all([
+    prisma.consultation.findMany({
+      where: { patientId, doctorId: session.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    prisma.intakeForm.findMany({
+      where: { patientId, doctorId: session.user.id, status: 'completed' },
+      orderBy: { createdAt: 'desc' },
+      take: 2,
+    }),
   ])
 
-  const name = user?.user_metadata?.name || user?.email || ''
+  const name = session.user.name || session.user.email || ''
+
+  // Маппинг camelCase → snake_case для совместимости с UI
+  const mappedPatient = {
+    ...patient,
+    doctor_id: patient.doctorId,
+    birth_date: patient.birthDate,
+    first_visit_date: patient.firstVisitDate,
+    constitutional_type: patient.constitutionalType,
+    paid_sessions: patient.paidSessions,
+    is_demo: patient.isDemo,
+    created_at: patient.createdAt.toISOString(),
+    updated_at: patient.updatedAt.toISOString(),
+  }
+
+  const mappedConsultations = consultations.map(c => ({
+    ...c,
+    patient_id: c.patientId,
+    doctor_id: c.doctorId,
+    scheduled_at: c.scheduledAt?.toISOString() ?? null,
+    reaction_to_previous: c.reactionToPrevious,
+    repertory_data: c.repertoryData,
+    structured_symptoms: c.structuredSymptoms,
+    case_state: c.caseState,
+    clinical_assessment: c.clinicalAssessment,
+    doctor_dynamics: c.doctorDynamics,
+    modality_worse_text: c.modalityWorseText,
+    modality_better_text: c.modalityBetterText,
+    mental_text: c.mentalText,
+    general_text: c.generalText,
+    ai_result: c.aiResult,
+    created_at: c.createdAt.toISOString(),
+    updated_at: c.updatedAt.toISOString(),
+  }))
+
+  const mappedIntakeForms = intakeForms.map(f => ({
+    ...f,
+    doctor_id: f.doctorId,
+    patient_id: f.patientId,
+    patient_name: f.patientName,
+    expires_at: f.expiresAt?.toISOString() ?? null,
+    created_at: f.createdAt.toISOString(),
+    completed_at: f.completedAt?.toISOString() ?? null,
+  }))
 
   return (
     <div className="min-h-[100dvh] bg-[var(--sim-bg, #faf8f5)] flex flex-col">
@@ -87,9 +119,9 @@ export default async function AIConsultationPage({
       </nav>
 
       <AIConsultationWrapper
-        patient={patient}
-        consultations={(consultations ?? []) as Consultation[]}
-        intakeForms={(intakeForms ?? []) as IntakeForm[]}
+        patient={mappedPatient}
+        consultations={mappedConsultations as unknown as Consultation[]}
+        intakeForms={mappedIntakeForms as unknown as IntakeForm[]}
         lang={lang}
       />
     </div>

@@ -65,6 +65,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
   const [addTime, setAddTime] = useState('10:00')
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState('')
+  const [patientDropdownOpen, setPatientDropdownOpen] = useState(false)
 
   useEffect(() => {
     getAppointmentsByMonth(year, month).then(setAppointments)
@@ -324,11 +325,13 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
                 type="text"
                 placeholder={t(lang).calendar.patientName}
                 value={patientSearch}
-                onChange={e => { setPatientSearch(e.target.value); setAddPatientId('') }}
+                onChange={e => { setPatientSearch(e.target.value); setAddPatientId(''); setPatientDropdownOpen(true) }}
+                onFocus={() => setPatientDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setPatientDropdownOpen(false), 150)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-[#2d6a4f]/30/10"
                 autoFocus
               />
-              {patientSearch.length > 0 && !addPatientId && filteredPatients.length > 0 && (
+              {patientDropdownOpen && !addPatientId && filteredPatients.length > 0 && (
                 <div className="absolute z-10 w-full top-full mt-0.5 rounded-xl shadow-lg overflow-hidden" style={{ backgroundColor: '#f5f0e8', border: '1px solid var(--sim-border)' }}>
                   {filteredPatients.slice(0, 5).map(p => (
                     <button
@@ -378,7 +381,7 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
                 {addLoading ? t(lang).calendar.saving : t(lang).calendar.save}
               </button>
               <button
-                onClick={() => { setShowAdd(false); setPatientSearch(''); setAddPatientId('') }}
+                onClick={() => { setShowAdd(false); setPatientSearch(''); setAddPatientId(''); setPatientDropdownOpen(false) }}
                 className="text-xs text-gray-400 hover:text-gray-600 px-3 transition-colors"
               >
                 {t(lang).calendar.cancel}

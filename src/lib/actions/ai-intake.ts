@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { redirect } from 'next/navigation'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
@@ -25,58 +25,62 @@ const submitSchema = z.object({
  */
 export async function createAIIntakeLink(patientId: string): Promise<string> {
   createSchema.parse({ patientId })
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Получить данные пациента
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('id, name, birth_date, gender, constitutional_type, notes')
-    .eq('id', patientId)
-    .eq('doctor_id', user.id)
-    .single()
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, doctorId: userId },
+    select: { id: true, name: true, birthDate: true, gender: true, constitutionalType: true, notes: true },
+  })
   if (!patient) throw new Error('Patient not found')
 
   // Получить последние консультации для контекста
-  const { data: consultations } = await supabase
-    .from('consultations')
-    .select('date, notes, complaints, remedy, potency, type, reaction_to_previous')
-    .eq('patient_id', patientId)
-    .eq('doctor_id', user.id)
-    .neq('status', 'cancelled')
-    .order('date', { ascending: false })
-    .limit(5)
-
-  // Получить последнюю обычную анкету если есть
-  const { data: lastIntake } = await supabase
-    .from('intake_forms')
-    .select('answers')
-    .eq('patient_id', patientId)
-    .eq('status', 'completed')
-    .order('completed_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  // Сгенерировать вопросы через Sonnet
-  const questions = await generateAIQuestions(patient, consultations ?? [], lastIntake?.answers)
-
-  const token = randomUUID().replace(/-/g, '')
-  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString() // 72 часа
-
-  const { error } = await supabase.from('ai_intake_forms').insert({
-    patient_id: patientId,
-    doctor_id: user.id,
-    token,
-    questions_json: questions,
-    status: 'pending',
-    expires_at: expiresAt,
+  const consultations = await prisma.consultation.findMany({
+    where: { patientId, doctorId: userId, status: { not: 'cancelled' } },
+    select: { date: true, notes: true, complaints: true, remedy: true, potency: true, type: true, reactionToPrevious: true },
+    orderBy: { date: 'desc' },
+    take: 5,
   })
 
-  if (error) {
-    console.error('[createAIIntakeLink]', error)
-    throw new Error('Не удалось создать AI-анкету')
+  // Получить последнюю обычную анкету если есть
+  const lastIntake = await prisma.intakeForm.findFirst({
+    where: { patientId, status: 'completed' },
+    select: { answers: true },
+    orderBy: { completedAt: 'desc' },
+  })
+
+  // Сгенерировать вопросы через Sonnet
+  const patientForAI = {
+    name: patient.name,
+    birth_date: patient.birthDate,
+    gender: patient.gender,
+    constitutional_type: patient.constitutionalType,
+    notes: patient.notes,
   }
+  const consultationsForAI = consultations.map(c => ({
+    date: c.date ?? '',
+    notes: c.notes ?? '',
+    complaints: c.complaints ?? '',
+    remedy: c.remedy,
+    potency: c.potency,
+    type: c.type,
+    reaction_to_previous: c.reactionToPrevious,
+  }))
+  const questions = await generateAIQuestions(patientForAI, consultationsForAI, lastIntake?.answers as Record<string, string> | null)
+
+  const token = randomUUID().replace(/-/g, '')
+  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000) // 72 часа
+
+  await prisma.aiIntakeForm.create({
+    data: {
+      patientId,
+      doctorId: userId,
+      token,
+      questionsJson: questions,
+      status: 'pending',
+      expiresAt,
+    },
+  })
 
   return token
 }
@@ -86,44 +90,35 @@ export async function createAIIntakeLink(patientId: string): Promise<string> {
  */
 export async function submitAIIntake(token: string, answers: Record<string, string>): Promise<void> {
   submitSchema.parse({ token, answers })
-  const supabase = createServiceClient() // Публичная форма — без auth
 
-  const { data: intake } = await supabase
-    .from('ai_intake_forms')
-    .select('id, status, expires_at')
-    .eq('token', token)
-    .single()
+  // Публичная форма — без auth
+  const intake = await prisma.aiIntakeForm.findUnique({
+    where: { token },
+    select: { id: true, status: true, expiresAt: true },
+  })
 
   if (!intake) return
   if (intake.status !== 'pending') return
-  if (intake.expires_at && new Date(intake.expires_at) < new Date()) return
+  if (intake.expiresAt && new Date(intake.expiresAt) < new Date()) return
 
-  const { error } = await supabase
-    .from('ai_intake_forms')
-    .update({
-      answers_json: answers,
+  await prisma.aiIntakeForm.update({
+    where: { id: intake.id, status: 'pending' },
+    data: {
+      answersJson: answers,
       status: 'completed',
-      completed_at: new Date().toISOString(),
-    })
-    .eq('id', intake.id)
-    .eq('status', 'pending')
-
-  if (error) {
-    console.error('[submitAIIntake]', error)
-    throw new Error('Не удалось сохранить анкету')
-  }
+      completedAt: new Date(),
+    },
+  })
 }
 
 /**
  * Получить AI-анкету по токену (для страницы заполнения)
  */
 export async function getAIIntakeByToken(token: string) {
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('ai_intake_forms')
-    .select('questions_json, status, expires_at, patient_id')
-    .eq('token', token)
-    .single()
+  const data = await prisma.aiIntakeForm.findUnique({
+    where: { token },
+    select: { questionsJson: true, status: true, expiresAt: true, patientId: true },
+  })
   return data
 }
 

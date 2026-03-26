@@ -1,21 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import FollowupForm from './FollowupForm'
 
 export default async function FollowupPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const supabase = await createClient()
 
-  const { data: followup } = await supabase
-    .from('followups')
-    .select('*, patients(name)')
-    .eq('token', token)
-    .single()
+  // Публичная страница — без auth, ищем followup по токену
+  const followup = await prisma.followup.findUnique({
+    where: { token },
+  })
 
   if (!followup) notFound()
 
   // Уже ответили
-  if (followup.responded_at) {
+  if (followup.respondedAt) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--sim-bg)' }}>
         <div className="text-center max-w-sm">
@@ -38,7 +36,15 @@ export default async function FollowupPage({ params }: { params: Promise<{ token
     )
   }
 
-  const patientName = (followup.patients as { name: string } | null)?.name || 'Пациент'
+  // Получаем имя пациента через consultation → patient
+  let patientName = 'Пациент'
+  if (followup.patientId) {
+    const patient = await prisma.patient.findUnique({
+      where: { id: followup.patientId },
+      select: { name: true },
+    })
+    if (patient?.name) patientName = patient.name
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--sim-bg)' }}>

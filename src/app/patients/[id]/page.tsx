@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
@@ -30,53 +32,101 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
   const { id } = await params
   const { welcome } = await searchParams
   const isWelcome = welcome === '1'
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('*')
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-    .single()
+  // Авторизация через NextAuth
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
+  const userId = session.user.id
+
+  const patient = await prisma.patient.findFirst({
+    where: { id, doctorId: userId },
+  })
 
   if (!patient) notFound()
 
-  const { data: consultations } = await supabase
-    .from('consultations')
-    .select('*')
-    .eq('patient_id', id)
-    .order('scheduled_at', { ascending: false, nullsFirst: false })
-    .order('date', { ascending: false })
+  const consultations = await prisma.consultation.findMany({
+    where: { patientId: id },
+    orderBy: [
+      { scheduledAt: { sort: 'desc', nulls: 'first' } },
+      { date: 'desc' },
+    ],
+  })
 
-  const consultationIds = (consultations || []).map(c => c.id)
-  const { data: followups } = consultationIds.length > 0
-    ? await supabase.from('followups').select('*').in('consultation_id', consultationIds)
-    : { data: [] }
+  const consultationIds = consultations.map(c => c.id)
+  const followupsRaw = consultationIds.length > 0
+    ? await prisma.followup.findMany({ where: { consultationId: { in: consultationIds } } })
+    : []
+
+  // Маппинг camelCase → snake_case для совместимости с UI
+  const followups = followupsRaw.map(f => ({
+    ...f,
+    consultation_id: f.consultationId,
+    patient_id: f.patientId,
+    sent_at: f.sentAt,
+    responded_at: f.respondedAt,
+    created_at: f.createdAt,
+  }))
 
   const followupByConsultation = Object.fromEntries(
-    (followups || []).map(f => [f.consultation_id, f])
+    followups.map(f => [f.consultation_id, f])
   )
 
-  const lastCompleted = consultations?.find(c => c.status === 'completed')
+  // Маппинг консультаций camelCase → snake_case для совместимости с UI
+  const consultationsMapped = consultations.map(c => ({
+    ...c,
+    patient_id: c.patientId,
+    doctor_id: c.doctorId,
+    scheduled_at: c.scheduledAt?.toISOString() ?? null,
+    created_at: c.createdAt.toISOString(),
+    updated_at: c.updatedAt.toISOString(),
+    reaction_to_previous: c.reactionToPrevious,
+    repertory_data: c.repertoryData,
+    structured_symptoms: c.structuredSymptoms,
+    case_state: c.caseState,
+    clinical_assessment: c.clinicalAssessment,
+    doctor_dynamics: c.doctorDynamics,
+    modality_worse_text: c.modalityWorseText,
+    modality_better_text: c.modalityBetterText,
+    mental_text: c.mentalText,
+    general_text: c.generalText,
+    ai_result: c.aiResult,
+  }))
+
+  const lastCompleted = consultationsMapped.find(c => c.status === 'completed')
   const pendingPrescription = lastCompleted && !lastCompleted.remedy
 
-  const { data: photos } = await supabase
-    .from('patient_photos')
-    .select('*')
-    .eq('patient_id', id)
-    .order('taken_at', { ascending: true })
+  const photos = await prisma.patientPhoto.findMany({
+    where: { patientId: id },
+    orderBy: { createdAt: 'asc' },
+  })
+  // Маппинг для совместимости с UI
+  const photosMapped = photos.map(p => ({
+    ...p,
+    patient_id: p.patientId,
+    doctor_id: p.doctorId,
+    file_name: p.fileName,
+    created_at: p.createdAt.toISOString(),
+    taken_at: p.createdAt.toISOString(), // taken_at нет в Prisma, используем createdAt
+  }))
 
-  const { data: intakeForms } = await supabase
-    .from('intake_forms')
-    .select('*')
-    .eq('patient_id', id)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
+  const intakeForms = await prisma.intakeForm.findMany({
+    where: { patientId: id, status: 'completed' },
+    orderBy: { createdAt: 'desc' },
+  })
 
-  const completedPrimaryIntake = (intakeForms || []).find(f => f.type === 'primary') || null
-  const completedAcuteIntake = (intakeForms || []).find(f => f.type === 'acute') || null
+  const completedPrimaryIntake = intakeForms.find(f => f.type === 'primary') || null
+  const completedAcuteIntake = intakeForms.find(f => f.type === 'acute') || null
+  // Маппинг для совместимости с UI
+  const primaryIntakeMapped = completedPrimaryIntake ? {
+    ...completedPrimaryIntake,
+    completed_at: completedPrimaryIntake.completedAt?.toISOString() ?? null,
+    created_at: completedPrimaryIntake.createdAt.toISOString(),
+  } : null
+  const acuteIntakeMapped = completedAcuteIntake ? {
+    ...completedAcuteIntake,
+    completed_at: completedAcuteIntake.completedAt?.toISOString() ?? null,
+    created_at: completedAcuteIntake.createdAt.toISOString(),
+  } : null
 
   const { paid_sessions_enabled } = await getDoctorSettings()
   const lang = await getLang()
@@ -91,8 +141,8 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
   const lastComplaints = lastCompleted?.complaints || ''
   const lastFollowup = lastCompleted ? followupByConsultation[lastCompleted.id] : null
   const caseState = lastCompleted?.case_state
-  const assessment = lastCompleted?.clinical_assessment as { summary?: string } | null
-  const hasAcute = consultations?.some(c => c.type === 'acute' && c.status !== 'completed')
+  const assessment = lastCompleted?.clinical_assessment as unknown as { summary?: string } | null
+  const hasAcute = consultationsMapped.some(c => c.type === 'acute' && c.status !== 'completed')
 
   const STATE_CONFIG: Record<string, { label: { ru: string; en: string }; color: string }> = {
     improving:     { label: { ru: 'Улучшение',    en: 'Improving' },     color: '#059669' },
@@ -111,7 +161,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
         ? { label: lang === 'ru' ? 'Улучшение' : 'Improving', color: '#059669' }
         : lastFollowup?.status === 'worse'
           ? { label: lang === 'ru' ? 'Ухудшение' : 'Worsening', color: '#dc2626' }
-          : consultations && consultations.length > 0
+          : consultationsMapped.length > 0
             ? { label: lang === 'ru' ? 'Наблюдение' : 'Monitoring', color: '#6b7280' }
             : { label: lang === 'ru' ? 'Новый' : 'New', color: '#2563eb' }
 
@@ -218,12 +268,12 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
 
           {/* Мета-строка */}
           <div className="flex items-center gap-3 mt-2 flex-wrap">
-            {patient.birth_date && (
-              <span className="text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>{getAge(patient.birth_date)}</span>
+            {patient.birthDate && (
+              <span className="text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>{getAge(patient.birthDate)}</span>
             )}
-            {patient.constitutional_type && (
+            {patient.constitutionalType && (
               <span className="text-[12px] font-medium px-2.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(45,106,79,0.06)', color: 'var(--sim-green)' }}>
-                {patient.constitutional_type}
+                {patient.constitutionalType}
               </span>
             )}
             {patient.phone && (
@@ -266,7 +316,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
           <div className={`mt-6 ${isWelcome ? 'animate-pulse' : ''}`} style={{ animationDuration: '2.5s' }}>
             <StartConsultationButton
               action={newChronicConsultation}
-              label={consultations && consultations.filter(c => c.status === 'completed').length > 0
+              label={consultationsMapped.filter(c => c.status === 'completed').length > 0
                 ? (lang === 'ru' ? 'Начать повторный приём' : 'Start follow-up')
                 : isWelcome
                   ? (lang === 'ru' ? 'Попробовать — начать приём' : 'Try — start appointment')
@@ -305,9 +355,9 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
           </div>
 
           {/* Запланированные */}
-          {consultations?.some(c => c.status === 'scheduled') && (
+          {consultationsMapped.some(c => c.status === 'scheduled') && (
             <div className="mb-5 space-y-2">
-              {consultations.filter(c => c.status === 'scheduled').map(consultation => (
+              {consultationsMapped.filter(c => c.status === 'scheduled').map(consultation => (
                 <div
                   key={consultation.id}
                   className="flex items-center justify-between rounded-xl px-4 py-3 text-sm"
@@ -366,7 +416,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
               )}
 
               <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid var(--sim-border)' }}>
-                <p className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>{formatDate(currentPrescription.date)}</p>
+                <p className="text-[12px]" style={{ color: 'var(--sim-text-muted)' }}>{formatDate(currentPrescription.date || '')}</p>
                 <SharePrescriptionButton consultationId={currentPrescription.id} />
               </div>
             </div>
@@ -392,7 +442,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
 
           {/* Оплаченные сессии */}
           {paid_sessions_enabled && (
-            <PaidSessionsBlock patientId={id} initialCount={patient.paid_sessions ?? 0} />
+            <PaidSessionsBlock patientId={id} initialCount={patient.paidSessions ?? 0} />
           )}
 
           {/* ── Анкеты ── */}
@@ -416,8 +466,8 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
               </div>
             </summary>
             <div className="pt-4 space-y-3">
-              {completedPrimaryIntake?.answers && <IntakeView answers={completedPrimaryIntake.answers} completedAt={completedPrimaryIntake.completed_at} type="primary" patientId={id} />}
-              {completedAcuteIntake?.answers && <IntakeView answers={completedAcuteIntake.answers} completedAt={completedAcuteIntake.completed_at} type="acute" patientId={id} />}
+              {primaryIntakeMapped?.answers && <IntakeView answers={primaryIntakeMapped.answers} completedAt={primaryIntakeMapped.completed_at} type="primary" patientId={id} />}
+              {acuteIntakeMapped?.answers && <IntakeView answers={acuteIntakeMapped.answers} completedAt={acuteIntakeMapped.completed_at} type="acute" patientId={id} />}
               {!completedPrimaryIntake && !completedAcuteIntake && (
                 <p className="text-[13px] py-2" style={{ color: 'var(--sim-text-muted)' }}>
                   {lang === 'ru' ? 'Анкета не заполнена. Отправьте ссылку пациенту.' : 'No intake. Send link to patient.'}
@@ -427,7 +477,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
           </details>
 
           {/* ── История ── */}
-          {(!consultations || consultations.length === 0) ? (
+          {consultationsMapped.length === 0 ? (
             <div className="mb-5 py-8 text-center">
               <p className="text-[13px]" style={{ color: 'var(--sim-text-muted)' }}>
                 {lang === 'ru' ? 'Нажмите «Начать приём» выше — история появится здесь' : 'Click "Start appointment" — history will appear here'}
@@ -438,15 +488,15 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
               <summary className="flex items-center justify-between py-3 cursor-pointer select-none" style={{ borderBottom: '1px solid var(--sim-border)' }}>
                 <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
                   {t(lang).patientCard.timeline}
-                  <span className="ml-1.5 font-normal">({consultations.length})</span>
+                  <span className="ml-1.5 font-normal">({consultationsMapped.length})</span>
                 </p>
                 <svg className="w-3.5 h-3.5 transition-transform duration-200 group-open:rotate-180" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                 </svg>
               </summary>
               <div className="pt-4">
-                <TreatmentProgress consultations={consultations} followupByConsultation={followupByConsultation} />
-                <TimelineWithFilter patientId={id} consultations={consultations} followupByConsultation={followupByConsultation} />
+                <TreatmentProgress consultations={consultationsMapped} followupByConsultation={followupByConsultation} />
+                <TimelineWithFilter patientId={id} consultations={consultationsMapped} followupByConsultation={followupByConsultation} />
               </div>
             </details>
           )}
@@ -456,14 +506,14 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
             <summary className="flex items-center justify-between py-3 cursor-pointer select-none" style={{ borderBottom: '1px solid var(--sim-border)' }}>
               <p className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
                 {lang === 'ru' ? 'Фотографии' : 'Photos'}
-                {photos && photos.length > 0 && <span className="ml-1.5 font-normal">({photos.length})</span>}
+                {photosMapped.length > 0 && <span className="ml-1.5 font-normal">({photosMapped.length})</span>}
               </p>
               <svg className="w-3.5 h-3.5 transition-transform duration-200 group-open:rotate-180" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </summary>
             <div className="pt-4">
-              <PhotoSection patientId={id} photos={photos || []} />
+              <PhotoSection patientId={id} photos={photosMapped} />
             </div>
           </details>
 

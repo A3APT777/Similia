@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
@@ -19,9 +21,8 @@ import QuestionnaireEditor from './QuestionnaireEditor'
 import { getAllTemplates } from '@/lib/actions/questionnaire-templates'
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
 
   const [{ paid_sessions_enabled, followup_reminder_days }, scheduleData, sub, prescriptionRules, templates] = await Promise.all([
     getDoctorSettings(),
@@ -30,14 +31,14 @@ export default async function SettingsPage() {
     getPrescriptionRules(),
     getAllTemplates(),
   ])
+
   // AI-кредиты
-  const { data: aiSettings } = await supabase
-    .from('doctor_settings')
-    .select('ai_credits, subscription_plan')
-    .eq('doctor_id', user.id)
-    .single()
-  const aiCredits = aiSettings?.ai_credits ?? 0
-  const isAIPro = aiSettings?.subscription_plan === 'ai_pro'
+  const aiSettings = await prisma.doctorSettings.findUnique({
+    where: { doctorId: session.user.id },
+    select: { aiCredits: true, subscriptionPlan: true },
+  })
+  const aiCredits = aiSettings?.aiCredits ?? 0
+  const isAIPro = aiSettings?.subscriptionPlan === 'ai_pro'
   const lang = await getLang()
   const hasSchedule = isFeatureAllowed(sub, 'online_booking')
   const hasFollowup = isFeatureAllowed(sub, 'followup_reminders')

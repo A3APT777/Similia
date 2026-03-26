@@ -1,19 +1,18 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { getAdminStats, getAdminDoctors } from '@/lib/actions/admin'
 import AdminDashboard from './AdminDashboard'
 
 export default async function AdminPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
 
   // Проверка админа
-  const { data: admin } = await supabase
-    .from('admin_users')
-    .select('user_id')
-    .eq('user_id', user.id)
-    .single()
+  const admin = await prisma.adminUser.findUnique({
+    where: { userId: session.user.id },
+  })
 
   if (!admin) redirect('/dashboard')
 

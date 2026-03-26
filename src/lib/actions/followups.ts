@@ -1,51 +1,46 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { uuidSchema, followupStatusSchema } from '@/lib/validation'
 import { z } from 'zod'
 
+// Создать фоллоу-ап для консультации
 export async function createFollowup(consultationId: string, patientId: string) {
   uuidSchema.parse(consultationId)
   uuidSchema.parse(patientId)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Проверяем что консультация принадлежит текущему врачу
-  const { data: consultation } = await supabase
-    .from('consultations')
-    .select('id')
-    .eq('id', consultationId)
-    .eq('doctor_id', user.id)
-    .single()
+  const consultation = await prisma.consultation.findFirst({
+    where: { id: consultationId, doctorId: userId },
+    select: { id: true },
+  })
 
   if (!consultation) throw new Error('Консультация не найдена')
 
   // Проверяем — нет ли уже follow-up для этой консультации
-  const { data: existing } = await supabase
-    .from('followups')
-    .select('id, token')
-    .eq('consultation_id', consultationId)
-    .single()
+  const existing = await prisma.followup.findFirst({
+    where: { consultationId },
+    select: { id: true, token: true },
+  })
 
   if (existing) return { token: existing.token }
 
-  const { data, error } = await supabase
-    .from('followups')
-    .insert({
-      consultation_id: consultationId,
-      patient_id: patientId,
-      sent_at: new Date().toISOString(),
-    })
-    .select('token')
-    .single()
+  // Создаём новый фоллоу-ап
+  const followup = await prisma.followup.create({
+    data: {
+      consultationId,
+      patientId,
+      sentAt: new Date(),
+    },
+    select: { token: true },
+  })
 
-  if (error) throw new Error(error.message)
-
-  return { token: data.token }
+  return { token: followup.token }
 }
 
+// Ответить на фоллоу-ап (публичная форма, без авторизации)
 export async function respondFollowup(
   token: string,
   status: 'better' | 'same' | 'worse' | 'new_symptoms',
@@ -54,17 +49,18 @@ export async function respondFollowup(
   uuidSchema.parse(token)
   followupStatusSchema.parse(status)
   z.string().max(2000, 'Комментарий слишком длинный').parse(comment)
-  const supabase = await createClient()
 
-  const { error } = await supabase
-    .from('followups')
-    .update({
+  // Обновляем только если ещё не отвечен (respondedAt === null)
+  const result = await prisma.followup.updateMany({
+    where: { token, respondedAt: null },
+    data: {
       status,
       comment: comment || null,
-      responded_at: new Date().toISOString(),
-    })
-    .eq('token', token)
-    .is('responded_at', null) // отвечать можно только один раз
+      respondedAt: new Date(),
+    },
+  })
 
-  if (error) throw new Error(error.message)
+  if (result.count === 0) {
+    throw new Error('Фоллоу-ап не найден или уже заполнен')
+  }
 }

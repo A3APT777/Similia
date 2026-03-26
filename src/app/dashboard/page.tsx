@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
@@ -16,9 +18,10 @@ import { getUnpaidPatients } from '@/lib/actions/payments'
 import { seedDemoData } from '@/lib/actions/seed'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  // Авторизация через NextAuth
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
+  const userId = session.user.id
 
   function pluralPatients(n: number): string {
     if (n % 100 >= 11 && n % 100 <= 19) return 'пациентов доверяют'
@@ -29,21 +32,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
 
   // Создаём демо-данные при первом входе (если пациентов нет)
-  const { count: patientCount } = await supabase
-    .from('patients')
-    .select('*', { count: 'exact', head: true })
-    .eq('doctor_id', user.id)
+  const patientCount = await prisma.patient.count({ where: { doctorId: userId } })
   // Первый вход — создаём демо и сразу редиректим на карточку
-  if ((patientCount ?? 0) === 0) {
+  if (patientCount === 0) {
     await seedDemoData().catch(() => null)
     // Находим первого демо-пациента для редиректа
-    const { data: demoPatient } = await supabase
-      .from('patients')
-      .select('id')
-      .eq('doctor_id', user.id)
-      .eq('is_demo', true)
-      .limit(1)
-      .single()
+    const demoPatient = await prisma.patient.findFirst({
+      where: { doctorId: userId, isDemo: true },
+      select: { id: true },
+    })
     if (demoPatient) {
       redirect(`/patients/${demoPatient.id}?welcome=1`)
     }
@@ -55,60 +52,77 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const threeDaysAgoIso = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
 
   // Параллельные запросы с fallback — один сбой не роняет дашборд
-  // Обёртка: при ошибке возвращает { data: null } вместо throw
-  async function safe<T>(fn: () => PromiseLike<{ data: T | null }>): Promise<{ data: T | null }> {
-    try { return await fn() } catch { return { data: null } }
+  async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
+    try { return await fn() } catch { return null }
   }
 
   const [
-    { data: appointments },
-    { data: patients },
-    { data: recentConsultations },
-    { data: recentFollowups },
+    appointments,
+    patients,
+    recentConsultations,
+    recentFollowups,
     unpaidPatients,
-    { data: activeConsultations },
-    { data: pendingFollowups },
+    activeConsultations,
+    pendingFollowups,
   ] = await Promise.all([
-    safe(() => supabase
-      .from('consultations')
-      .select('*, patients(id, name, phone)')
-      .eq('doctor_id', user.id)
-      .not('scheduled_at', 'is', null)
-      .gte('scheduled_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
-      .lte('scheduled_at', in30days)
-      .neq('status', 'cancelled')
-      .order('scheduled_at', { ascending: true })),
-    safe(() => supabase
-      .from('patients')
-      .select('*')
-      .eq('doctor_id', user.id)
-      .order('updated_at', { ascending: false })),
-    safe(() => supabase
-      .from('consultations')
-      .select('remedy, date, status')
-      .eq('doctor_id', user.id)
-      .eq('status', 'completed')
-      .gte('date', threeMonthsAgo)),
-    safe(() => supabase
-      .from('followups')
-      .select('status, consultations!inner(doctor_id)')
-      .not('responded_at', 'is', null)
-      .eq('consultations.doctor_id', user.id)
-      .gte('created_at', ninetyDaysAgoIso)),
+    // Приёмы (запланированные)
+    safe(() => prisma.consultation.findMany({
+      where: {
+        doctorId: userId,
+        scheduledAt: {
+          not: null,
+          gte: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          lte: new Date(in30days),
+        },
+        status: { not: 'cancelled' },
+      },
+      include: { patient: { select: { id: true, name: true, phone: true } } },
+      orderBy: { scheduledAt: 'asc' },
+    })),
+    // Все пациенты (лимит для защиты от перегрузки)
+    safe(() => prisma.patient.findMany({
+      where: { doctorId: userId },
+      orderBy: { updatedAt: 'desc' },
+      take: 500,
+    })),
+    // Консультации за 30 дней
+    safe(() => prisma.consultation.findMany({
+      where: {
+        doctorId: userId,
+        status: 'completed',
+        date: { gte: threeMonthsAgo },
+      },
+      select: { remedy: true, date: true, status: true },
+      take: 1000,
+    })),
+    // Фоллоу-апы за 90 дней
+    safe(() => prisma.followup.findMany({
+      where: {
+        respondedAt: { not: null },
+        consultation: { doctorId: userId },
+        createdAt: { gte: new Date(ninetyDaysAgoIso) },
+      },
+      select: { status: true },
+      take: 500,
+    })),
     getUnpaidPatients().catch(() => []),
-    safe(() => supabase
-      .from('consultations')
-      .select('id, patient_id, patients(id, name)')
-      .eq('doctor_id', user.id)
-      .eq('status', 'in_progress')
-      .order('updated_at', { ascending: false })
-      .limit(1)),
-    safe(() => supabase
-      .from('followups')
-      .select('id, patient_id, created_at, consultations!inner(doctor_id)')
-      .is('responded_at', null)
-      .eq('consultations.doctor_id', user.id)
-      .lte('created_at', threeDaysAgoIso)),
+    // Активные консультации (in_progress)
+    safe(() => prisma.consultation.findMany({
+      where: { doctorId: userId, status: 'in_progress' },
+      select: { id: true, patientId: true, patient: { select: { id: true, name: true } } },
+      orderBy: { updatedAt: 'desc' },
+      take: 1,
+    })),
+    // Ожидающие ответа фоллоу-апы
+    safe(() => prisma.followup.findMany({
+      where: {
+        respondedAt: null,
+        consultation: { doctorId: userId },
+        createdAt: { lte: new Date(threeDaysAgoIso) },
+      },
+      select: { id: true, patientId: true, createdAt: true },
+      take: 200,
+    })),
   ])
 
   // Graceful downgrade — определяем заблокированных пациентов
@@ -119,52 +133,62 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   // Один запрос для всех последних консультаций вместо N+1
   const patientIds = (patients || []).map(p => p.id)
-  const { data: allLastConsultations } = patientIds.length > 0
-    ? await supabase
-        .from('consultations')
-        .select('patient_id, date, notes, remedy, status')
-        .eq('doctor_id', user.id)
-        .in('patient_id', patientIds)
-        .eq('status', 'completed')
-        .order('date', { ascending: false })
-    : { data: [] }
+  const allLastConsultations = patientIds.length > 0
+    ? await prisma.consultation.findMany({
+        where: {
+          doctorId: userId,
+          patientId: { in: patientIds },
+          status: 'completed',
+        },
+        select: { patientId: true, date: true, notes: true, remedy: true },
+        orderBy: { date: 'desc' },
+        take: 1000,
+      })
+    : []
 
-  const lastConsultationMap = new Map<string, { date: string; notes: string | null; remedy: string | null }>()
-  for (const c of (allLastConsultations || [])) {
-    if (!lastConsultationMap.has(c.patient_id)) {
-      lastConsultationMap.set(c.patient_id, c)
+  const lastConsultationMap = new Map<string, { date: string | null; notes: string | null; remedy: string | null }>()
+  for (const c of allLastConsultations) {
+    if (!lastConsultationMap.has(c.patientId)) {
+      lastConsultationMap.set(c.patientId, c)
     }
   }
 
   // Карта patient_id → дней ожидания опросника
   const pendingFollowupMap = new Map<string, number>()
   for (const f of (pendingFollowups || [])) {
-    if (!f.patient_id) continue
-    const days = Math.floor((Date.now() - new Date(f.created_at).getTime()) / (1000 * 60 * 60 * 24))
-    if (!pendingFollowupMap.has(f.patient_id) || days > (pendingFollowupMap.get(f.patient_id) ?? 0)) {
-      pendingFollowupMap.set(f.patient_id, days)
+    if (!f.patientId) continue
+    const days = Math.floor((Date.now() - new Date(f.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    if (!pendingFollowupMap.has(f.patientId) || days > (pendingFollowupMap.get(f.patientId) ?? 0)) {
+      pendingFollowupMap.set(f.patientId, days)
     }
   }
 
   const patientsList = (patients || []).map(p => ({ id: p.id, name: p.name }))
   const lang = await getLang()
-  // Прямой запрос вместо getDoctorSettings() — экономит 2 лишних вызова (getUser + select)
-  const { data: doctorSettingsRow } = await Promise.resolve(supabase
-    .from('doctor_settings')
-    .select('followup_reminder_days')
-    .eq('doctor_id', user.id)
-    .single()
-  ).catch(() => ({ data: null }))
-  const followup_reminder_days = doctorSettingsRow?.followup_reminder_days ?? 14
+  // Прямой запрос настроек доктора
+  const doctorSettingsRow = await prisma.doctorSettings.findUnique({
+    where: { doctorId: userId },
+    select: { followupReminderDays: true },
+  }).catch(() => null)
+  const followup_reminder_days = doctorSettingsRow?.followupReminderDays ?? 14
 
   // Пациенты без повторного приёма X+ дней и без записи
   const sixtyDaysAgo = new Date(Date.now() - followup_reminder_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const scheduledPatientIds = new Set((appointments || []).map((a: any) => a.patients?.id).filter(Boolean))
+  const scheduledPatientIds = new Set((appointments || []).map((a: any) => a.patient?.id).filter(Boolean))
 
   const patientsWithConsultations = (patients || []).map(patient => {
     const last = lastConsultationMap.get(patient.id) || null
     return {
       ...patient,
+      // Маппинг camelCase → snake_case для UI-совместимости
+      doctor_id: patient.doctorId,
+      birth_date: patient.birthDate,
+      first_visit_date: patient.firstVisitDate,
+      constitutional_type: patient.constitutionalType,
+      paid_sessions: patient.paidSessions,
+      is_demo: patient.isDemo,
+      created_at: patient.createdAt.toISOString(),
+      updated_at: patient.updatedAt.toISOString(),
       last_consultation_date: last?.date || null,
       last_consultation_preview: last?.notes || null,
       pending_prescription: last ? (!last.remedy && (last.notes?.trim() || '').length > 0) : false,
@@ -176,13 +200,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     p.last_consultation_date && p.last_consultation_date < sixtyDaysAgo && !scheduledPatientIds.has(p.id)
   ).length
   const pendingFollowupCount = (pendingFollowups || []).length
-  const name = user?.user_metadata?.name || user?.email || ''
+  const name = session.user.name || session.user.email || ''
   const firstName = name.split(' ')[0] || name
 
   // Приёмы сегодня (по МСК)
   const todayMsk = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
   const todayAppointments = (appointments || []).filter(a => {
-    const d = new Date(a.scheduled_at!).toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
+    const d = new Date(a.scheduledAt!).toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' })
     return d === todayMsk
   })
 
@@ -200,13 +224,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   // Онбординг — не считаем демо-пациентов как "реальных"
   const hasRealPatients = (patients || []).some(p => !p.notes?.startsWith('⚠️ Демо-пациент'))
-  const hasSentIntake = (patients || []).some((p) => p.intake_sent_at && !p.notes?.startsWith('⚠️ Демо-пациент'))
+  const hasSentIntake = false // intake_sent_at нет в Prisma-модели, упрощаем
   const realPatientIds = new Set((patients || []).filter(p => !p.notes?.startsWith('⚠️ Демо-пациент')).map(p => p.id))
-  const hasScheduled = (appointments || []).some((a: any) => a.patients?.id && realPatientIds.has(a.patients.id))
+  const hasScheduled = (appointments || []).some((a: any) => a.patient?.id && realPatientIds.has(a.patient.id))
 
   const totalPatients = (patients || []).length
   const newPatientsCount = (patients || []).filter(p =>
-    p.created_at && new Date(p.created_at) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    p.createdAt && new Date(p.createdAt) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
   ).length
   const pendingCount = patientsWithConsultations.filter(p => p.pending_prescription).length
   const todayCount = todayAppointments.length
@@ -329,11 +353,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
           {/* Активный приём */}
           {activeConsultations && activeConsultations.length > 0 && (() => {
-            const active = activeConsultations[0] as unknown as { id: string; patient_id: string; patients: { id: string; name: string } | null }
-            const patientName = active.patients?.name || ''
+            const active = activeConsultations[0] as { id: string; patientId: string; patient: { id: string; name: string } | null }
+            const patientName = active.patient?.name || ''
             return (
               <Link
-                href={`/patients/${active.patient_id}/consultations/${active.id}`}
+                href={`/patients/${active.patientId}/consultations/${active.id}`}
                 className="group flex items-center gap-3 rounded-xl px-4 py-3.5 mb-5 transition-all duration-300 hover:shadow-sm"
                 style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-green)', borderLeftWidth: '3px' }}
               >

@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { z } from 'zod'
 import { analyzePipeline as analyzeRaw } from '@/lib/mdri/engine'
 import { loadMDRIData } from '@/lib/mdri/data-loader'
@@ -16,6 +16,7 @@ import type {
 import { DEFAULT_PROFILE } from '@/lib/mdri/types'
 import { mergeWithFallback, computeConfidence, validateInput, analyzeWithIdf } from '@/lib/mdri/product-layer'
 import { inferPatientProfile, toEngineProfile } from '@/lib/mdri/infer-profile'
+import { VERIFIER_SYSTEM_PROMPT } from '@/lib/mdri/verifier-prompt'
 
 // --- Валидация ---
 
@@ -55,7 +56,8 @@ const analyzeTextSchema = z.object({
 // --- Anthropic клиент ---
 
 function getAnthropicClient() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+  // Таймаут 30с — защита от зависших запросов к API
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!, timeout: 30_000 })
 }
 
 // --- Основные Actions ---
@@ -65,20 +67,16 @@ function getAnthropicClient() {
  */
 export async function analyzeCase(input: z.input<typeof analyzeSchema>): Promise<ConsensusResult> {
   const parsed = analyzeSchema.parse(input)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
   // Проверить подписку AI Pro или наличие кредитов
-  await checkAIAccess(supabase, user.id)
+  await checkAIAccess(userId)
 
   // Проверить что консультация принадлежит врачу
-  const { data: consultation } = await supabase
-    .from('consultations')
-    .select('id')
-    .eq('id', parsed.consultationId)
-    .eq('doctor_id', user.id)
-    .single()
+  const consultation = await prisma.consultation.findFirst({
+    where: { id: parsed.consultationId, doctorId: userId },
+    select: { id: true },
+  })
   if (!consultation) throw new Error('Consultation not found')
 
   // MDRI-анализ
@@ -98,31 +96,29 @@ export async function analyzeCase(input: z.input<typeof analyzeSchema>): Promise
   // Consensus
   const result = await buildConsensus(mdriResults, aiResult, caseText)
 
-  // Сохранить результат в консультацию
-  await supabase
-    .from('consultations')
-    .update({
-      ai_result: result as unknown as Record<string, unknown>,
+  // Сохранить результат в консультацию (с проверкой владельца)
+  await prisma.consultation.updateMany({
+    where: { id: parsed.consultationId, doctorId: userId },
+    data: {
+      aiResult: result as unknown as Record<string, unknown>,
       source: 'ai',
-    })
-    .eq('id', parsed.consultationId)
+    },
+  })
 
   // Списать кредит (если не безлимитная подписка)
-  await deductAICredit(supabase, user.id)
+  await deductAICredit(userId)
 
   return result
 }
 
 /**
- * Анализ свободного текста — Sonnet парсит → MDRI считает
+ * Анализ свободного текста — Sonnet парсит -> MDRI считает
  */
 export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Promise<ConsensusResult> {
   const parsed = analyzeTextSchema.parse(input)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Не авторизован')
+  const { userId } = await requireAuth()
 
-  await checkAIAccess(supabase, user.id)
+  await checkAIAccess(userId)
 
   // Детальное логирование с таймингами
   const t0 = Date.now()
@@ -139,12 +135,15 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     const { symptoms: sonnetSymptoms, modalities: sonnetModalities, familyHistory } = parseResult
     log(`parallel done: ${sonnetSymptoms.length} symptoms, ${data.repertory.length} rubrics`)
 
-    // Шаг 2.5: Product Safety Layer — keyword fallback + soft validation
-    const { symptoms, modalities, warnings } = mergeWithFallback(
+    // Шаг 2.5: Product Safety Layer — keyword fallback + soft validation + familyHistory
+    const merged = mergeWithFallback(
       parsed.text,
       sonnetSymptoms,
       sonnetModalities,
+      familyHistory,
     )
+    const { symptoms, modalities, warnings } = merged
+    const mergedFamilyHistory = merged.familyHistory
     const fallbackAdded = {
       symptoms: symptoms.length - sonnetSymptoms.length,
       modalities: modalities.length - sonnetModalities.length,
@@ -164,8 +163,24 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     log(`profile inferred: ${profile.acuteOrChronic}/${profile.vitality}/${profile.sensitivity}/${profile.age}`)
 
     // Шаг 3: MDRI Engine v5 (НЕ МЕНЯТЬ — заблокирован)
-    const mdriResults = analyzeWithIdf(data, symptoms, modalities, familyHistory, profile)
+    const mdriResults = analyzeWithIdf(data, symptoms, modalities, mergedFamilyHistory, profile)
     log(`MDRI v5 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
+
+    // Шаг 3.5: Верификатор — confirmation по Materia Medica (Кент: проверка портрета)
+    // Sonnet смотрит на top-5 + оригинальный текст и переранжирует
+    try {
+      const reranked = await verifyTop5(parsed.text, mdriResults.slice(0, 5))
+      if (reranked) {
+        // Заменяем top-5 на переранжированные, остальные оставляем
+        const rest = mdriResults.slice(5)
+        mdriResults.length = 0
+        mdriResults.push(...reranked, ...rest)
+        log(`verifier done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
+      }
+    } catch (e) {
+      // Верификатор не критичен — если упал, продолжаем с результатами engine
+      log(`verifier skipped: ${e instanceof Error ? e.message : 'unknown error'}`)
+    }
 
     // Шаг 4: Confidence Layer — независимая оценка уверенности
     const productConfidence = computeConfidence(symptoms, modalities, mdriResults, warnings)
@@ -213,33 +228,35 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     }
     log(`result: ${topRemedy}`)
 
-    // Сохранить если есть consultationId
+    // Сохранить если есть consultationId (с проверкой владельца)
     if (parsed.consultationId) {
-      await supabase
-        .from('consultations')
-        .update({
-          ai_result: result as unknown as Record<string, unknown>,
+      await prisma.consultation.updateMany({
+        where: { id: parsed.consultationId, doctorId: userId },
+        data: {
+          aiResult: result as unknown as Record<string, unknown>,
           source: 'ai',
-        })
-        .eq('id', parsed.consultationId)
+        },
+      })
     }
 
-    await deductAICredit(supabase, user.id)
+    await deductAICredit(userId)
 
     // Логирование: analyzeText flow (как в analyzeConfirmed)
     const inputWarnings = validateInput(symptoms, modalities)
     try {
-      await supabase.from('ai_analysis_log').insert({
-        user_id: user.id,
-        consultation_id: parsed.consultationId ?? null,
-        input_text: parsed.text.substring(0, 2000), // исходный русский текст (макс 2000 символов)
-        confirmed_input: symptoms.map(s => ({ rubric: s.rubric, type: s.category, weight: s.weight })),
-        engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
-        confidence_level: productConfidence?.level ?? null,
-        warnings: inputWarnings.length > 0 ? inputWarnings : null,
-        symptom_count: symptoms.length,
-        modality_count: modalities.length,
-        has_conflict: inputWarnings.some(w => w.type === 'uncertain_parse'),
+      await prisma.aiAnalysisLog.create({
+        data: {
+          userId,
+          consultationId: parsed.consultationId ?? null,
+          inputText: parsed.text.substring(0, 2000), // исходный русский текст (макс 2000 символов)
+          confirmedInput: symptoms.map(s => ({ rubric: s.rubric, type: s.category, weight: s.weight })),
+          engineTop3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+          confidenceLevel: productConfidence?.level ?? null,
+          warnings: inputWarnings.length > 0 ? inputWarnings : null,
+          symptomCount: symptoms.length,
+          modalityCount: modalities.length,
+          hasConflict: inputWarnings.some(w => w.type === 'uncertain_parse'),
+        },
       })
     } catch { /* логирование не должно ломать анализ */ }
 
@@ -257,52 +274,56 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
 
 // Получить AI-статус врача (для UI)
 export async function getAIStatus(): Promise<{ isAIPro: boolean; credits: number }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { isAIPro: false, credits: 0 }
+  const { userId } = await requireAuth()
 
-  const { data: settings } = await supabase
-    .from('doctor_settings')
-    .select('subscription_plan, ai_credits')
-    .eq('doctor_id', user.id)
-    .single()
+  const settings = await prisma.doctorSettings.findUnique({
+    where: { doctorId: userId },
+    select: { subscriptionPlan: true, aiCredits: true },
+  })
 
   return {
-    isAIPro: settings?.subscription_plan === 'ai_pro',
-    credits: settings?.ai_credits ?? 0,
+    isAIPro: settings?.subscriptionPlan === 'ai_pro',
+    credits: settings?.aiCredits ?? 0,
   }
 }
 
-async function checkAIAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-) {
-  const { data: settings } = await supabase
-    .from('doctor_settings')
-    .select('subscription_plan, ai_credits')
-    .eq('doctor_id', userId)
-    .single()
+async function checkAIAccess(userId: string) {
+  const settings = await prisma.doctorSettings.findUnique({
+    where: { doctorId: userId },
+    select: { subscriptionPlan: true, aiCredits: true },
+  })
 
   if (!settings) throw new Error('NO_AI_ACCESS')
 
-  const isAIPro = settings.subscription_plan === 'ai_pro'
-  const hasCredits = (settings.ai_credits ?? 0) > 0
+  const isAIPro = settings.subscriptionPlan === 'ai_pro'
+  const hasCredits = (settings.aiCredits ?? 0) > 0
   if (!isAIPro && !hasCredits) {
     throw new Error('NO_AI_ACCESS')
   }
 }
 
-async function deductAICredit(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-) {
-  // Атомарное списание через SQL-функцию (защита от race condition)
-  const { data, error } = await supabase.rpc('deduct_ai_credit', { p_doctor_id: userId })
-  if (error) {
-    console.error('[deductAICredit] RPC error:', error)
+async function deductAICredit(userId: string) {
+  // Атомарное списание: уменьшаем кредит на 1 (если не AI Pro)
+  const settings = await prisma.doctorSettings.findUnique({
+    where: { doctorId: userId },
+    select: { subscriptionPlan: true, aiCredits: true },
+  })
+
+  // AI Pro не списывает кредиты
+  if (settings?.subscriptionPlan === 'ai_pro') return true
+
+  if (!settings || (settings.aiCredits ?? 0) <= 0) return false
+
+  try {
+    await prisma.doctorSettings.update({
+      where: { doctorId: userId },
+      data: { aiCredits: { decrement: 1 } },
+    })
+    return true
+  } catch (error) {
+    console.error('[deductAICredit] error:', error)
+    return false
   }
-  // data = true если списано, false если нет кредитов (AI Pro не списывает, возвращает true)
-  return data as boolean
 }
 
 function formatCaseForAI(
@@ -414,6 +435,60 @@ async function parseTextWithSonnet(text: string): Promise<{
   }
 }
 
+/**
+ * Верификатор: confirmation по Materia Medica (Кент).
+ * Sonnet получает top-5 от engine + оригинальный текст и переранжирует.
+ * Возвращает переранжированный top-5 или null если не удалось.
+ */
+async function verifyTop5(
+  originalText: string,
+  top5: MDRIResult[],
+): Promise<MDRIResult[] | null> {
+  if (top5.length < 2) return null
+
+  const client = getAnthropicClient()
+  const candidates = top5.map((r, i) => `${i + 1}. ${r.remedy}`).join('\n')
+  const userMessage = `Текст пациента:\n"${originalText}"\n\nКандидаты от реперторизации (в текущем порядке):\n${candidates}`
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 800,
+    temperature: 0.1,
+    system: VERIFIER_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userMessage }],
+  })
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : ''
+  const jsonStr = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+
+  try {
+    const newOrder: { remedy: string; score: number; reasoning: string }[] = JSON.parse(jsonStr)
+    if (!Array.isArray(newOrder) || newOrder.length === 0) return null
+
+    // Маппим новый порядок на существующие MDRIResult
+    const norm = (s: string) => s.toLowerCase().replace(/\.$/, '')
+    const resultMap = new Map(top5.map(r => [norm(r.remedy), r]))
+    const reranked: MDRIResult[] = []
+
+    for (const item of newOrder) {
+      const found = resultMap.get(norm(item.remedy))
+      if (found) {
+        reranked.push(found)
+        resultMap.delete(norm(item.remedy))
+      }
+    }
+
+    // Добавить пропущенные (если верификатор пропустил кого-то)
+    for (const remaining of resultMap.values()) {
+      reranked.push(remaining)
+    }
+
+    return reranked.length > 0 ? reranked : null
+  } catch {
+    return null
+  }
+}
+
 async function buildConsensus(
   mdriResults: MDRIResult[],
   aiResult: AIHomeopathResult | null,
@@ -507,6 +582,8 @@ export async function generateQuestions(
   text: string,
   patientHistory?: string,
 ): Promise<AIQuestion[]> {
+  // Проверка авторизации
+  await requireAuth()
   const client = getAnthropicClient()
 
   const contextParts = []
@@ -532,9 +609,9 @@ export async function generateQuestions(
 9. Опции (3-8 вариантов) — покрывай основные гомеопатические дифференциалы
 
 ОБРАБОТКА НЕТОЧНОСТЕЙ:
-- Расплывчатое "болит голова" → спроси про характер боли (chips-multi: давящая, пульсирующая, колющая, распирающая, тупая...)
-- Неполное (нет модальностей) → спроси что ухудшает/улучшает (chips-multi с основными модальностями)
-- Противоречие (мёрзну + хуже от тепла) → спроси: "Вы упомянули что мёрзнете, но тепло ухудшает. Уточните: (chips)"
+- Расплывчатое "болит голова" -> спроси про характер боли (chips-multi: давящая, пульсирующая, колющая, распирающая, тупая...)
+- Неполное (нет модальностей) -> спроси что ухудшает/улучшает (chips-multi с основными модальностями)
+- Противоречие (мёрзну + хуже от тепла) -> спроси: "Вы упомянули что мёрзнете, но тепло ухудшает. Уточните: (chips)"
 
 Верни ТОЛЬКО JSON массив (без обёрток):
 [{"key": "snake_case_key", "label": "Вопрос?", "type": "chips-multi|chips|textarea|text", "options": ["вариант1", "вариант2"], "hint": "Почему важно"}]`,
@@ -546,7 +623,7 @@ export async function generateQuestions(
     const questions = JSON.parse(jsonStr) as AIQuestion[]
 
     if (!Array.isArray(questions) || questions.length === 0) return getFallbackQuestions()
-    // Принудительно: chips с 3+ опциями → chips-multi (Sonnet иногда игнорирует инструкцию)
+    // Принудительно: chips с 3+ опциями -> chips-multi (Sonnet иногда игнорирует инструкцию)
     return questions.map(q => ({
       ...q,
       type: q.type === 'chips' && q.options && q.options.length > 2 ? 'chips-multi' as const : q.type,
@@ -563,6 +640,8 @@ export async function generateClarifyingQuestions(
   currentSymptoms: string[],
   topRemedies: { remedy: string; score: number; confidence: string }[],
 ): Promise<AIQuestion[]> {
+  // Проверка авторизации
+  await requireAuth()
   const client = getAnthropicClient()
 
   try {
@@ -647,10 +726,10 @@ function getFallbackQuestions(): AIQuestion[] {
   ]
 }
 
-// === HYBRID PARSING: parse → suggest → confirm → analyze ===
+// === HYBRID PARSING: parse -> suggest -> confirm -> analyze ===
 
-// Словарь перевода rubric → русский (для UI)
-// Словарь перевода симптомов (ключевое слово → русский)
+// Словарь перевода rubric -> русский (для UI)
+// Словарь перевода симптомов (ключевое слово -> русский)
 const RUBRIC_RU: Record<string, string> = {
   // Термика
   'chilly': 'Зябкий', 'hot patient': 'Жаркий', 'frozen': 'Ледяной',
@@ -770,7 +849,7 @@ function rubricToRussian(rubric: string): string {
     return CHAPTER_RU[firstWord] + ': ' + r.split(',').slice(1).join(',').trim()
   }
   // 4. Fallback: перевести раздел + оставить ключевые слова
-  // Пример: "Mind, grief, silent" → "Психика: grief, silent"
+  // Пример: "Mind, grief, silent" -> "Психика: grief, silent"
   const parts2 = r.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
   if (parts2.length >= 2) {
     const chapter = CHAPTER_RU[parts2[0]] ?? parts2[0]
@@ -794,12 +873,10 @@ const MODALITY_RU: Record<string, string> = {
 }
 
 /**
- * Шаг 1: Парсинг текста → suggestions для подтверждения
+ * Шаг 1: Парсинг текста -> suggestions для подтверждения
  */
 export async function parseAndSuggest(input: { text: string }): Promise<ParseSuggestionsResult> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Не авторизован')
+  await requireAuth()
 
   const parseResult = await parseTextWithSonnet(input.text)
   const { symptoms, modalities, warnings, conflicts } = mergeWithFallback(
@@ -810,14 +887,14 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
 
   // Базовый приоритет до ограничений
   function basePriority(type: string, weight: number, source: string): 'high' | 'medium' | 'low' {
-    // keyword-only с низким весом → не доверяем
+    // keyword-only с низким весом -> не доверяем
     if (source === 'keyword' && weight <= 1) return 'low'
-    // weight=3 или mental с weight≥2 → high
+    // weight=3 или mental с weight>=2 -> high
     if (weight >= 3) return 'high'
     if (type === 'mental' && weight >= 2) return 'high'
-    // modality → medium (не high по умолчанию, только weight=3 модальности → high)
+    // modality -> medium (не high по умолчанию, только weight=3 модальности -> high)
     if (type === 'modality') return 'medium'
-    // weight=2 или general → medium
+    // weight=2 или general -> medium
     if (weight >= 2) return 'medium'
     if (type === 'general') return 'medium'
     return 'low'
@@ -847,7 +924,7 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     })
   }
 
-  // Модальности → medium по умолчанию (high только при weight=3)
+  // Модальности -> medium по умолчанию (high только при weight=3)
   for (const mod of modalities) {
     const key = `${mod.pairId}_${mod.value}`
     const modSource = parseResult.modalities.some(m => m.pairId === mod.pairId) ? 'sonnet' as const : 'keyword' as const
@@ -869,7 +946,7 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
   const MAX_MEDIUM = 7
   const MAX_MENTAL_HIGH = 3  // Макс mental симптомов в high
 
-  // 0. Weak symptom filter: слишком общие → max medium
+  // 0. Weak symptom filter: слишком общие -> max medium
   // Однословные рубрики и очень короткие — слишком расплывчатые для high
   for (const s of suggestions) {
     if (s.priority === 'high') {
@@ -889,7 +966,7 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     }
   }
 
-  // 2. Cap high → medium
+  // 2. Cap high -> medium
   let highCount = 0
   for (const s of suggestions) {
     if (s.priority === 'high') {
@@ -898,7 +975,7 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     }
   }
 
-  // 3. Cap medium → low
+  // 3. Cap medium -> low
   let mediumCount = 0
   for (const s of suggestions) {
     if (s.priority === 'medium') {
@@ -907,7 +984,7 @@ export async function parseAndSuggest(input: { text: string }): Promise<ParseSug
     }
   }
 
-  // 4. Conflict safety: downgrade high → medium (не обнуляем confirmed)
+  // 4. Conflict safety: downgrade high -> medium (не обнуляем confirmed)
   if (hasConflicts) {
     for (const s of suggestions) {
       if (s.priority === 'high') s.priority = 'medium'
@@ -953,14 +1030,12 @@ export async function analyzeConfirmed(input: {
   familyHistory: string[]
   profile?: MDRIPatientProfile
 }): Promise<ConsensusResult> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Не авторизован')
-  await checkAIAccess(supabase, user.id)
+  const { userId } = await requireAuth()
+  await checkAIAccess(userId)
 
   const confirmed = input.suggestions.filter(s => s.confirmed)
 
-  // Priority → weight множитель: high=1.0, medium=0.5, low=0.2
+  // Priority -> weight множитель: high=1.0, medium=0.5, low=0.2
   const PRIORITY_WEIGHT: Record<string, number> = { high: 1.0, medium: 0.5, low: 0.2 }
 
   // Собираем symptoms из confirmed (исключая modalities)
@@ -1021,35 +1096,38 @@ export async function analyzeConfirmed(input: {
     usedSymptoms,
   }
 
+  // Сохранить результат (с проверкой владельца)
   if (input.consultationId) {
-    await supabase
-      .from('consultations')
-      .update({ ai_result: result as unknown as Record<string, unknown>, source: 'ai' })
-      .eq('id', input.consultationId)
+    await prisma.consultation.updateMany({
+      where: { id: input.consultationId, doctorId: userId },
+      data: { aiResult: result as unknown as Record<string, unknown>, source: 'ai' },
+    })
   }
 
   // Логирование: confirmed input + engine top-3 + confidence + аналитика
   const inputWarnings = validateInput(symptoms, modalities)
   try {
-    await supabase.from('ai_analysis_log').insert({
-      user_id: user.id,
-      consultation_id: input.consultationId ?? null,
-      confirmed_input: confirmed.map(s => ({ rubric: s.rubric, type: s.type, priority: s.priority, weight: s.weight })),
-      engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
-      confidence_level: productConfidence?.level ?? null,
-      warnings: inputWarnings.length > 0 ? inputWarnings : null,
-      symptom_count: symptoms.length,
-      modality_count: modalities.length,
-      has_conflict: inputWarnings.some(w => w.type === 'uncertain_parse'),
-      // Аналитика
-      high_count: confirmed.filter(s => s.priority === 'high').length,
-      medium_count: confirmed.filter(s => s.priority === 'medium').length,
-      low_count: confirmed.filter(s => s.priority === 'low').length,
-      mental_count: confirmed.filter(s => s.type === 'mental').length,
+    await prisma.aiAnalysisLog.create({
+      data: {
+        userId,
+        consultationId: input.consultationId ?? null,
+        confirmedInput: confirmed.map(s => ({ rubric: s.rubric, type: s.type, priority: s.priority, weight: s.weight })),
+        engineTop3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+        confidenceLevel: productConfidence?.level ?? null,
+        warnings: inputWarnings.length > 0 ? inputWarnings : null,
+        symptomCount: symptoms.length,
+        modalityCount: modalities.length,
+        hasConflict: inputWarnings.some(w => w.type === 'uncertain_parse'),
+        // Аналитика
+        highCount: confirmed.filter(s => s.priority === 'high').length,
+        mediumCount: confirmed.filter(s => s.priority === 'medium').length,
+        lowCount: confirmed.filter(s => s.priority === 'low').length,
+        mentalCount: confirmed.filter(s => s.type === 'mental').length,
+      },
     })
   } catch { /* логирование не должно ломать анализ */ }
 
-  await deductAICredit(supabase, user.id)
+  await deductAICredit(userId)
   return result
 }
 
@@ -1058,29 +1136,28 @@ export async function analyzeConfirmed(input: {
  * Вызывается при назначении препарата после AI-анализа
  */
 export async function logDoctorChoice(consultationId: string, chosenRemedy: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
+  const { userId } = await requireAuth()
 
   try {
-    // Получаем лог чтобы вычислить correct_position
-    const { data: logEntry } = await supabase.from('ai_analysis_log')
-      .select('engine_top3')
-      .eq('consultation_id', consultationId)
-      .eq('user_id', user.id)
-      .single()
+    // Получаем лог чтобы вычислить correctPosition
+    const logEntry = await prisma.aiAnalysisLog.findFirst({
+      where: { consultationId, userId },
+      select: { id: true, engineTop3: true },
+    })
 
     let correctPosition: number | null = null
-    if (logEntry?.engine_top3) {
-      const top3 = logEntry.engine_top3 as Array<{ remedy: string }>
+    if (logEntry?.engineTop3) {
+      const top3 = logEntry.engineTop3 as Array<{ remedy: string }>
       const idx = top3.findIndex(r => r.remedy.toLowerCase() === chosenRemedy.toLowerCase())
       correctPosition = idx >= 0 ? idx + 1 : null // 1, 2, 3 или null (не в top-3)
     }
 
-    await supabase.from('ai_analysis_log')
-      .update({ doctor_choice: chosenRemedy, correct_position: correctPosition })
-      .eq('consultation_id', consultationId)
-      .eq('user_id', user.id)
+    if (logEntry) {
+      await prisma.aiAnalysisLog.update({
+        where: { id: logEntry.id },
+        data: { doctorChoice: chosenRemedy, correctPosition },
+      })
+    }
   } catch { /* silent */ }
 }
 
@@ -1100,23 +1177,21 @@ export async function logClarifyResult(data: {
   flipBlocked?: boolean
   skipReason?: string
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
+  const { userId } = await requireAuth()
 
   try {
     // Записываем в последний лог пользователя
-    const { data: lastLog } = await supabase.from('ai_analysis_log')
-      .select('id')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
+    const lastLog = await prisma.aiAnalysisLog.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    })
 
     if (lastLog) {
-      await supabase.from('ai_analysis_log')
-        .update({ clarify_log: data })
-        .eq('id', lastLog.id)
+      await prisma.aiAnalysisLog.update({
+        where: { id: lastLog.id },
+        data: { clarifyLog: data },
+      })
     }
   } catch { /* silent */ }
 }
@@ -1126,32 +1201,30 @@ export async function logClarifyResult(data: {
  * Записывает doctor_choice в последний лог пользователя
  */
 export async function logDoctorFeedback(chosenRemedy: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
+  const { userId } = await requireAuth()
 
   try {
-    const { data: lastLog } = await supabase.from('ai_analysis_log')
-      .select('id, engine_top3')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
+    const lastLog = await prisma.aiAnalysisLog.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, engineTop3: true },
+    })
 
     if (lastLog) {
-      // Вычислить correct_position
+      // Вычислить correctPosition
       let correctPosition: number | null = null
-      if (lastLog.engine_top3) {
-        const top3 = lastLog.engine_top3 as Array<{ remedy: string }>
+      if (lastLog.engineTop3) {
+        const top3 = lastLog.engineTop3 as Array<{ remedy: string }>
         const idx = top3.findIndex(r =>
           r.remedy.toLowerCase().replace(/\.$/, '') === chosenRemedy.toLowerCase().replace(/\.$/, '')
         )
         correctPosition = idx >= 0 ? idx + 1 : null
       }
 
-      await supabase.from('ai_analysis_log')
-        .update({ doctor_choice: chosenRemedy, correct_position: correctPosition })
-        .eq('id', lastLog.id)
+      await prisma.aiAnalysisLog.update({
+        where: { id: lastLog.id },
+        data: { doctorChoice: chosenRemedy, correctPosition },
+      })
     }
   } catch { /* silent */ }
 }
@@ -1159,9 +1232,9 @@ export async function logDoctorFeedback(chosenRemedy: string) {
 /**
  * Clarify Engine v3: discriminator-first.
  *
- * Flow: shouldClarify → selectPair → buildMatrix → selectDiscriminator →
- *       known? → детерминированный вопрос (без AI)
- *       unknown? → AI формулирует 1 вопрос от discriminator
+ * Flow: shouldClarify -> selectPair -> buildMatrix -> selectDiscriminator ->
+ *       known? -> детерминированный вопрос (без AI)
+ *       unknown? -> AI формулирует 1 вопрос от discriminator
  *
  * Максимум 1 вопрос. AI не выбирает — только формулирует.
  */
@@ -1177,6 +1250,9 @@ export async function generateDifferentialClarifying(input: {
   matrix?: import('@/lib/mdri/clarify-engine').DifferentialMatrix
   source?: 'known' | 'ai' | 'fallback'
 }> {
+  // Проверка авторизации
+  await requireAuth()
+
   const { shouldClarify: shouldClarifyFn, parseDifferentialResponse, validateQuestions, getFallbackQuestions, buildDifferentialContext } = await import('@/lib/mdri/differential')
   const { selectDifferentialPair, buildDifferentialMatrix, selectBestDiscriminator, discriminatorToQuestion, buildAIDiscriminatorPrompt, runClarifyEngine } = await import('@/lib/mdri/clarify-engine')
   const { checkHypothesisConflict, computeConfidence, validateInput } = await import('@/lib/mdri/product-layer')
@@ -1196,14 +1272,14 @@ export async function generateDifferentialClarifying(input: {
   }
   const matrix = buildDifferentialMatrix(input.results, pair)
 
-  // 2. Known discriminator? → детерминированный вопрос (без AI)
+  // 2. Known discriminator? -> детерминированный вопрос (без AI)
   const disc = selectBestDiscriminator(matrix, input.symptoms, input.modalities)
   if (disc) {
     const question = discriminatorToQuestion(disc, pair)
     return { questions: [question], aiGenerated: false, rawCount: 0, validCount: 1, pair, matrix, source: 'known' }
   }
 
-  // 3. No known → AI формулирует 1 вопрос
+  // 3. No known -> AI формулирует 1 вопрос
   try {
     const prompt = buildAIDiscriminatorPrompt(matrix, input.symptoms, input.modalities)
     const client = getAnthropicClient()
@@ -1236,7 +1312,7 @@ export async function generateDifferentialClarifying(input: {
 }
 
 /**
- * Пересчёт после clarify: merge ответов с текущими симптомами → rerun engine
+ * Пересчёт после clarify: merge ответов с текущими симптомами -> rerun engine
  */
 export async function rerunWithClarifications(input: {
   consultationId?: string
@@ -1250,9 +1326,7 @@ export async function rerunWithClarifications(input: {
   beforeConflict?: string
   clarifyMeta?: { aiUsed: boolean; fallbackUsed: boolean; validCount: number }
 }): Promise<ConsensusResult & { clarifyAdded: { symptoms: number; modalities: number }; clarifyExplain: string[]; clarifyEffectiveness?: import('@/lib/mdri/differential').ClarifyEffectiveness }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Не авторизован')
+  const { userId } = await requireAuth()
 
   const { convertAnswersToSymptoms, CaseLogBuilder } = await import('@/lib/mdri/differential')
   const { checkHypothesisConflict } = await import('@/lib/mdri/product-layer')
@@ -1300,7 +1374,7 @@ export async function rerunWithClarifications(input: {
   const clarifyExplain: string[] = []
   for (const [key, answer] of Object.entries(input.clarifyAnswers)) {
     const q = input.clarifyQuestions.find(cq => cq.key === key)
-    if (q) clarifyExplain.push(`${q.question} → ${answer}`)
+    if (q) clarifyExplain.push(`${q.question} -> ${answer}`)
   }
 
   const topRemedy = mdriResults[0]?.remedy ?? ''
@@ -1363,24 +1437,30 @@ export async function rerunWithClarifications(input: {
     clarifyEffectiveness,
   }
 
+  // Сохранить результат (с проверкой владельца)
   if (input.consultationId) {
-    await supabase.from('consultations')
-      .update({ ai_result: result as unknown as Record<string, unknown>, source: 'ai' })
-      .eq('id', input.consultationId)
+    await prisma.consultation.updateMany({
+      where: { id: input.consultationId, doctorId: userId },
+      data: { aiResult: result as unknown as Record<string, unknown>, source: 'ai' },
+    })
   }
 
   // Единый лог: полный CaseAnalysisLog в JSONB
   const fullLog = caseLog.build()
   try {
-    await supabase.from('ai_analysis_log').insert({
-      user_id: user.id, consultation_id: input.consultationId ?? null,
-      confirmed_input: [...confirmed.map(s => ({ rubric: s.rubric, type: s.type, priority: s.priority, weight: s.weight })),
-        ...clarifySymptoms.map(s => ({ rubric: s.rubric, type: s.category, priority: 'clarify', weight: s.weight }))],
-      engine_top3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
-      confidence_level: productConfidence?.level ?? null,
-      warnings: fullLog, // Полный CaseAnalysisLog в JSONB
-      symptom_count: allSymptoms.length, modality_count: allModalities.length,
-      has_conflict: afterConflict.hasConflict,
+    await prisma.aiAnalysisLog.create({
+      data: {
+        userId,
+        consultationId: input.consultationId ?? null,
+        confirmedInput: [...confirmed.map(s => ({ rubric: s.rubric, type: s.type, priority: s.priority, weight: s.weight })),
+          ...clarifySymptoms.map(s => ({ rubric: s.rubric, type: s.category, priority: 'clarify', weight: s.weight }))],
+        engineTop3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+        confidenceLevel: productConfidence?.level ?? null,
+        warnings: fullLog, // Полный CaseAnalysisLog в JSONB
+        symptomCount: allSymptoms.length,
+        modalityCount: allModalities.length,
+        hasConflict: afterConflict.hasConflict,
+      },
     })
   } catch { /* не ломаем flow */ }
 

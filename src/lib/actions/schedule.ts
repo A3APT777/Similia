@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/server-utils'
 import { revalidatePath } from 'next/cache'
 import { doctorScheduleSchema } from '@/lib/validation'
 
@@ -16,46 +16,65 @@ export type DoctorSchedule = {
   lunch_end: string
 }
 
-export async function getDoctorScheduleAuth(): Promise<DoctorSchedule> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+// NOTE: Prisma-модель DoctorSchedule имеет per-day структуру (dayOfWeek, startTime, endTime).
+// Старая Supabase-таблица хранила всё в одной строке.
+// Используем $queryRaw для обратной совместимости, пока не обновим Prisma-схему.
 
-  const { data } = await supabase
-    .from('doctor_schedules')
-    .select('*')
-    .eq('doctor_id', user.id)
-    .single()
+// Получить расписание врача
+export async function getDoctorScheduleAuth(): Promise<DoctorSchedule> {
+  const { userId } = await requireAuth()
+
+  const rows = await prisma.$queryRaw<Array<Record<string, unknown>>>`
+    SELECT session_duration, break_duration, working_days,
+           start_time, end_time, lunch_enabled,
+           lunch_start, lunch_end
+    FROM doctor_schedules
+    WHERE doctor_id = ${userId}::uuid
+    LIMIT 1
+  `
+
+  const data = rows[0] ?? null
 
   return {
-    session_duration: data?.session_duration ?? 45,
-    break_duration: data?.break_duration ?? 15,
-    working_days: data?.working_days ?? ['mon', 'tue', 'wed', 'thu', 'fri'],
-    start_time: data?.start_time ?? '09:00',
-    end_time: data?.end_time ?? '18:00',
-    lunch_enabled: data?.lunch_enabled ?? true,
-    lunch_start: data?.lunch_start ?? '13:00',
-    lunch_end: data?.lunch_end ?? '14:00',
+    session_duration: (data?.session_duration as number) ?? 45,
+    break_duration: (data?.break_duration as number) ?? 15,
+    working_days: (data?.working_days as string[]) ?? ['mon', 'tue', 'wed', 'thu', 'fri'],
+    start_time: (data?.start_time as string) ?? '09:00',
+    end_time: (data?.end_time as string) ?? '18:00',
+    lunch_enabled: (data?.lunch_enabled as boolean) ?? true,
+    lunch_start: (data?.lunch_start as string) ?? '13:00',
+    lunch_end: (data?.lunch_end as string) ?? '14:00',
   }
 }
 
+// Сохранить расписание врача (upsert по doctor_id)
 export async function saveDoctorSchedule(schedule: DoctorSchedule): Promise<void> {
   doctorScheduleSchema.parse(schedule)
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const { error } = await supabase
-    .from('doctor_schedules')
-    .upsert(
-      { doctor_id: user.id, ...schedule, updated_at: new Date().toISOString() },
-      { onConflict: 'doctor_id' }
+  await prisma.$executeRaw`
+    INSERT INTO doctor_schedules (
+      id, doctor_id, session_duration, break_duration, working_days,
+      start_time, end_time, lunch_enabled, lunch_start, lunch_end, updated_at
+    ) VALUES (
+      gen_random_uuid(), ${userId}::uuid,
+      ${schedule.session_duration}, ${schedule.break_duration},
+      ${schedule.working_days}::text[],
+      ${schedule.start_time}, ${schedule.end_time},
+      ${schedule.lunch_enabled}, ${schedule.lunch_start}, ${schedule.lunch_end},
+      NOW()
     )
-
-  if (error) {
-    console.error('[saveDoctorSchedule]', error)
-    throw new Error('Не удалось сохранить расписание')
-  }
+    ON CONFLICT (doctor_id) DO UPDATE SET
+      session_duration = EXCLUDED.session_duration,
+      break_duration = EXCLUDED.break_duration,
+      working_days = EXCLUDED.working_days,
+      start_time = EXCLUDED.start_time,
+      end_time = EXCLUDED.end_time,
+      lunch_enabled = EXCLUDED.lunch_enabled,
+      lunch_start = EXCLUDED.lunch_start,
+      lunch_end = EXCLUDED.lunch_end,
+      updated_at = NOW()
+  `
 
   revalidatePath('/settings')
 }

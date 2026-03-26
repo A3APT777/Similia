@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { searchQuerySchema } from '@/lib/validation'
 
 export type RemedyResult = {
@@ -12,18 +12,20 @@ export type RemedyResult = {
 export async function searchRemediesDB(query: string): Promise<RemedyResult[]> {
   searchQuerySchema.parse(query)
   if (!query.trim()) return []
-  const supabase = await createClient()
-  // Экранируем спецсимволы PostgREST для защиты от filter injection
+  // Экранируем спецсимволы для защиты от injection
   const q = query.trim().replace(/[%_.*,()]/g, '')
   if (!q) return []
 
-  const pattern = `%${q}%`
-  const { data } = await supabase
-    .from('homeo_remedies')
-    .select('abbrev, name_latin, name_ru')
-    .or(`name_latin.ilike.${pattern},abbrev.ilike.${pattern},name_ru.ilike.${pattern}`)
-    .order('name_latin')
-    .limit(12)
+  // homeo_remedies не в Prisma-схеме — используем raw query
+  const results = await prisma.$queryRaw<RemedyResult[]>`
+    SELECT abbrev, name_latin, name_ru
+    FROM homeo_remedies
+    WHERE name_latin ILIKE ${'%' + q + '%'}
+       OR abbrev ILIKE ${'%' + q + '%'}
+       OR name_ru ILIKE ${'%' + q + '%'}
+    ORDER BY name_latin
+    LIMIT 12
+  `
 
-  return (data as RemedyResult[]) || []
+  return results || []
 }

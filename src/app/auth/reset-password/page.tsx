@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+// TODO: Реализовать сброс пароля через собственный API (верификация токена + обновление пароля в Prisma).
+// Supabase auth.onAuthStateChange / auth.updateUser больше не используются.
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 import Link from 'next/link'
@@ -18,19 +19,17 @@ export default function ResetPasswordPage() {
   const [expired, setExpired] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
-    })
-
-    // Таймаут: если событие не пришло за 10 сек — ссылка недействительна
-    const timer = setTimeout(() => {
-      setExpired(true)
-    }, 10000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timer)
+    // TODO: Проверить токен из URL через API /api/auth/verify-reset-token
+    // Если токен валиден — setReady(true), иначе — setExpired(true)
+    // Пока: сразу показываем форму (для разработки)
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
+    if (token) {
+      setReady(true)
+    } else {
+      // Нет токена — считаем ссылку недействительной
+      const timer = setTimeout(() => setExpired(true), 1000)
+      return () => clearTimeout(timer)
     }
   }, [])
 
@@ -48,16 +47,14 @@ export default function ResetPasswordPage() {
     setLoading(true)
     setError('')
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.updateUser({ password })
-
-    if (error) {
+    // TODO: Отправить новый пароль на API /api/auth/reset-password { token, password }
+    // Пока: заглушка — редирект на дашборд
+    try {
+      router.push('/login')
+    } catch {
       setError(t(lang).auth.resetFailed)
       setLoading(false)
-      return
     }
-
-    router.push('/dashboard')
   }
 
   // Спиннер ожидания

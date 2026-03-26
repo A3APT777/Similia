@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useReducer, useRef, useCallback, useMemo, useEffect } from 'react'
-import { updateConsultationNotes, updateConsultationType, updateConsultationExtra, updateConsultationFields } from '@/lib/actions/consultations'
+import { updateConsultationType, updateConsultationAll } from '@/lib/actions/consultations'
 import { Consultation, Patient, ConsultationType, StructuredSymptom, ClinicalAssessment, ConsultationMode, SymptomDynamics, SymptomCategory } from '@/types'
 import { computeAssessment } from '@/lib/clinicalEngine'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -143,23 +143,23 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
 
       try {
         const currentAssessment = assessmentRef.current
-        await Promise.all([
-          updateConsultationNotes(consultation.id, s.notes),
-          updateConsultationFields(consultation.id, {
-            complaints: s.complaints,
-            observations: s.observations,
-            recommendations: s.recommendations,
-            structured_symptoms: s.symptoms,
-            mode: s.mode,
-            case_state: currentAssessment?.caseState ?? null,
-            clinical_assessment: currentAssessment ?? null,
-            modality_worse_text: s.modalityWorseText,
-            modality_better_text: s.modalityBetterText,
-            mental_text: s.mentalText,
-            general_text: s.generalText,
-          }),
-          updateConsultationExtra(consultation.id, s.rubrics, s.reactionToPrev),
-        ])
+        // Один запрос вместо трёх параллельных
+        await updateConsultationAll(consultation.id, {
+          notes: s.notes,
+          complaints: s.complaints,
+          observations: s.observations,
+          recommendations: s.recommendations,
+          structured_symptoms: s.symptoms,
+          mode: s.mode,
+          case_state: currentAssessment?.caseState ?? null,
+          clinical_assessment: currentAssessment ?? null,
+          modality_worse_text: s.modalityWorseText,
+          modality_better_text: s.modalityBetterText,
+          mental_text: s.mentalText,
+          general_text: s.generalText,
+          rubrics: s.rubrics,
+          reaction_to_previous: s.reactionToPrev,
+        })
 
         errorCountRef.current = 0
         const now = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
@@ -222,22 +222,22 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
 
     try {
       const currentAssessment = assessmentRef.current
-      await Promise.all([
-        updateConsultationNotes(consultation.id, s.notes),
-        updateConsultationFields(consultation.id, {
-          complaints: s.complaints,
-          observations: s.observations,
-          recommendations: s.recommendations,
-          structured_symptoms: s.symptoms,
-          case_state: currentAssessment?.caseState ?? null,
-          clinical_assessment: currentAssessment ?? null,
-          modality_worse_text: s.modalityWorseText,
-          modality_better_text: s.modalityBetterText,
-          mental_text: s.mentalText,
-          general_text: s.generalText,
-        }),
-        updateConsultationExtra(consultation.id, s.rubrics, s.reactionToPrev),
-      ])
+      // Один запрос вместо трёх параллельных
+      await updateConsultationAll(consultation.id, {
+        notes: s.notes,
+        complaints: s.complaints,
+        observations: s.observations,
+        recommendations: s.recommendations,
+        structured_symptoms: s.symptoms,
+        case_state: currentAssessment?.caseState ?? null,
+        clinical_assessment: currentAssessment ?? null,
+        modality_worse_text: s.modalityWorseText,
+        modality_better_text: s.modalityBetterText,
+        mental_text: s.mentalText,
+        general_text: s.generalText,
+        rubrics: s.rubrics,
+        reaction_to_previous: s.reactionToPrev,
+      })
 
       const now = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
       dispatch({ type: 'SET_SAVE_STATE', state: 'saved', savedAt: now })

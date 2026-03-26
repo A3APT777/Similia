@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import IntakeForm from './IntakeForm'
 import type { ScheduleConfig } from '@/lib/slots'
@@ -8,16 +7,14 @@ import type { TemplateField } from '@/lib/actions/questionnaire-templates'
 
 export default async function IntakePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const supabase = await createClient()
 
-  const { data: intake } = await supabase
-    .from('intake_forms')
-    .select('*')
-    .eq('token', token)
-    .single()
+  // Публичная страница — без auth, ищем анкету по токену
+  const intake = await prisma.intakeForm.findUnique({
+    where: { token },
+  })
 
   // Токен не найден или ссылка просрочена
-  if (!intake || (intake.expires_at && new Date(intake.expires_at) < new Date())) {
+  if (!intake || (intake.expiresAt && new Date(intake.expiresAt) < new Date())) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
@@ -51,40 +48,49 @@ export default async function IntakePage({ params }: { params: Promise<{ token: 
 
   // Предзаполнение данных если анкета привязана к существующему пациенту
   let prefilled: { name?: string; phone?: string; birth_date?: string; email?: string } | undefined
-  if (intake.patient_id) {
-    const { data: patient } = await supabase
-      .from('patients')
-      .select('name, phone, birth_date, email')
-      .eq('id', intake.patient_id)
-      .single()
+  if (intake.patientId) {
+    const patient = await prisma.patient.findUnique({
+      where: { id: intake.patientId },
+      select: { name: true, phone: true, birthDate: true, email: true },
+    })
     if (patient) {
       prefilled = {
         name: patient.name || undefined,
         phone: patient.phone || undefined,
-        birth_date: patient.birth_date || undefined,
+        birth_date: patient.birthDate || undefined,
         email: patient.email || undefined,
       }
     }
   }
 
   // Расписание врача + кастомный шаблон анкеты
-  const serviceSupabase = createServiceClient()
-  const [{ data: scheduleData }, { data: customTemplate }] = await Promise.all([
-    serviceSupabase.from('doctor_schedules').select('*').eq('doctor_id', intake.doctor_id).single(),
-    serviceSupabase.from('questionnaire_templates').select('fields').eq('doctor_id', intake.doctor_id).eq('type', intake.type === 'acute' ? 'acute' : 'primary').single(),
+  const [scheduleData, customTemplate] = await Promise.all([
+    prisma.doctorSchedule.findFirst({
+      where: { doctorId: intake.doctorId },
+    }),
+    prisma.questionnaireTemplate.findUnique({
+      where: {
+        doctorId_type: {
+          doctorId: intake.doctorId,
+          type: intake.type === 'acute' ? 'acute' : 'primary',
+        },
+      },
+      select: { fields: true },
+    }),
   ])
-  const schedule: ScheduleConfig | null = scheduleData ?? null
+
+  const schedule: ScheduleConfig | null = scheduleData as unknown as ScheduleConfig | null
   const templateType = intake.type === 'acute' ? 'acute' : 'primary'
   const customFields: TemplateField[] | null = customTemplate?.fields as TemplateField[] | null
 
   return (
     <IntakeForm
       token={token}
-      patientName={intake.patient_name || ''}
+      patientName={intake.patientName || ''}
       type={intake.type ?? 'primary'}
       prefilled={prefilled}
       schedule={schedule}
-      doctorId={intake.doctor_id}
+      doctorId={intake.doctorId}
       customFields={customFields || getDefaultFields(templateType)}
     />
   )

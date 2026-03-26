@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { getLang } from '@/lib/i18n-server'
@@ -6,26 +8,31 @@ import AIConsultationDirect from './AIConsultationDirect'
 import { getAIStatus } from '@/lib/actions/ai-consultation'
 
 export default async function AIConsultationPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
 
   const lang = await getLang()
 
-  const [{ data: patients }, aiStatus] = await Promise.all([
-    supabase
-      .from('patients')
-      .select('id, name, constitutional_type')
-      .eq('doctor_id', user.id)
-      .eq('is_demo', false)
-      .order('updated_at', { ascending: false })
-      .limit(50),
+  const [patients, aiStatus] = await Promise.all([
+    prisma.patient.findMany({
+      where: { doctorId: session.user.id, isDemo: false },
+      select: { id: true, name: true, constitutionalType: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    }),
     getAIStatus(),
   ])
 
+  // Маппинг camelCase → snake_case для совместимости с UI
+  const mappedPatients = patients.map(p => ({
+    id: p.id,
+    name: p.name,
+    constitutional_type: p.constitutionalType,
+  }))
+
   return (
     <AppShell>
-      <AIConsultationDirect patients={patients || []} lang={lang} aiStatus={aiStatus} />
+      <AIConsultationDirect patients={mappedPatients} lang={lang} aiStatus={aiStatus} />
     </AppShell>
   )
 }

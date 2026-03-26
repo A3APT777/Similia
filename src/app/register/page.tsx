@@ -1,15 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
-import { Suspense } from 'react'
 import RefCookieSetter from '@/components/RefCookieSetter'
-
-import { authInputStyle as inputStyle, authLabelStyle as labelStyle, getAuthInputFocusStyle } from '@/lib/authStyles'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -19,27 +16,14 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [focusedField, setFocusedField] = useState<string | null>(null)
-  const [checkEmail, setCheckEmail] = useState(false)
   const [consent, setConsent] = useState(false)
 
   function translateAuthError(msg: string): string {
     const m = msg.toLowerCase()
-    if (m.includes('already registered') || m.includes('already exists') || m.includes('email_exists')) {
-      return 'Этот email уже зарегистрирован — попробуйте войти'
-    }
-    if (m.includes('password') && (m.includes('6') || m.includes('characters') || m.includes('short'))) {
-      return 'Пароль должен быть не менее 6 символов'
-    }
-    if (m.includes('invalid email') || m.includes('email address')) {
-      return 'Введите корректный email-адрес'
-    }
-    if (m.includes('rate limit') || m.includes('too many')) {
-      return 'Слишком много попыток — подождите минуту и попробуйте снова'
-    }
-    if (m.includes('network') || m.includes('fetch')) {
-      return 'Ошибка сети — проверьте подключение к интернету'
-    }
+    if (m.includes('already') || m.includes('exists')) return 'Этот email уже зарегистрирован — попробуйте войти'
+    if (m.includes('password') && (m.includes('8') || m.includes('characters'))) return 'Пароль должен быть не менее 8 символов'
+    if (m.includes('rate limit') || m.includes('too many')) return 'Слишком много попыток — подождите минуту'
+    if (m.includes('network') || m.includes('fetch')) return 'Ошибка сети — проверьте подключение'
     return 'Что-то пошло не так — попробуйте ещё раз'
   }
 
@@ -47,323 +31,209 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const supabase = createClient()
-    // Читаем реферальный код из cookie
-    const refMatch = document.cookie.match(/ref_code=([^;]+)/)
-    const ref_code = refMatch ? decodeURIComponent(refMatch[1]) : undefined
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name, ...(ref_code ? { ref_code } : {}) } },
-    })
-    if (error) {
-      setError(translateAuthError(error.message))
+    const refMatch = document.cookie.match(/ref_code=([^;]+)/)
+    const referralCode = refMatch ? decodeURIComponent(refMatch[1]) : undefined
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name, referralCode }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(translateAuthError(data.error || 'unknown'))
+        setLoading(false)
+        return
+      }
+
+      // Автоматический вход после регистрации
+      const signInResult = await signIn('credentials', { email, password, redirect: false })
+
+      if (signInResult?.error) {
+        setLoading(false)
+        router.push('/login')
+        return
+      }
+
+      // Сброс флагов тура
+      localStorage.removeItem('tour_completed')
+      localStorage.removeItem('tour_active')
+      localStorage.removeItem('tour_consult_active')
+      localStorage.removeItem('tour_patient_active')
+      localStorage.removeItem('tour_repertory_active')
+      localStorage.removeItem('tour_success')
+      window.location.href = '/dashboard'
+    } catch {
+      setError(translateAuthError('network'))
       setLoading(false)
-      return
     }
-    if (!data?.session) {
-      // Supabase требует подтверждение email — показываем экран "проверьте почту"
-      setLoading(false)
-      setCheckEmail(true)
-      return
-    }
-    // Сбрасываем флаги тура — у нового аккаунта он должен стартовать заново
-    localStorage.removeItem('tour_completed')
-    localStorage.removeItem('tour_active')
-    localStorage.removeItem('tour_consult_active')
-    localStorage.removeItem('tour_patient_active')
-    localStorage.removeItem('tour_repertory_active')
-    localStorage.removeItem('tour_success')
-    window.location.href = '/dashboard'
   }
 
-  const getInputStyle = (field: string): React.CSSProperties => ({
-    ...inputStyle,
-    borderColor: focusedField === field ? 'var(--sim-green)' : 'var(--sim-border)',
-    boxShadow: focusedField === field ? '0 0 0 3px rgba(45,106,79,0.3)' : 'none',
-  })
+  const inputClass = "w-full h-12 px-4 rounded-xl text-[15px] text-[#1a1a0a] placeholder-[#c0b8a8] outline-none transition-all duration-200 focus:ring-2 focus:ring-[#2d6a4f]/20 focus:border-[#2d6a4f]"
+  const inputStyle = { backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(0,0,0,0.08)' }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--sim-bg)' }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: '#f7f3ed' }}>
       <Suspense><RefCookieSetter /></Suspense>
 
-      {/* Левая панель */}
-      <div style={{
-        display: 'none',
-        width: '45%',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '48px',
-        position: 'relative',
-        overflow: 'hidden',
-        backgroundColor: 'var(--sim-forest)',
-        flexShrink: 0,
-      }} className="auth-left-panel">
-        {/* Ботаническая иллюстрация */}
-        <div style={{
-          position: 'absolute',
-          bottom: '-20px',
-          right: '-20px',
-          width: '280px',
-          height: '280px',
-          backgroundImage: 'url(/illustrations/arnica.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          opacity: 0.08,
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to bottom, rgba(26,48,32,0.2) 0%, rgba(26,48,32,0.75) 100%)',
-          pointerEvents: 'none',
-        }} />
+      {/* ═══ Левая панель (desktop) ═══ */}
+      <div className="hidden lg:flex w-[45%] flex-col justify-between p-12 relative overflow-hidden shrink-0" style={{ backgroundColor: '#1a3020' }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 60% at 30% 80%, rgba(45,106,79,0.3) 0%, transparent 70%)' }} />
 
-        {/* Логотип */}
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '48px' }}>
+        <div className="relative z-10">
+          <div className="flex items-center gap-2.5 mb-12">
             <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
               <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
               <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
-              <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round"/>
             </svg>
-            <span style={{
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: '20px',
-              fontWeight: 400,
-              color: '#f7f3ed',
-              letterSpacing: '0.02em',
-            }}>Similia</span>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[20px] font-normal text-[#f7f3ed] tracking-wide">
+              Similia
+            </span>
           </div>
 
-          <h2 style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: '38px',
-            fontWeight: 300,
-            color: 'rgba(255,255,255,0.95)',
-            lineHeight: 1.25,
-            marginBottom: '16px',
-          }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[42px] font-light text-white/95 leading-[1.15] mb-4 tracking-tight">
             {t(lang).auth.registerHero.split('\n').map((line, i, arr) => (
               <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
             ))}
           </h2>
-          <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'rgba(255,255,255,0.45)' }}>
+          <p className="text-[15px] leading-relaxed text-white/40 max-w-[320px]">
             {t(lang).auth.registerHeroDesc}
           </p>
         </div>
 
-        {/* Цитата */}
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          <div style={{ paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <p style={{
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: '18px',
-              fontStyle: 'italic',
-              fontWeight: 300,
-              color: 'rgba(255,255,255,0.4)',
-              marginBottom: '6px',
-              letterSpacing: '0.01em',
-            }}>
+        <div className="relative z-10">
+          <div className="pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[18px] italic font-light text-white/35 mb-1.5">
               «Similia similibus curantur»
             </p>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.05em' }}>
+            <p className="text-[11px] text-white/20 tracking-widest">
               Самуэль Ганеман, 1796
             </p>
           </div>
         </div>
       </div>
 
-      {/* Правая панель — форма */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '48px 24px',
-        backgroundColor: 'var(--sim-bg)',
-      }}>
-        <div style={{ width: '100%', maxWidth: '360px' }}>
-
-          {/* Экран "Проверьте почту" */}
-          {checkEmail && (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                backgroundColor: 'rgba(45,106,79,0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 24px',
-              }}>
-                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#2d6a4f" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                </svg>
-              </div>
-              <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 300, color: 'var(--sim-text)', marginBottom: '12px', letterSpacing: '-0.01em' }}>
-                Проверьте почту
-              </h1>
-              <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', marginBottom: '8px', lineHeight: 1.6 }}>
-                Мы отправили письмо на <strong style={{ color: '#3a2e1a' }}>{email}</strong>
-              </p>
-              <div style={{ fontSize: '13px', color: '#b8a898', marginBottom: '12px', lineHeight: 1.6, backgroundColor: 'rgba(45,106,79,0.05)', borderRadius: '12px', padding: '12px 16px', textAlign: 'left' }}>
-                <p style={{ marginBottom: '6px', color: '#6a5a4a' }}>
-                  <strong>Отправитель:</strong> Simillia@mail.ru (Similia)
-                </p>
-                <p style={{ marginBottom: '6px' }}>
-                  Тема письма: «Similia — подтвердите регистрацию»
-                </p>
-                <p style={{ marginBottom: 0 }}>
-                  Если не нашли — проверьте папку <strong style={{ color: '#6a5a4a' }}>«Спам»</strong> или <strong style={{ color: '#6a5a4a' }}>«Промоакции»</strong>.
-                </p>
-              </div>
-              <p style={{ fontSize: '14px', color: '#b8a898', marginBottom: '32px', lineHeight: 1.6 }}>
-                Нажмите на ссылку в письме — и вы сразу окажетесь в системе.
-              </p>
-              <button
-                onClick={() => setCheckEmail(false)}
-                style={{ fontSize: '14px', color: 'var(--sim-green)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                ← Вернуться к форме
-              </button>
-            </div>
-          )}
+      {/* ═══ Правая панель — форма ═══ */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[380px]">
 
           {/* Мобильный логотип */}
-          {!checkEmail && <div className="auth-mobile-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }}>
+          <div className="lg:hidden flex items-center gap-2.5 mb-10">
             <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
-              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#7dd4a8" opacity="0.9"/>
-              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#f7f3ed" opacity="0.45"/>
-              <path d="M18 8 Q18 18 18 28" stroke="var(--sim-forest)" strokeWidth="0.8" strokeLinecap="round"/>
+              <ellipse cx="13" cy="18" rx="7" ry="11" transform="rotate(-15 13 18)" fill="#2d6a4f" opacity="0.9"/>
+              <ellipse cx="23" cy="18" rx="7" ry="11" transform="rotate(15 23 18)" fill="#1a3020" opacity="0.65"/>
             </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '20px', fontWeight: 400, color: 'var(--sim-forest)' }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[20px] font-normal text-[#1a3020] tracking-wide">
               Similia
             </span>
-          </div>}
+          </div>
 
-          {!checkEmail && <>
-          <h1 style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: '28px',
-            fontWeight: 400,
-            color: 'var(--sim-forest)',
-            marginBottom: '6px',
-          }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }} className="text-[32px] font-light text-[#1a1a0a] mb-2 tracking-tight">
             {t(lang).auth.createAccount}
           </h1>
-          <p style={{ fontSize: '15px', color: 'var(--sim-text-hint)', marginBottom: '32px' }}>
+          <p className="text-[15px] text-[#8a7e6c] mb-10">
             {t(lang).auth.lessThanMinute}
           </p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Имя */}
             <div>
-              <label style={labelStyle}>{t(lang).auth.yourName}</label>
+              <label className="block text-[11px] font-medium uppercase tracking-[0.1em] text-[#8a7e6c] mb-2">
+                {t(lang).auth.yourName}
+              </label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                onFocus={() => setFocusedField('name')}
-                onBlur={() => setFocusedField(null)}
                 required
                 autoFocus
                 placeholder={t(lang).auth.namePlaceholder}
-                style={getInputStyle('name')}
+                className={inputClass}
+                style={inputStyle}
               />
             </div>
 
+            {/* Email */}
             <div>
-              <label style={labelStyle}>Email</label>
+              <label className="block text-[11px] font-medium uppercase tracking-[0.1em] text-[#8a7e6c] mb-2">
+                Email
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                onFocus={() => setFocusedField('email')}
-                onBlur={() => setFocusedField(null)}
                 required
                 placeholder="doctor@example.com"
-                style={getInputStyle('email')}
+                className={inputClass}
+                style={inputStyle}
               />
             </div>
 
+            {/* Пароль */}
             <div>
-              <label style={labelStyle}>{t(lang).auth.password}</label>
+              <label className="block text-[11px] font-medium uppercase tracking-[0.1em] text-[#8a7e6c] mb-2">
+                {t(lang).auth.password}
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                onFocus={() => setFocusedField('password')}
-                onBlur={() => setFocusedField(null)}
                 required
-                minLength={6}
+                minLength={8}
                 placeholder={t(lang).auth.passwordPlaceholder}
-                style={getInputStyle('password')}
+                className={inputClass}
+                style={inputStyle}
               />
             </div>
 
-            {/* Согласие на обработку ПД */}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+            {/* Согласие на ПД */}
+            <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={consent}
                 onChange={e => setConsent(e.target.checked)}
-                style={{ marginTop: '3px', accentColor: 'var(--sim-green)', width: '16px', height: '16px', flexShrink: 0 }}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-[#2d6a4f]"
               />
-              <span style={{ fontSize: '13px', color: 'var(--sim-text-sec)', lineHeight: 1.5 }}>
+              <span className="text-[13px] text-[#6b5e45] leading-relaxed">
                 {lang === 'ru'
-                  ? <>Я соглашаюсь с <Link href="/privacy" target="_blank" style={{ color: 'var(--sim-green)', textDecoration: 'underline' }}>политикой конфиденциальности</Link> и даю согласие на обработку персональных данных в соответствии с Федеральным законом №152-ФЗ</>
-                  : <>I agree to the <Link href="/privacy" target="_blank" style={{ color: 'var(--sim-green)', textDecoration: 'underline' }}>privacy policy</Link> and consent to personal data processing</>
+                  ? <>Я соглашаюсь с <Link href="/privacy" target="_blank" className="text-[#2d6a4f] underline underline-offset-2">политикой конфиденциальности</Link> и даю согласие на обработку персональных данных (152-ФЗ)</>
+                  : <>I agree to the <Link href="/privacy" target="_blank" className="text-[#2d6a4f] underline underline-offset-2">privacy policy</Link> and consent to personal data processing</>
                 }
               </span>
             </label>
 
+            {/* Ошибка */}
             {error && (
-              <div style={{ padding: '0' }}>
-                <p style={{ color: '#dc2626', fontSize: '13px' }}>{error}</p>
-              </div>
+              <p role="alert" className="text-[13px] text-[#dc2626]">{error}</p>
             )}
 
+            {/* Кнопка */}
             <button
               type="submit"
               disabled={loading || !consent}
-              style={{
-                width: '100%',
-                backgroundColor: loading ? '#5a7060' : 'var(--sim-forest)',
-                color: '#f7f3ed',
-                border: 'none',
-                borderRadius: '100px',
-                padding: '14px 24px',
-                fontSize: '15px',
-                fontWeight: 500,
-                cursor: loading ? 'default' : 'pointer',
-                transition: 'background-color 0.15s',
-                opacity: loading ? 0.7 : 1,
-              }}
-              onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = 'var(--sim-green)' }}
-              onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = 'var(--sim-forest)' }}
+              className="w-full h-12 rounded-full text-[15px] font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(45,106,79,0.3)] disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+              style={{ backgroundColor: '#1a3020' }}
             >
               {loading ? t(lang).auth.creatingAccount : t(lang).auth.register}
             </button>
           </form>
 
-          <p style={{ marginTop: '24px', fontSize: '14px', color: 'var(--sim-text-hint)', textAlign: 'center', padding: '8px 0' }}>
+          <p className="mt-8 text-center text-[14px] text-[#8a7e6c]">
             {t(lang).auth.hasAccount}{' '}
-            <Link href="/login" style={{ color: 'var(--sim-green)', fontWeight: 500, textDecoration: 'none', padding: '4px 0' }}>
+            <Link href="/login" className="text-[#2d6a4f] font-medium hover:underline underline-offset-2">
               {t(lang).auth.signIn}
             </Link>
           </p>
 
-          <p style={{ marginTop: '16px', fontSize: '12px', color: 'var(--sim-text-hint)', textAlign: 'center' }}>
+          <p className="mt-4 text-center text-[12px] text-[#b0a890]">
             {t(lang).auth.freeAndSecure}
           </p>
-          </>}
         </div>
       </div>
-
-      <style>{`
-        @media (min-width: 1024px) {
-          .auth-left-panel { display: flex !important; }
-          .auth-mobile-logo { display: none !important; }
-        }
-      `}</style>
     </div>
   )
 }

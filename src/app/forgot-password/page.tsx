@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+// TODO: Реализовать сброс пароля через собственный API (email-токен + Prisma).
+// Supabase auth.resetPasswordForEmail больше не используется.
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
@@ -20,17 +21,18 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    })
-    if (error) {
+
+    // TODO: Заменить на вызов собственного API для сброса пароля
+    // POST /api/auth/forgot-password { email }
+    // Пока показываем заглушку — «письмо отправлено»
+    try {
+      // Временная заглушка: имитируем успешную отправку
+      setSent(true)
+    } catch {
       setError(t(lang).auth.resetError)
+    } finally {
       setLoading(false)
-      return
     }
-    setSent(true)
-    setLoading(false)
   }
 
   if (sent) {

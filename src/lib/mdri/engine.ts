@@ -1116,14 +1116,45 @@ export function analyzePipeline(
     const k = 0.6
     const constellationMult = 1.0 + k * cs
 
-    // Polarity: мягкий множитель 0.94..1.06
-    const polarityMult = 0.94 + pol * 0.12
+    // Polarity (Кент: противоречие общих модальностей = серьёзный аргумент против)
+    let polarityMult: number
+    if (pol < 0) {
+      // Прямое противоречие (chilly patient + hot remedy, или наоборот)
+      polarityMult = 0.70 + pol * 0.20  // range 0.50..0.70
+    } else {
+      polarityMult = 0.94 + pol * 0.12  // range 0.94..1.06 (без изменений)
+    }
 
     let total = baseScore * constellationMult * polarityMult
 
-    // Miasm
+    // Miasm (Ганеман "Хронические болезни": семейный анамнез → нозод)
     if (isChronic && mi > 0) {
-      total += 0.05 * mi
+      if (NOSODES.has(rem) && mi >= 0.7) {
+        // Нозод + сильный семейный анамнез: при ТБ в семье — Tuberculinum первый кандидат
+        total += 0.15 * mi
+      } else {
+        total += 0.05 * mi
+      }
+    }
+
+    // Etiology Boost (Organon §5: causa — иерархически выше отдельных симптомов)
+    // Если пациент имеет "ailments from X" и средство имеет X в constellation — boost
+    const etiologySymptoms = symptoms.filter(s =>
+      s.present && s.weight >= 2 && s.rubric.toLowerCase().includes('ailments from')
+    )
+    if (etiologySymptoms.length > 0) {
+      const constellation = data.constellations[rem]
+      if (constellation) {
+        const hasCausaMatch = etiologySymptoms.some(es => {
+          const causa = es.rubric.toLowerCase().replace(/ailments from\s*/, '')
+          return constellation.clusters.some(cl =>
+            cl.symptoms.some(s => symMatch(causa, s.rubric))
+          )
+        })
+        if (hasCausaMatch) {
+          total *= 1.15  // +15% за совпадение этиологии с портретом средства
+        }
+      }
     }
 
     // Acute/Chronic

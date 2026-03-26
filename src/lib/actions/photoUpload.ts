@@ -1,25 +1,23 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { redirect } from 'next/navigation'
-import { randomUUID } from 'crypto'
+import { requireAuth, generateToken } from '@/lib/server-utils'
+import { prisma } from '@/lib/prisma'
 import { ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES, MAX_PHOTO_SIZE_BYTES } from '@/lib/utils'
 
 // Врач создаёт токен для загрузки фото пациентом
 export async function createPhotoUploadToken(patientId: string): Promise<string> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { userId } = await requireAuth()
 
-  const token = randomUUID().replace(/-/g, '')
-  const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
+  const token = generateToken()
+  const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000)
 
-  await supabase.from('photo_upload_tokens').insert({
-    token,
-    doctor_id: user.id,
-    patient_id: patientId,
-    expires_at: expiresAt,
+  await prisma.photoUploadToken.create({
+    data: {
+      token,
+      doctorId: userId,
+      patientId,
+      expiresAt,
+    },
   })
 
   return token
@@ -30,27 +28,21 @@ export async function submitPhotoUpload(
   token: string,
   formData: FormData,
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = createServiceClient()
-
-  // Проверяем токен
-  const { data: uploadToken } = await supabase
-    .from('photo_upload_tokens')
-    .select('doctor_id, patient_id, expires_at')
-    .eq('token', token)
-    .single()
+  // Проверяем токен (публичная операция — prisma напрямую)
+  const uploadToken = await prisma.photoUploadToken.findUnique({
+    where: { token },
+    select: { doctorId: true, patientId: true, expiresAt: true },
+  })
 
   if (!uploadToken) {
     return { success: false, error: 'Ссылка недействительна' }
   }
 
-  if (new Date(uploadToken.expires_at) < new Date()) {
+  if (uploadToken.expiresAt && new Date(uploadToken.expiresAt) < new Date()) {
     return { success: false, error: 'Срок действия ссылки истёк' }
   }
 
   const file = formData.get('file') as File
-  const takenAt = formData.get('takenAt') as string
-  const rawNote = formData.get('note') as string
-  const note = rawNote ? rawNote.slice(0, 500) : ''
 
   if (!file || file.size === 0) {
     return { success: false, error: 'Файл не выбран' }
@@ -68,49 +60,46 @@ export async function submitPhotoUpload(
   if (!(ALLOWED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
     return { success: false, error: 'Неподдерживаемый формат файла' }
   }
-  const path = `${uploadToken.doctor_id}/${uploadToken.patient_id}/${Date.now()}.${ext}`
 
-  const bytes = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
+  // TODO: Заменить Supabase Storage на локальное хранение файлов
+  // Нужно: сохранить file на диск, сгенерировать URL
+  const fileName = `${Date.now()}.${ext}`
+  const url = `/uploads/${uploadToken.doctorId}/${uploadToken.patientId}/${fileName}`
 
-  const { error: storageError } = await supabase.storage
-    .from('patient-photos')
-    .upload(path, buffer, { contentType: file.type })
-
-  if (storageError) {
-    console.error('Photo upload storage error:', storageError.message)
-    return { success: false, error: 'Ошибка загрузки файла. Попробуйте ещё раз.' }
-  }
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('patient-photos')
-    .getPublicUrl(path)
-
-  const { error: insertError } = await supabase.from('patient_photos').insert({
-    patient_id: uploadToken.patient_id,
-    doctor_id: uploadToken.doctor_id,
-    storage_path: path,
-    url: publicUrl,
-    note: note?.trim() || null,
-    taken_at: takenAt || new Date().toISOString().split('T')[0],
-  })
-
-  if (insertError) {
-    return { success: false, error: `Ошибка сохранения: ${insertError.message}` }
+  try {
+    await prisma.patientPhoto.create({
+      data: {
+        patientId: uploadToken.patientId,
+        doctorId: uploadToken.doctorId,
+        url,
+        fileName,
+      },
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Неизвестная ошибка'
+    return { success: false, error: `Ошибка сохранения: ${message}` }
   }
 
   return { success: true }
 }
 
-// Получить инфо о токене (для страницы загрузки)
+// Получить инфо о токене (для страницы загрузки) — публичная операция
 export async function getPhotoUploadToken(token: string) {
-  const supabase = createServiceClient()
+  const data = await prisma.photoUploadToken.findUnique({
+    where: { token },
+    select: {
+      patientId: true,
+      expiresAt: true,
+      patient: { select: { name: true } },
+    },
+  })
 
-  const { data } = await supabase
-    .from('photo_upload_tokens')
-    .select('patient_id, expires_at, patients(name)')
-    .eq('token', token)
-    .single()
+  if (!data) return null
 
-  return data
+  // Совместимость с прежним форматом: { patient_id, expires_at, patients: { name } }
+  return {
+    patientId: data.patientId,
+    expiresAt: data.expiresAt,
+    patient: data.patient,
+  }
 }

@@ -1,18 +1,14 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 export default function LogoutButton({ dark = true }: { dark?: boolean }) {
-  const router = useRouter()
   const { lang } = useLanguage()
 
   async function handleLogout() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
+    await signOut({ callbackUrl: '/login' })
   }
 
   return (

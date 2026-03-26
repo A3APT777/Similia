@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import PatientForm from '@/components/PatientForm'
@@ -9,18 +11,31 @@ import { getLang } from '@/lib/i18n-server'
 
 export default async function EditPatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('*')
-    .eq('id', id)
-    .eq('doctor_id', user.id)
-    .single()
+  // Авторизация через NextAuth
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
+  const userId = session.user.id
+
+  const patient = await prisma.patient.findFirst({
+    where: { id, doctorId: userId },
+  })
 
   if (!patient) notFound()
+
+  // Маппинг camelCase → snake_case для совместимости с PatientForm
+  const patientMapped = {
+    ...patient,
+    doctor_id: patient.doctorId,
+    birth_date: patient.birthDate,
+    first_visit_date: patient.firstVisitDate,
+    constitutional_type: patient.constitutionalType,
+    paid_sessions: patient.paidSessions,
+    is_demo: patient.isDemo,
+    created_at: patient.createdAt.toISOString(),
+    updated_at: patient.updatedAt.toISOString(),
+  }
+
   const lang = await getLang()
 
   async function update(formData: FormData) {
@@ -39,7 +54,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="bg-white border border-gray-100 rounded-xl p-6">
-          <PatientForm patient={patient} action={update} submitLabel={t(lang).patientCard.save} />
+          <PatientForm patient={patientMapped} action={update} submitLabel={t(lang).patientCard.save} />
         </div>
       </div>
     </AppShell>

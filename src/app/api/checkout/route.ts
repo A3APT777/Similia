@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -22,9 +24,8 @@ const PACK_PRICES: Record<string, { amount: number; credits: number }> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
     }
 
@@ -44,16 +45,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Защита от двойного клика — нет ли pending платежа за последние 5 минут
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { data: recentPending } = await supabase
-      .from('subscription_payments')
-      .select('id')
-      .eq('doctor_id', user.id)
-      .eq('status', 'pending')
-      .gte('created_at', fiveMinAgo)
-      .limit(1)
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
+    const recentPending = await prisma.subscriptionPayment.findFirst({
+      where: {
+        doctorId: session.user.id,
+        status: 'pending',
+        createdAt: { gte: fiveMinAgo },
+      },
+      select: { id: true },
+    })
 
-    if (recentPending && recentPending.length > 0) {
+    if (recentPending) {
       return NextResponse.json({
         error: 'Платёж уже создан. Если вы не завершили оплату, подождите 5 минут и попробуйте снова.'
       }, { status: 400 })
@@ -61,14 +63,13 @@ export async function POST(req: NextRequest) {
 
     // Для подписок — проверяем текущую подписку
     if (isSubscription) {
-      const { data: currentSub } = await supabase
-        .from('subscriptions')
-        .select('plan_id, status, current_period_end')
-        .eq('doctor_id', user.id)
-        .single()
+      const currentSub = await prisma.subscription.findUnique({
+        where: { doctorId: session.user.id },
+        select: { planId: true, status: true, currentPeriodEnd: true },
+      })
 
-      if (currentSub?.plan_id === plan && currentSub?.status === 'active') {
-        const periodEnd = new Date(currentSub.current_period_end)
+      if (currentSub?.planId === plan && currentSub?.status === 'active') {
+        const periodEnd = new Date(currentSub.currentPeriodEnd)
         const threeDaysFromNow = new Date()
         threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
 
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     // Idempotence key на базе user + plan + минута — защита от двойного клика
     const minute = Math.floor(Date.now() / 60000)
-    const idempotenceKey = `${user.id}-${plan}-${period || 'pack'}-${minute}`
+    const idempotenceKey = `${session.user.id}-${plan}-${period || 'pack'}-${minute}`
     const origin = req.headers.get('origin') || 'https://simillia.ru'
 
     const response = await fetch('https://api.yookassa.ru/v3/payments', {
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
         },
         description,
         metadata: {
-          user_id: user.id,
+          user_id: session.user.id,
           period: period || 'one_time',
           plan_id: plan,
         },
@@ -141,18 +142,40 @@ export async function POST(req: NextRequest) {
 
     const payment = await response.json()
 
-    // Сохраняем платёж в БД (без subscription_id — он необязательный)
-    await supabase
-      .from('subscription_payments')
-      .insert({
-        doctor_id: user.id,
+    // Сохраняем платёж в БД
+    // Находим или создаём подписку для привязки платежа
+    let subscriptionId: string
+    const existingSub = await prisma.subscription.findUnique({
+      where: { doctorId: session.user.id },
+      select: { id: true },
+    })
+
+    if (existingSub) {
+      subscriptionId = existingSub.id
+    } else {
+      // Создаём подписку-заглушку со статусом pending
+      const newSub = await prisma.subscription.create({
+        data: {
+          doctorId: session.user.id,
+          planId: plan,
+          status: 'pending',
+          currentPeriodEnd: new Date(),
+        },
+      })
+      subscriptionId = newSub.id
+    }
+
+    await prisma.subscriptionPayment.create({
+      data: {
+        subscriptionId,
+        doctorId: session.user.id,
         amount,
         currency: 'RUB',
         status: 'pending',
-        yukassa_payment_id: payment.id,
-        billing_period: period || 'one_time',
-        plan_id: plan,
-      })
+        yukassaPaymentId: payment.id,
+        description: `${plan}|${period || 'one_time'}`,
+      },
+    })
 
     return NextResponse.json({
       confirmation_url: payment.confirmation.confirmation_url,

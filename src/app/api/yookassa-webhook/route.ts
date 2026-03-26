@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/service'
+import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 
 // IP-адреса ЮKassa для webhook (из документации)
@@ -15,7 +15,7 @@ const YOOKASSA_IPS = [
 function ipInRange(ip: string, cidr: string): boolean {
   if (!cidr.includes('/')) return ip === cidr
   const [range, bits] = cidr.split('/')
-  if (ip.includes(':') || range.includes(':')) return false // пропускаем IPv6
+  if (ip.includes(':') || range.includes(':')) return false
   const ipNum = ip.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct), 0) >>> 0
   const rangeNum = range.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct), 0) >>> 0
   const mask = ~((1 << (32 - parseInt(bits))) - 1) >>> 0
@@ -28,14 +28,14 @@ function isYookassaIP(ip: string): boolean {
 
 export async function POST(req: NextRequest) {
   try {
-    // Проверяем IP отправителя
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || req.headers.get('x-real-ip')
+    // FIX #1: Берём IP из x-real-ip (nginx ставит его надёжно), fallback на x-forwarded-for
+    const ip = req.headers.get('x-real-ip')
+      || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || ''
 
-    // IP-проверка ВСЕГДА включена (не только в production)
-    if (ip && !isYookassaIP(ip)) {
-      console.warn('[webhook] rejected from IP:', ip)
+    // FIX #8: Отклоняем при пустом IP или невалидном
+    if (!ip || !isYookassaIP(ip)) {
+      console.warn('[webhook] rejected: ip=' + (ip || 'empty'))
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -47,13 +47,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
     }
 
-    const supabase = createServiceClient()
     const userId = payment.metadata.user_id
     const period = payment.metadata.period as string
     const planId = (payment.metadata.plan_id || 'standard') as string
     const paymentId = payment.id
 
-    // Кол-во кредитов в пакетах
     const PACK_CREDITS: Record<string, number> = {
       ai_pack_5: 5,
       ai_pack_15: 15,
@@ -61,135 +59,115 @@ export async function POST(req: NextRequest) {
     }
 
     if (event === 'payment.succeeded') {
-      // Защита от replay — проверяем не обработан ли уже этот платёж
-      const { data: existingPayment } = await supabase
-        .from('subscription_payments')
-        .select('status')
-        .eq('yukassa_payment_id', paymentId)
-        .single()
+      // FIX #3: Вся обработка в транзакции — защита от race condition
+      await prisma.$transaction(async (tx) => {
+        // Защита от replay
+        const existingPayment = await tx.subscriptionPayment.findUnique({
+          where: { yukassaPaymentId: paymentId },
+          select: { status: true },
+        })
 
-      if (existingPayment?.status === 'succeeded') {
-        console.log(`[webhook] Payment ${paymentId} already processed, skipping`)
-        return NextResponse.json({ status: 'ok' })
-      }
-
-      // Обновляем статус платежа
-      await supabase
-        .from('subscription_payments')
-        .update({ status: 'succeeded', paid_at: new Date().toISOString() })
-        .eq('yukassa_payment_id', paymentId)
-
-      // Обработка пакетов AI-кредитов
-      if (planId.startsWith('ai_pack_')) {
-        const credits = PACK_CREDITS[planId] || 0
-        if (credits > 0) {
-          const { data: settings } = await supabase
-            .from('doctor_settings')
-            .select('ai_credits')
-            .eq('doctor_id', userId)
-            .single()
-
-          const currentCredits = settings?.ai_credits ?? 0
-          await supabase
-            .from('doctor_settings')
-            .update({ ai_credits: currentCredits + credits })
-            .eq('doctor_id', userId)
-
-          console.log(`[webhook] AI pack: +${credits} credits for user=${userId}`)
+        if (existingPayment?.status === 'succeeded') {
+          console.log(`[webhook] Payment ${paymentId} already processed, skipping`)
+          return
         }
-      } else {
-        // Обработка подписок (standard, ai_pro)
-        // Получаем текущую подписку чтобы правильно продлить
-        const { data: currentSub } = await supabase
-          .from('subscriptions')
-          .select('current_period_end')
-          .eq('doctor_id', userId)
-          .single()
 
-        // Продление: от текущей даты окончания (если она в будущем) или от сейчас
-        const now = new Date()
-        const existingEnd = currentSub?.current_period_end ? new Date(currentSub.current_period_end) : null
-        const startFrom = (existingEnd && existingEnd > now) ? existingEnd : now
+        // Обновляем статус платежа
+        if (existingPayment) {
+          await tx.subscriptionPayment.update({
+            where: { yukassaPaymentId: paymentId },
+            data: { status: 'succeeded' },
+          })
+        }
 
-        const periodEnd = new Date(startFrom)
-        if (period === 'yearly') {
-          periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+        // Обработка пакетов AI-кредитов
+        if (planId.startsWith('ai_pack_')) {
+          const credits = PACK_CREDITS[planId] || 0
+          if (credits > 0) {
+            // FIX #4: Атомарный инкремент вместо read-then-write
+            await tx.doctorSettings.upsert({
+              where: { doctorId: userId },
+              update: { aiCredits: { increment: credits } },
+              create: { doctorId: userId, aiCredits: credits },
+            })
+            console.log(`[webhook] AI pack: +${credits} credits for user=${userId}`)
+          }
         } else {
-          periodEnd.setMonth(periodEnd.getMonth() + 1)
-        }
-
-        const { error } = await supabase
-          .from('subscriptions')
-          .upsert({
-            doctor_id: userId,
-            plan_id: planId,
-            status: 'active',
-            current_period_start: now.toISOString(),
-            current_period_end: periodEnd.toISOString(),
-            billing_period: period,
-            yukassa_payment_method_id: payment.payment_method?.id || null,
-          }, {
-            onConflict: 'doctor_id',
+          // Обработка подписок (standard, ai_pro)
+          const currentSub = await tx.subscription.findUnique({
+            where: { doctorId: userId },
+            select: { currentPeriodEnd: true },
           })
 
-        if (error) {
-          console.error('[webhook] subscription update error:', error)
-          return NextResponse.json({ error: 'DB error' }, { status: 500 })
+          const now = new Date()
+          const existingEnd = currentSub?.currentPeriodEnd ? new Date(currentSub.currentPeriodEnd) : null
+          const startFrom = (existingEnd && existingEnd > now) ? existingEnd : now
+
+          const periodEnd = new Date(startFrom)
+          if (period === 'yearly') {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+          } else {
+            periodEnd.setMonth(periodEnd.getMonth() + 1)
+          }
+
+          await tx.subscription.upsert({
+            where: { doctorId: userId },
+            update: {
+              planId,
+              status: 'active',
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+              billingPeriod: period,
+              yukassaPaymentMethodId: payment.payment_method?.id || null,
+            },
+            create: {
+              doctorId: userId,
+              planId,
+              status: 'active',
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+              billingPeriod: period,
+              yukassaPaymentMethodId: payment.payment_method?.id || null,
+            },
+          })
+
+          console.log(`[webhook] Payment succeeded: user=${userId}, plan=${planId}, period=${period}, ends=${periodEnd.toISOString()}`)
         }
 
-        console.log(`[webhook] Payment succeeded: user=${userId}, plan=${planId}, period=${period}, ends=${periodEnd.toISOString()}`)
-      }
+        // Реферальный бонус (только за подписку, не за паки)
+        if (!planId.startsWith('ai_pack_')) {
+          try {
+            await tx.$executeRaw`SELECT apply_referral_bonus(${userId}::uuid)`
+          } catch (refErr) {
+            console.error('[webhook] referral bonus error:', refErr)
+          }
 
-      // Начислить реферальный бонус ТОЛЬКО за подписку (не за паки кредитов)
-      const isSubscriptionPayment = !planId.startsWith('ai_pack_')
-      if (!isSubscriptionPayment) {
-        console.log(`[webhook] Skip referral bonus for pack purchase: plan=${planId}`)
-      }
-
-      try {
-        if (isSubscriptionPayment) {
-          await supabase.rpc('apply_referral_bonus', { p_invitee_id: userId })
-        }
-
-        // +1 AI-кредит рефереру за оплатившего реферала (только за подписки)
-        if (isSubscriptionPayment) {
-          const { data: invitation } = await supabase
-            .from('referral_invitations')
-            .select('referrer_id')
-            .eq('invitee_id', userId)
-            .single()
-
-          if (invitation?.referrer_id) {
-            const { data: settings } = await supabase
-              .from('doctor_settings')
-              .select('ai_credits')
-              .eq('doctor_id', invitation.referrer_id)
-              .single()
-
-            const currentCredits = settings?.ai_credits ?? 0
-            const { error: creditErr } = await supabase
-              .from('doctor_settings')
-              .update({ ai_credits: currentCredits + 1 })
-              .eq('doctor_id', invitation.referrer_id)
-
-            if (creditErr) {
-              console.error('[webhook] ai credit increment error:', creditErr)
-            } else {
-              console.log(`[webhook] +1 AI credit for referrer ${invitation.referrer_id}`)
+          // +1 AI-кредит рефереру — атомарный инкремент
+          try {
+            const invitation = await tx.referralInvitation.findUnique({
+              where: { inviteeId: userId },
+              select: { referrerId: true },
+            })
+            if (invitation?.referrerId) {
+              await tx.doctorSettings.upsert({
+                where: { doctorId: invitation.referrerId },
+                update: { aiCredits: { increment: 1 } },
+                create: { doctorId: invitation.referrerId, aiCredits: 1 },
+              })
+              console.log(`[webhook] +1 AI credit for referrer ${invitation.referrerId}`)
             }
+          } catch (creditErr) {
+            console.error('[webhook] ai credit increment error:', creditErr)
           }
         }
-      } catch (refErr) {
-        console.error('[webhook] referral bonus error:', refErr)
-      }
+      })
     }
 
     if (event === 'payment.canceled') {
-      await supabase
-        .from('subscription_payments')
-        .update({ status: 'cancelled' })
-        .eq('yukassa_payment_id', paymentId)
-
+      await prisma.subscriptionPayment.updateMany({
+        where: { yukassaPaymentId: paymentId },
+        data: { status: 'cancelled' },
+      })
       console.log(`[webhook] Payment cancelled: payment=${paymentId}`)
     }
 

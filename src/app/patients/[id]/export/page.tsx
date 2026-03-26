@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import { getAge } from '@/lib/utils'
 import PrintTrigger from './PrintTrigger'
@@ -63,43 +65,57 @@ function formatLocalDate(dateStr: string) {
 
 export default async function ExportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+
+  // Авторизация через NextAuth
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
+  const userId = session.user.id
 
   // Проверка подписки — экспорт только на Стандарте
   const sub = await getSubscription()
   if (!isFeatureAllowed(sub, 'export')) redirect('/pricing')
 
-  const { data: patient } = await supabase.from('patients').select('id, name, birth_date, phone, email, constitutional_type, notes, first_visit_date').eq('id', id).eq('doctor_id', user.id).single()
+  const patient = await prisma.patient.findFirst({
+    where: { id, doctorId: userId },
+    select: { id: true, name: true, birthDate: true, phone: true, email: true, constitutionalType: true, notes: true, firstVisitDate: true },
+  })
   if (!patient) notFound()
 
-  const { data: consultations } = await supabase
-    .from('consultations')
-    .select('id, date, type, status, notes, prescription, scheduled_at, structured_symptoms, clinical_assessment, doctor_dynamics, etiology, remedy, potency, pellets, dosage, complaints, modality_worse_text, modality_better_text, mental_text, general_text, case_state')
-    .eq('patient_id', id)
-    .neq('status', 'cancelled')
-    .order('scheduled_at', { ascending: true, nullsFirst: false })
-    .order('date', { ascending: true })
+  const consultations = await prisma.consultation.findMany({
+    where: { patientId: id, status: { not: 'cancelled' } },
+    select: {
+      id: true, date: true, type: true, status: true, notes: true,
+      scheduledAt: true, structuredSymptoms: true, clinicalAssessment: true,
+      doctorDynamics: true, remedy: true, potency: true, pellets: true,
+      dosage: true, complaints: true, modalityWorseText: true,
+      modalityBetterText: true, mentalText: true, generalText: true, caseState: true,
+    },
+    orderBy: [
+      { scheduledAt: { sort: 'asc', nulls: 'first' } },
+      { date: 'asc' },
+    ],
+  })
 
-  const completed = (consultations || []).filter(c => c.status === 'completed')
+  const completed = consultations.filter(c => c.status === 'completed')
   const consultationIds = completed.map(c => c.id)
 
-  const { data: followups } = consultationIds.length > 0
-    ? await supabase.from('followups').select('id, consultation_id, answers, created_at').in('consultation_id', consultationIds)
-    : { data: [] }
+  const followupsRaw = consultationIds.length > 0
+    ? await prisma.followup.findMany({
+        where: { consultationId: { in: consultationIds } },
+        select: { id: true, consultationId: true, status: true, comment: true, createdAt: true },
+      })
+    : []
 
-  const followupMap = Object.fromEntries((followups || []).map(f => [f.consultation_id, f]))
+  const followupMap = Object.fromEntries(followupsRaw.map(f => [f.consultationId, f]))
 
-  const { data: intakeForms } = await supabase
-    .from('intake_forms')
-    .select('id, type, status, answers, created_at')
-    .eq('patient_id', id)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
+  const intakeForms = await prisma.intakeForm.findMany({
+    where: { patientId: id, status: 'completed' },
+    select: { id: true, type: true, status: true, answers: true, createdAt: true, completedAt: true },
+    orderBy: { createdAt: 'desc' },
+  })
 
-  const primaryIntake = (intakeForms || []).find(f => f.type === 'primary') || null
-  const acuteIntake = (intakeForms || []).find(f => f.type === 'acute') || null
+  const primaryIntake = intakeForms.find(f => f.type === 'primary') || null
+  const acuteIntake = intakeForms.find(f => f.type === 'acute') || null
 
   const exportDate = new Date().toLocaleDateString('ru-RU', {
     timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', year: 'numeric',
@@ -123,12 +139,12 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">{t(lang).export.title}</p>
               <h1 className="text-2xl font-bold text-gray-900 leading-tight">{patient.name}</h1>
               <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-sm text-gray-500">
-                {patient.birth_date && <span>{getAge(patient.birth_date)}</span>}
+                {patient.birthDate && <span>{getAge(patient.birthDate)}</span>}
                 {patient.phone && <span>{patient.phone}</span>}
                 {patient.email && <span>{patient.email}</span>}
               </div>
               <p className="text-xs text-gray-400 mt-1.5">
-                {t(lang).export.firstVisit} {formatLocalDate(patient.first_visit_date)} · {completed.length} {t(lang).export.consultations}
+                {t(lang).export.firstVisit} {formatLocalDate(patient.firstVisitDate || '')} · {completed.length} {t(lang).export.consultations}
               </p>
             </div>
             <div className="text-right shrink-0">
@@ -149,21 +165,21 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                 <div key={intake.id} className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
                     <p className="text-sm font-semibold text-gray-700">{label}</p>
-                    {intake.completed_at && (
-                      <p className="text-xs text-gray-400">{formatDate(intake.completed_at)}</p>
+                    {intake.completedAt && (
+                      <p className="text-xs text-gray-400">{formatDate(intake.completedAt.toISOString())}</p>
                     )}
                   </div>
                   <div className="px-4 py-3 grid grid-cols-2 gap-x-6 gap-y-3">
                     {sections.flatMap((s: any) =>
                       s.keys
-                        .filter((k: string) => intake.answers?.[k]?.trim())
+                        .filter((k: string) => (intake.answers as Record<string, string>)?.[k]?.trim())
                         .map((k: string) => (
                           <div key={k}>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-0.5">
                               {FIELD_LABELS[k] || k}
                             </p>
                             <p className="text-sm text-gray-800 leading-snug">
-                              {k === 'intensity' ? `${intake.answers[k]} / 10` : intake.answers[k]}
+                              {k === 'intensity' ? `${(intake.answers as Record<string, string>)[k]} / 10` : (intake.answers as Record<string, string>)[k]}
                             </p>
                           </div>
                         ))
@@ -185,9 +201,9 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                   if (!isAcute) chronicIndex++
                   const followup = followupMap[c.id]
 
-                  const dateStr = c.scheduled_at
-                    ? formatDate(c.scheduled_at)
-                    : formatLocalDate(c.date)
+                  const dateStr = c.scheduledAt
+                    ? formatDate(c.scheduledAt.toISOString())
+                    : formatLocalDate(c.date || '')
 
                   const title = isAcute
                     ? t(lang).timeline.acuteCase
@@ -213,40 +229,40 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
 
                       <div className="px-4 py-3 space-y-3">
                         {/* Жалобы */}
-                        {(c as Record<string, unknown>).complaints && String((c as Record<string, unknown>).complaints).trim() && (
+                        {c.complaints?.trim() && (
                           <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Жалобы</p>
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).complaints)}</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.complaints}</p>
                           </div>
                         )}
 
                         {/* Модальности */}
-                        {(c as Record<string, unknown>).modality_worse_text && String((c as Record<string, unknown>).modality_worse_text).trim() && (
+                        {c.modalityWorseText?.trim() && (
                           <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Хуже от</p>
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).modality_worse_text)}</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.modalityWorseText}</p>
                           </div>
                         )}
-                        {(c as Record<string, unknown>).modality_better_text && String((c as Record<string, unknown>).modality_better_text).trim() && (
+                        {c.modalityBetterText?.trim() && (
                           <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Лучше от</p>
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).modality_better_text)}</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.modalityBetterText}</p>
                           </div>
                         )}
 
                         {/* Психика */}
-                        {(c as Record<string, unknown>).mental_text && String((c as Record<string, unknown>).mental_text).trim() && (
+                        {c.mentalText?.trim() && (
                           <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Психика и эмоции</p>
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).mental_text)}</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.mentalText}</p>
                           </div>
                         )}
 
                         {/* Общие симптомы */}
-                        {(c as Record<string, unknown>).general_text && String((c as Record<string, unknown>).general_text).trim() && (
+                        {c.generalText?.trim() && (
                           <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Общие симптомы</p>
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{String((c as Record<string, unknown>).general_text)}</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.generalText}</p>
                           </div>
                         )}
 
@@ -259,10 +275,10 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                         )}
 
                         {/* Динамика */}
-                        {(c as Record<string, unknown>).case_state && (
+                        {c.caseState && (
                           <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Динамика</p>
-                            <p className="text-sm text-gray-700">{String((c as Record<string, unknown>).case_state)}</p>
+                            <p className="text-sm text-gray-700">{c.caseState}</p>
                           </div>
                         )}
 

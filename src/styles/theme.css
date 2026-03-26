@@ -7,7 +7,7 @@
 :root {
 
   /* ── Бренд-цвета ────────────────────────────────────────── */
-  --sim-forest:      var(--sim-forest);   /* сайдбар, самые тёмные акценты */
+  --sim-forest:      #1a3020;   /* сайдбар, самые тёмные акценты */
   --sim-green:       #2d6a4f;   /* primary action, ссылки, акценты */
   --sim-green-hover: #245c43;   /* hover для primary */
   --sim-green-light: #e8f3ee;   /* фон активных элементов */

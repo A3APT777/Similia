@@ -1,26 +1,17 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { randomUUID } from 'crypto'
 
 /**
- * Проверяет авторизацию и возвращает user.
+ * Проверяет авторизацию и возвращает userId.
  * Если не авторизован — редирект на /login.
  */
 export async function requireAuth() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  return { supabase, user }
-}
-
-/**
- * Проверяет ошибку Supabase и выбрасывает с контекстом.
- */
-export function throwIfError(error: { message: string } | null, context: string): void {
-  if (error) {
-    console.error(`[${context}] supabase error:`, error)
-    throw new Error(error.message)
-  }
+  'use server'
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/login')
+  return { userId: session.user.id, user: session.user }
 }
 
 /**
