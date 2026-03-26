@@ -212,6 +212,11 @@ const REMEDY_DESCRIPTIONS_RU: Record<string, string> = {
   'Plat.': 'Высокомерие, онемение, повышенная чувствительность половых органов',
   'Stram.': 'Страхи темноты, насилие, яркий бред, жажда, зрачки расширены',
   'Verat.': 'Холодный пот, коллапс, рвота с поносом, жажда холодного',
+  'Cupr.': 'Судороги, спазмы, подёргивания, колики лучше от давления',
+  'Dulc.': 'Хуже от сырости и холода, простуда от промокания, бородавки',
+  'Hyos.': 'Подозрительность, ревность, обнажается, бормочет, судороги',
+  'Mez.': 'Кожа толстая корками, зуд хуже от тепла, кости болят ночью',
+  'Ruta': 'Ушибы надкостницы, напряжение глаз, слабость связок',
 }
 
 function getRemedyDescription(remedy: string, keyFeature: string, lang: Lang): string {
@@ -603,9 +608,6 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
     // Функция для отрисовки hero-карточки средства
     const renderHeroCard = (remedy: typeof top1, isSecondary = false) => {
       if (!remedy) return null
-      const potencyText = remedy.potency
-        ? (typeof remedy.potency === 'string' ? remedy.potency : remedy.potency.potency)
-        : null
 
       return (
         <ShineBorder
@@ -828,7 +830,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
             </p>
             <div className="space-y-0">
               {[...result.mdriResults.slice(isEqual ? 2 : 1, isEqual ? 6 : 5)].sort((a, b) => b.totalScore - a.totalScore).map((r, i) => {
-                const top1Score = result.mdriResults[0]?.totalScore ?? 100
+                const top1Score = Math.max(...result.mdriResults.map(m => m.totalScore), 100)
                 const gap = top1Score - r.totalScore
                 const pct = Math.max(10, Math.round((r.totalScore / top1Score) * 100))
                 // Индикатор близости
