@@ -129,7 +129,7 @@ tuberculosis, cancer, diabetes, psoriasis, asthma, alcoholism, heart disease, ec
 Верни ТОЛЬКО JSON, без markdown обёрток:
 {
   "symptoms": [
-    {"rubric": "english repertory rubric", "category": "mental|general|particular", "present": true, "weight": 1|2|3}
+    {"rubric": "english repertory rubric", "labelRu": "краткий русский текст симптома", "category": "mental|general|particular", "present": true, "weight": 1|2|3}
   ],
   "modalities": [
     {"pairId": "heat_cold|motion_rest|...", "value": "agg|amel"}

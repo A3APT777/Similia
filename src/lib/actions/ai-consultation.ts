@@ -400,6 +400,9 @@ async function callSonnetHomeopath(caseText: string): Promise<AIHomeopathResult 
   }
 }
 
+// Кэш русских labels от Sonnet (rubric → labelRu)
+const _labelRuCache = new Map<string, string>()
+
 async function parseTextWithSonnet(text: string): Promise<{
   symptoms: MDRISymptom[]
   modalities: MDRIModality[]
@@ -419,6 +422,14 @@ async function parseTextWithSonnet(text: string): Promise<{
 
   try {
     const parsed = JSON.parse(jsonStr)
+    // Сохранить русские labels от Sonnet
+    _labelRuCache.clear()
+    for (const s of (parsed.symptoms ?? [])) {
+      if (s.labelRu && s.rubric) {
+        _labelRuCache.set(String(s.rubric).toLowerCase(), String(s.labelRu))
+      }
+    }
+
     return {
       symptoms: (parsed.symptoms ?? []).map((s: Record<string, unknown>) => ({
         rubric: String(s.rubric ?? ''),
@@ -866,6 +877,10 @@ const WORD_RU: Record<string, string> = {
 
 function rubricToRussian(rubric: string): string {
   const r = rubric.toLowerCase()
+  // 0. Русский label от Sonnet (самый точный перевод)
+  const sonnetLabel = _labelRuCache.get(r)
+  if (sonnetLabel) return sonnetLabel
+
   // 1. Точное совпадение по ключу
   for (const [key, val] of Object.entries(RUBRIC_RU)) {
     if (r.includes(key)) return val
