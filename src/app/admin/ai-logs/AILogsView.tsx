@@ -27,17 +27,17 @@ export default function AILogsView({ logs }: Props) {
 
   // Статистика
   const total = logs.length
-  const withChoice = logs.filter(l => l.doctor_choice).length
-  const top1Match = logs.filter(l => l.correct_position === 1).length
-  const top3Match = logs.filter(l => l.correct_position && l.correct_position <= 3).length
-  const mismatches = logs.filter(l => l.doctor_choice && l.correct_position === null).length
+  const withChoice = logs.filter(l => l.doctorChoice).length
+  const top1Match = logs.filter(l => l.correctPosition === 1).length
+  const top3Match = logs.filter(l => l.correctPosition && l.correctPosition <= 3).length
+  const mismatches = logs.filter(l => l.doctorChoice && l.correctPosition === null).length
   const accuracy = withChoice > 0 ? Math.round(top1Match / withChoice * 100) : 0
   const top3Accuracy = withChoice > 0 ? Math.round(top3Match / withChoice * 100) : 0
 
   const filtered = logs.filter(log => {
-    if (filter === 'mismatch') return log.doctor_choice && log.correct_position !== 1
-    if (filter === 'no_choice') return !log.doctor_choice
-    if (filter === 'conflict') return log.has_conflict
+    if (filter === 'mismatch') return log.doctorChoice && log.correctPosition !== 1
+    if (filter === 'no_choice') return !log.doctorChoice
+    if (filter === 'conflict') return log.hasConflict
     return true
   })
 
@@ -80,9 +80,9 @@ export default function AILogsView({ logs }: Props) {
         <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ backgroundColor: 'var(--sim-bg-muted)' }}>
           {([
             { id: 'all' as const, label: `Все (${total})` },
-            { id: 'mismatch' as const, label: `Не top-1 (${logs.filter(l => l.doctor_choice && l.correct_position !== 1).length})` },
+            { id: 'mismatch' as const, label: `Не top-1 (${logs.filter(l => l.doctorChoice && l.correctPosition !== 1).length})` },
             { id: 'no_choice' as const, label: `Без выбора (${total - withChoice})` },
-            { id: 'conflict' as const, label: `Конфликты (${logs.filter(l => l.has_conflict).length})` },
+            { id: 'conflict' as const, label: `Конфликты (${logs.filter(l => l.hasConflict).length})` },
           ]).map(f => (
             <button
               key={f.id}
@@ -127,9 +127,10 @@ function LogCard({ log, expanded, onToggle, isLast }: {
   onToggle: () => void
   isLast: boolean
 }) {
-  const top1 = log.engine_top3[0]
-  const isMismatch = log.doctor_choice && log.correct_position !== 1
-  const date = new Date(log.created_at)
+  const top3 = log.engineTop3 ?? []
+  const top1 = top3[0]
+  const isMismatch = log.doctorChoice && log.correctPosition !== 1
+  const date = new Date(log.createdAt)
   const timeStr = date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) +
     ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 
@@ -146,7 +147,7 @@ function LogCard({ log, expanded, onToggle, isLast }: {
 
         {/* Top-3 */}
         <div className="flex gap-1.5 flex-1 items-center">
-          {log.engine_top3.map((r, i) => (
+          {top3.map((r, i) => (
             <span
               key={i}
               className="text-xs px-2.5 py-1 rounded-full font-medium"
@@ -161,40 +162,40 @@ function LogCard({ log, expanded, onToggle, isLast }: {
         </div>
 
         {/* Doctor choice + position */}
-        {log.doctor_choice ? (
+        {log.doctorChoice ? (
           <span
             className="text-xs px-2.5 py-1 rounded-full font-medium"
             style={{
-              backgroundColor: log.correct_position === 1 ? 'var(--sim-green-light)' : log.correct_position ? '#fef3c7' : '#fee2e2',
-              color: log.correct_position === 1 ? 'var(--sim-green)' : log.correct_position ? '#92400e' : '#dc2626',
+              backgroundColor: log.correctPosition === 1 ? 'var(--sim-green-light)' : log.correctPosition ? '#fef3c7' : '#fee2e2',
+              color: log.correctPosition === 1 ? 'var(--sim-green)' : log.correctPosition ? '#92400e' : '#dc2626',
             }}
           >
-            → {log.doctor_choice}
-            {log.correct_position && ` (#${log.correct_position})`}
-            {!log.correct_position && ' (miss)'}
+            → {log.doctorChoice}
+            {log.correctPosition && ` (#${log.correctPosition})`}
+            {!log.correctPosition && ' (miss)'}
           </span>
         ) : (
           <span className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>—</span>
         )}
 
         {/* Confidence */}
-        {log.confidence_level && (
+        {log.confidenceLevel && (
           <span
             className="text-[10px] px-2 py-0.5 rounded-full"
-            style={CONFIDENCE_COLORS[log.confidence_level] ?? { bg: 'var(--sim-bg-muted)', color: 'var(--sim-text-muted)' }}
+            style={CONFIDENCE_COLORS[log.confidenceLevel] ?? { bg: 'var(--sim-bg-muted)', color: 'var(--sim-text-muted)' }}
           >
-            {CONFIDENCE_LABELS[log.confidence_level] ?? log.confidence_level}
+            {CONFIDENCE_LABELS[log.confidenceLevel] ?? log.confidenceLevel}
           </span>
         )}
 
         {/* Priority breakdown */}
         <div className="flex gap-0.5 shrink-0">
-          {log.high_count > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>H{log.high_count}</span>}
-          {log.medium_count > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>M{log.medium_count}</span>}
-          {log.low_count > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--sim-bg-muted)', color: 'var(--sim-text-hint)' }}>L{log.low_count}</span>}
+          {log.highCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>H{log.highCount}</span>}
+          {log.mediumCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>M{log.mediumCount}</span>}
+          {log.lowCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--sim-bg-muted)', color: 'var(--sim-text-hint)' }}>L{log.lowCount}</span>}
         </div>
 
-        {log.has_conflict && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>!</span>}
+        {log.hasConflict && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>!</span>}
 
         <span style={{ color: 'var(--sim-text-hint)', fontSize: '12px' }}>{expanded ? '▲' : '▼'}</span>
       </button>
@@ -205,10 +206,10 @@ function LogCard({ log, expanded, onToggle, isLast }: {
           {/* Input */}
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--sim-text-muted)' }}>
-              Вход ({log.symptom_count} сим + {log.modality_count} мод, {log.mental_count} mental)
+              Вход ({log.symptomCount} сим + {log.modalityCount} мод, {log.mentalCount} mental)
             </div>
             <div className="flex flex-wrap gap-1">
-              {log.confirmed_input.map((s, i) => (
+              {(log.confirmedInput ?? []).map((s, i) => (
                 <span
                   key={i}
                   className="text-[11px] px-2 py-1 rounded-lg"
@@ -232,7 +233,7 @@ function LogCard({ log, expanded, onToggle, isLast }: {
               Engine Top-3
             </div>
             <div className="flex gap-2">
-              {log.engine_top3.map((r, i) => (
+              {top3.map((r, i) => (
                 <div
                   key={i}
                   className="text-sm px-4 py-2 rounded-xl"
@@ -265,9 +266,9 @@ function LogCard({ log, expanded, onToggle, isLast }: {
           {isMismatch && (
             <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#fef3c7', border: '1px solid #fde68a' }}>
               <p className="text-sm" style={{ color: '#92400e' }}>
-                Engine → <strong>{top1?.remedy}</strong>, врач → <strong>{log.doctor_choice}</strong>
-                {log.correct_position && <span> (был #{log.correct_position})</span>}
-                {!log.correct_position && <span> (не в top-3)</span>}
+                Engine → <strong>{top1?.remedy}</strong>, врач → <strong>{log.doctorChoice}</strong>
+                {log.correctPosition && <span> (был #{log.correctPosition})</span>}
+                {!log.correctPosition && <span> (не в top-3)</span>}
               </p>
             </div>
           )}
