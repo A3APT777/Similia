@@ -123,7 +123,8 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   const [clarifyCount, setClarifyCount] = useState(0)
   const [top1Flipped, setTop1Flipped] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
+  const [showRubrics, setShowRubrics] = useState(false)
+  const [showLenses, setShowLenses] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const hasContent = text.trim().length > 0
@@ -509,11 +510,11 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
             {top1?.matchedRubrics && top1.matchedRubrics.length > 0 && (
               <div className="mt-4 pt-4 border-t border-black/[0.04]">
                 <button
-                  onClick={() => setShowDetails(!showDetails)}
-                  className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity"
+                  onClick={() => setShowRubrics(!showRubrics)}
+                  className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity cursor-pointer"
                 >
                   <svg
-                    className={`w-3 h-3 transition-transform duration-200 ${showDetails ? 'rotate-90' : ''}`}
+                    className={`w-3 h-3 transition-transform duration-200 ${showRubrics ? 'rotate-90' : ''}`}
                     fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -522,7 +523,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                     ? `${top1.matchedRubrics.length} совпавших рубрик`
                     : `${top1.matchedRubrics.length} matched rubrics`}
                 </button>
-                {showDetails && (
+                {showRubrics && (
                   <div className="mt-3 space-y-1.5">
                     {top1.matchedRubrics.map((r, i) => (
                       <div key={i} className="flex items-start gap-2 text-[12px] text-[#6b7280]">
@@ -539,12 +540,18 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
             {top1?.lenses && top1.lenses.length > 0 && (
               <div className="mt-4 pt-4 border-t border-black/[0.04]">
                 <button
-                  onClick={() => setShowDetails(prev => !prev)}
-                  className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity"
+                  onClick={() => setShowLenses(!showLenses)}
+                  className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity cursor-pointer"
                 >
+                  <svg
+                    className={`w-3 h-3 transition-transform duration-200 ${showLenses ? 'rotate-90' : ''}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
                   {lang === 'ru' ? 'Детализация по методам' : 'Method breakdown'}
                 </button>
-                {showDetails && (
+                {showLenses && (
                   <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {top1.lenses.map((lens, i) => (
                       <div key={i} className="rounded-xl bg-[#f7f3ed] p-3">
@@ -676,7 +683,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
           </button>
 
           <button
-            onClick={() => { setStep('input'); setResult(null); setText(''); setClarifyCount(0); setTop1Flipped(false); setShowDetails(false) }}
+            onClick={() => { setStep('input'); setResult(null); setText(''); setClarifyCount(0); setTop1Flipped(false); setShowRubrics(false); setShowLenses(false) }}
             className="w-full py-3 text-[13px] rounded-full border border-gray-200 text-[#6b7280] transition-all duration-200 hover:bg-black/[0.02]"
           >
             {lang === 'ru' ? 'Новый анализ' : 'New analysis'}
