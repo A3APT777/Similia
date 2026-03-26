@@ -422,32 +422,36 @@ function ensureModalities(modalities: MDRIModality[], originalText: string) {
 // Гарантия семейного анамнеза из русского текста
 // Sonnet часто пропускает "бабушка болела ТБ" — критично для нозодов (Ганеман, "Хронические болезни")
 function ensureFamilyHistory(sonnetFH: string[], originalText: string): string[] {
-  const text = originalText.toLowerCase()
   const result = [...sonnetFH]
   const has = (keyword: string) => result.some(f => f.toLowerCase().includes(keyword))
 
-  const FAMILY_PATTERNS: { patterns: RegExp; disease: string }[] = [
-    // Родственники: все формы (дед/дедушка, мать/мама, отец/папа и т.д.)
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|родител|сестр|брат|в семье|семейн|наследств).*(?:туберкул|тбц|тб\b)/i, disease: 'tuberculosis' },
-    { patterns: /(?:туберкул|тбц|тб\b).*(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|родител|сестр|брат|в семье)/i, disease: 'tuberculosis' },
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|родител|в семье|семейн).*(?:рак|онкол|опухол)/i, disease: 'cancer' },
-    { patterns: /(?:рак|онкол|опухол).*(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|родител|в семье)/i, disease: 'cancer' },
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|в семье).*(?:астм)/i, disease: 'asthma' },
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|в семье).*(?:диабет|сахарн)/i, disease: 'diabetes' },
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|в семье).*(?:псориаз|экзем)/i, disease: 'psoriasis' },
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|в семье).*(?:бородавк|кондилом|папиллом)/i, disease: 'warts' },
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|в семье).*(?:сердц|инфаркт|инсульт)/i, disease: 'heart disease' },
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|в семье).*(?:алкогол)/i, disease: 'alcoholism' },
-    { patterns: /(?:кондилом|папиллом|бородавк).*(?:отец|мат|бабушк|дедушк|дед\b|в семье)/i, disease: 'condylomata' },
-    // Сифилис (для syphilitic миазма)
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|в семье).*(?:сифилис)/i, disease: 'syphilis' },
-    // Гонорея (для sycotic миазма)
-    { patterns: /(?:бабушк|дедушк|дед\b|мат|отец|мам|пап|в семье).*(?:гоноре)/i, disease: 'gonorrhea' },
+  // Родственники и болезни — матчим в пределах одного фрагмента (до точки/запятой/новой строки)
+  const RELATIVES = ['бабушк', 'дедушк', 'дед ', 'деда ', 'деду ', 'мать', 'мат ', 'отец', 'отца', 'мам', 'пап', 'родител', 'сестр', 'брат', 'в семье', 'семейн', 'наследств']
+  const DISEASES: { keywords: string[]; disease: string }[] = [
+    { keywords: ['туберкул', 'тбц'], disease: 'tuberculosis' },
+    { keywords: ['рак ', 'раком', 'онкол', 'опухол'], disease: 'cancer' },
+    { keywords: ['астм'], disease: 'asthma' },
+    { keywords: ['диабет', 'сахарн'], disease: 'diabetes' },
+    { keywords: ['псориаз', 'экзем'], disease: 'psoriasis' },
+    { keywords: ['бородавк', 'кондилом', 'папиллом'], disease: 'warts' },
+    { keywords: ['сердц', 'инфаркт', 'инсульт'], disease: 'heart disease' },
+    { keywords: ['алкогол'], disease: 'alcoholism' },
+    { keywords: ['сифилис'], disease: 'syphilis' },
+    { keywords: ['гоноре'], disease: 'gonorrhea' },
   ]
 
-  for (const rule of FAMILY_PATTERNS) {
-    if (rule.patterns.test(text) && !has(rule.disease)) {
-      result.push(rule.disease)
+  // Разбиваем на фрагменты по точкам, переносам строк, точкам с запятой
+  const fragments = originalText.toLowerCase().split(/[.\n;]+/)
+
+  for (const fragment of fragments) {
+    const hasRelative = RELATIVES.some(r => fragment.includes(r))
+    if (!hasRelative) continue
+
+    for (const disease of DISEASES) {
+      if (has(disease.disease)) continue
+      if (disease.keywords.some(k => fragment.includes(k))) {
+        result.push(disease.disease)
+      }
     }
   }
 
