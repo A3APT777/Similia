@@ -801,7 +801,8 @@ export function analyzePipeline(
 
   // Правило: если данных мало (< 3 симптома) — НЕ фильтруем
   if (!insufficientData) {
-    // 1a. Термика: зябкий пациент → убрать жаркие
+    // 1a. Термика: зябкий пациент → убрать жаркие (и наоборот)
+    // Ключи в clinical.json — lowercase без точки
     if (caseData.thermal === 'chilly') {
       const hotRemedies = data.clinicalData?.thermal_contradictions ?? {}
       for (const [rem, t] of Object.entries(hotRemedies)) {
