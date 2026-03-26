@@ -815,19 +815,53 @@ const CHAPTER_RU: Record<string, string> = {
 
 // Перевод общих слов внутри рубрик
 const WORD_RU: Record<string, string> = {
+  // Боль
   'pain': 'боль', 'burning': 'жгучая', 'pressing': 'давящая',
   'stitching': 'колющая', 'tearing': 'рвущая', 'cramping': 'судорожная',
-  'right': 'справа', 'left': 'слева', 'aggravates': 'хуже',
+  'throbbing': 'пульсирующая', 'hammering': 'как молотки', 'sore': 'болезненность',
+  // Стороны и время
+  'right': 'справа', 'left': 'слева', 'aggravates': 'хуже', 'agg': 'хуже', 'amel': 'лучше',
   'ameliorates': 'лучше', 'worse': 'хуже', 'better': 'лучше',
   'after': 'после', 'before': 'до', 'during': 'во время',
-  'morning': 'утром', 'evening': 'вечером', 'night': 'ночью',
-  'cold': 'холод', 'heat': 'тепло', 'warmth': 'тепло',
+  'morning': 'утром', 'evening': 'вечером', 'night': 'ночью', 'noon': 'в полдень',
+  '10am': 'в 10ч', '4pm': 'в 16ч',
+  // Температура и среда
+  'cold': 'холод', 'heat': 'тепло', 'warmth': 'тепло', 'sun': 'солнце', 'sea': 'море',
+  'damp': 'сырость', 'wet': 'влажность', 'draft': 'сквозняк', 'storm': 'гроза',
+  'open': 'свежий', 'air': 'воздух', 'room': 'комната', 'warm': 'тёплый', 'stuffy': 'душный',
+  // Движение и положение
   'motion': 'движение', 'rest': 'покой', 'eating': 'еда',
   'walking': 'ходьба', 'sitting': 'сидя', 'standing': 'стоя',
-  'lying': 'лёжа', 'stooping': 'наклон', 'exertion': 'нагрузка',
+  'lying': 'лёжа', 'stooping': 'наклон', 'exertion': 'нагрузка', 'exercise': 'упражнения',
+  // Психика
+  'grief': 'горе', 'anger': 'гнев', 'anxiety': 'тревога', 'fear': 'страх',
+  'irritability': 'раздражительность', 'sadness': 'грусть', 'weeping': 'плач',
+  'consolation': 'утешение', 'aversion': 'отвращение', 'desire': 'желание',
+  'company': 'общество', 'solitude': 'одиночество', 'silent': 'молчаливый',
+  'reserved': 'замкнутый', 'brooding': 'размышления', 'dwells': 'зацикленность',
+  'past': 'прошлое', 'indifference': 'равнодушие', 'ailments': 'последствия',
+  'disappointed': 'разочарование', 'love': 'любовь', 'suppressed': 'подавленный',
+  'jealousy': 'ревность', 'haughty': 'высокомерие', 'hurry': 'спешка',
+  'sensitive': 'чувствительный', 'offended': 'обиженный', 'easily': 'легко',
+  'changeable': 'переменчивый', 'mood': 'настроение', 'moody': 'переменчивый',
+  'weeps': 'плачет', 'alone': 'одна', 'sympathy': 'сочувствие',
+  // Общие
+  'chilly': 'зябкий', 'hot': 'жаркий', 'thirst': 'жажда', 'thirstless': 'без жажды',
+  'salt': 'соль', 'salty': 'солёное', 'sweets': 'сладкое', 'sour': 'кислое',
+  'fat': 'жирное', 'eggs': 'яйца', 'milk': 'молоко', 'meat': 'мясо', 'fish': 'рыба',
+  'perspiration': 'потоотделение', 'sweat': 'пот', 'profuse': 'обильный',
+  'hair': 'волосы', 'loss': 'выпадение', 'falling': 'выпадение',
+  // Физические
   'swelling': 'отёк', 'inflammation': 'воспаление',
   'discharge': 'выделения', 'offensive': 'зловонный',
   'itching': 'зуд', 'redness': 'покраснение', 'dryness': 'сухость',
+  'cracking': 'трещина', 'lips': 'губы', 'herpes': 'герпес',
+  'constipation': 'запор', 'diarrhea': 'понос', 'nausea': 'тошнота',
+  'menses': 'месячные', 'delayed': 'задержка', 'scanty': 'скудные', 'dark': 'тёмные',
+  'varicose': 'варикоз', 'veins': 'вены', 'heaviness': 'тяжесть',
+  'bearing': 'давящее', 'down': 'вниз', 'sensation': 'ощущение',
+  'spots': 'пятна', 'discoloration': 'пигментация',
+  'headache': 'головная боль', 'head': 'голова', 'vertigo': 'головокружение',
 }
 
 function rubricToRussian(rubric: string): string {
