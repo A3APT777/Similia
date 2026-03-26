@@ -113,6 +113,134 @@ function confidenceLabel(level?: string, lang: Lang = 'ru') {
   return labels[level || '']?.[lang] || (lang === 'ru' ? 'Анализ' : 'Analysis')
 }
 
+// Перевод глав реперториума для отображения рубрик
+const CHAPTER_TRANSLATIONS: Record<string, string> = {
+  'MIND': 'Психика',
+  'HEAD': 'Голова',
+  'EYE': 'Глаза',
+  'EAR': 'Уши',
+  'NOSE': 'Нос',
+  'FACE': 'Лицо',
+  'MOUTH': 'Рот',
+  'THROAT': 'Горло',
+  'STOMACH': 'Желудок',
+  'ABDOMEN': 'Живот',
+  'RECTUM': 'Прямая кишка',
+  'STOOL': 'Стул',
+  'BLADDER': 'Мочевой пузырь',
+  'KIDNEYS': 'Почки',
+  'URETHRA': 'Уретра',
+  'URINE': 'Моча',
+  'GENITALIA': 'Половые органы',
+  'GENITALIA MALE': 'Муж. половые органы',
+  'GENITALIA FEMALE': 'Жен. половые органы',
+  'LARYNX': 'Гортань',
+  'RESPIRATION': 'Дыхание',
+  'COUGH': 'Кашель',
+  'EXPECTORATION': 'Мокрота',
+  'CHEST': 'Грудная клетка',
+  'BACK': 'Спина',
+  'EXTREMITIES': 'Конечности',
+  'SLEEP': 'Сон',
+  'DREAMS': 'Сновидения',
+  'CHILL': 'Озноб',
+  'FEVER': 'Лихорадка',
+  'PERSPIRATION': 'Потоотделение',
+  'SKIN': 'Кожа',
+  'GENERALITIES': 'Общие',
+  'VERTIGO': 'Головокружение',
+}
+
+// Перевод рубрики: "MIND - IRRITABILITY - morning" → "Психика — раздражительность — утром"
+function translateRubric(rubric: string): string {
+  const parts = rubric.split(' - ')
+  if (parts.length === 0) return rubric
+
+  // Перевести главу
+  const chapter = CHAPTER_TRANSLATIONS[parts[0].toUpperCase()] || parts[0]
+
+  // Остальные части — оставляем как есть, но lowercase
+  const rest = parts.slice(1).map(p => p.toLowerCase()).join(' — ')
+
+  return rest ? `${chapter} — ${rest}` : chapter
+}
+
+// Перевод названий линз + пояснения для врача
+function lensInfo(name: string, score: number, details: string, lang: Lang): { label: string; hint: string; displayScore: string } {
+  const map: Record<string, { ru: string; en: string; hintRu: string; hintEn: string }> = {
+    'Kent': {
+      ru: 'Кент', en: 'Kent',
+      hintRu: 'Классическая суммация по grade',
+      hintEn: 'Classical grade summation',
+    },
+    'Coverage': {
+      ru: 'Покрытие', en: 'Coverage',
+      hintRu: 'Сколько симптомов покрыто',
+      hintEn: 'Symptoms covered',
+    },
+    'Hierarchy': {
+      ru: 'Иерархия', en: 'Hierarchy',
+      hintRu: 'Mental > General > Particular',
+      hintEn: 'Mental > General > Particular',
+    },
+    'Constellation': {
+      ru: 'Портрет', en: 'Constellation',
+      hintRu: 'Совпадение с портретом средства',
+      hintEn: 'Remedy portrait match',
+    },
+    'Polarity': {
+      ru: 'Полярность', en: 'Polarity',
+      hintRu: 'Модальности Бённингхаузена',
+      hintEn: 'Bönninghausen modalities',
+    },
+    'Miasm': {
+      ru: 'Миазм', en: 'Miasm',
+      hintRu: 'Миазматическое соответствие',
+      hintEn: 'Miasmatic correspondence',
+    },
+  }
+
+  const info = map[name]
+  if (!info) return { label: name, hint: '', displayScore: `${score}` }
+
+  // Coverage: показать "5/8" из details вместо процента
+  const displayScore = name === 'Coverage' && details.includes('/')
+    ? details
+    : `${score}%`
+
+  return {
+    label: lang === 'ru' ? info.ru : info.en,
+    hint: lang === 'ru' ? info.hintRu : info.hintEn,
+    displayScore,
+  }
+}
+
+// Перевод keyFeature для fallback comparison — краткое описание ключевой черты средства
+const REMEDY_DESCRIPTIONS_RU: Record<string, string> = {
+  'Sep.': 'Равнодушие к близким, опущение, лучше от активных упражнений',
+  'Puls.': 'Плаксивая, переменчивая, хуже в тепле, жажды нет',
+  'Nat-m.': 'Замкнутость, горе, отвращение к утешению, тяга к соли',
+  'Ign.': 'Горе со вздохами, переменчивость, парадоксальные симптомы',
+  'Lach.': 'Ревность, многословие, хуже после сна, левая сторона',
+  'Lyc.': 'Неуверенность, вздутие, хуже 16-20ч, правая сторона',
+  'Sulph.': 'Жаркий, философ, хуже от жары и в 11ч, жжение',
+  'Calc.': 'Зябкий, потливость головы, медлительный, тяга к яйцам',
+  'Phos.': 'Открытый, сочувствующий, жажда холодного, кровоточивость',
+  'Ars.': 'Тревога о здоровье, педантичность, жжение, хуже ночью',
+  'Nux-v.': 'Раздражительный, трудоголик, зябкий, хуже утром',
+  'Sil.': 'Робкий, зябкий, нагноения, потливость стоп',
+  'Carc.': 'Перфекционизм, подавление эмоций, любовь к путешествиям',
+  'Staph.': 'Подавленный гнев, обида, последствия унижения',
+  'Aur.': 'Депрессия, ответственность, хуже ночью, сердце',
+  'Med.': 'Спешка, экстремы, сон на животе, лучше у моря',
+  'Thuj.': 'Скрытность, фиксации, бородавки, хуже от влажности',
+}
+
+function getRemedyDescription(remedy: string, keyFeature: string, lang: Lang): string {
+  if (lang !== 'ru') return keyFeature
+  return REMEDY_DESCRIPTIONS_RU[remedy] || keyFeature
+}
+
 export default function AIConsultationDirect({ patients, lang, aiStatus }: Props) {
   const router = useRouter()
   const [text, setText] = useState('')
@@ -528,7 +656,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                     {top1.matchedRubrics.map((r, i) => (
                       <div key={i} className="flex items-start gap-2 text-[12px] text-[#6b7280]">
                         <span className="text-[#2d6a4f] mt-0.5">•</span>
-                        <span>{r}</span>
+                        <span>{lang === 'ru' ? translateRubric(r) : r}</span>
                       </div>
                     ))}
                   </div>
@@ -553,12 +681,16 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                 </button>
                 {showLenses && (
                   <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {top1.lenses.map((lens, i) => (
-                      <div key={i} className="rounded-xl bg-[#f7f3ed] p-3">
-                        <p className="text-[10px] font-medium uppercase tracking-wider text-[#6b7280] mb-1">{lens.name}</p>
-                        <p className="text-[18px] font-light text-[#1a1a1a]">{Math.round(lens.score)}</p>
-                      </div>
-                    ))}
+                    {top1.lenses.map((lens, i) => {
+                      const info = lensInfo(lens.name, lens.score, lens.details, lang)
+                      return (
+                        <div key={i} className="rounded-xl bg-[#f7f3ed] p-3">
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#6b7280] mb-1">{info.label}</p>
+                          <p className="text-[18px] font-light text-[#1a1a1a]">{info.displayScore}</p>
+                          <p className="text-[10px] text-[#6b7280]/70 mt-0.5">{info.hint}</p>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -735,7 +867,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                   >
                     {c.remedy}
                   </p>
-                  <p className="text-[12px] text-[#6b7280] mt-0.5">{c.keyFeature}</p>
+                  <p className="text-[12px] text-[#6b7280] mt-0.5">{getRemedyDescription(c.remedy, c.keyFeature, lang)}</p>
                 </div>
               </div>
             </button>
