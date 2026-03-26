@@ -80,6 +80,7 @@ export async function getAdminDoctors() {
       email: true,
       name: true,
       createdAt: true,
+      emailVerified: true,
     },
   })
 
@@ -121,6 +122,7 @@ export async function getAdminDoctors() {
         referralCode: referralCode?.code ?? null,
         aiPro: doctorSettings?.subscriptionPlan === 'ai_pro',
         aiCredits: doctorSettings?.aiCredits ?? 0,
+        emailVerified: user.emailVerified?.toISOString() ?? null,
       }
     })
   )
@@ -332,6 +334,34 @@ export type AIAnalysisLog = {
   disagreement: { chosenRemedy: string; reason: string; timestamp: string } | null
   doctorEmail: string | null
   doctorName: string | null
+}
+
+// Удалить аккаунт врача (каскадно удалит пациентов, консультации и т.д.)
+export async function adminDeleteUser(doctorId: string) {
+  await requireAdmin()
+
+  try {
+    await prisma.user.delete({ where: { id: doctorId } })
+  } catch (error) {
+    console.error('[adminDeleteUser]', error)
+    throw new Error('Не удалось удалить аккаунт')
+  }
+}
+
+// Заблокировать/разблокировать аккаунт
+export async function adminBlockUser(doctorId: string, blocked: boolean) {
+  await requireAdmin()
+
+  try {
+    // Используем emailVerified = null для блокировки (не сможет войти)
+    await prisma.user.update({
+      where: { id: doctorId },
+      data: { emailVerified: blocked ? null : new Date() },
+    })
+  } catch (error) {
+    console.error('[adminBlockUser]', error)
+    throw new Error('Не удалось обновить статус')
+  }
 }
 
 // Смена пароля (для настроек, не админки)
