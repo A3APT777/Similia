@@ -7,6 +7,7 @@ import { translateRubric } from '@/lib/repertory-translations'
 import { useLanguage } from '@/hooks/useLanguage'
 import { t } from '@/lib/i18n'
 import FirstTimeHint from '@/components/FirstTimeHint'
+import { calculateRemedyScores } from '@/lib/repertory-scoring'
 
 // ── Цветовая схема V4 (Apple/Linear) ──────────────────────────────
 const colors = {
@@ -215,43 +216,10 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   }, [rubrics])
 
   // ── Рейтинг препаратов по добавленным рубрикам ───────────────────
-  // coverage[i] = грейд препарата в i-й рубрике (0 = отсутствует)
-  const analysisScores = useMemo(() => {
-    const n = analysisEntries.length
-    const scores: Record<string, { name: string; total: number; coverage: number[]; coveredCount: number }> = {}
-    analysisEntries.forEach((ae, idx) => {
-      ae.rubric.remedies.forEach(r => {
-        if (!scores[r.abbrev]) {
-          scores[r.abbrev] = { name: r.name, total: 0, coverage: new Array(n).fill(0), coveredCount: 0 }
-        }
-        const g = Number(r.grade)
-        // Кент: grade 3 = 3 балла, grade 2 = 2 балла, grade 1 = 1 балл
-        const pts = g >= 3 ? 3 : g === 2 ? 2 : 1
-        scores[r.abbrev].total += pts * ae.weight
-        scores[r.abbrev].coverage[idx] = g
-        scores[r.abbrev].coveredCount++
-      })
-    })
-    let entries = Object.entries(scores).sort((a, b) => {
-      if (b[1].total !== a[1].total) return b[1].total - a[1].total
-      return b[1].coveredCount - a[1].coveredCount  // при равном score — кто в большем числе рубрик
-    })
-
-    // Элиминация: убираем все препараты, которых нет хотя бы в одной рубрике с eliminate=true
-    const eliminateEntries = analysisEntries.filter(ae => ae.eliminate)
-    if (eliminateEntries.length > 0) {
-      const eliminateIndices = eliminateEntries.map(ae => analysisEntries.indexOf(ae))
-      entries = entries.filter(([, d]) =>
-        eliminateIndices.every(idx => d.coverage[idx] > 0)
-      )
-    }
-
-    // Фильтр «только присутствующие во всех рубриках»
-    if (coverageOnly && n > 1) {
-      entries = entries.filter(([, d]) => d.coveredCount === n)
-    }
-    return entries.slice(0, 20)
-  }, [analysisEntries, coverageOnly])
+  const analysisScores = useMemo(
+    () => calculateRemedyScores(analysisEntries, { maxResults: 20, gradeMode: 'kent', coverageOnly }),
+    [analysisEntries, coverageOnly],
+  )
 
   async function loadRubrics(q: string, gIdx: number, pg: number) {
     setLoading(true)

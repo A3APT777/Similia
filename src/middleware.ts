@@ -19,6 +19,7 @@ const PUBLIC_PATHS = [
   '/opengraph-image',
   '/api/yookassa-webhook',
   '/api/health',
+  '/api/test-ai',
   '/api/auth',
   '/checkout',
   '/pricing',

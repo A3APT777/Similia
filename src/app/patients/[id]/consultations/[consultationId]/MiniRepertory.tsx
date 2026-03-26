@@ -7,6 +7,7 @@ import { CHAPTER_NAMES, translateRubric } from '@/lib/repertory-translations'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 import { RepertoryEntry } from '@/types'
+import { calculateRemedyScores } from '@/lib/repertory-scoring'
 import FirstTimeHint from '@/components/FirstTimeHint'
 
 
@@ -257,33 +258,10 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
   }
 
   // Рейтинг препаратов
-  const analysisScores = useMemo(() => {
-    const n = analysisEntries.length
-    const scores: Record<string, { name: string; total: number; coverage: number[]; coveredCount: number }> = {}
-    analysisEntries.forEach((ae, idx) => {
-      ae.rubric.remedies.forEach(r => {
-        if (!scores[r.abbrev]) {
-          scores[r.abbrev] = { name: r.name, total: 0, coverage: new Array(n).fill(0), coveredCount: 0 }
-        }
-        const g = Number(r.grade)
-        scores[r.abbrev].total += g * ae.weight
-        scores[r.abbrev].coverage[idx] = g
-        scores[r.abbrev].coveredCount++
-      })
-    })
-    let entries = Object.entries(scores).sort((a, b) => {
-      if (b[1].total !== a[1].total) return b[1].total - a[1].total
-      return b[1].coveredCount - a[1].coveredCount
-    })
-    // Элиминация
-    const eliminateIdxs = analysisEntries
-      .map((ae, i) => ae.eliminate ? i : -1)
-      .filter(i => i >= 0)
-    if (eliminateIdxs.length > 0) {
-      entries = entries.filter(([, d]) => eliminateIdxs.every(idx => d.coverage[idx] > 0))
-    }
-    return entries.slice(0, 12)
-  }, [analysisEntries])
+  const analysisScores = useMemo(
+    () => calculateRemedyScores(analysisEntries, { maxResults: 12, gradeMode: 'raw' }),
+    [analysisEntries],
+  )
 
 
   const isInAnalysis = (id: number) => analysisEntries.some(ae => ae.rubric.id === id)

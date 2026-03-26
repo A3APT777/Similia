@@ -14,7 +14,7 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  output: 'standalone', // обязателен для деплоя на Timeweb через deploy-similia.sh
+  output: 'standalone',
   typescript: {
     // Скрипты в scripts/ имеют ошибки типов — не блокируем билд
     ignoreBuildErrors: true,
