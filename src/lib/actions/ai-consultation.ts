@@ -115,24 +115,14 @@ export async function analyzeCase(input: z.input<typeof analyzeSchema>): Promise
  * Анализ свободного текста — Sonnet парсит -> MDRI считает
  */
 export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Promise<ConsensusResult> {
-  // Логирование в файл — PM2 stdout не показывает server action console.log
-  const fs = await import('fs')
-  const debugLog = (msg: string) => {
-    try { fs.appendFileSync('/tmp/analyzeText.log', new Date().toISOString() + ' ' + msg + '\n') } catch {}
-  }
-
-  debugLog('ENTRY')
   const parsed = analyzeTextSchema.parse(input)
-  debugLog('parsed ok, text=' + parsed.text.substring(0, 50))
   const { userId } = await requireAuth()
-  debugLog('auth ok, userId=' + userId)
 
   await checkAIAccess(userId)
-  debugLog('access ok')
 
   // Детальное логирование с таймингами
   const t0 = Date.now()
-  const log = (step: string) => { console.log(`[analyzeText] ${step}: ${Date.now() - t0}ms`); debugLog(step) }
+  const log = (step: string) => console.log(`[analyzeText] ${step}: ${Date.now() - t0}ms`)
 
   try {
     log('START')
@@ -145,12 +135,15 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     const { symptoms: sonnetSymptoms, modalities: sonnetModalities, familyHistory } = parseResult
     log(`parallel done: ${sonnetSymptoms.length} symptoms, ${data.repertory.length} rubrics`)
 
-    // Шаг 2.5: Product Safety Layer — keyword fallback + soft validation
-    const { symptoms, modalities, warnings } = mergeWithFallback(
+    // Шаг 2.5: Product Safety Layer — keyword fallback + soft validation + familyHistory
+    const merged = mergeWithFallback(
       parsed.text,
       sonnetSymptoms,
       sonnetModalities,
+      familyHistory,
     )
+    const { symptoms, modalities, warnings } = merged
+    const mergedFamilyHistory = merged.familyHistory
     const fallbackAdded = {
       symptoms: symptoms.length - sonnetSymptoms.length,
       modalities: modalities.length - sonnetModalities.length,
@@ -170,11 +163,21 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     log(`profile inferred: ${profile.acuteOrChronic}/${profile.vitality}/${profile.sensitivity}/${profile.age}`)
 
     // Шаг 3: MDRI Engine v5 (НЕ МЕНЯТЬ — заблокирован)
-    const mdriResults = analyzeWithIdf(data, symptoms, modalities, familyHistory, profile)
+    const mdriResults = analyzeWithIdf(data, symptoms, modalities, mergedFamilyHistory, profile)
     log(`MDRI v5 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
 
-    // Шаг 3.5: Верификатор ОТКЛЮЧЁН для диагностики
-    // TODO: вернуть после фикса 500
+    // Шаг 3.5: Верификатор — confirmation по Materia Medica
+    try {
+      const reranked = await verifyTop5(parsed.text, mdriResults.slice(0, 5))
+      if (reranked) {
+        const rest = mdriResults.slice(5)
+        mdriResults.length = 0
+        mdriResults.push(...reranked, ...rest)
+        log(`verifier done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
+      }
+    } catch (e) {
+      log(`verifier skipped: ${e instanceof Error ? e.message : 'unknown error'}`)
+    }
 
     // Шаг 4: Confidence Layer — независимая оценка уверенности
     const productConfidence = computeConfidence(symptoms, modalities, mdriResults, warnings)
@@ -259,10 +262,7 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     return result
   } catch (e) {
     const elapsed = Date.now() - t0
-    const msg = e instanceof Error ? e.message : String(e)
-    const stack = e instanceof Error ? e.stack?.substring(0, 300) : ''
-    console.error(`[analyzeText] FAILED at ${elapsed}ms:`, msg)
-    debugLog(`FAILED at ${elapsed}ms: ${msg}\n${stack}`)
+    console.error(`[analyzeText] FAILED at ${elapsed}ms:`, e instanceof Error ? e.message : e)
     throw e
   }
 }
