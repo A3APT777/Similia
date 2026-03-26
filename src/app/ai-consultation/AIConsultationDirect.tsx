@@ -624,17 +624,52 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
               {renderHeroCard(top1)}
               {renderHeroCard(top2, true)}
             </div>
-            {/* Плашка: нужно уточнить */}
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#c8a035]/[0.06] border border-[#c8a035]/15">
-              <svg className="w-4 h-4 text-[#c8a035] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-              </svg>
-              <p className="text-[12px] text-[#92780a]">
-                {lang === 'ru'
-                  ? 'Оба средства подходят одинаково. Ответьте на вопрос ниже, чтобы определиться.'
-                  : 'Both remedies fit equally. Answer the question below to decide.'}
-              </p>
-            </div>
+
+            {needsClarify ? (
+              /* Плашка: нужно уточнить */
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#c8a035]/[0.06] border border-[#c8a035]/15">
+                <svg className="w-4 h-4 text-[#c8a035] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <p className="text-[12px] text-[#92780a]">
+                  {lang === 'ru'
+                    ? 'Оба средства подходят одинаково. Ответьте на вопрос ниже, чтобы определиться.'
+                    : 'Both remedies fit equally. Answer the question below to decide.'}
+                </p>
+              </div>
+            ) : (
+              /* Ручной выбор: clarify исчерпан, врач решает сам */
+              <div className="rounded-xl bg-white border border-gray-100 shadow-sm p-4">
+                <p className="text-[12px] text-[#6b7280] mb-3">
+                  {lang === 'ru'
+                    ? 'Оба средства подходят. Какое ближе к пациенту?'
+                    : 'Both remedies fit. Which is closer to the patient?'}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[top1, top2].map((r) => r && (
+                    <button
+                      key={r.remedy}
+                      onClick={() => {
+                        setResult({ ...result, finalRemedy: r.remedy, mdriResults: [r, ...(result.mdriResults?.filter(m => m.remedy !== r.remedy) ?? [])] })
+                      }}
+                      className="py-3 px-4 rounded-xl text-left border border-gray-200 hover:border-[#2d6a4f] hover:bg-[#2d6a4f]/[0.03] transition-all duration-200 cursor-pointer"
+                    >
+                      <p
+                        className="text-[18px] font-light text-[#1a1a1a] mb-1"
+                        style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)' }}
+                      >
+                        {r.remedy}
+                      </p>
+                      {REMEDY_DESCRIPTIONS_RU[r.remedy] && lang === 'ru' && (
+                        <p className="text-[11px] text-[#6b7280] leading-relaxed">
+                          {REMEDY_DESCRIPTIONS_RU[r.remedy]}
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <ShineBorder
