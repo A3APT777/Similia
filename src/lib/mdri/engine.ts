@@ -32,6 +32,25 @@ const MIASM_REMEDIES: Record<string, { nosode: string; keys: string[] }> = {
 }
 
 const NOSODES = new Set(['med', 'psor', 'tub', 'syph', 'carc', 'bac'])
+
+// Этиология → ведущие препараты (Organon §5: causa — высший уровень)
+// Ключ: подстрока rubric, значение: [препараты со score]
+const ETIOLOGY_REMEDIES: Record<string, { top: string[]; secondary: string[] }> = {
+  'grief': { top: ['nat-m', 'ign', 'ph-ac', 'staph', 'aur', 'carc'], secondary: ['lach', 'op', 'calc'] },
+  'anger': { top: ['staph', 'nux-v', 'cham', 'bry', 'coloc'], secondary: ['lyc', 'ign', 'ip'] },
+  'fright': { top: ['acon', 'op', 'gels', 'ign', 'stram'], secondary: ['arg-n', 'phos', 'lyc'] },
+  'humiliation': { top: ['staph', 'nat-m', 'coloc', 'ign', 'aur'], secondary: ['lyc', 'palladium'] },
+  'mortification': { top: ['staph', 'nat-m', 'coloc', 'ign'], secondary: ['lyc', 'aur'] },
+  'disappointed love': { top: ['nat-m', 'ign', 'ph-ac', 'hyos', 'aur'], secondary: ['staph', 'lach'] },
+  'suppressed': { top: ['staph', 'nat-m', 'ign', 'carc', 'aur'], secondary: ['sep', 'nux-v'] },
+  'vaccination': { top: ['thuj', 'sil', 'sulph', 'merc'], secondary: ['ant-t', 'apis'] },
+  'head injury': { top: ['nat-s', 'arn', 'hell', 'cic'], secondary: ['hyper', 'op'] },
+  'sexual excess': { top: ['staph', 'calc', 'ph-ac', 'nux-v', 'sep'], secondary: ['chin', 'lyc'] },
+  'loss of fluids': { top: ['chin', 'ph-ac', 'calc'], secondary: ['carb-v', 'ferr'] },
+  'sun': { top: ['nat-m', 'bell', 'glon', 'lach'], secondary: ['gels', 'nat-c'] },
+  'cold': { top: ['acon', 'dulc', 'rhus-t', 'nux-v'], secondary: ['bell', 'bry', 'hep'] },
+  'wet': { top: ['dulc', 'rhus-t', 'nat-s', 'calc'], secondary: ['ars', 'nux-m'] },
+}
 const ACUTE_REMEDIES = new Set(['acon', 'bell', 'bry', 'cham', 'gels', 'ip', 'ferr-p', 'arn', 'apis', 'canth', 'verat', 'dros', 'spong'])
 const CHRONIC_REMEDIES = new Set(['sulph', 'calc', 'lyc', 'nat-m', 'sep', 'sil', 'phos', 'graph', 'carc', 'med', 'psor', 'tub', 'bar-c', 'con'])
 
@@ -1050,6 +1069,19 @@ export function analyzePipeline(
   // Coverage bonus — НОВОЕ: препарат покрывающий больше симптомов получает бонус
   const maxCoverage = Math.max(...[...coverage.values()].map(c => c.covered), 1)
 
+  // Etiology: определить ДО горячего цикла (без symMatch)
+  const detectedEtiologies: string[] = []
+  for (const sym of presentSymptoms) {
+    const rubricLower = sym.rubric.toLowerCase()
+    if (rubricLower.includes('ailment') || rubricLower.includes('from')) {
+      for (const etKey of Object.keys(ETIOLOGY_REMEDIES)) {
+        if (rubricLower.includes(etKey)) {
+          detectedEtiologies.push(etKey)
+        }
+      }
+    }
+  }
+
   // Polarity и Miasm
   const polScores = polarityScore(data, modalities)
   let mScores: Record<string, number> = {}
@@ -1137,8 +1169,19 @@ export function analyzePipeline(
       }
     }
 
-    // Etiology Boost (Organon §5) — отключён, вызывает stack overflow в production
-    // TODO: переписать без symMatch в горячем цикле
+    // Etiology Boost (Organon §5: causa — высший иерархический уровень)
+    // Предвычислено: без symMatch в горячем цикле
+    if (detectedEtiologies.length > 0) {
+      for (const etKey of detectedEtiologies) {
+        const et = ETIOLOGY_REMEDIES[etKey]
+        if (!et) continue
+        if (et.top.includes(remNorm)) {
+          total += 0.10  // Ведущий препарат для данной этиологии
+        } else if (et.secondary.includes(remNorm)) {
+          total += 0.04  // Второстепенный препарат
+        }
+      }
+    }
 
     // Acute/Chronic
     if (isAcute && CHRONIC_REMEDIES.has(rem)) total *= 0.92
