@@ -295,10 +295,14 @@ async function checkAIAccess(userId: string) {
     select: { subscriptionPlan: true, aiCredits: true },
   })
 
-  if (!settings) throw new Error('NO_AI_ACCESS')
+  if (!settings) {
+    console.error(`[checkAIAccess] NO settings for userId=${userId}`)
+    throw new Error('NO_AI_ACCESS')
+  }
 
   const isAIPro = settings.subscriptionPlan === 'ai_pro'
   const hasCredits = (settings.aiCredits ?? 0) > 0
+  console.log(`[checkAIAccess] userId=${userId} plan=${settings.subscriptionPlan} credits=${settings.aiCredits} isAIPro=${isAIPro}`)
   if (!isAIPro && !hasCredits) {
     throw new Error('NO_AI_ACCESS')
   }
