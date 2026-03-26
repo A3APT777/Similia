@@ -230,6 +230,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   const [text, setText] = useState('')
   const [step, setStep] = useState<'input' | 'pre-clarify' | 'analyzing' | 'result' | 'clarify' | 'assign'>('input')
   const [preClarifyAnswers, setPreClarifyAnswers] = useState<Record<string, string>>({})
+  const [missingCategories, setMissingCategories] = useState<string[]>([])  // что не хватает из parseOnly
   const [result, setResult] = useState<ConsensusResult | null>(null)
   const [error, setError] = useState('')
   const [selectedPatient, setSelectedPatient] = useState<string>('')
@@ -285,6 +286,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
       // Если не хватает важной информации — спросить перед engine
       if (check.missing.length > 0) {
         setPreClarifyAnswers({})
+        setMissingCategories(check.missing)
         setStep('pre-clarify')
         return
       }
@@ -621,6 +623,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
     const PRE_QUESTIONS = [
       {
         id: 'thermal',
+        requires: 'general',
         question: lang === 'ru' ? 'Пациент скорее зябкий или жаркий?' : 'Is the patient chilly or hot?',
         options: [
           { label: lang === 'ru' ? 'Зябкий, мёрзнет, любит тепло' : 'Chilly, likes warmth', value: 'Зябкий, мёрзнет, тепло лучше' },
@@ -630,6 +633,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
       },
       {
         id: 'thirst',
+        requires: 'general',
         question: lang === 'ru' ? 'Как пьёт воду?' : 'How does the patient drink?',
         options: [
           { label: lang === 'ru' ? 'Много, большими глотками' : 'Large quantities', value: 'Жажда сильная, пьёт много большими глотками' },
@@ -640,6 +644,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
       },
       {
         id: 'modality_motion',
+        requires: 'modalities',
         question: lang === 'ru' ? 'Как влияет движение?' : 'Effect of motion?',
         options: [
           { label: lang === 'ru' ? 'Хуже от движения, лучше в покое' : 'Worse from motion', value: 'Хуже от движения, лучше лёжа в покое' },
@@ -650,15 +655,18 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
       {
         id: 'modality_time',
         question: lang === 'ru' ? 'В какое время хуже?' : 'Time of aggravation?',
+        requires: 'modalities',
         options: [
           { label: lang === 'ru' ? 'Утром' : 'Morning', value: 'Хуже утром' },
           { label: lang === 'ru' ? 'Днём' : 'Afternoon', value: 'Хуже днём' },
           { label: lang === 'ru' ? 'Вечером (16-20ч)' : 'Evening', value: 'Хуже вечером 16-20 часов' },
           { label: lang === 'ru' ? 'Ночью' : 'Night', value: 'Хуже ночью' },
+          { label: lang === 'ru' ? 'Не знаю' : "Don't know", value: '' },
         ],
       },
       {
         id: 'consolation',
+        requires: 'mental',
         question: lang === 'ru' ? 'Как реагирует на утешение, сочувствие?' : 'Reaction to consolation?',
         options: [
           { label: lang === 'ru' ? 'Хуже от утешения' : 'Worse from consolation', value: 'Утешение хуже, не хочет чтобы жалели' },
@@ -668,6 +676,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
       },
       {
         id: 'food',
+        requires: 'general',
         question: lang === 'ru' ? 'Пищевые пристрастия?' : 'Food desires?',
         options: [
           { label: lang === 'ru' ? 'Любит солёное' : 'Desires salt', value: 'Любит солёное' },
@@ -677,6 +686,9 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         ],
       },
     ]
+
+    // Показать только вопросы по недостающим категориям
+    const filteredQuestions = PRE_QUESTIONS.filter(q => missingCategories.includes(q.requires))
 
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -693,7 +705,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         </p>
 
         <div className="space-y-5">
-          {PRE_QUESTIONS.map(q => (
+          {filteredQuestions.map(q => (
             <div key={q.id} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5">
               <p className="text-[13px] font-medium text-[#1a1a1a] mb-3">{q.question}</p>
               <div className="flex flex-wrap gap-2">
