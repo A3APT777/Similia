@@ -238,8 +238,10 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
     }
 
     await saveAll()
+    // Подождать чтобы InlineRx autosave успел отработать
+    await new Promise(r => setTimeout(r, 500))
 
-    // Если препарат уже назначен — завершаем и показываем предложение отправить
+    // Проверяем препарат из state или из начальных данных
     const hasRemedy = savedRx?.remedy || consultation.remedy
     if (hasRemedy) {
       await handleConsultationDone()
@@ -391,8 +393,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
       {showPrescription && (
         <PrescriptionModal
           consultationId={consultation.id}
-          onSkip={handleConsultationDone}
-          onSaved={handleConsultationDone}
+          onSkip={async () => { await handleConsultationDone(); window.location.href = `/patients/${patient.id}` }}
+          onSaved={async () => { await handleConsultationDone(); setShowPrescription(false); setShowSharePrompt(true) }}
           initialRemedy={pendingPrescription?.abbrev ?? savedRx?.remedy}
           initialPotency={pendingPrescription?.potency ?? savedRx?.potency}
           initialDosage={pendingPrescription?.dosage ?? savedRx?.dosage}

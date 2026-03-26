@@ -16,11 +16,19 @@ type CalendarAppt = {
   patients: { id: string; name: string } | null
 }
 
+import { generateSlots, type ScheduleConfig } from '@/lib/slots'
+
 type Patient = { id: string; name: string }
 
-const HOUR_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
+// Дефолтное расписание если не передано
+const DEFAULT_SCHEDULE: ScheduleConfig = {
+  session_duration: 45, break_duration: 15,
+  working_days: ['mon', 'tue', 'wed', 'thu', 'fri'],
+  start_time: '09:00', end_time: '18:00',
+  lunch_enabled: true, lunch_start: '13:00', lunch_end: '14:00',
+}
 
-export default function CalendarWidget({ patients, lastRemedyMap }: { patients: Patient[]; lastRemedyMap?: Record<string, string> }) {
+export default function CalendarWidget({ patients, lastRemedyMap, schedule }: { patients: Patient[]; lastRemedyMap?: Record<string, string>; schedule?: ScheduleConfig | null }) {
   const { lang } = useLanguage()
   const router = useRouter()
   const today = todayMsk()
@@ -96,16 +104,12 @@ export default function CalendarWidget({ patients, lastRemedyMap }: { patients: 
     new Date(a.scheduled_at) > new Date(now.getTime() - 60 * 60 * 1000)
   )
 
-  const busyMins = selectedAppts.map(a => {
-    const t = toMskTime(a.scheduled_at)
-    const [h, m] = t.split(':').map(Number)
-    return h * 60 + m
-  })
+  // Занятые слоты — время уже записанных приёмов
+  const bookedSlots = selectedAppts.map(a => toMskTime(a.scheduled_at))
 
-  const freeSlots = HOUR_SLOTS.filter(slot => {
-    const [h, m] = slot.split(':').map(Number)
-    return !busyMins.some(b => Math.abs(b - (h * 60 + m)) < 60)
-  })
+  // Генерируем свободные слоты на основе расписания врача
+  const activeSchedule = schedule || DEFAULT_SCHEDULE
+  const freeSlots = generateSlots(activeSchedule, selectedDay, bookedSlots)
 
   function formatSelectedDay(dateStr: string) {
     const [y, mo, d] = dateStr.split('-').map(Number)

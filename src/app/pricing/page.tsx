@@ -183,7 +183,7 @@ export default function PricingPage() {
           {/* Реферал */}
           <div className="max-w-[500px] mx-auto mt-8 text-center">
             <p className="text-[14px] font-medium mb-1" style={{ color: 'var(--sim-green)' }}>
-              Приведи коллегу — получи +7 дней
+              Приведи коллегу — получи +7 дней и 1 AI-анализ
             </p>
             <p className="text-[13px]" style={{ color: '#8a7e6c' }}>
               <Link href="/referral" className="underline underline-offset-2">Реферальная программа</Link>

@@ -20,29 +20,46 @@ export type DoctorSchedule = {
 // Таблица хранит всё в одной строке — используем $queryRaw для совместимости.
 
 // Получить расписание врача
+const SCHEDULE_DEFAULTS: DoctorSchedule = {
+  session_duration: 45,
+  break_duration: 15,
+  working_days: ['mon', 'tue', 'wed', 'thu', 'fri'],
+  start_time: '09:00',
+  end_time: '18:00',
+  lunch_enabled: true,
+  lunch_start: '13:00',
+  lunch_end: '14:00',
+}
+
 export async function getDoctorScheduleAuth(): Promise<DoctorSchedule> {
   const { userId } = await requireAuth()
 
-  const rows = await prisma.$queryRaw<Array<Record<string, unknown>>>`
-    SELECT session_duration, break_duration, working_days,
-           start_time, end_time, lunch_enabled,
-           lunch_start, lunch_end
-    FROM doctor_schedules
-    WHERE doctor_id = ${userId}::uuid
-    LIMIT 1
-  `
+  try {
+    const rows = await prisma.$queryRaw<Array<Record<string, unknown>>>`
+      SELECT session_duration, break_duration, working_days,
+             start_time, end_time, lunch_enabled,
+             lunch_start, lunch_end
+      FROM doctor_schedules
+      WHERE doctor_id = ${userId}::uuid
+      LIMIT 1
+    `
 
-  const data = rows[0] ?? null
+    const data = rows[0] ?? null
+    if (!data) return SCHEDULE_DEFAULTS
 
-  return {
-    session_duration: (data?.session_duration as number) ?? 45,
-    break_duration: (data?.break_duration as number) ?? 15,
-    working_days: (data?.working_days as string[]) ?? ['mon', 'tue', 'wed', 'thu', 'fri'],
-    start_time: (data?.start_time as string) ?? '09:00',
-    end_time: (data?.end_time as string) ?? '18:00',
-    lunch_enabled: (data?.lunch_enabled as boolean) ?? true,
-    lunch_start: (data?.lunch_start as string) ?? '13:00',
-    lunch_end: (data?.lunch_end as string) ?? '14:00',
+    return {
+      session_duration: (data.session_duration as number) ?? 45,
+      break_duration: (data.break_duration as number) ?? 15,
+      working_days: (data.working_days as string[]) ?? ['mon', 'tue', 'wed', 'thu', 'fri'],
+      start_time: (data.start_time as string) ?? '09:00',
+      end_time: (data.end_time as string) ?? '18:00',
+      lunch_enabled: (data.lunch_enabled as boolean) ?? true,
+      lunch_start: (data.lunch_start as string) ?? '13:00',
+      lunch_end: (data.lunch_end as string) ?? '14:00',
+    }
+  } catch (err) {
+    console.error('[getDoctorScheduleAuth]', err)
+    return SCHEDULE_DEFAULTS
   }
 }
 

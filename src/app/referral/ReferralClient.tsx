@@ -59,7 +59,7 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
           {[
             { step: '01', title: 'Отправьте ссылку', desc: 'Скопируйте и отправьте ссылку коллеге в мессенджер' },
             { step: '02', title: 'Коллега регистрируется', desc: 'Переходит по ссылке, регистрируется и оплачивает подписку' },
-            { step: '03', title: 'Оба получают бонус', desc: 'Вам +7 дней Стандарта, коллеге +14 дней' },
+            { step: '03', title: 'Оба получают бонус', desc: 'Вам +7 дней и 1 AI-анализ, коллеге +14 дней и 2 AI-анализа' },
           ].map(s => (
             <div key={s.step} className="text-center">
               <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 text-xs font-bold text-white" style={{ backgroundColor: 'var(--sim-green)' }}>
@@ -76,11 +76,15 @@ export default function ReferralClient({ stats }: { stats: Stats }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="rounded-xl p-5 text-center" style={{ backgroundColor: 'rgba(45,106,79,0.06)', border: '1px solid rgba(45,106,79,0.15)' }}>
           <p className="text-2xl font-light mb-1" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-green)' }}>+7</p>
-          <p className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>дней вам</p>
+          <p className="text-xs mb-2" style={{ color: 'var(--sim-text-hint)' }}>дней Стандарта вам</p>
+          <p className="text-lg font-light" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-green)' }}>+1</p>
+          <p className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>AI-анализ</p>
         </div>
         <div className="rounded-xl p-5 text-center" style={{ backgroundColor: 'rgba(200,160,53,0.08)', border: '1px solid rgba(200,160,53,0.2)' }}>
           <p className="text-2xl font-light mb-1" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-amber)' }}>+14</p>
-          <p className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>дней коллеге</p>
+          <p className="text-xs mb-2" style={{ color: 'var(--sim-text-hint)' }}>дней Стандарта коллеге</p>
+          <p className="text-lg font-light" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-amber)' }}>+2</p>
+          <p className="text-xs" style={{ color: 'var(--sim-text-hint)' }}>AI-анализа</p>
         </div>
       </div>
 

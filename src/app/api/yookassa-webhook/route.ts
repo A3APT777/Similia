@@ -142,19 +142,26 @@ export async function POST(req: NextRequest) {
             console.error('[webhook] referral bonus error:', refErr)
           }
 
-          // +1 AI-кредит рефереру — атомарный инкремент
+          // +1 AI-кредит рефереру, +2 приглашённому
           try {
             const invitation = await tx.referralInvitation.findUnique({
               where: { inviteeId: userId },
               select: { referrerId: true },
             })
             if (invitation?.referrerId) {
+              // Рефереру +1 AI-анализ
               await tx.doctorSettings.upsert({
                 where: { doctorId: invitation.referrerId },
                 update: { aiCredits: { increment: 1 } },
                 create: { doctorId: invitation.referrerId, aiCredits: 1 },
               })
-              console.log(`[webhook] +1 AI credit for referrer ${invitation.referrerId}`)
+              // Приглашённому +2 AI-анализа
+              await tx.doctorSettings.upsert({
+                where: { doctorId: userId },
+                update: { aiCredits: { increment: 2 } },
+                create: { doctorId: userId, aiCredits: 2 },
+              })
+              console.log(`[webhook] referral bonus: +1 AI for referrer ${invitation.referrerId}, +2 AI for invitee ${userId}`)
             }
           } catch (creditErr) {
             console.error('[webhook] ai credit increment error:', creditErr)

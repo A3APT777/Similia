@@ -285,9 +285,11 @@ export default function PatientListClient({
                     )}
                     {patient.pending_followup_days && (
                       <span
-                        className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded"
+                        className="shrink-0 flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded"
                         style={{ backgroundColor: 'rgba(234,179,8,0.1)', color: '#92400e' }}
+                        title={lang === 'ru' ? `Ожидает ответа на опросник ${patient.pending_followup_days} дн.` : `Waiting for followup ${patient.pending_followup_days}d`}
                       >
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--sim-amber)' }} />
                         {patient.pending_followup_days}д
                       </span>
                     )}

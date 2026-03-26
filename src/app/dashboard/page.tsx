@@ -160,6 +160,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const patientsList = (patients || []).map(p => ({ id: p.id, name: p.name }))
   const lang = await getLang()
+
+  // Расписание врача для CalendarWidget
+  const { getDoctorScheduleAuth } = await import('@/lib/actions/schedule')
+  const doctorSchedule = await getDoctorScheduleAuth().catch(() => null)
+
   // Прямой запрос настроек доктора
   const doctorSettingsRow = await prisma.doctorSettings.findUnique({
     where: { doctorId: userId },
@@ -397,6 +402,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <div id="appointments-section" className="scroll-mt-6">
             <CalendarWidget
               patients={patientsList}
+              schedule={doctorSchedule}
               lastRemedyMap={Object.fromEntries(
                 [...lastConsultationMap.entries()].map(([pid, c]) => [pid, c.remedy]).filter(([, r]) => r) as [string, string][]
               )}
