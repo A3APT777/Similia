@@ -115,8 +115,12 @@ export async function analyzeCase(input: z.input<typeof analyzeSchema>): Promise
  * Анализ свободного текста — Sonnet парсит -> MDRI считает
  */
 export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Promise<ConsensusResult> {
+  console.log('[analyzeText] ENTRY')
+  try {
   const parsed = analyzeTextSchema.parse(input)
+  console.log('[analyzeText] parsed ok, text length:', parsed.text.length)
   const { userId } = await requireAuth()
+  console.log('[analyzeText] auth ok, userId:', userId)
 
   await checkAIAccess(userId)
 
@@ -267,6 +271,10 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     const elapsed = Date.now() - t0
     console.error(`[analyzeText] FAILED at ${elapsed}ms:`, e instanceof Error ? e.message : e)
     throw e
+  }
+  } catch (outerErr) {
+    console.error('[analyzeText] OUTER ERROR:', outerErr instanceof Error ? outerErr.stack : outerErr)
+    throw outerErr
   }
 }
 
