@@ -119,11 +119,16 @@ export async function analyzeCase(input: z.input<typeof analyzeSchema>): Promise
 /**
  * Анализ свободного текста — Sonnet парсит -> MDRI считает
  */
-export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Promise<ConsensusResult> {
+export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Promise<ConsensusResult & { _error?: string }> {
   const parsed = analyzeTextSchema.parse(input)
   const { userId } = await requireAuth()
 
-  await checkAIAccess(userId)
+  try {
+    await checkAIAccess(userId)
+  } catch {
+    // Возвращаем объект с маркером ошибки (не бросаем — Next.js теряет message)
+    return { _error: 'NO_AI_ACCESS' } as ConsensusResult & { _error: string }
+  }
 
   // Детальное логирование с таймингами
   const t0 = Date.now()

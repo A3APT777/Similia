@@ -252,11 +252,16 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
     setError('')
     try {
       const res = await analyzeText({ text: text.trim() })
+      // Server action возвращает _error вместо throw (Next.js теряет error.message)
+      if ('_error' in res && res._error === 'NO_AI_ACCESS') {
+        setError('NO_AI_ACCESS')
+        setStep('input')
+        return
+      }
       setResult(res)
       setStep('result')
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Ошибка'
-      setError(msg === 'NO_AI_ACCESS' ? 'NO_AI_ACCESS' : (lang === 'ru' ? 'Ошибка AI-анализа. Попробуйте ещё раз.' : 'AI analysis error. Try again.'))
+    } catch {
+      setError(lang === 'ru' ? 'Ошибка AI-анализа. Попробуйте ещё раз.' : 'AI analysis error. Try again.')
       setStep('input')
     }
   }
