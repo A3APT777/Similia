@@ -319,10 +319,12 @@ export default function LandingPage() {
               </div>
               <p className="text-[11px] font-medium tracking-[0.15em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Стандарт</p>
               <div className="mb-1">
-                <span className="lr-serif text-[40px] font-light text-white">290 ₽</span>
+                {/* Зачёркнутая старая цена + новая */}
+                <span className="line-through text-white/30 text-[24px] mr-2">990 ₽</span>
+                <span className="lr-serif text-[40px] font-light text-white">490 ₽</span>
                 <span className="text-[14px] ml-1" style={{ color: 'rgba(255,255,255,0.5)' }}>/мес</span>
               </div>
-              <p className="text-[13px] mb-6" style={{ color: 'rgba(255,255,255,0.4)' }}>или 2 900 ₽/год</p>
+              <p className="text-[13px] mb-6" style={{ color: 'rgba(255,255,255,0.4)' }}>или 4 900 ₽/год</p>
               <ul className="space-y-3 mb-8">
                 {['Безлимит пациентов', 'Онлайн-запись', 'Экспорт в PDF', 'Напоминания', 'Поддержка'].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-[14px]" style={{ color: 'rgba(255,255,255,0.85)' }}>

@@ -83,10 +83,12 @@ export default function PricingPage() {
               </div>
               <p className="text-[12px] font-medium tracking-[0.1em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Стандарт</p>
               <div className="mb-1">
-                <span className="heading-serif text-[40px] font-light text-white">290 ₽</span>
+                {/* Зачёркнутая старая цена + новая */}
+                <span className="line-through text-white/30 text-[24px] mr-2">990 ₽</span>
+                <span className="heading-serif text-[40px] font-light text-white">490 ₽</span>
                 <span className="text-[14px] ml-1" style={{ color: 'rgba(255,255,255,0.4)' }}>/мес</span>
               </div>
-              <p className="text-[12px] mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>или 2 900 ₽/год</p>
+              <p className="text-[12px] mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>или 4 900 ₽/год</p>
               <ul className="space-y-3 mb-8">
                 {['Безлимит пациентов', 'Онлайн-запись', 'Экспорт в PDF', 'Напоминания', 'Поддержка по email'].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-[14px]" style={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -97,13 +99,13 @@ export default function PricingPage() {
               <div className="space-y-2">
                 <CheckoutButton
                   period="monthly"
-                  label="290 ₽/мес"
+                  label="490 ₽/мес"
                   className="block w-full text-center py-3.5 rounded-full text-[14px] font-semibold transition-all hover:opacity-90"
                   style={{ backgroundColor: '#ffffff', color: 'var(--sim-forest)' }}
                 />
                 <CheckoutButton
                   period="yearly"
-                  label="2 900 ₽/год"
+                  label="4 900 ₽/год"
                   className="block w-full text-center py-3.5 rounded-full text-[14px] font-medium transition-colors hover:bg-white/20"
                   style={{ color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.3)' }}
                 />

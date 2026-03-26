@@ -94,12 +94,12 @@ export default function TermsPage() {
                   <tr>
                     <td className="px-4 py-2 text-gray-600">Стоимость</td>
                     <td className="px-4 py-2 text-center font-medium">0 ₽</td>
-                    <td className="px-4 py-2 text-center font-medium">290 ₽/мес</td>
+                    <td className="px-4 py-2 text-center font-medium">490 ₽/мес</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-2 text-gray-600">Годовая оплата</td>
                     <td className="px-4 py-2 text-center">—</td>
-                    <td className="px-4 py-2 text-center">2 900 ₽/год</td>
+                    <td className="px-4 py-2 text-center">4 900 ₽/год</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-2 text-gray-600">Пациенты</td>

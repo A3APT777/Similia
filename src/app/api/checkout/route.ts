@@ -11,7 +11,7 @@ const checkoutSchema = z.object({
 
 // Цены для подписок (требуют period)
 const SUBSCRIPTION_PRICES: Record<string, Record<string, number>> = {
-  standard: { monthly: 290, yearly: 2900 },
+  standard: { monthly: 490, yearly: 4900 },
   ai_pro: { monthly: 1990, yearly: 19900 },
 }
 
