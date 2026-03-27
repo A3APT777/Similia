@@ -373,6 +373,16 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                     ? translateRubric(ae.rubric.fullpath, ae.rubric.chapter)
                     : (ae.rubric.fullpath.startsWith(ae.rubric.chapter + ', ') ? ae.rubric.fullpath.slice(ae.rubric.chapter.length + 2) : ae.rubric.fullpath)
                   }
+                  {repoLang === 'ru' && (() => {
+                    const enParts = ae.rubric.fullpath.split(', ')
+                    const enLast = enParts[enParts.length - 1]
+                    const ruText = translateRubric(ae.rubric.fullpath, ae.rubric.chapter)
+                    const ruLast = ruText.split(', ').pop() || ''
+                    if (enLast.toLowerCase() !== ruLast.toLowerCase()) {
+                      return <span className="text-[10px] italic ml-1" style={{ color: '#b0a890' }}>{enLast}</span>
+                    }
+                    return null
+                  })()}
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0">
                   {/* Элиминация */}
@@ -598,6 +608,16 @@ export default function MiniRepertory({ consultationId, initialRepertoryData, in
                               ? translateRubric(r.fullpath, r.chapter)
                               : (r.fullpath.startsWith(r.chapter + ', ') ? r.fullpath.slice(r.chapter.length + 2) : r.fullpath)
                             }
+                            {repoLang === 'ru' && (() => {
+                              const enParts = r.fullpath.split(', ')
+                              const enLast = enParts[enParts.length - 1]
+                              const ruText = translateRubric(r.fullpath, r.chapter)
+                              const ruLast = ruText.split(', ').pop() || ''
+                              if (enLast.toLowerCase() !== ruLast.toLowerCase()) {
+                                return <span className="text-[10px] italic ml-1" style={{ color: '#b0a890' }}>{enLast}</span>
+                              }
+                              return null
+                            })()}
                           </p>
                         </div>
                         <span className="text-[12px] shrink-0 mt-0.5" style={{ color: 'var(--sim-text-hint)' }}>{r.remedy_count}</span>
