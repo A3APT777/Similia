@@ -549,11 +549,12 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
           <EditorHeader visitNumber={visitNumber} />
           <EditorToolbar onOpenRepertory={handleOpenRepertory} onRunAI={showAI ? handleRunAI : undefined} aiLoading={aiLoading} hasAIResult={!!aiResult} />
 
-          <div className="px-4">
+          {/* Подсказка — скрыта на мобиле */}
+          <div className="hidden sm:block px-4">
             <FirstTimeHint id="consultation">
               {lang === 'ru'
-                ? <>Запишите жалобы пациента. Раскройте «Модальности, психика» для подробностей. Реперторий — кнопка справа. Назначение — внизу. <a href="/docs/Repertory_Manual_RU.pdf" target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>Скачать руководство (PDF)</a></>
-                : <>Record patient complaints. Expand "Modalities, mentals" for details. Repertory — button on the right. Prescription — below. <a href="/docs/Repertory_Manual_RU.pdf" target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>Download guide (PDF)</a></>}
+                ? <>Запишите жалобы пациента. Раскройте «Модальности, психика» для подробностей. Реперторий — кнопка справа. Назначение — внизу.</>
+                : <>Record patient complaints. Expand "Modalities, mentals" for details. Repertory — button on the right. Prescription — below.</>}
             </FirstTimeHint>
           </div>
 
@@ -573,16 +574,44 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
               {/* Жалобы — основная графа */}
               <ComplaintsForm autoFocus />
 
-              {/* Prescription */}
-              <InlineRx
-                consultationId={consultation.id}
-                onSaved={(remedy, potency, dosage) => setSavedRx({ remedy, potency, dosage })}
-                assignedRemedy={repertoryAssignedRemedy}
-                initialRemedy={consultation.remedy}
-                initialPotency={consultation.potency}
-                initialDosage={consultation.dosage}
-                initialPellets={consultation.pellets}
-              />
+              {/* Prescription — collapsible на мобиле */}
+              <div className="sm:contents">
+                <details className="sm:hidden group" open={!!consultation.remedy}>
+                  <summary className="flex items-center gap-2 cursor-pointer select-none py-2 text-[13px] font-semibold uppercase tracking-[0.06em]" style={{ color: '#2d6a4f' }}>
+                    <svg className="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    {lang === 'ru' ? 'Назначение' : 'Prescription'}
+                    {savedRx?.remedy && (
+                      <span className="text-[12px] font-normal normal-case tracking-normal text-[#6b7280] ml-1">
+                        — {savedRx.remedy}
+                      </span>
+                    )}
+                  </summary>
+                  <div className="pt-1">
+                    <InlineRx
+                      consultationId={consultation.id}
+                      onSaved={(remedy, potency, dosage) => setSavedRx({ remedy, potency, dosage })}
+                      assignedRemedy={repertoryAssignedRemedy}
+                      initialRemedy={consultation.remedy}
+                      initialPotency={consultation.potency}
+                      initialDosage={consultation.dosage}
+                      initialPellets={consultation.pellets}
+                    />
+                  </div>
+                </details>
+                <div className="hidden sm:block">
+                  <InlineRx
+                    consultationId={consultation.id}
+                    onSaved={(remedy, potency, dosage) => setSavedRx({ remedy, potency, dosage })}
+                    assignedRemedy={repertoryAssignedRemedy}
+                    initialRemedy={consultation.remedy}
+                    initialPotency={consultation.potency}
+                    initialDosage={consultation.dosage}
+                    initialPellets={consultation.pellets}
+                  />
+                </div>
+              </div>
 
               {/* Заметки и план (объединение notes + recommendations) */}
               <section>
