@@ -1461,17 +1461,25 @@ function RubricRow({
           </div>
         </div>
 
-        {/* Кнопка [+] — добавить в анализ */}
+        {/* Кнопка [+] / [✓] — добавить в анализ */}
         <button
           data-tour="rep-add-rubric"
           type="button"
           aria-label={inAnalysis ? 'Already in analysis' : 'Add to analysis'}
           onPointerDown={e => { e.stopPropagation(); onAddToAnalysis() }}
-          className={`shrink-0 flex items-center justify-center transition-all ${isTutorialTarget || (tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
+          className={`shrink-0 flex items-center justify-center transition-all duration-200 ${
+            inAnalysis
+              ? 'opacity-100 scale-110'
+              : isTutorialTarget || (tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6)
+                ? 'opacity-100'
+                : 'opacity-100 lg:opacity-40 lg:group-hover:opacity-100'
+          }`}
           style={{
             width: 40, height: 40, minWidth: 40,
-            backgroundColor: inAnalysis ? '#1a7a40' : colors.link,
+            backgroundColor: inAnalysis ? '#16a34a' : 'rgba(45,106,79,0.12)',
             borderRadius: 10,
+            boxShadow: inAnalysis ? '0 2px 8px rgba(22,163,74,0.35)' : 'none',
+            border: inAnalysis ? 'none' : '1.5px solid rgba(45,106,79,0.25)',
             ...((tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6 && !inAnalysis) ? {
               outline: '2px solid #2d6a4f',
               outlineOffset: 2,
@@ -1481,11 +1489,11 @@ function RubricRow({
           title={inAnalysis ? t(lang).repertory.alreadyInAnalysis : t(lang).repertory.addToAnalysis}
         >
           {inAnalysis ? (
-            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           ) : (
-            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="var(--sim-green)" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
           )}
