@@ -25,26 +25,37 @@ export default function EditorToolbar({ onOpenRepertory, onStartMiniTour, onRunA
       className="px-5 lg:px-7 py-2.5 flex items-center gap-2 overflow-x-auto scrollbar-none"
       style={{ borderBottom: '1px solid var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
     >
-      {/* Тип */}
-      <button
+      {/* Переключатель: хронический / острый */}
+      <div
         data-tour="type-toggle"
-        type="button"
-        onClick={toggleType}
-        title={t(lang).consultation.changeTypeHint}
-        aria-label={lang === 'ru' ? `Тип: ${typeLabel}` : `Type: ${typeLabel}`}
-        className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full transition-all duration-200 shrink-0"
-        style={{
-          backgroundColor: type === 'acute' ? 'rgba(180,83,9,0.06)' : 'rgba(45,106,79,0.06)',
-          color: type === 'acute' ? '#b45309' : 'var(--sim-green)',
-          border: `1px solid ${type === 'acute' ? 'rgba(180,83,9,0.15)' : 'rgba(45,106,79,0.15)'}`,
-        }}
+        className="inline-flex items-center rounded-full shrink-0 p-0.5"
+        style={{ backgroundColor: 'var(--sim-bg-muted, #f0ece4)', border: '1px solid var(--sim-border)' }}
       >
-        <span
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: type === 'acute' ? '#b45309' : 'var(--sim-green)' }}
-        />
-        {typeLabel}
-      </button>
+        <button
+          type="button"
+          onClick={type === 'acute' ? toggleType : undefined}
+          className="text-[11px] font-medium px-3 py-1 rounded-full transition-all duration-200"
+          style={{
+            backgroundColor: type === 'chronic' ? 'var(--sim-bg-card)' : 'transparent',
+            color: type === 'chronic' ? 'var(--sim-green)' : 'var(--sim-text-muted)',
+            boxShadow: type === 'chronic' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          {lang === 'ru' ? 'Хронический' : 'Chronic'}
+        </button>
+        <button
+          type="button"
+          onClick={type === 'chronic' ? toggleType : undefined}
+          className="text-[11px] font-medium px-3 py-1 rounded-full transition-all duration-200"
+          style={{
+            backgroundColor: type === 'acute' ? 'var(--sim-bg-card)' : 'transparent',
+            color: type === 'acute' ? '#b45309' : 'var(--sim-text-muted)',
+            boxShadow: type === 'acute' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          {lang === 'ru' ? 'Острый' : 'Acute'}
+        </button>
+      </div>
 
       {/* Реперторий */}
       <button
