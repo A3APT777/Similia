@@ -206,22 +206,31 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
   return (
     <div data-tour="complaints" className="space-y-5">
 
-      {/* Пресеты для острого случая */}
+      {/* Пресеты для острого случая — Apple/Linear pill chips */}
       {isAcute && (
-        <div className="flex flex-wrap gap-2">
-          {ACUTE_PRESETS.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setActivePreset(activePreset === p.id ? null : p.id)}
-              className={`text-[13px] px-4 py-2 rounded-full transition-all duration-200 hover:-translate-y-0.5 ${
-                activePreset === p.id
-                  ? 'bg-[#b45309] text-white shadow-sm'
-                  : 'bg-white text-[#1a1a1a] border border-gray-200 hover:border-[#b45309]/30'
-              }`}
-            >
-              {p.icon} {lang === 'ru' ? p.label : p.labelEn}
-            </button>
-          ))}
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#6b7280] mb-2.5">
+            {lang === 'ru' ? 'Тип случая' : 'Case type'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {ACUTE_PRESETS.map(p => {
+              const isActive = activePreset === p.id
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setActivePreset(isActive ? null : p.id)}
+                  className={`text-[13px] font-medium px-5 py-2.5 rounded-full transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#b45309] text-white shadow-[0_2px_8px_rgba(180,83,9,0.25)]'
+                      : 'bg-white text-[#1a1a1a] border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_6px_16px_rgba(0,0,0,0.05)] hover:border-[#b45309]/20'
+                  }`}
+                >
+                  <span className="mr-1.5">{p.icon}</span>
+                  {lang === 'ru' ? p.label : p.labelEn}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
