@@ -499,6 +499,68 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
             </div>
           )}
 
+          {/* ── История назначений ── */}
+          {(() => {
+            const rxHistory = consultationsMapped
+              .filter(c => c.remedy && c.status === 'completed')
+              .map(c => ({
+                date: c.date,
+                remedy: c.remedy,
+                potency: c.potency,
+                dynamics: c.doctor_dynamics,
+                source: c.source,
+                consultationId: c.id,
+              }))
+            if (rxHistory.length === 0) return null
+
+            const DYNAMICS_DISPLAY: Record<string, { icon: string; label: string; color: string }> = {
+              improving: { icon: '\u2191', label: 'Улучшение', color: '#2d6a4f' },
+              aggravation: { icon: '\u26A1', label: 'Обострение', color: '#c8a035' },
+              no_change: { icon: '\u2192', label: 'Без изм.', color: '#6b7280' },
+              worsening: { icon: '\u2193', label: 'Ухудшение', color: '#dc2626' },
+              deterioration: { icon: '\u2717', label: 'Без реакции', color: '#b45309' },
+            }
+
+            return (
+              <div className="mb-5">
+                <p className="text-[11px] font-medium uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--sim-text-muted)' }}>
+                  {lang === 'ru' ? 'История назначений' : 'Prescription history'}
+                </p>
+                <div className="rounded-xl bg-white border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] overflow-hidden">
+                  {rxHistory.map((rx, i) => {
+                    const d = rx.dynamics ? DYNAMICS_DISPLAY[rx.dynamics] : null
+                    const dateStr = new Date(rx.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                    return (
+                      <a
+                        key={rx.consultationId}
+                        href={`/patients/${id}/consultations/${rx.consultationId}`}
+                        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[#f7f3ed]/50"
+                        style={{ borderBottom: i < rxHistory.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}
+                      >
+                        <span className="text-[12px] text-[#6b7280] w-16 shrink-0 tabular-nums">{dateStr}</span>
+                        <span
+                          className="text-[15px] font-light flex-1"
+                          style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)', color: '#1a1a1a' }}
+                        >
+                          {rx.remedy}
+                          {rx.potency && <span className="text-[13px] text-[#2d6a4f] font-normal ml-1.5">{rx.potency}</span>}
+                        </span>
+                        {rx.source === 'ai' && (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>AI</span>
+                        )}
+                        {d && (
+                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${d.color}10`, color: d.color }}>
+                            {d.icon} {d.label}
+                          </span>
+                        )}
+                      </a>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
+
           {/* ── История ── */}
           {consultationsMapped.length === 0 ? (
             <div className="mb-5 py-8 text-center">
