@@ -100,6 +100,13 @@ const PRIMARY_SECTIONS: Section[] = [
       { key: 'skin', label: 'Кожа / ногти / волосы' },
     ],
   },
+  {
+    title: 'Прививки и детские болезни',
+    fields: [
+      { key: 'vaccinations', label: 'Прививки', multiline: true },
+      { key: 'childhood_diseases', label: 'Детские болезни', multiline: true },
+    ],
+  },
 ]
 
 const ACUTE_SECTIONS: Section[] = [

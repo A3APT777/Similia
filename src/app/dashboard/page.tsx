@@ -500,6 +500,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
             </div>
           )}
+          {/* Реферальная программа */}
+          <Link
+            href="/referral"
+            className="block rounded-xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+            style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.12)' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🎁</span>
+              <div>
+                <p className="text-[13px] font-medium" style={{ color: 'var(--sim-green)' }}>
+                  {lang === 'ru' ? 'Пригласите коллегу' : 'Invite a colleague'}
+                </p>
+                <p className="text-[11px]" style={{ color: 'var(--sim-text-muted)' }}>
+                  {lang === 'ru' ? '+1 AI вам, +2 AI приглашённому' : '+1 AI for you, +2 for them'}
+                </p>
+              </div>
+            </div>
+          </Link>
         </div>}
 
       </div>

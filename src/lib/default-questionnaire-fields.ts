@@ -21,6 +21,9 @@ export const DEFAULT_PRIMARY_FIELDS: TemplateField[] = [
   { id: 'menstrual_character', label: 'Характер менструаций', hint: 'Обильность, цвет, наличие сгустков, болезненность (до/во время/после)', type: 'textarea', required: false },
   { id: 'menstrual_concomitant', label: 'Сопутствующие симптомы', hint: 'Изменения настроения, головные боли, тошнота, отёки до/во время менструации', type: 'textarea', required: false },
   { id: 'gynecological_history', label: 'Гинекологический анамнез', hint: 'Беременности, роды, аборты, операции, выделения, климакс', type: 'textarea', required: false },
+  // Прививочный анамнез и детские болезни — важно для миазматического анализа
+  { id: 'vaccinations', label: 'Прививки', hint: 'Какие прививки делали? Были ли реакции? Отводы?', type: 'textarea', required: false },
+  { id: 'childhood_diseases', label: 'Детские болезни', hint: 'Корь, ветрянка, скарлатина, коклюш, паротит и др. В каком возрасте?', type: 'textarea', required: false },
 ]
 
 // Острый случай

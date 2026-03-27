@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import CheckoutButton from './CheckoutButton'
-import Logo from '@/components/Logo'
+import PublicNavbar from '@/components/PublicNavbar'
 
 export const metadata: Metadata = {
   title: 'Тарифы — Similia',
@@ -20,19 +20,7 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f7f3ed' }}>
 
-      {/* Nav */}
-      <header className="fixed top-0 left-0 right-0 z-50" style={{ backgroundColor: 'rgba(247,243,237,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-        <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <Logo size={28} />
-            <span className="heading-serif text-[22px] font-light" style={{ color: 'var(--sim-forest)', letterSpacing: '0.04em' }}>Similia</span>
-          </Link>
-          <nav className="flex items-center gap-2">
-            <Link href="/login" className="text-[14px] px-5 py-2.5 rounded-full transition-colors" style={{ color: '#8a7e6c' }}>Войти</Link>
-            <Link href="/register" className="text-[14px] font-medium text-white px-6 py-2.5 rounded-full transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--sim-green)' }}>Начать</Link>
-          </nav>
-        </div>
-      </header>
+      <PublicNavbar />
 
       <main className="pt-32 pb-24">
         <div className="max-w-[1000px] mx-auto px-6">
