@@ -517,19 +517,26 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
         </div>
       )}
 
-      {/* Mobile tab bar */}
-      <div className="lg:hidden flex shrink-0" style={{ borderBottom: '1px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-muted)' }}>
-        <button onClick={() => setMobileTab('editor')} className="flex-1 py-3 text-xs font-semibold transition-colors border-b-2" style={{ color: mobileTab === 'editor' ? 'var(--sim-text)' : 'var(--sim-text-hint)', borderColor: mobileTab === 'editor' ? 'var(--sim-green)' : 'transparent' }}>
+      {/* Mobile tab bar — sticky, крупнее для 50+ */}
+      <div className="lg:hidden flex shrink-0 sticky top-0 z-10" style={{ borderBottom: '1px solid var(--sim-border-light)', backgroundColor: 'rgba(242,236,228,0.95)', backdropFilter: 'blur(8px)' }}>
+        <button
+          onClick={() => setMobileTab('editor')}
+          className="flex-1 py-3.5 text-[14px] font-semibold transition-colors border-b-2"
+          style={{ color: mobileTab === 'editor' ? '#1a1a1a' : '#6b7280', borderColor: mobileTab === 'editor' ? '#2d6a4f' : 'transparent' }}
+        >
           {t(lang).consultation.editor}
         </button>
-        <button onClick={() => setMobileTab('context')} className="flex-1 py-3 text-xs font-semibold transition-colors border-b-2 relative" style={{ color: mobileTab === 'context' ? 'var(--sim-text)' : 'var(--sim-text-hint)', borderColor: mobileTab === 'context' ? 'var(--sim-green)' : 'transparent' }}>
+        <button
+          onClick={() => setMobileTab('context')}
+          className="flex-1 py-3.5 text-[14px] font-semibold transition-colors border-b-2 relative"
+          style={{ color: mobileTab === 'context' ? '#1a1a1a' : '#6b7280', borderColor: mobileTab === 'context' ? '#2d6a4f' : 'transparent' }}
+        >
           {state.showRepertory
             ? (lang === 'ru' ? 'Реперторий' : 'Repertory')
             : (lang === 'ru' ? 'Контекст' : 'Context')
           }
-          {/* Badge — есть данные в контексте */}
           {mobileTab !== 'context' && (aiResult || preVisitSurvey || previousConsultation) && (
-            <span className="absolute top-2 right-[calc(50%-28px)] w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--sim-green)' }} />
+            <span className="absolute top-2.5 right-[calc(50%-28px)] w-2 h-2 rounded-full bg-[#2d6a4f]" />
           )}
         </button>
       </div>
@@ -552,7 +559,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto min-h-[60vh] lg:min-h-0" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
-            <div className="px-5 lg:px-7 py-5 pb-20 lg:pb-5 space-y-5">
+            <div className="px-3 sm:px-5 lg:px-7 py-4 pb-20 lg:pb-5 space-y-4 sm:space-y-5">
 
               {/* Dynamics from previous visit */}
               {previousConsultation && (
