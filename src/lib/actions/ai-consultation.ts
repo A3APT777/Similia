@@ -496,7 +496,7 @@ async function parseTextWithSonnet(text: string): Promise<{
   const response = await withRetry(() => client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 2000,
-    temperature: 0.1,
+    temperature: 0, // Полная стабильность: один текст = один результат
     system: PARSING_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: text }],
   }))
@@ -550,7 +550,7 @@ async function verifyTop5(
   const response = await withRetry(() => client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 800,
-    temperature: 0.1,
+    temperature: 0,
     system: VERIFIER_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userMessage }],
   }))
