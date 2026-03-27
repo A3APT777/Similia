@@ -503,19 +503,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {/* Реферальная программа */}
           <Link
             href="/referral"
-            className="block rounded-xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.12)' }}
+            className="block rounded-xl p-4 transition-all duration-300 hover:-translate-y-0.5"
+            style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
           >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🎁</span>
-              <div>
-                <p className="text-[13px] font-medium" style={{ color: 'var(--sim-green)' }}>
-                  {lang === 'ru' ? 'Пригласите коллегу' : 'Invite a colleague'}
-                </p>
-                <p className="text-[11px]" style={{ color: 'var(--sim-text-muted)' }}>
-                  {lang === 'ru' ? '+1 AI вам, +2 AI приглашённому' : '+1 AI for you, +2 for them'}
-                </p>
-              </div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--sim-green)' }}>
+              {lang === 'ru' ? 'Реферальная программа' : 'Referral program'}
+            </p>
+            <p className="text-[13px] font-medium mb-1.5" style={{ color: 'var(--sim-text)' }}>
+              {lang === 'ru' ? 'Пригласите коллегу' : 'Invite a colleague'}
+            </p>
+            <div className="space-y-1">
+              <p className="text-[11px]" style={{ color: 'var(--sim-text-muted)' }}>
+                {lang === 'ru' ? 'Вам: +7 дней Стандарт + 1 AI' : 'You: +7 days Standard + 1 AI'}
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--sim-text-muted)' }}>
+                {lang === 'ru' ? 'Коллеге: +14 дней Стандарт + 2 AI' : 'Colleague: +14 days Standard + 2 AI'}
+              </p>
             </div>
           </Link>
         </div>}

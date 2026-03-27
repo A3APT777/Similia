@@ -138,34 +138,68 @@ export async function POST(req: NextRequest) {
         // Реферальный бонус (только за подписку, не за паки)
         if (!planId.startsWith('ai_pack_')) {
           try {
-            await tx.$executeRaw`SELECT apply_referral_bonus(${userId}::uuid)`
-          } catch (refErr) {
-            console.error('[webhook] referral bonus error:', refErr)
-          }
-
-          // +1 AI-кредит рефереру, +2 приглашённому
-          try {
             const invitation = await tx.referralInvitation.findUnique({
               where: { inviteeId: userId },
-              select: { referrerId: true },
+              select: { referrerId: true, bonusApplied: true },
             })
-            if (invitation?.referrerId) {
-              // Рефереру +1 AI-анализ
+
+            if (invitation?.referrerId && !invitation.bonusApplied) {
+              const MAX_BONUS_DAYS = 180
+              const REFERRER_DAYS = 7
+              const INVITEE_DAYS = 14
+
+              // Рефереру: +7 дней подписки + 1 AI-кредит
+              const referrerSub = await tx.subscription.findUnique({ where: { doctorId: invitation.referrerId } })
+              if (referrerSub) {
+                // Считаем уже накопленные бонусные дни
+                const totalBonusDays = await tx.referralInvitation.aggregate({
+                  where: { referrerId: invitation.referrerId, bonusApplied: true },
+                  _sum: { referrerBonusDays: true },
+                })
+                const alreadyBonusDays = totalBonusDays._sum.referrerBonusDays || 0
+
+                if (alreadyBonusDays < MAX_BONUS_DAYS) {
+                  const daysToAdd = Math.min(REFERRER_DAYS, MAX_BONUS_DAYS - alreadyBonusDays)
+                  const currentEnd = new Date(referrerSub.currentPeriodEnd || Date.now())
+                  const newEnd = new Date(currentEnd.getTime() + daysToAdd * 24 * 60 * 60 * 1000)
+                  await tx.subscription.update({
+                    where: { doctorId: invitation.referrerId },
+                    data: { currentPeriodEnd: newEnd },
+                  })
+                }
+              }
               await tx.doctorSettings.upsert({
                 where: { doctorId: invitation.referrerId },
                 update: { aiCredits: { increment: 1 } },
                 create: { doctorId: invitation.referrerId, aiCredits: 1 },
               })
-              // Приглашённому +2 AI-анализа
+
+              // Приглашённому: +14 дней подписки + 2 AI-кредита
+              const inviteeSub = await tx.subscription.findUnique({ where: { doctorId: userId } })
+              if (inviteeSub) {
+                const currentEnd = new Date(inviteeSub.currentPeriodEnd || Date.now())
+                const newEnd = new Date(currentEnd.getTime() + INVITEE_DAYS * 24 * 60 * 60 * 1000)
+                await tx.subscription.update({
+                  where: { doctorId: userId },
+                  data: { currentPeriodEnd: newEnd },
+                })
+              }
               await tx.doctorSettings.upsert({
                 where: { doctorId: userId },
                 update: { aiCredits: { increment: 2 } },
                 create: { doctorId: userId, aiCredits: 2 },
               })
-              console.log(`[webhook] referral bonus: +1 AI for referrer ${invitation.referrerId}, +2 AI for invitee ${userId}`)
+
+              // Помечаем бонус как применённый
+              await tx.referralInvitation.update({
+                where: { inviteeId: userId },
+                data: { bonusApplied: true, referrerBonusDays: REFERRER_DAYS },
+              })
+
+              console.log(`[webhook] referral bonus applied: referrer ${invitation.referrerId} +${REFERRER_DAYS}d +1AI, invitee ${userId} +${INVITEE_DAYS}d +2AI`)
             }
           } catch (creditErr) {
-            console.error('[webhook] ai credit increment error:', creditErr)
+            console.error('[webhook] referral bonus error:', creditErr)
           }
         }
       })
