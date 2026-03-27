@@ -1394,10 +1394,20 @@ function RubricRow({
               ))}
             </div>
           )}
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[14px] leading-tight truncate" style={{ fontFamily: 'Georgia, serif' }}>
+          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+            <span className="text-[14px] leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
               <span className="font-bold" style={{ color: 'var(--sim-forest)' }}>{segments[segments.length - 1].toUpperCase()}</span>
             </span>
+            {lang === 'ru' && (() => {
+              const enParts = rubric.fullpath.split(', ')
+              const enLast = enParts[enParts.length - 1]
+              const ruLast = segments[segments.length - 1]
+              // Показываем английский только если отличается от русского
+              if (enLast.toLowerCase() !== ruLast.toLowerCase()) {
+                return <span className="text-[11px] italic" style={{ color: '#b0a890' }}>{enLast}</span>
+              }
+              return null
+            })()}
             {rubric.chapter && (
               <span
                 className="shrink-0 text-[12px] px-1 rounded"
