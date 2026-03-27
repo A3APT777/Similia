@@ -4,12 +4,10 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { createIntakeLink, createIntakeLinkForPatient } from '@/lib/actions/intake'
 import { createPreVisitSurvey } from '@/lib/actions/surveys'
-import { IntakeType } from '@/types'
-
-type Patient = { id: string; name: string }
+import { IntakeType, type PatientPreview } from '@/types'
 
 type Props = {
-  patients: Patient[]
+  patients: PatientPreview[]
 }
 
 type Flow = 'intake' | 'existing' | null

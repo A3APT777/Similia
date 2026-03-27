@@ -17,8 +17,7 @@ type CalendarAppt = {
 }
 
 import { generateSlots, type ScheduleConfig } from '@/lib/slots'
-
-type Patient = { id: string; name: string }
+import type { PatientPreview } from '@/types'
 
 // Дефолтное расписание если не передано
 const DEFAULT_SCHEDULE: ScheduleConfig = {
@@ -28,7 +27,7 @@ const DEFAULT_SCHEDULE: ScheduleConfig = {
   lunch_enabled: true, lunch_start: '13:00', lunch_end: '14:00',
 }
 
-export default function CalendarWidget({ patients, lastRemedyMap, schedule }: { patients: Patient[]; lastRemedyMap?: Record<string, string>; schedule?: ScheduleConfig | null }) {
+export default function CalendarWidget({ patients, lastRemedyMap, schedule }: { patients: PatientPreview[]; lastRemedyMap?: Record<string, string>; schedule?: ScheduleConfig | null }) {
   const { lang } = useLanguage()
   const router = useRouter()
   const today = todayMsk()

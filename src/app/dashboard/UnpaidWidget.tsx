@@ -4,10 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { t } from '@/lib/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
+import type { PatientPreview } from '@/types'
 
-type Patient = { id: string; name: string }
-
-export default function UnpaidWidget({ patients }: { patients: Patient[] }) {
+export default function UnpaidWidget({ patients }: { patients: PatientPreview[] }) {
   const { lang } = useLanguage()
   const [open, setOpen] = useState(false)
   if (patients.length === 0) return null

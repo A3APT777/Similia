@@ -15,6 +15,10 @@ export type Patient = {
   updated_at: string
 }
 
+// Минимальные подмножества Patient для списков и виджетов
+export type PatientPreview = Pick<Patient, 'id' | 'name'>
+export type PatientWithType = Pick<Patient, 'id' | 'name' | 'constitutional_type'>
+
 export type ConsultationStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 export type ConsultationType = 'chronic' | 'acute'
 

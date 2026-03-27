@@ -13,12 +13,11 @@ import { ShineBorder } from '@/components/ui/shine-border'
 import { Gauge } from '@/components/ui/gauge-1'
 import { TextShimmer } from '@/components/ui/text-shimmer'
 import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from '@/components/ui/chat-bubble'
+import type { PatientWithType } from '@/types'
 import './ai-styles.css'
 
-type Patient = { id: string; name: string; constitutional_type: string | null }
-
 type Props = {
-  patients: Patient[]
+  patients: PatientWithType[]
   lang: Lang
   aiStatus?: { isAIPro: boolean; credits: number }
 }
