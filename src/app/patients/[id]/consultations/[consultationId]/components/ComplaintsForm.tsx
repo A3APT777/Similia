@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useConsultation } from '../context/ConsultationContext'
 import { useLanguage } from '@/hooks/useLanguage'
 
@@ -39,34 +39,94 @@ const CHRONIC_LABELS = {
 // Метки и плейсхолдеры для острого случая
 const ACUTE_LABELS = {
   ru: {
-    chief: '⚡ Острая жалоба',
+    chief: 'Острая жалоба',
     chiefPlaceholder: 'Что происходит сейчас — жар, рвота, боль в горле, кашель...',
     onset: 'Начало и причина',
-    onsetPlaceholder: 'Когда началось, как быстро развилось, что предшествовало (переохлаждение, стресс, обида, испуг)...',
+    onsetPlaceholder: 'Когда началось, как быстро развилось, что предшествовало...',
     worse: 'Хуже от',
     worsePlaceholder: 'движение, тепло, ночью, прикосновение...',
     better: 'Лучше от',
     betterPlaceholder: 'покой, холод, давление, согревание...',
-    general: 'Температура, озноб, жажда, пот',
+    general: 'Температура, озноб, жажда',
     generalPlaceholder: 'жар 38.5°, жаждет холодной воды, бьёт озноб, обильный пот...',
-    mental: 'Поведение и сопутствующие симптомы',
-    mentalPlaceholder: 'беспокойный / спокойный, хочет внимания или быть один, рвота, диарея, высыпания...',
+    mental: 'Поведение',
+    mentalPlaceholder: 'беспокойный / спокойный, хочет внимания или быть один...',
+    side: 'Сторона',
+    sidePlaceholder: 'правая / левая / чередуется',
   },
   en: {
-    chief: '⚡ Acute complaint',
+    chief: 'Acute complaint',
     chiefPlaceholder: 'What is happening now — fever, vomiting, sore throat, cough...',
     onset: 'Onset & cause',
-    onsetPlaceholder: 'When it started, how fast it developed, what preceded it (cold, stress, fright, injury)...',
+    onsetPlaceholder: 'When it started, what preceded it (cold, stress, fright)...',
     worse: 'Worse from',
     worsePlaceholder: 'motion, heat, at night, touch...',
     better: 'Better from',
     betterPlaceholder: 'rest, cold, pressure, warmth...',
-    general: 'Temperature, chills, thirst, sweat',
+    general: 'Temperature, chills, thirst',
     generalPlaceholder: 'fever 38.5°, craves cold water, chills, profuse sweating...',
-    mental: 'Behavior & concomitants',
-    mentalPlaceholder: 'restless / quiet, wants company or solitude, vomiting, diarrhea, discharge...',
+    mental: 'Behavior',
+    mentalPlaceholder: 'restless / quiet, wants company or solitude...',
+    side: 'Side',
+    sidePlaceholder: 'right / left / alternating',
   },
 }
+
+// Типовые острые случаи с подсказками для врача
+type AcutePreset = {
+  id: string
+  label: string
+  labelEn: string
+  icon: string
+  chiefHint: string
+  worseHint: string
+  betterHint: string
+  generalHint: string
+  mentalHint: string
+}
+
+const ACUTE_PRESETS: AcutePreset[] = [
+  {
+    id: 'orvi', label: 'ОРВИ', labelEn: 'Cold/Flu', icon: '🤧',
+    chiefHint: 'Насморк, кашель, чихание, боль в горле...',
+    worseHint: 'холод, сквозняк, ночью, утром...',
+    betterHint: 'тепло, горячее питьё, покой...',
+    generalHint: 'Озноб или жар? Жажда? Выделения из носа — цвет? Кашель сухой/влажный?',
+    mentalHint: 'вялый или беспокойный, раздражительный, плаксивый...',
+  },
+  {
+    id: 'angina', label: 'Ангина', labelEn: 'Tonsillitis', icon: '🫁',
+    chiefHint: 'Боль в горле, трудно глотать, налёт на миндалинах...',
+    worseHint: 'глотание, холодное/тёплое питьё, ночью...',
+    betterHint: 'тёплое/холодное питьё, покой...',
+    generalHint: 'Какая сторона? Жар? Слюнотечение? Запах изо рта? Увеличены лимфоузлы?',
+    mentalHint: 'раздражительный, капризный, хочет компанию или один...',
+  },
+  {
+    id: 'otit', label: 'Отит', labelEn: 'Otitis', icon: '👂',
+    chiefHint: 'Боль в ухе, стреляет, выделения...',
+    worseHint: 'ночью, тепло, лёжа на больной стороне...',
+    betterHint: 'холод, тепло, давление...',
+    generalHint: 'Какое ухо? Температура? Выделения — цвет, запах?',
+    mentalHint: 'кричит от боли, успокаивается когда носят...',
+  },
+  {
+    id: 'colic', label: 'Колики', labelEn: 'Colic', icon: '😣',
+    chiefHint: 'Боль в животе, спазмы, вздутие...',
+    worseHint: 'после еды, движение, разгибание...',
+    betterHint: 'сгибание, давление, тепло, горячая грелка...',
+    generalHint: 'Сгибается от боли? Тошнота? Рвота? Понос? Газы?',
+    mentalHint: 'злой от боли, хочет покоя, нетерпеливый...',
+  },
+  {
+    id: 'trauma', label: 'Травма', labelEn: 'Injury', icon: '🩹',
+    chiefHint: 'Ушиб, удар, падение, растяжение...',
+    worseHint: 'движение, прикосновение, сырость...',
+    betterHint: 'покой, холод, возвышенное положение...',
+    generalHint: 'Что произошло? Отёк? Синяк? Перелом? Кровотечение?',
+    mentalHint: 'говорит что в порядке, боится прикосновения, шок...',
+  },
+]
 
 type Props = {
   autoFocus?: boolean
@@ -76,10 +136,14 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
   const { state, updateField } = useConsultation()
   const { lang } = useLanguage()
   const isAcute = state.type === 'acute'
+  const [activePreset, setActivePreset] = useState<string | null>(null)
 
   const labels = isAcute
     ? (ACUTE_LABELS[lang] ?? ACUTE_LABELS.ru)
     : (CHRONIC_LABELS[lang] ?? CHRONIC_LABELS.ru)
+
+  // Получить плейсхолдеры с учётом пресета
+  const preset = ACUTE_PRESETS.find(p => p.id === activePreset)
 
   const chiefRef = useRef<HTMLTextAreaElement>(null)
   const onsetRef = useRef<HTMLTextAreaElement>(null)
@@ -95,7 +159,6 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
     }
   }, [autoFocus])
 
-  // Авто-высота textarea
   function autoResize(el: HTMLTextAreaElement) {
     el.style.height = 'auto'
     el.style.height = el.scrollHeight + 'px'
@@ -108,7 +171,6 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
     }
   }
 
-  // Tab между полями
   function handleTab(e: React.KeyboardEvent<HTMLTextAreaElement>, nextRef: React.RefObject<HTMLTextAreaElement | null>) {
     if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault()
@@ -116,10 +178,14 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
     }
   }
 
-  // Стили textarea — Apple-level
-  const taBase = 'w-full resize-none rounded-xl border px-3.5 py-2.5 transition-all duration-200 focus:outline-none text-sm leading-relaxed'
-  const focusBorder = isAcute ? 'rgba(180,83,9,0.4)' : 'var(--sim-green)'
+  // Стили
+  const taBase = 'w-full resize-none rounded-xl border px-4 py-3 transition-all duration-200 focus:outline-none text-[15px] leading-relaxed'
+  const acuteAccent = '#b45309'
+  const greenAccent = 'var(--sim-green)'
+  const focusBorder = isAcute ? `rgba(180,83,9,0.4)` : greenAccent
   const focusShadow = isAcute ? '0 0 0 3px rgba(180,83,9,0.06)' : '0 0 0 3px rgba(45,106,79,0.08)'
+  const acuteBg = '#fffbf0'
+  const chronicBg = '#fff'
 
   function focusStyle(e: React.FocusEvent<HTMLTextAreaElement>) {
     e.currentTarget.style.borderColor = focusBorder
@@ -130,14 +196,38 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
     e.currentTarget.style.boxShadow = 'none'
   }
 
-  return (
-    <div data-tour="complaints" className="space-y-4">
+  // Label компонент
+  const Label = ({ text, color, htmlFor }: { text: string; color?: string; htmlFor?: string }) => (
+    <label htmlFor={htmlFor} className="block mb-2" style={{ fontSize: '13px', fontWeight: 600, color: color || (isAcute ? acuteAccent : '#7a6e64'), textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>
+      {text}
+    </label>
+  )
 
-      {/* Основная жалоба / Острая жалоба */}
+  return (
+    <div data-tour="complaints" className="space-y-5">
+
+      {/* Пресеты для острого случая */}
+      {isAcute && (
+        <div className="flex flex-wrap gap-2">
+          {ACUTE_PRESETS.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setActivePreset(activePreset === p.id ? null : p.id)}
+              className={`text-[13px] px-4 py-2 rounded-full transition-all duration-200 hover:-translate-y-0.5 ${
+                activePreset === p.id
+                  ? 'bg-[#b45309] text-white shadow-sm'
+                  : 'bg-white text-[#1a1a1a] border border-gray-200 hover:border-[#b45309]/30'
+              }`}
+            >
+              {p.icon} {lang === 'ru' ? p.label : p.labelEn}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Основная жалоба */}
       <div>
-        <label htmlFor="chief-complaint" className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: isAcute ? '#b45309' : '#7a6e64', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {labels.chief}
-        </label>
+        <Label text={isAcute ? `⚡ ${labels.chief}` : labels.chief} htmlFor="chief-complaint" />
         <textarea
           id="chief-complaint"
           ref={chiefRef}
@@ -145,207 +235,196 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
           onChange={handleChange('complaints')}
           onInput={e => autoResize(e.currentTarget)}
           onKeyDown={e => handleTab(e, onsetRef)}
-          placeholder={labels.chiefPlaceholder}
+          placeholder={preset?.chiefHint || labels.chiefPlaceholder}
           rows={3}
           className={taBase}
-          style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
+          style={{ borderColor: 'var(--sim-border)', backgroundColor: isAcute ? acuteBg : chronicBg }}
           onFocus={focusStyle}
           onBlur={blurStyle}
         />
       </div>
 
-      {/* Этиология — для хронического случая */}
-      {!isAcute && (
-        <div>
-          <label htmlFor="etiology" className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sim-text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-            {(labels as typeof CHRONIC_LABELS.ru).etiology}
-          </label>
-          <textarea
-            id="etiology"
-            ref={onsetRef}
-            value={state.observations}
-            onChange={handleChange('observations')}
-            onInput={e => autoResize(e.currentTarget)}
-            onKeyDown={e => handleTab(e, worseRef)}
-            placeholder={(labels as typeof CHRONIC_LABELS.ru).etiologyPlaceholder}
-            rows={2}
-            className={taBase}
-            style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
-            onFocus={focusStyle}
-            onBlur={blurStyle}
-          />
-        </div>
-      )}
-
-      {/* Начало и причина — только для острого случая */}
-      {isAcute && (
-        <div>
-          <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: '#b45309', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-            {(labels as typeof ACUTE_LABELS.ru).onset}
-          </label>
-          <textarea
-            ref={onsetRef}
-            value={state.observations}
-            onChange={handleChange('observations')}
-            onInput={e => autoResize(e.currentTarget)}
-            onKeyDown={e => handleTab(e, worseRef)}
-            placeholder={(labels as typeof ACUTE_LABELS.ru).onsetPlaceholder}
-            rows={2}
-            className={taBase}
-            style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'rgba(180,83,9,0.02)' }}
-            onFocus={focusStyle}
-            onBlur={blurStyle}
-          />
-        </div>
-      )}
-
-      {/* Дополнительные поля — collapsible для новичков */}
-      <details
-        className="group"
-        open={!!(state.modalityWorseText || state.modalityBetterText || state.mentalText || state.generalText || localStorage.getItem('complaints_expanded'))}
-      >
-        <summary
-          className="cursor-pointer text-xs font-semibold uppercase tracking-wider py-2 flex items-center gap-2 select-none"
-          style={{ color: 'var(--sim-text-muted)' }}
-          onClick={() => localStorage.setItem('complaints_expanded', '1')}
-        >
-          <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-          {lang === 'ru' ? 'Модальности, психика, общие' : 'Modalities, mentals, generals'}
-        </summary>
-        <div className="space-y-4 pt-2">
-
-      {/* Хуже / Лучше в одну строку */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="modality-worse" className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: '#b91c1c', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-            {labels.worse}
-          </label>
-          <textarea
-            id="modality-worse"
-            ref={worseRef}
-            value={state.modalityWorseText}
-            onChange={handleChange('modalityWorseText')}
-            onInput={e => autoResize(e.currentTarget)}
-            onKeyDown={e => handleTab(e, betterRef)}
-            placeholder={labels.worsePlaceholder}
-            rows={2}
-            className={taBase}
-            style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#fca5a5'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(252,165,165,0.15)' }}
-            onBlur={blurStyle}
-          />
-        </div>
-        <div>
-          <label htmlFor="modality-better" className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sim-green)', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-            {labels.better}
-          </label>
-          <textarea
-            id="modality-better"
-            ref={betterRef}
-            value={state.modalityBetterText}
-            onChange={handleChange('modalityBetterText')}
-            onInput={e => autoResize(e.currentTarget)}
-            onKeyDown={e => handleTab(e, isAcute ? generalRef : mentalRef)}
-            placeholder={labels.betterPlaceholder}
-            rows={2}
-            className={taBase}
-            style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: isAcute ? '#fffbf0' : '#fff' }}
-            onFocus={focusStyle}
-            onBlur={blurStyle}
-          />
-        </div>
+      {/* Этиология (хронический) / Начало (острый) */}
+      <div>
+        <Label
+          text={isAcute ? (labels as typeof ACUTE_LABELS.ru).onset : (labels as typeof CHRONIC_LABELS.ru).etiology}
+          color={isAcute ? acuteAccent : undefined}
+        />
+        <textarea
+          ref={onsetRef}
+          value={state.observations}
+          onChange={handleChange('observations')}
+          onInput={e => autoResize(e.currentTarget)}
+          onKeyDown={e => handleTab(e, worseRef)}
+          placeholder={isAcute ? (labels as typeof ACUTE_LABELS.ru).onsetPlaceholder : (labels as typeof CHRONIC_LABELS.ru).etiologyPlaceholder}
+          rows={2}
+          className={taBase}
+          style={{ borderColor: 'var(--sim-border)', backgroundColor: isAcute ? 'rgba(180,83,9,0.02)' : 'var(--sim-bg-card)' }}
+          onFocus={focusStyle}
+          onBlur={blurStyle}
+        />
       </div>
 
-      {/* При остром: сначала температура/жажда, потом поведение */}
+      {/* Хуже / Лучше — всегда видны (НЕ в collapsible при остром) */}
       {isAcute ? (
         <>
-          {/* Температура, озноб, жажда, пот */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label text={labels.worse} color="#dc2626" />
+              <textarea
+                ref={worseRef}
+                value={state.modalityWorseText}
+                onChange={handleChange('modalityWorseText')}
+                onInput={e => autoResize(e.currentTarget)}
+                onKeyDown={e => handleTab(e, betterRef)}
+                placeholder={preset?.worseHint || labels.worsePlaceholder}
+                rows={2}
+                className={taBase}
+                style={{ borderColor: 'var(--sim-border)', backgroundColor: acuteBg }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#fca5a5'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(252,165,165,0.15)' }}
+                onBlur={blurStyle}
+              />
+            </div>
+            <div>
+              <Label text={labels.better} color="#2d6a4f" />
+              <textarea
+                ref={betterRef}
+                value={state.modalityBetterText}
+                onChange={handleChange('modalityBetterText')}
+                onInput={e => autoResize(e.currentTarget)}
+                onKeyDown={e => handleTab(e, generalRef)}
+                placeholder={preset?.betterHint || labels.betterPlaceholder}
+                rows={2}
+                className={taBase}
+                style={{ borderColor: 'var(--sim-border)', backgroundColor: acuteBg }}
+                onFocus={focusStyle}
+                onBlur={blurStyle}
+              />
+            </div>
+          </div>
+
+          {/* Температура, жажда */}
           <div>
-            <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: '#b45309', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-              {labels.general}
-            </label>
+            <Label text={labels.general} color={acuteAccent} />
             <textarea
               ref={generalRef}
               value={state.generalText}
               onChange={handleChange('generalText')}
               onInput={e => autoResize(e.currentTarget)}
               onKeyDown={e => handleTab(e, mentalRef)}
-              placeholder={labels.generalPlaceholder}
+              placeholder={preset?.generalHint || labels.generalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'rgba(180,83,9,0.02)' }}
+              style={{ borderColor: 'var(--sim-border)', backgroundColor: 'rgba(180,83,9,0.02)' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
           </div>
 
-          {/* Поведение и сопутствующие симптомы */}
+          {/* Поведение */}
           <div>
-            <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: '#b45309', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-              {labels.mental}
-            </label>
+            <Label text={labels.mental} color={acuteAccent} />
             <textarea
               ref={mentalRef}
               value={state.mentalText}
               onChange={handleChange('mentalText')}
               onInput={e => autoResize(e.currentTarget)}
-              placeholder={labels.mentalPlaceholder}
+              placeholder={preset?.mentalHint || labels.mentalPlaceholder}
               rows={2}
               className={taBase}
-              style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'rgba(180,83,9,0.02)' }}
+              style={{ borderColor: 'var(--sim-border)', backgroundColor: 'rgba(180,83,9,0.02)' }}
               onFocus={focusStyle}
               onBlur={blurStyle}
             />
           </div>
         </>
       ) : (
-        <>
-          {/* Психика (хронический) */}
-          <div>
-            <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sim-text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-              {labels.mental}
-            </label>
-            <textarea
-              ref={mentalRef}
-              value={state.mentalText}
-              onChange={handleChange('mentalText')}
-              onInput={e => autoResize(e.currentTarget)}
-              onKeyDown={e => handleTab(e, generalRef)}
-              placeholder={labels.mentalPlaceholder}
-              rows={2}
-              className={taBase}
-              style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
-              onFocus={focusStyle}
-              onBlur={blurStyle}
-            />
-          </div>
+        /* Хронический — модальности/психика/общие в collapsible */
+        <details
+          className="group"
+          open={!!(state.modalityWorseText || state.modalityBetterText || state.mentalText || state.generalText || (typeof localStorage !== 'undefined' && localStorage.getItem('complaints_expanded')))}
+        >
+          <summary
+            className="cursor-pointer text-[13px] font-semibold uppercase tracking-wider py-2.5 flex items-center gap-2 select-none"
+            style={{ color: 'var(--sim-text-muted)' }}
+            onClick={() => typeof localStorage !== 'undefined' && localStorage.setItem('complaints_expanded', '1')}
+          >
+            <svg className="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            {lang === 'ru' ? 'Модальности, психика, общие' : 'Modalities, mentals, generals'}
+          </summary>
+          <div className="space-y-5 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label text={labels.worse} color="#dc2626" />
+                <textarea
+                  ref={worseRef}
+                  value={state.modalityWorseText}
+                  onChange={handleChange('modalityWorseText')}
+                  onInput={e => autoResize(e.currentTarget)}
+                  onKeyDown={e => handleTab(e, betterRef)}
+                  placeholder={labels.worsePlaceholder}
+                  rows={2}
+                  className={taBase}
+                  style={{ borderColor: 'var(--sim-border)', backgroundColor: chronicBg }}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#fca5a5'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(252,165,165,0.15)' }}
+                  onBlur={blurStyle}
+                />
+              </div>
+              <div>
+                <Label text={labels.better} color="#2d6a4f" />
+                <textarea
+                  ref={betterRef}
+                  value={state.modalityBetterText}
+                  onChange={handleChange('modalityBetterText')}
+                  onInput={e => autoResize(e.currentTarget)}
+                  onKeyDown={e => handleTab(e, mentalRef)}
+                  placeholder={labels.betterPlaceholder}
+                  rows={2}
+                  className={taBase}
+                  style={{ borderColor: 'var(--sim-border)', backgroundColor: chronicBg }}
+                  onFocus={focusStyle}
+                  onBlur={blurStyle}
+                />
+              </div>
+            </div>
 
-          {/* Общее (хронический) */}
-          <div>
-            <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--sim-text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-              {labels.general}
-            </label>
-            <textarea
-              ref={generalRef}
-              value={state.generalText}
-              onChange={handleChange('generalText')}
-              onInput={e => autoResize(e.currentTarget)}
-              placeholder={labels.generalPlaceholder}
-              rows={2}
-              className={taBase}
-              style={{ lineHeight: '1.6', borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
-              onFocus={focusStyle}
-              onBlur={blurStyle}
-            />
+            <div>
+              <Label text={labels.mental} />
+              <textarea
+                ref={mentalRef}
+                value={state.mentalText}
+                onChange={handleChange('mentalText')}
+                onInput={e => autoResize(e.currentTarget)}
+                onKeyDown={e => handleTab(e, generalRef)}
+                placeholder={labels.mentalPlaceholder}
+                rows={2}
+                className={taBase}
+                style={{ borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
+                onFocus={focusStyle}
+                onBlur={blurStyle}
+              />
+            </div>
+
+            <div>
+              <Label text={labels.general} />
+              <textarea
+                ref={generalRef}
+                value={state.generalText}
+                onChange={handleChange('generalText')}
+                onInput={e => autoResize(e.currentTarget)}
+                placeholder={labels.generalPlaceholder}
+                rows={2}
+                className={taBase}
+                style={{ borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
+                onFocus={focusStyle}
+                onBlur={blurStyle}
+              />
+            </div>
           </div>
-        </>
+        </details>
       )}
-
-        </div>
-      </details>
-
     </div>
   )
 }
