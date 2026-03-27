@@ -225,16 +225,18 @@ export default function LandingPage() {
               <p className="text-[16px] leading-[1.7] mb-8" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 Опишите случай — движок проанализирует симптомы по реперторию и предложит Top-3 препарата с обоснованием. Вы принимаете решение, AI экономит время.
               </p>
-              <div className="flex items-center gap-8 mb-10">
-                <div>
-                  <div className="lr-serif text-[40px] font-light text-white">76%</div>
-                  <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.5)' }}>top-1 точность</p>
-                </div>
-                <div style={{ width: '1px', height: '40px', backgroundColor: 'rgba(255,255,255,0.15)' }} />
-                <div>
-                  <div className="lr-serif text-[40px] font-light text-white">94%</div>
-                  <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.5)' }}>top-3 точность</p>
-                </div>
+              <div className="mb-10 space-y-2.5">
+                {[
+                  'Реперторизация по Кенту (74 000+ рубрик)',
+                  'Полярности и конституциональный анализ',
+                  'Иерархия симптомов (mental → general → local)',
+                  'Проверка миазматического слоя',
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.3)' }} />
+                    <p className="text-[14px]" style={{ color: 'rgba(255,255,255,0.55)' }}>{item}</p>
+                  </div>
+                ))}
               </div>
               <Link href="/demo" className="inline-flex items-center gap-2 text-[14px] font-medium text-white px-8 py-3.5 rounded-full transition-all hover:bg-white/10" style={{ border: '1px solid rgba(255,255,255,0.25)' }}>
                 Попробовать AI-демо
