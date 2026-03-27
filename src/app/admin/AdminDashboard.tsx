@@ -337,12 +337,12 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
                   }}
                 >
                   <th className="pb-3 pr-3">Имя / Email</th>
-                  <th className="pb-3 pr-3">Регистрация</th>
+                  <th className="pb-3 pr-3 hidden lg:table-cell">Регистрация</th>
                   <th className="pb-3 pr-3 text-center">Пациенты</th>
-                  <th className="pb-3 pr-3 text-center">Консультации</th>
+                  <th className="pb-3 pr-3 text-center hidden lg:table-cell">Консультации</th>
                   <th className="pb-3 pr-3">Тариф</th>
-                  <th className="pb-3 pr-3 text-center">AI-кредиты</th>
-                  <th className="pb-3 pr-3">Реф. код</th>
+                  <th className="pb-3 pr-3 text-center hidden lg:table-cell">AI-кредиты</th>
+                  <th className="pb-3 pr-3 hidden lg:table-cell">Реф. код</th>
                   <th className="pb-3">Действия</th>
                 </tr>
               </thead>
@@ -393,7 +393,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
 
                         {/* Дата регистрации */}
                         <td
-                          className="py-3 pr-3 text-xs"
+                          className="py-3 pr-3 text-xs hidden lg:table-cell"
                           style={{ color: 'var(--sim-text-muted)' }}
                         >
                           {new Date(doc.createdAt).toLocaleDateString('ru-RU')}
@@ -405,7 +405,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
                         </td>
 
                         {/* Консультации */}
-                        <td className="py-3 pr-3 text-center">
+                        <td className="py-3 pr-3 text-center hidden lg:table-cell">
                           {doc.consultationCount}
                         </td>
 
@@ -446,7 +446,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
 
                         {/* AI-кредиты */}
                         <td
-                          className="py-3 pr-3 text-center"
+                          className="py-3 pr-3 text-center hidden lg:table-cell"
                           style={{
                             color:
                               doc.aiCredits > 0
@@ -459,7 +459,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
 
                         {/* Реферальный код */}
                         <td
-                          className="py-3 pr-3 text-xs"
+                          className="py-3 pr-3 text-xs hidden lg:table-cell"
                           style={{ color: 'var(--sim-text-muted)' }}
                         >
                           {doc.referralCode || '—'}

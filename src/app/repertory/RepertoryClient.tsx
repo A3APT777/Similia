@@ -511,7 +511,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               onChange={e => handleQueryChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t(lang).repertory.searchPlaceholder}
-              className="w-full pl-11 pr-24 py-3 text-[15px] rounded-xl focus:outline-none transition-all duration-300"
+              className="w-full pl-11 pr-10 lg:pr-24 py-3 text-[15px] rounded-xl focus:outline-none transition-all duration-300"
               style={{
                 backgroundColor: 'var(--sim-bg-card, white)',
                 border: '1px solid var(--sim-border)',
@@ -529,7 +529,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             {query && (
               <>
                 <span
-                  className="absolute right-10 top-1/2 -translate-y-1/2 text-[11px] font-medium px-2 py-0.5 rounded-full pointer-events-none"
+                  className="hidden lg:inline absolute right-10 top-1/2 -translate-y-1/2 text-[11px] font-medium px-2 py-0.5 rounded-full pointer-events-none"
                   style={{ backgroundColor: 'rgba(45,106,79,0.06)', color: 'var(--sim-green)' }}
                 >
                   Enter ↵
@@ -548,9 +548,9 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           </div>
         </div>
 
-        {/* Строка 3: Живые топ-препараты */}
+        {/* Строка 3: Живые топ-препараты (скрыты на mobile — визуальный шум) */}
         {headerTopRemedies.top.length > 0 && (
-          <div className="px-5 pb-2.5">
+          <div className="hidden lg:block px-5 pb-2.5">
             <div className="flex items-center gap-2">
               <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.08em]" style={{ color: 'var(--sim-text-muted)' }}>
                 {t(lang).repertory.topNow}
@@ -582,7 +582,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
         {/* Строка 4: Чипы разделов */}
         <div
-          className="flex gap-1.5 overflow-x-auto px-5 pb-3"
+          className="scroll-hint flex gap-1.5 overflow-x-auto px-5 pb-3"
           style={{ scrollbarWidth: 'none', borderBottom: '1px solid var(--sim-border)' }}
         >
           {SECTION_GROUPS.map((group, idx) => {
@@ -789,6 +789,25 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
             )}
           </div>
         </div>
+
+        {/* ─ FAB «Анализ» для mobile ─────────────── */}
+        {!showAnalysis && (
+          <button
+            onClick={() => setShowAnalysis(true)}
+            className="lg:hidden fixed bottom-6 right-4 z-20 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all duration-200 active:scale-95"
+            style={{ backgroundColor: 'var(--sim-green)', color: '#fff' }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+            {lang === 'ru' ? 'Анализ' : 'Analysis'}
+            {analysisEntries.length > 0 && (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold" style={{ backgroundColor: 'rgba(255,255,255,0.25)' }}>
+                {analysisEntries.length}
+              </span>
+            )}
+          </button>
+        )}
 
         {/* ─ Панель анализа (260px) ─────────────── */}
         <div

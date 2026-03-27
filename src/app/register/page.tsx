@@ -177,13 +177,15 @@ export default function RegisterPage() {
             </div>
 
             {/* Согласие на ПД */}
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={e => setConsent(e.target.checked)}
-                className="mt-0.5 w-4 h-4 shrink-0 accent-[#2d6a4f]"
-              />
+            <label className="flex items-start gap-3 cursor-pointer py-1">
+              <span className="flex items-center justify-center w-6 h-6 shrink-0 mt-0">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={e => setConsent(e.target.checked)}
+                  className="w-4 h-4 accent-[#2d6a4f]"
+                />
+              </span>
               <span className="text-[13px] text-[#6b5e45] leading-relaxed">
                 {lang === 'ru'
                   ? <>Я соглашаюсь с <Link href="/privacy" target="_blank" className="text-[#2d6a4f] underline underline-offset-2">политикой конфиденциальности</Link> и даю согласие на обработку персональных данных (152-ФЗ)</>

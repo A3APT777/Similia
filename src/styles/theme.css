@@ -298,6 +298,22 @@ textarea.input {
   }
 }
 
+/* ── Scroll hint — fade на правом краю overflow-x контейнеров ── */
+.scroll-hint {
+  position: relative;
+}
+.scroll-hint::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, transparent, var(--sim-bg, #f7f3ed));
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* ── Глобальный border-radius — premium pill style ── */
 input, textarea, select {
   border-radius: 12px !important;

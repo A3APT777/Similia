@@ -148,7 +148,7 @@ export default function PricingPage() {
                 Без подписки на AI Pro
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
                 { count: 5, price: 299, per: '60 ₽/шт', plan: 'ai_pack_5' as const },
                 { count: 15, price: 749, per: '50 ₽/шт', plan: 'ai_pack_15' as const },

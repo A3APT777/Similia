@@ -56,7 +56,7 @@ export default function IntakeLinkButton({
       <button
         onClick={handleSendLink}
         disabled={loadingLink}
-        className="w-full flex items-center gap-2 px-4 py-3 rounded-full text-[13px] font-medium transition-all"
+        className="w-full flex items-center gap-2 px-3 sm:px-4 py-3 rounded-full text-[12px] sm:text-[13px] font-medium transition-all"
         style={{
           backgroundColor: 'var(--sim-bg-card)',
           border: '1px solid var(--sim-border)',

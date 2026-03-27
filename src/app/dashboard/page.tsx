@@ -364,6 +364,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             {t(lang).dashboard.patientsSection}
           </p>
 
+          {/* Ближайший приём — compact mobile widget */}
+          {(() => {
+            const nextAppointment = (appointments || []).find((a: any) => a.scheduledAt && new Date(a.scheduledAt) > new Date())
+            if (!nextAppointment) return null
+            const time = new Date(nextAppointment.scheduledAt!).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+            return (
+              <div className="lg:hidden mb-4 flex items-center gap-3 px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.1)' }}>
+                <span className="text-[13px] font-semibold" style={{ color: 'var(--sim-green)' }}>{time}</span>
+                <span className="text-[13px] truncate" style={{ color: 'var(--sim-text)' }}>{(nextAppointment as any).patient?.name}</span>
+                <Link href={`/patients/${(nextAppointment as any).patient?.id}`} className="ml-auto shrink-0 text-[12px] font-medium" style={{ color: 'var(--sim-green)' }}>→</Link>
+              </div>
+            )
+          })()}
+
           <div id="patients-section" data-tour="patient-list" className="scroll-mt-6">
             <PatientListClient patients={patientsWithConsultations} filterPending={filterPending} filterOverdue={filterOverdue}  />
           </div>

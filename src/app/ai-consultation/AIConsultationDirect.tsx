@@ -477,7 +477,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
               <span className="text-[11px] text-[#6b7280]">
                 {hasContent
                   ? `${text.trim().split(/\s+/).length} ${lang === 'ru' ? 'слов' : 'words'}`
-                  : (lang === 'ru' ? 'Ctrl+Enter — анализ' : 'Ctrl+Enter — analyze')}
+                  : <span className="hidden lg:inline">{lang === 'ru' ? 'Ctrl+Enter — анализ' : 'Ctrl+Enter — analyze'}</span>}
               </span>
 
               <ShimmerButton

@@ -24,7 +24,7 @@ export default function StickyPatientHeader({ name, status, remedy, potency }: P
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-40 transition-all duration-200"
+      className="fixed top-14 lg:top-0 left-0 right-0 z-40 transition-all duration-200"
       style={{
         backgroundColor: 'rgba(247,243,237,0.95)',
         backdropFilter: 'blur(8px)',

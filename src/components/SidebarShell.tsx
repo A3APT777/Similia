@@ -10,6 +10,7 @@ import FeedbackModal from './FeedbackModal'
 import SubscriptionBadge from './SubscriptionBadge'
 import type { SubscriptionInfo } from '@/lib/subscription'
 import { IconHome, IconBook, IconAI, IconUser, IconSettings, IconReferral, IconAdmin, IconFeedback } from './icons'
+import BottomNav from './BottomNav'
 
 type Props = {
   firstName: string
@@ -281,9 +282,12 @@ export default function SidebarShell({ firstName, initials, subscription, patien
         </header>
 
         {/* Content */}
-        <div className="flex-1 lg:overflow-y-auto">
+        <div className="flex-1 lg:overflow-y-auto pb-14 lg:pb-0">
           {children}
         </div>
+
+        {/* Mobile bottom nav */}
+        <BottomNav onOpenMenu={() => setOpen(true)} />
       </div>
     </div>
   )

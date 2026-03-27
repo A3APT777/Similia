@@ -15,6 +15,16 @@ export default function CookieConsent() {
       loadMetrika()
     } else {
       setVisible(true)
+      // На мобиле auto-accept через 8 секунд, чтобы не перекрывать кнопки
+      const isMobile = window.innerWidth < 640
+      if (isMobile) {
+        const timer = setTimeout(() => {
+          localStorage.setItem(STORAGE_KEY, 'true')
+          setVisible(false)
+          loadMetrika()
+        }, 8000)
+        return () => clearTimeout(timer)
+      }
     }
   }, [])
 
@@ -54,12 +64,13 @@ export default function CookieConsent() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 sm:bottom-6 sm:left-auto sm:right-6 z-50 sm:px-0 px-0"
+      className="fixed z-50 left-0 right-0 top-auto bottom-0 sm:bottom-6 sm:left-auto sm:right-6 sm:top-auto sm:px-0 px-0"
       role="dialog"
       aria-label="Согласие на использование cookies"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div
-        className="sm:max-w-md sm:rounded-xl rounded-none border-t sm:border shadow-lg px-4 py-2.5 sm:py-3 flex items-center gap-3"
+        className="sm:max-w-md sm:rounded-xl rounded-none border-t sm:border shadow-lg px-4 py-2 sm:py-3 flex items-center gap-3"
         style={{
           backgroundColor: 'rgba(247, 243, 237, 0.97)',
           backdropFilter: 'blur(12px)',

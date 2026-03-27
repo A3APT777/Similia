@@ -181,7 +181,7 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
   }
 
   // Стили
-  const taBase = 'w-full resize-none rounded-xl border px-4 py-3 transition-all duration-200 focus:outline-none text-[15px] leading-relaxed'
+  const taBase = 'w-full resize-none rounded-xl border px-4 py-3 transition-all duration-200 focus:outline-none text-[15px] leading-relaxed max-h-[50vh] lg:max-h-none overflow-y-auto'
   const acuteAccent = '#b45309'
   const greenAccent = 'var(--sim-green)'
   const focusBorder = isAcute ? `rgba(180,83,9,0.4)` : greenAccent
