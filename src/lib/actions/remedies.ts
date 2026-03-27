@@ -115,8 +115,8 @@ export async function searchRemediesDB(query: string): Promise<RemedyResult[]> {
     }))
 
     if (enriched.length > 0) return enriched
-  } catch (err) {
-    console.error('[searchRemediesDB] DB error:', err)
+  } catch {
+    // noop
   }
 
   // Fallback: поиск по русским названиям из маппинга

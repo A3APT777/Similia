@@ -74,8 +74,7 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (err) {
-    console.error('[verify] error:', err)
+  } catch {
     return NextResponse.json({ error: 'Ошибка проверки' }, { status: 500 })
   }
 }

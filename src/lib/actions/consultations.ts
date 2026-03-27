@@ -122,8 +122,7 @@ export async function updateConsultationType(id: string, type: ConsultationType)
       where: { id, doctorId: userId },
       data: { type },
     })
-  } catch (error) {
-    console.error('[updateConsultationType]', error)
+  } catch {
     throw new Error('Не удалось обновить тип')
   }
 }
@@ -148,8 +147,7 @@ export async function getAppointmentsForDay(dayStart: string, dayEnd: string): P
     return data
       .map(c => c.scheduledAt?.toISOString())
       .filter((v): v is string => Boolean(v))
-  } catch (error) {
-    console.error('[getAppointmentsForDay]', error)
+  } catch {
     return []
   }
 }
@@ -168,8 +166,7 @@ export async function startConsultation(consultationId: string, patientId: strin
       where: { id: consultationId, doctorId: userId },
       data: { status: 'in_progress' },
     })
-  } catch (error) {
-    console.error('[startConsultation]', error)
+  } catch {
     throw new Error('Не удалось начать приём')
   }
 
@@ -187,8 +184,7 @@ export async function cancelConsultation(consultationId: string, patientId: stri
       where: { id: consultationId, doctorId: userId },
       data: { status: 'cancelled' },
     })
-  } catch (error) {
-    console.error('[cancelConsultation]', error)
+  } catch {
     throw new Error('Не удалось отменить приём')
   }
 
@@ -240,8 +236,7 @@ export async function updateConsultationNotes(id: string, notes: string) {
         updatedAt: new Date(),
       },
     })
-  } catch (error) {
-    console.error('[updateConsultationNotes]', error)
+  } catch {
     throw new Error('Не удалось сохранить заметки')
   }
 }
@@ -311,8 +306,7 @@ export async function savePrescription(
         dosage: dosage || null,
       },
     })
-  } catch (error) {
-    console.error('[savePrescription]', error)
+  } catch {
     throw new Error('Не удалось сохранить назначение')
   }
 }
@@ -336,8 +330,7 @@ export async function updateConsultationExtra(
         reactionToPrevious: reactionToPrevious || null,
       },
     })
-  } catch (error) {
-    console.error('[updateConsultationExtra]', error)
+  } catch {
     throw new Error('Не удалось сохранить')
   }
 }
@@ -388,8 +381,7 @@ export async function updateConsultationFields(
       where: { id, doctorId: userId },
       data: update,
     })
-  } catch (error) {
-    console.error('[updateConsultationFields]', error)
+  } catch {
     throw new Error('Не удалось сохранить поля')
   }
 }
@@ -444,11 +436,8 @@ export async function updateConsultationAll(
       where: { id, doctorId: userId },
       data: update,
     })
-    if (result.count === 0) {
-      console.error('[updateConsultationAll] 0 rows updated — consultation not found or wrong doctorId', { id, userId })
-    }
-  } catch (error) {
-    console.error('[updateConsultationAll] FAILED:', error, { id, userId, updateKeys: Object.keys(update) })
+    // noop — 0 rows = не найдена или чужая
+  } catch {
     throw new Error('Не удалось сохранить данные консультации')
   }
 }
@@ -464,8 +453,7 @@ export async function saveDoctorDynamics(id: string, dynamics: string): Promise<
       where: { id, doctorId: userId },
       data: { doctorDynamics: dynamics, updatedAt: new Date() },
     })
-  } catch (error) {
-    console.error('[saveDoctorDynamics]', error)
+  } catch {
     throw new Error('Не удалось сохранить динамику')
   }
 }
@@ -480,8 +468,7 @@ export async function completeConsultation(id: string): Promise<void> {
       where: { id, doctorId: userId },
       data: { status: 'completed', updatedAt: new Date() },
     })
-  } catch (error) {
-    console.error('[completeConsultation]', error)
+  } catch {
     throw new Error('Не удалось завершить приём')
   }
 
@@ -501,8 +488,7 @@ export async function saveRepertoryData(
       where: { id: consultationId, doctorId: userId },
       data: { repertoryData: data as any, updatedAt: new Date() },
     })
-  } catch (error) {
-    console.error('[saveRepertoryData]', error)
+  } catch {
     throw new Error('Не удалось сохранить данные реперториума')
   }
 }

@@ -31,7 +31,7 @@ const WINDOW = 60 * 60 * 1000
 
 export async function POST(req: NextRequest) {
   const t0 = Date.now()
-  const log = (s: string) => console.log(`[mdri-staging] ${s}: ${Date.now() - t0}ms`)
+  const log = (_s: string) => { /* noop */ }
 
   try {
     // Rate limit
@@ -152,7 +152,6 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (err) {
-    console.error('[mdri-staging] ERROR:', err instanceof Error ? err.message : err)
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal error' },
       { status: 500 },

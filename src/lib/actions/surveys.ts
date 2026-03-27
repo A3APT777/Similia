@@ -25,8 +25,7 @@ export async function createPreVisitSurvey(
     })
 
     return { token: survey.token }
-  } catch (err) {
-    console.error('[createPreVisitSurvey] error:', err)
+  } catch {
     throw new Error('Не удалось создать опросник')
   }
 }
@@ -81,8 +80,7 @@ export async function submitPreVisitSurvey(
         completedAt: new Date(),
       },
     })
-  } catch (err) {
-    console.error('[submitPreVisitSurvey] error:', err)
+  } catch {
     throw new Error('Не удалось сохранить ответы')
   }
 }
@@ -104,8 +102,7 @@ export async function getPreVisitSurveyByConsultation(
     })
 
     return data as unknown as PreVisitSurvey | null
-  } catch (err) {
-    console.error('[getPreVisitSurveyByConsultation] error:', err)
+  } catch {
     return null
   }
 }
@@ -126,8 +123,7 @@ export async function getLatestPatientSurvey(
     })
 
     return data as unknown as PreVisitSurvey | null
-  } catch (err) {
-    console.error('[getLatestPatientSurvey] error:', err)
+  } catch {
     return null
   }
 }

@@ -27,8 +27,12 @@ export async function GET(
     return NextResponse.json({ error: 'Фото не найдено' }, { status: 404 })
   }
 
-  // Читаем файл из приватной директории
-  const filePath = path.join(process.cwd(), 'private-uploads', photo.patientId, photo.fileName)
+  // Читаем файл из приватной директории (basename — защита от path traversal)
+  const uploadDir = path.join(process.cwd(), 'private-uploads', photo.patientId)
+  const filePath = path.resolve(uploadDir, path.basename(photo.fileName))
+  if (!filePath.startsWith(uploadDir)) {
+    return NextResponse.json({ error: 'Недопустимый путь' }, { status: 400 })
+  }
 
   try {
     const buffer = await readFile(filePath)

@@ -200,8 +200,7 @@ async function generateAIQuestions(
     }
 
     return steps
-  } catch (e) {
-    console.error('[generateAIQuestions]', e)
+  } catch {
     return getFallbackSteps()
   }
 }

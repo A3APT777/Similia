@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
 
     // FIX #8: Отклоняем при пустом IP или невалидном
     if (!ip || !isYookassaIP(ip)) {
-      console.warn('[webhook] rejected: ip=' + (ip || 'empty'))
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -69,7 +68,6 @@ export async function POST(req: NextRequest) {
         })
 
         if (existingPayment?.status === 'succeeded') {
-          console.log(`[webhook] Payment ${paymentId} already processed, skipping`)
           return
         }
 
@@ -91,7 +89,7 @@ export async function POST(req: NextRequest) {
               update: { aiCredits: { increment: credits } },
               create: { doctorId: userId, aiCredits: credits },
             })
-            console.log(`[webhook] AI pack: +${credits} credits for user=${userId}`)
+            // noop
           }
         } else {
           // Обработка подписок (standard, ai_pro)
@@ -132,7 +130,7 @@ export async function POST(req: NextRequest) {
             },
           })
 
-          console.log(`[webhook] Payment succeeded: user=${userId}, plan=${planId}, period=${period}, ends=${periodEnd.toISOString()}`)
+          // noop
         }
 
         // Реферальный бонус (только за подписку, не за паки)
@@ -196,10 +194,10 @@ export async function POST(req: NextRequest) {
                 data: { bonusApplied: true, referrerBonusDays: REFERRER_DAYS },
               })
 
-              console.log(`[webhook] referral bonus applied: referrer ${invitation.referrerId} +${REFERRER_DAYS}d +1AI, invitee ${userId} +${INVITEE_DAYS}d +2AI`)
+              // noop
             }
-          } catch (creditErr) {
-            console.error('[webhook] referral bonus error:', creditErr)
+          } catch {
+            // noop — бонус не критичен
           }
         }
       })
@@ -230,12 +228,11 @@ export async function POST(req: NextRequest) {
         where: { yukassaPaymentId: paymentId },
         data: { status: 'cancelled' },
       })
-      console.log(`[webhook] Payment cancelled: payment=${paymentId}`)
+      // noop
     }
 
     return NextResponse.json({ status: 'ok' })
   } catch (err) {
-    console.error('[webhook] unexpected error:', err)
     reportError('YooKassa webhook', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }

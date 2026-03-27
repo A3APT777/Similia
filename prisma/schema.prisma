@@ -242,6 +242,7 @@ model PatientPhoto {
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([patientId], map: "idx_patient_photos_patient_id")
+  @@index([doctorId], map: "idx_patient_photos_doctor_id")
   @@map("patient_photos")
 }
 

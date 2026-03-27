@@ -135,8 +135,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[checkout] YooKassa error:', response.status, errorText)
+      await response.text()
       return NextResponse.json({ error: 'Ошибка платёжной системы' }, { status: 502 })
     }
 
@@ -181,8 +180,7 @@ export async function POST(req: NextRequest) {
       confirmation_url: payment.confirmation.confirmation_url,
       payment_id: payment.id,
     })
-  } catch (err) {
-    console.error('[checkout] unexpected error:', err)
+  } catch {
     return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 })
   }
 }

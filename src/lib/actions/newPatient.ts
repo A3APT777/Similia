@@ -215,8 +215,7 @@ export async function submitNewPatientBooking(
 
       return p
     })
-  } catch (err) {
-    console.error('[submitNewPatientBooking] transaction error:', err)
+  } catch {
     return { success: false, error: 'Ошибка записи. Попробуйте ещё раз.' }
   }
 
@@ -282,8 +281,7 @@ export async function bookExistingPatient(
         source: 'online',
       },
     })
-  } catch (err) {
-    console.error('[bookExistingPatient]', err)
+  } catch {
     return { success: false, error: 'Ошибка записи. Попробуйте ещё раз.' }
   }
 

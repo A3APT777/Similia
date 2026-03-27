@@ -99,8 +99,7 @@ export async function submitIntake(token: string, answers: IntakeAnswers): Promi
           select: { id: true },
         })
         patientId = newPatient.id
-      } catch (err) {
-        console.error('[submitIntake] patient insert:', err)
+      } catch {
         throw new Error('Не удалось создать карточку пациента')
       }
     }
@@ -116,8 +115,7 @@ export async function submitIntake(token: string, answers: IntakeAnswers): Promi
           completedAt: new Date(),
         },
       })
-    } catch (err) {
-      console.error('[submitIntake] update:', err)
+    } catch {
       throw new Error('Не удалось сохранить анкету')
     }
   })
@@ -150,8 +148,7 @@ export async function submitDoctorIntake(patientId: string, type: IntakeType, an
         where: { id: existing.id },
         data: { answers: answers as Record<string, unknown>, completedAt: new Date() },
       })
-    } catch (err) {
-      console.error('[submitDoctorIntake] update:', err)
+    } catch {
       throw new Error('Не удалось сохранить анкету')
     }
   } else {
@@ -167,8 +164,7 @@ export async function submitDoctorIntake(patientId: string, type: IntakeType, an
           completedAt: new Date(),
         },
       })
-    } catch (err) {
-      console.error('[submitDoctorIntake] insert:', err)
+    } catch {
       throw new Error('Не удалось создать анкету')
     }
   }

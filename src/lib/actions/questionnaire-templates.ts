@@ -81,8 +81,7 @@ export async function saveQuestionnaireTemplate(type: TemplateType, fields: Temp
         fields: JSON.parse(JSON.stringify(fields)),
       },
     })
-  } catch (error) {
-    console.error('[saveQuestionnaireTemplate]', error)
+  } catch {
     return { success: false, error: 'Ошибка сохранения' }
   }
 

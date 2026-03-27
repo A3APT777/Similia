@@ -81,8 +81,7 @@ export async function exportAllData() {
         pre_visit_surveys: surveys,
       },
     }
-  } catch (err) {
-    console.error('[exportAllData]', err)
+  } catch {
     return { success: false, data: null }
   }
 }

@@ -57,8 +57,7 @@ export async function getDoctorScheduleAuth(): Promise<DoctorSchedule> {
       lunch_start: (data.lunch_start as string) ?? '13:00',
       lunch_end: (data.lunch_end as string) ?? '14:00',
     }
-  } catch (err) {
-    console.error('[getDoctorScheduleAuth]', err)
+  } catch {
     return SCHEDULE_DEFAULTS
   }
 }

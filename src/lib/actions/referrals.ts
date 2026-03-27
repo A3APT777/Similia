@@ -45,7 +45,7 @@ export async function getOrCreateReferralCode(): Promise<string> {
         })
         if (retry) return retry.code
       }
-      console.error('[referrals] create code attempt', attempt, err)
+      // noop — повтор генерации кода
     }
   }
   throw new Error('Не удалось создать реферальный код')
@@ -97,8 +97,7 @@ export async function getReferralStats(): Promise<{
 export async function triggerReferralBonus(inviteeId: string): Promise<void> {
   try {
     await prisma.$executeRaw`SELECT apply_referral_bonus(${inviteeId}::uuid)`
-  } catch (error) {
-    console.error('[referrals] apply bonus error:', error)
+  } catch {
     // Не throw — бонус не критичен, основная регистрация не должна падать
   }
 }

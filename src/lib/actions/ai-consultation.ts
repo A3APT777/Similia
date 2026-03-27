@@ -165,9 +165,8 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     return { _error: 'NO_AI_ACCESS' } as ConsensusResult & { _error: string }
   }
 
-  // Детальное логирование с таймингами
   const t0 = Date.now()
-  const log = (step: string) => console.log(`[analyzeText] ${step}: ${Date.now() - t0}ms`)
+  const log = (_step: string) => { /* noop — логирование убрано */ }
 
   try {
     log('START')
@@ -306,8 +305,6 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
 
     return result
   } catch (e) {
-    const elapsed = Date.now() - t0
-    console.error(`[analyzeText] FAILED at ${elapsed}ms:`, e instanceof Error ? e.message : e)
     throw e
   }
 }
@@ -338,14 +335,11 @@ async function checkAIAccess(userId: string) {
   })
 
   if (!settings) {
-    console.error(`[checkAIAccess] NO settings for userId=${userId}`)
     throw new Error('NO_AI_ACCESS')
   }
 
   const isAIPro = settings.subscriptionPlan === 'ai_pro'
   const hasCredits = (settings.aiCredits ?? 0) > 0
-  console.log(`[checkAIAccess] userId=${userId} plan=${settings.subscriptionPlan} credits=${settings.aiCredits} isAIPro=${isAIPro}`)
-
   if (!isAIPro && !hasCredits) {
     throw new Error('NO_AI_ACCESS')
   }
@@ -387,8 +381,7 @@ async function deductAICredit(userId: string) {
       data: { aiCredits: { decrement: 1 } },
     })
     return true
-  } catch (error) {
-    console.error('[deductAICredit] error:', error)
+  } catch {
     return false
   }
 }
@@ -477,7 +470,6 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2, delayMs = 2000
       const msg = e instanceof Error ? e.message : String(e)
       const isRetryable = msg.includes('529') || msg.includes('overloaded') || msg.includes('Overloaded') || msg.includes('500') || msg.includes('Internal server error')
       if (isRetryable && attempt < maxRetries) {
-        console.log(`[retry] attempt ${attempt + 1}/${maxRetries}, error: ${msg.slice(0, 80)}, waiting ${delayMs * (attempt + 1)}ms...`)
         await new Promise(r => setTimeout(r, delayMs * (attempt + 1)))
         continue
       }

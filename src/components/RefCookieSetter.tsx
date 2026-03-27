@@ -19,7 +19,8 @@ export default function RefCookieSetter() {
     // Ставим cookie на 30 дней
     const expires = new Date()
     expires.setDate(expires.getDate() + 30)
-    document.cookie = `ref_code=${encodeURIComponent(ref)}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`
+    const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+    document.cookie = `ref_code=${encodeURIComponent(ref)}; path=/; expires=${expires.toUTCString()}; SameSite=Lax${secure}`
   }, [searchParams])
 
   return null

@@ -61,8 +61,7 @@ export async function submitPhotoUpload(
     await mkdir(uploadDir, { recursive: true })
     const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(filePath, buffer)
-  } catch (err) {
-    console.error('[submitPhotoUpload] file write error:', err)
+  } catch {
     return { success: false, error: 'Ошибка сохранения файла' }
   }
 
@@ -81,8 +80,7 @@ export async function submitPhotoUpload(
       where: { id: photo.id },
       data: { url: `/api/photos/${photo.id}` },
     })
-  } catch (err) {
-    console.error('[submitPhotoUpload] DB error:', err)
+  } catch {
     return { success: false, error: 'Ошибка сохранения записи' }
   }
 

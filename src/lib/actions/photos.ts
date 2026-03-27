@@ -24,7 +24,9 @@ export async function uploadPhoto(formData: FormData): Promise<void> {
 
   const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext || 'jpg'}`
   const uploadDir = path.join(process.cwd(), 'private-uploads', patientId)
-  const filePath = path.join(uploadDir, fileName)
+  const filePath = path.resolve(uploadDir, path.basename(fileName))
+  // Защита от path traversal
+  if (!filePath.startsWith(uploadDir)) throw new Error('Недопустимый путь файла')
 
   // Сохраняем файл в приватную директорию
   await mkdir(uploadDir, { recursive: true })

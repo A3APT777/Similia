@@ -46,11 +46,13 @@ export async function getAdminStats() {
         name: true,
         createdAt: true,
       },
+      take: 1000,
     }),
     prisma.subscription.findMany({
       include: { plan: true },
+      take: 1000,
     }),
-    prisma.referralInvitation.findMany(),
+    prisma.referralInvitation.findMany({ take: 1000 }),
   ])
 
   return {
@@ -149,8 +151,7 @@ export async function adminUpdateSubscription(doctorId: string, planId: string, 
         currentPeriodEnd: new Date(periodEnd),
       },
     })
-  } catch (error) {
-    console.error('[adminUpdateSubscription]', error)
+  } catch {
     throw new Error('Не удалось обновить подписку')
   }
 }
@@ -178,8 +179,7 @@ export async function adminToggleAIPro(doctorId: string, enable: boolean) {
       update: { subscriptionPlan: enable ? 'ai_pro' : null },
       create: { doctorId, subscriptionPlan: enable ? 'ai_pro' : null },
     })
-  } catch (error) {
-    console.error('[adminToggleAIPro] settings error:', error)
+  } catch {
     throw new Error('Не удалось обновить AI Pro')
   }
 
@@ -204,8 +204,7 @@ export async function adminToggleAIPro(doctorId: string, enable: boolean) {
           cancelAtPeriodEnd: false,
         },
       })
-    } catch (error) {
-      console.error('[adminToggleAIPro] subscription error:', error)
+    } catch {
       throw new Error('Не удалось обновить подписку')
     }
   } else {
@@ -215,8 +214,8 @@ export async function adminToggleAIPro(doctorId: string, enable: boolean) {
         where: { doctorId },
         data: { planId: 'standard' },
       })
-    } catch (error) {
-      console.error('[adminToggleAIPro] rollback error:', error)
+    } catch {
+      // noop
     }
   }
 }
@@ -237,8 +236,7 @@ export async function adminAddAICredits(doctorId: string, credits: number) {
       where: { doctorId },
       data: { aiCredits: { increment: credits } },
     })
-  } catch (error) {
-    console.error('[adminAddAICredits]', error)
+  } catch {
     throw new Error('Не удалось добавить кредиты')
   }
 }
@@ -349,8 +347,7 @@ export async function adminDeleteUser(doctorId: string) {
       // Остальное каскадируется автоматически через onDelete: Cascade
       prisma.user.delete({ where: { id: doctorId } }),
     ])
-  } catch (error) {
-    console.error('[adminDeleteUser]', error)
+  } catch {
     throw new Error('Не удалось удалить аккаунт')
   }
 }
@@ -365,8 +362,7 @@ export async function adminBlockUser(doctorId: string, blocked: boolean) {
       where: { id: doctorId },
       data: { emailVerified: blocked ? null : new Date() },
     })
-  } catch (error) {
-    console.error('[adminBlockUser]', error)
+  } catch {
     throw new Error('Не удалось обновить статус')
   }
 }
