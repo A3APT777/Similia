@@ -455,6 +455,59 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
             <PaidSessionsBlock patientId={id} initialCount={patient.paidSessions ?? 0} />
           )}
 
+          {/* ── Последний приём (быстрый доступ) ── */}
+          {lastCompleted && (
+            <div className="mb-5">
+              <p className="text-[11px] font-medium uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--sim-text-muted)' }}>
+                {lang === 'ru' ? 'Последний приём' : 'Last visit'}
+              </p>
+              <a
+                href={`/patients/${id}/consultations/${lastCompleted.id}`}
+                className="block rounded-xl bg-white border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.06)] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_8px_28px_rgba(0,0,0,0.08)]"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[12px] text-[#6b7280] tabular-nums">
+                    {new Date(lastCompleted.date || lastCompleted.created_at).toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {lastCompleted.type === 'acute' && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(180,83,9,0.08)', color: '#b45309' }}>
+                        {lang === 'ru' ? 'Острый' : 'Acute'}
+                      </span>
+                    )}
+                    {lastCompleted.source === 'ai' && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>AI</span>
+                    )}
+                  </div>
+                </div>
+                {lastCompleted.complaints && (
+                  <p className="text-[14px] text-[#1a1a1a] mb-2 line-clamp-2 leading-relaxed">
+                    {lastCompleted.complaints.slice(0, 120)}{lastCompleted.complaints.length > 120 ? '...' : ''}
+                  </p>
+                )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {lastCompleted.remedy && (
+                      <span
+                        className="text-[16px] font-light"
+                        style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)', color: '#1a1a1a' }}
+                      >
+                        {lastCompleted.remedy}
+                        {lastCompleted.potency && <span className="text-[13px] text-[#2d6a4f] ml-1">{lastCompleted.potency}</span>}
+                      </span>
+                    )}
+                    {!lastCompleted.remedy && (
+                      <span className="text-[12px] text-[#6b7280] italic">{lang === 'ru' ? 'Без назначения' : 'No prescription'}</span>
+                    )}
+                  </div>
+                  <svg className="w-4 h-4 text-[#6b7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </div>
+              </a>
+            </div>
+          )}
+
           {/* ── Анкеты ── */}
           <IntakeSection unviewedIntakeIds={intakeForms.filter(f => f.status === 'completed' && !f.viewedAt).map(f => f.id)}>
             <summary className="flex items-center justify-between py-3 cursor-pointer select-none" style={{ borderBottom: '1px solid var(--sim-border)' }}>
