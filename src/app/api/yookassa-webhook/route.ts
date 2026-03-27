@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendTelegramAlert } from '@/lib/telegram'
 
 // IP-адреса ЮKassa для webhook (из документации)
 const YOOKASSA_IPS = [
@@ -168,6 +169,26 @@ export async function POST(req: NextRequest) {
           }
         }
       })
+    }
+
+    // Telegram-алерт об оплате
+    if (event === 'payment.succeeded') {
+      const amount = payment.amount?.value || '?'
+      const currency = payment.amount?.currency || 'RUB'
+      const packCredits = PACK_CREDITS[planId]
+      const planLabel = packCredits ? `Пакет AI (${packCredits} шт)` : planId === 'ai_pro' ? 'AI Pro' : 'Стандарт'
+
+      // Получаем email врача
+      const doctor = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } })
+
+      sendTelegramAlert(
+        `💰 <b>Оплата прошла</b>\n\n` +
+        `📧 ${doctor?.email || userId}\n` +
+        `👨‍⚕️ ${doctor?.name || '—'}\n` +
+        `📋 ${planLabel} (${period || '—'})\n` +
+        `💵 ${amount} ${currency}\n` +
+        `🕐 ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
+      )
     }
 
     if (event === 'payment.canceled') {

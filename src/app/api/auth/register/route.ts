@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
 import { sendVerificationCode, generateVerificationCode } from '@/lib/email'
+import { sendTelegramAlert } from '@/lib/telegram'
 
 export async function POST(req: Request) {
   try {
@@ -83,6 +84,16 @@ export async function POST(req: Request) {
       VALUES (${normalizedEmail}, ${code}, NOW() + INTERVAL '15 minutes')
     `
     await sendVerificationCode(normalizedEmail, code)
+
+    // Уведомление в Telegram
+    sendTelegramAlert(
+      `👤 <b>Новая регистрация</b>\n\n` +
+      `📧 ${normalizedEmail}\n` +
+      `👨‍⚕️ ${name}\n` +
+      `📋 Тариф: ${isPromoUser ? 'Standard (акция)' : 'Free'}\n` +
+      `${referralCode ? `🔗 Реферал: ${referralCode}\n` : ''}` +
+      `🕐 ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
+    )
 
     return NextResponse.json({ success: true, needsVerification: true })
   } catch (err) {
