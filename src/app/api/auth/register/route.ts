@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
-import { sendVerificationCode, generateVerificationCode } from '@/lib/email'
 import { sendTelegramAlert, reportError } from '@/lib/telegram'
 
 export async function POST(req: Request) {
@@ -21,26 +20,17 @@ export async function POST(req: Request) {
     // Проверяем не занят ли email
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } })
     if (existing) {
-      // Если email не подтверждён — разрешаем повторную отправку кода
-      if (!existing.emailVerified) {
-        const code = generateVerificationCode()
-        await prisma.$executeRaw`
-          INSERT INTO verification_codes (email, code, expires_at)
-          VALUES (${normalizedEmail}, ${code}, NOW() + INTERVAL '15 minutes')
-        `
-        await sendVerificationCode(normalizedEmail, code)
-        return NextResponse.json({ success: true, needsVerification: true })
-      }
       return NextResponse.json({ error: 'User already exists' }, { status: 409 })
     }
 
-    // Создаём пользователя (emailVerified = null — не подтверждён)
+    // Создаём пользователя (emailVerified = NOW — сразу подтверждён, без кода)
     const passwordHash = await bcrypt.hash(password, 12)
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         passwordHash,
         name,
+        emailVerified: new Date(),
       },
     })
 
@@ -77,14 +67,6 @@ export async function POST(req: Request) {
       } catch { /* не критично */ }
     }
 
-    // Генерируем код и отправляем на email
-    const code = generateVerificationCode()
-    await prisma.$executeRaw`
-      INSERT INTO verification_codes (email, code, expires_at)
-      VALUES (${normalizedEmail}, ${code}, NOW() + INTERVAL '15 minutes')
-    `
-    await sendVerificationCode(normalizedEmail, code)
-
     // Уведомление в Telegram
     sendTelegramAlert(
       `👤 <b>Новая регистрация</b>\n\n` +
@@ -95,7 +77,7 @@ export async function POST(req: Request) {
       `🕐 ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
     )
 
-    return NextResponse.json({ success: true, needsVerification: true })
+    return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[register] error:', err)
     reportError('Регистрация', err)

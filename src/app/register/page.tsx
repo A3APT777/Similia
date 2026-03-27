@@ -51,18 +51,13 @@ export default function RegisterPage() {
         return
       }
 
-      // Redirect на страницу ввода кода подтверждения
-      if (data.needsVerification) {
-        sessionStorage.setItem('verify_email', email)
-        sessionStorage.setItem('verify_p', password)
-        window.location.href = '/verify'
-        return
-      }
-
-      // Fallback — если верификация не нужна (старые аккаунты)
+      // Регистрация успешна — сразу логиним
       const signInResult = await signIn('credentials', { email, password, redirect: false })
       if (!signInResult?.error) {
         window.location.href = '/dashboard'
+      } else {
+        setError(translateAuthError('login_after_register'))
+        setLoading(false)
       }
     } catch {
       setError(translateAuthError('network'))
