@@ -150,6 +150,7 @@ model Consultation {
   modalityBetterText  String?   @map("modality_better_text")
   mentalText          String?   @map("mental_text")
   generalText         String?   @map("general_text")
+  familyHistory       String    @default("") @map("family_history")
   aiResult            Json?     @map("ai_result")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")

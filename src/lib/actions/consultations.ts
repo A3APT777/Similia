@@ -356,6 +356,7 @@ const consultationFieldsSchema = z.object({
   modality_better_text: z.string().max(10000).optional(),
   mental_text: z.string().max(10000).optional(),
   general_text: z.string().max(10000).optional(),
+  family_history: z.string().max(5000).optional(),
 })
 
 export async function updateConsultationFields(
@@ -380,6 +381,7 @@ export async function updateConsultationFields(
   if (parsed.modality_better_text !== undefined) update.modalityBetterText = parsed.modality_better_text
   if (parsed.mental_text !== undefined) update.mentalText = parsed.mental_text
   if (parsed.general_text !== undefined) update.generalText = parsed.general_text
+  if (parsed.family_history !== undefined) update.familyHistory = parsed.family_history
 
   try {
     await prisma.consultation.updateMany({
@@ -406,6 +408,7 @@ const consultationAllSchema = z.object({
   modality_better_text: z.string().max(10000).optional(),
   mental_text: z.string().max(10000).optional(),
   general_text: z.string().max(10000).optional(),
+  family_history: z.string().max(5000).optional(),
   rubrics: z.string().max(5000).optional(),
   reaction_to_previous: z.string().max(2000).optional(),
 })
@@ -432,6 +435,7 @@ export async function updateConsultationAll(
   if (parsed.modality_better_text !== undefined) update.modalityBetterText = parsed.modality_better_text
   if (parsed.mental_text !== undefined) update.mentalText = parsed.mental_text
   if (parsed.general_text !== undefined) update.generalText = parsed.general_text
+  if (parsed.family_history !== undefined) update.familyHistory = parsed.family_history
   if (parsed.rubrics !== undefined) update.rubrics = parsed.rubrics || null
   if (parsed.reaction_to_previous !== undefined) update.reactionToPrevious = parsed.reaction_to_previous || null
 

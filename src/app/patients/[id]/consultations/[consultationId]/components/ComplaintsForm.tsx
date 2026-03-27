@@ -164,7 +164,9 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
     el.style.height = el.scrollHeight + 'px'
   }
 
-  function handleChange(field: 'complaints' | 'observations' | 'modalityWorseText' | 'modalityBetterText' | 'mentalText' | 'generalText') {
+  const familyRef = useRef<HTMLTextAreaElement>(null)
+
+  function handleChange(field: 'complaints' | 'observations' | 'modalityWorseText' | 'modalityBetterText' | 'mentalText' | 'generalText' | 'familyHistory') {
     return (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       updateField(field, e.target.value)
       autoResize(e.target)
@@ -422,11 +424,31 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
                 value={state.generalText}
                 onChange={handleChange('generalText')}
                 onInput={e => autoResize(e.currentTarget)}
+                onKeyDown={e => handleTab(e, familyRef)}
                 placeholder={labels.generalPlaceholder}
                 rows={2}
                 className={taBase}
                 style={{ borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
                 onFocus={focusStyle}
+                onBlur={blurStyle}
+              />
+            </div>
+
+            {/* Семейный анамнез — только хронический (миазм) */}
+            <div>
+              <Label text={lang === 'ru' ? 'Семейный анамнез' : 'Family history'} color="#c8a035" />
+              <textarea
+                ref={familyRef}
+                value={state.familyHistory}
+                onChange={handleChange('familyHistory')}
+                onInput={e => autoResize(e.currentTarget)}
+                placeholder={lang === 'ru'
+                  ? 'Болезни родственников: туберкулёз, рак, диабет, астма, кожные болезни, алкоголизм...'
+                  : 'Family diseases: tuberculosis, cancer, diabetes, asthma, skin diseases...'}
+                rows={2}
+                className={taBase}
+                style={{ borderColor: 'var(--sim-border)', backgroundColor: 'var(--sim-bg-card)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#c8a035'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,160,53,0.08)' }}
                 onBlur={blurStyle}
               />
             </div>

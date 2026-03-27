@@ -23,6 +23,7 @@ type State = {
   modalityBetterText: string
   mentalText: string
   generalText: string
+  familyHistory: string
   type: ConsultationType
   mode: ConsultationMode
   // Мета
@@ -62,7 +63,7 @@ type ConsultationContextValue = {
   state: State
   dispatch: React.Dispatch<Action>
   // Хелперы для обновления полей
-  updateField: (field: 'notes' | 'complaints' | 'observations' | 'recommendations' | 'rubrics' | 'reactionToPrev' | 'modalityWorseText' | 'modalityBetterText' | 'mentalText' | 'generalText', value: string) => void
+  updateField: (field: 'notes' | 'complaints' | 'observations' | 'recommendations' | 'rubrics' | 'reactionToPrev' | 'modalityWorseText' | 'modalityBetterText' | 'mentalText' | 'generalText' | 'familyHistory', value: string) => void
   addSymptom: (symptom: StructuredSymptom) => void
   removeSymptom: (id: string) => void
   updateSymptomDynamics: (id: string, dynamics: SymptomDynamics) => void
@@ -115,6 +116,7 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
     modalityBetterText: consultation.modality_better_text || '',
     mentalText: consultation.mental_text || '',
     generalText: consultation.general_text || '',
+    familyHistory: (consultation as any).family_history || '',
     type: consultation.type ?? 'chronic',
     mode: consultation.mode ?? 'quick',
     saveState: 'saved',
@@ -157,6 +159,7 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
           modality_better_text: s.modalityBetterText,
           mental_text: s.mentalText,
           general_text: s.generalText,
+          family_history: s.familyHistory,
           rubrics: s.rubrics,
           reaction_to_previous: s.reactionToPrev,
         })
@@ -176,12 +179,12 @@ export function ConsultationProvider({ consultation, patient, previousConsultati
     }, delay)
 
     return () => clearTimeout(autosaveTimerRef.current)
-  }, [state.saveState, state.notes, state.complaints, state.observations, state.recommendations, state.symptoms, state.rubrics, state.reactionToPrev, state.modalityWorseText, state.modalityBetterText, state.mentalText, state.generalText, consultation.id, lang, toast])
+  }, [state.saveState, state.notes, state.complaints, state.observations, state.recommendations, state.symptoms, state.rubrics, state.reactionToPrev, state.modalityWorseText, state.modalityBetterText, state.mentalText, state.generalText, state.familyHistory, consultation.id, lang, toast])
 
   // --- Хелперы ---
 
   const updateField = useCallback((
-    field: 'notes' | 'complaints' | 'observations' | 'recommendations' | 'rubrics' | 'reactionToPrev' | 'modalityWorseText' | 'modalityBetterText' | 'mentalText' | 'generalText',
+    field: 'notes' | 'complaints' | 'observations' | 'recommendations' | 'rubrics' | 'reactionToPrev' | 'modalityWorseText' | 'modalityBetterText' | 'mentalText' | 'generalText' | 'familyHistory',
     value: string,
   ) => {
     dispatch({ type: 'SET_FIELD', field, value })
