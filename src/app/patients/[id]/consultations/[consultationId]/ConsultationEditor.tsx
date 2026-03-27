@@ -16,6 +16,7 @@ import EditorToolbar from './components/EditorToolbar'
 import ComplaintsForm from './components/ComplaintsForm'
 import InlineRx from './components/InlineRx'
 import PrescriptionModal from './PrescriptionModal'
+import { createFollowup } from '@/lib/actions/followups'
 import RightPanel from './right-panel/RightPanel'
 import SharePrescriptionButton from './SharePrescriptionButton'
 import DynamicsBlock from './components/DynamicsBlock'
@@ -52,6 +53,8 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
   const [showPrescription, setShowPrescription] = useState(false)
   const [showZeroWarning, setShowZeroWarning] = useState(false)
   const [showSharePrompt, setShowSharePrompt] = useState(false)
+  const [followupCreated, setFollowupCreated] = useState(false)
+  const [followupToken, setFollowupToken] = useState('')
   const [pendingPrescription, setPendingPrescription] = useState<{ abbrev: string; potency: string; dosage: string } | null>(null)
   const [mobileTab, setMobileTab] = useState<'editor' | 'context'>('editor')
   const [repertoryData, setRepertoryData] = useState(consultation.repertory_data)
@@ -401,10 +404,10 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
         />
       )}
 
-      {/* Предложение отправить назначение после завершения */}
+      {/* Приём завершён + follow-up напоминание */}
       {showSharePrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true">
-          <div className="relative rounded-2xl p-6 w-[calc(100%-2rem)] max-w-[380px] shadow-2xl" style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid var(--sim-border)' }}>
+          <div className="relative rounded-2xl p-6 w-[calc(100%-2rem)] max-w-[420px] shadow-2xl" style={{ backgroundColor: 'var(--sim-bg)', border: '1px solid var(--sim-border)' }}>
             <div className="text-center mb-5">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}>
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="var(--sim-green)" strokeWidth={1.5}>
@@ -419,6 +422,68 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
                 {savedRx?.potency || consultation.potency}
               </p>
             </div>
+
+            {/* Follow-up напоминание */}
+            {!followupCreated ? (
+              <div className="mb-5 rounded-xl p-4" style={{ backgroundColor: 'rgba(200,160,53,0.06)', border: '1px solid rgba(200,160,53,0.15)' }}>
+                <p className="text-[13px] font-medium text-[#92780a] mb-3">
+                  {lang === 'ru' ? 'Создать опросник самочувствия?' : 'Create follow-up survey?'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { days: 7, ru: '7 дней', en: '7 days' },
+                    { days: 14, ru: '14 дней', en: '14 days' },
+                    { days: 21, ru: '21 день', en: '21 days' },
+                    { days: 30, ru: '30 дней', en: '30 days' },
+                  ].map(opt => (
+                    <button
+                      key={opt.days}
+                      onClick={async () => {
+                        try {
+                          const result = await createFollowup(consultation.id, patient.id)
+                          setFollowupToken(result.token)
+                          setFollowupCreated(true)
+                          toast(lang === 'ru' ? `Опросник создан (через ${opt.days} дн.)` : `Survey created (in ${opt.days} days)`)
+                        } catch { /* silent */ }
+                      }}
+                      className="text-[13px] font-medium px-4 py-2 rounded-full bg-white text-[#1a1a1a] border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#c8a035]/30 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                    >
+                      {lang === 'ru' ? opt.ru : opt.en}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setFollowupCreated(true)}
+                    className="text-[12px] px-3 py-2 rounded-full text-[#6b7280] hover:underline"
+                  >
+                    {lang === 'ru' ? 'Не нужно' : 'Skip'}
+                  </button>
+                </div>
+              </div>
+            ) : followupToken ? (
+              <div className="mb-5 rounded-xl p-4" style={{ backgroundColor: 'rgba(45,106,79,0.04)', border: '1px solid rgba(45,106,79,0.12)' }}>
+                <p className="text-[12px] text-[#2d6a4f] mb-2">
+                  {lang === 'ru' ? 'Опросник создан. Отправьте ссылку пациенту:' : 'Survey created. Send the link:'}
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/followup/${followupToken}`}
+                    className="flex-1 text-[12px] px-3 py-2 rounded-lg bg-white border border-gray-200 text-[#1a1a1a]"
+                    onFocus={e => e.target.select()}
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/followup/${followupToken}`)
+                      toast(lang === 'ru' ? 'Ссылка скопирована' : 'Link copied')
+                    }}
+                    className="text-[12px] px-3 py-2 rounded-lg bg-[#2d6a4f] text-white font-medium shrink-0"
+                  >
+                    {lang === 'ru' ? 'Копировать' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="space-y-2">
               <Link
                 href={`/patients/${patient.id}`}
