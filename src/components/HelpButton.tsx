@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
 // Страницы где кнопка помощи не нужна (публичные формы пациента)
-const HIDDEN_PATHS = ['/intake/', '/followup/', '/upload/', '/survey/', '/new/', '/rx/', '/verify']
+const HIDDEN_PATHS = ['/intake/', '/followup/', '/upload/', '/survey/', '/new/', '/rx/', '/verify', '/ai-consultation']
 
 const HELP_ITEMS = [
   {

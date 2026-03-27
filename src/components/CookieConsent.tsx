@@ -54,12 +54,12 @@ export default function CookieConsent() {
 
   return (
     <div
-      className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-auto sm:right-6 z-50"
+      className="fixed bottom-0 left-0 right-0 sm:bottom-6 sm:left-auto sm:right-6 z-50 sm:px-0 px-0"
       role="dialog"
       aria-label="Согласие на использование cookies"
     >
       <div
-        className="sm:max-w-md rounded-xl border shadow-lg px-4 py-3 flex items-center gap-3"
+        className="sm:max-w-md sm:rounded-xl rounded-none border-t sm:border shadow-lg px-4 py-2.5 sm:py-3 flex items-center gap-3"
         style={{
           backgroundColor: 'rgba(247, 243, 237, 0.97)',
           backdropFilter: 'blur(12px)',
