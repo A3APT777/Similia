@@ -1283,8 +1283,9 @@ export async function logDoctorChoice(consultationId: string, chosenRemedy: stri
     let correctPosition: number | null = null
     if (logEntry?.engineTop3) {
       const top3 = logEntry.engineTop3 as Array<{ remedy: string }>
-      const idx = top3.findIndex(r => r.remedy.toLowerCase() === chosenRemedy.toLowerCase())
-      correctPosition = idx >= 0 ? idx + 1 : null // 1, 2, 3 или null (не в top-3)
+      const chosenNorm = normalizeRemedyName(chosenRemedy)
+      const idx = top3.findIndex(r => normalizeRemedyName(r.remedy) === chosenNorm)
+      correctPosition = idx >= 0 ? idx + 1 : null
     }
 
     if (logEntry) {
@@ -1331,6 +1332,55 @@ export async function logClarifyResult(data: {
   } catch { /* silent */ }
 }
 
+// Нормализация названий средств: русские → латинские abbreviations
+const REMEDY_NAME_ALIASES: Record<string, string> = {
+  'рус токсикодендрон': 'rhus-t', 'рус': 'rhus-t', 'рустокс': 'rhus-t',
+  'натриум муриатикум': 'nat-m', 'натрий мур': 'nat-m', 'нат мур': 'nat-m',
+  'пульсатилла': 'puls', 'пульс': 'puls',
+  'сульфур': 'sulph', 'сера': 'sulph',
+  'калькарея карбоника': 'calc', 'кальк': 'calc', 'калькарея': 'calc',
+  'ликоподиум': 'lyc', 'ликоподий': 'lyc',
+  'арсеникум': 'ars', 'арсеникум альбум': 'ars',
+  'нукс вомика': 'nux-v', 'нукс': 'nux-v',
+  'фосфор': 'phos', 'фосфорус': 'phos',
+  'сепия': 'sep',
+  'игнация': 'ign',
+  'стафизагрия': 'staph',
+  'аурум': 'aur', 'аурум мет': 'aur',
+  'лахезис': 'lach',
+  'белладонна': 'bell',
+  'аконит': 'acon', 'аконитум': 'acon',
+  'бриония': 'bry',
+  'хамомилла': 'cham', 'ромашка': 'cham',
+  'апис': 'apis',
+  'гельземиум': 'gels',
+  'купрум': 'cupr',
+  'силицея': 'sil', 'кремнезем': 'sil',
+  'графит': 'graph', 'графитес': 'graph',
+  'гепар сульфур': 'hep', 'гепар': 'hep',
+  'меркуриус': 'merc', 'ртуть': 'merc',
+  'колоцинт': 'coloc',
+  'аргентум нитрикум': 'arg-n', 'аргентум': 'arg-n',
+  'туя': 'thuj', 'туйя': 'thuj',
+  'кониум': 'con',
+  'баритта карбоника': 'bar-c', 'барита': 'bar-c',
+  'платина': 'plat',
+  'страмониум': 'stram',
+  'дрозера': 'dros',
+  'ипекакуана': 'ip',
+  'вератрум': 'verat',
+  'арника': 'arn',
+  'туберкулинум': 'tub',
+  'карцинозин': 'carc',
+  'псоринум': 'psor',
+  'медоринум': 'med',
+}
+
+function normalizeRemedyName(name: string): string {
+  const lower = name.toLowerCase().replace(/\.$/, '').trim()
+  return REMEDY_NAME_ALIASES[lower] ?? lower
+}
+
 /**
  * Doctor feedback из Direct flow (без consultation_id)
  * Записывает doctor_choice в последний лог пользователя
@@ -1346,13 +1396,11 @@ export async function logDoctorFeedback(chosenRemedy: string) {
     })
 
     if (lastLog) {
-      // Вычислить correctPosition
       let correctPosition: number | null = null
       if (lastLog.engineTop3) {
         const top3 = lastLog.engineTop3 as Array<{ remedy: string }>
-        const idx = top3.findIndex(r =>
-          r.remedy.toLowerCase().replace(/\.$/, '') === chosenRemedy.toLowerCase().replace(/\.$/, '')
-        )
+        const chosenNorm = normalizeRemedyName(chosenRemedy)
+        const idx = top3.findIndex(r => normalizeRemedyName(r.remedy) === chosenNorm)
         correctPosition = idx >= 0 ? idx + 1 : null
       }
 
@@ -1382,9 +1430,8 @@ export async function logDisagreement(chosenRemedy: string, reason: string) {
       let correctPosition: number | null = null
       if (lastLog.engineTop3) {
         const top3 = lastLog.engineTop3 as Array<{ remedy: string }>
-        const idx = top3.findIndex(r =>
-          r.remedy.toLowerCase().replace(/\.$/, '') === chosenRemedy.toLowerCase().replace(/\.$/, '')
-        )
+        const chosenNorm = normalizeRemedyName(chosenRemedy)
+        const idx = top3.findIndex(r => normalizeRemedyName(r.remedy) === chosenNorm)
         correctPosition = idx >= 0 ? idx + 1 : null
       }
 
