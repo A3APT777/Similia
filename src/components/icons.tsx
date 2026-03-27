@@ -3,7 +3,7 @@
  * Используются в сайдбаре и других местах.
  */
 
-const ic = "w-[17px] h-[17px]"
+const ic = "w-[20px] h-[20px]"
 const s = { strokeWidth: 1.25, strokeLinecap: "round" as const, strokeLinejoin: "round" as const }
 
 export const IconHome = <svg className={ic} viewBox="0 0 20 20" fill="none" stroke="currentColor" {...s}><rect x="2.5" y="2.5" width="6" height="7" rx="1.5"/><rect x="11.5" y="2.5" width="6" height="4" rx="1.5"/><rect x="2.5" y="12.5" width="6" height="5" rx="1.5"/><rect x="11.5" y="9.5" width="6" height="8" rx="1.5"/></svg>

@@ -40,14 +40,14 @@
   --sim-font-sans:   var(--font-geist-sans), 'Geist', system-ui, -apple-system, sans-serif;
   --sim-font-serif:  'Cormorant Garamond', Georgia, serif;
 
-  /* Размеры — минимум 12px (ничего мельче в UI) */
-  --sim-text-xs:     12px;   /* мета, бейджи */
-  --sim-text-sm:     13px;   /* вторичный контент */
-  --sim-text-base:   14px;   /* основной текст */
-  --sim-text-md:     15px;   /* чуть крупнее основного */
-  --sim-text-lg:     17px;   /* заголовки секций */
-  --sim-text-xl:     20px;   /* заголовки страниц */
-  --sim-text-2xl:    24px;   /* hero */
+  /* Размеры — увеличены для аудитории 50+ */
+  --sim-text-xs:     13px;   /* мета, бейджи (было 12) */
+  --sim-text-sm:     14px;   /* вторичный контент (было 13) */
+  --sim-text-base:   15px;   /* основной текст (было 14) */
+  --sim-text-md:     16px;   /* чуть крупнее основного (было 15) */
+  --sim-text-lg:     18px;   /* заголовки секций (было 17) */
+  --sim-text-xl:     22px;   /* заголовки страниц (было 20) */
+  --sim-text-2xl:    26px;   /* hero (было 24) */
 
   /* ── Радиусы — ЕДИНЫЙ СТАНДАРТ (premium pill style) ───── */
   --sim-r-xs:    6px;    /* внутренние элементы (badge, dot) */
@@ -120,11 +120,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 14px;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
   font-family: var(--sim-font-sans);
-  font-size: var(--sim-text-sm);
+  font-size: var(--sim-text-base);
   font-weight: 500;
   line-height: 1;
   border-radius: var(--sim-r-md);
@@ -187,15 +187,15 @@ body {
 
 /* Размеры */
 .btn-sm {
-  height: 28px;
-  padding: 0 12px;
-  font-size: var(--sim-text-xs);
+  height: 36px;
+  padding: 0 14px;
+  font-size: var(--sim-text-sm);
   border-radius: var(--sim-r-md);
 }
 
 .btn-lg {
-  height: 44px;
-  padding: 0 20px;
+  height: 48px;
+  padding: 0 24px;
   font-size: var(--sim-text-md);
   font-weight: 600;
   border-radius: var(--sim-r-md);
