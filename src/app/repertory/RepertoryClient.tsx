@@ -700,7 +700,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           </div>
 
           {tutorialStep < 0 && (
-            <div className="px-4">
+            <div className="px-4 hidden lg:block">
               <FirstTimeHint id="full_repertory">
                 {lang === 'ru'
                   ? <>Полный реперторий Кента — 74 482 рубрики с поиском по разделам. Добавляйте рубрики в анализ [+], настраивайте веса и элиминацию. <a href="/docs/Full_Repertory_Manual_RU.pdf" target="_blank" rel="noopener" style={{ textDecoration: 'underline' }}>Скачать руководство (PDF)</a></>
@@ -793,8 +793,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
         {/* ─ Панель анализа (260px) ─────────────── */}
         <div
           data-tour="rep-analysis"
-          className={`shrink-0 flex-col border-l bg-white ${showAnalysis ? 'flex' : 'hidden'} lg:flex${tutorialStep >= 7 && tutorialStep <= 9 ? ' tut-glow' : ''}`}
-          style={{ width: 260, borderColor: colors.border }}
+          className={`flex-col bg-white ${showAnalysis ? 'fixed inset-0 z-50 flex lg:relative lg:inset-auto lg:z-auto lg:shrink-0 lg:border-l lg:w-[260px]' : 'hidden lg:flex lg:shrink-0 lg:border-l lg:w-[260px]'}${tutorialStep >= 7 && tutorialStep <= 9 ? ' tut-glow' : ''}`}
+          style={{ borderColor: colors.border }}
         >
           {/* Заголовок */}
           <div
@@ -1427,9 +1427,9 @@ function RubricRow({
           onPointerDown={e => { e.stopPropagation(); onAddToAnalysis() }}
           className={`shrink-0 flex items-center justify-center transition-all ${isTutorialTarget || (tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
           style={{
-            width: 20, height: 20,
+            width: 32, height: 32, minWidth: 32,
             backgroundColor: inAnalysis ? '#1a7a40' : colors.link,
-            borderRadius: 4,
+            borderRadius: 8,
             ...((tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6 && !inAnalysis) ? {
               outline: '2px solid #2d6a4f',
               outlineOffset: 2,
