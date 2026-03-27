@@ -328,33 +328,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
           <div className="mb-4" />
 
-          {/* AI Pro карточка */}
-          {totalPatients >= 0 && <Link
-            href="/ai-consultation"
-            className="group block mb-5 px-5 py-4 rounded-xl transition-all duration-300 hover:shadow-sm"
-            style={{ backgroundColor: 'var(--sim-bg-card)', border: '1px solid var(--sim-border)' }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105"
-                style={{ backgroundColor: 'rgba(45,106,79,0.08)' }}
-              >
-                <svg className="w-4.5 h-4.5" style={{ color: 'var(--sim-green)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>{lang === 'ru' ? 'AI-анализ случая' : 'AI Case Analysis'}</p>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--sim-text-muted)' }}>
-                  {lang === 'ru' ? '8 линз MDRI · AI-гомеопат · Consensus' : '8 MDRI lenses · AI homeopath · Consensus'}
-                </p>
-              </div>
-              <svg className="w-4 h-4 shrink-0 opacity-0 group-hover:opacity-50 transition-opacity duration-200" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </div>
-          </Link>}
-
           {/* Активный приём */}
           {activeConsultations && activeConsultations.length > 0 && (() => {
             const active = activeConsultations[0] as { id: string; patientId: string; patient: { id: string; name: string } | null }
