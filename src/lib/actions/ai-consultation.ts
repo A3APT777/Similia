@@ -468,16 +468,16 @@ async function callSonnetHomeopath(caseText: string): Promise<AIHomeopathResult 
 // Кэш русских labels от Sonnet (rubric → labelRu)
 const _labelRuCache = new Map<string, string>()
 
-// Retry при 529/overloaded — до 3 попыток с задержкой
+// Retry при 500/529/overloaded — до 3 попыток с задержкой
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2, delayMs = 2000): Promise<T> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn()
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
-      const isOverloaded = msg.includes('529') || msg.includes('overloaded') || msg.includes('Overloaded')
-      if (isOverloaded && attempt < maxRetries) {
-        console.log(`[retry] attempt ${attempt + 1}/${maxRetries}, waiting ${delayMs}ms...`)
+      const isRetryable = msg.includes('529') || msg.includes('overloaded') || msg.includes('Overloaded') || msg.includes('500') || msg.includes('Internal server error')
+      if (isRetryable && attempt < maxRetries) {
+        console.log(`[retry] attempt ${attempt + 1}/${maxRetries}, error: ${msg.slice(0, 80)}, waiting ${delayMs * (attempt + 1)}ms...`)
         await new Promise(r => setTimeout(r, delayMs * (attempt + 1)))
         continue
       }
