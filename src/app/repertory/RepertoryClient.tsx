@@ -118,6 +118,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   // Анализ
   const [analysisEntries, setAnalysisEntries] = useState<AnalysisEntry[]>([])
   const [showAnalysis, setShowAnalysis] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024)
+  const [mobileTab, setMobileTab] = useState<'search' | 'analysis'>('search')
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
   const [coverageOnly, setCoverageOnly] = useState(false)
 
   // Недавно использованные
@@ -611,8 +613,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       ══════════════════════════════════════════ */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
 
-        {/* ─ Колонка рубрик ─────────────────────── */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* ─ Колонка рубрик (скрывается на мобильном при табе «Анализ») ─ */}
+        <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${mobileTab === 'analysis' ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Недавно использованные */}
           {recentRubrics.length > 0 && (
@@ -677,9 +679,9 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
               )}
             </p>
 
-            {/* Кнопка анализа на мобильном */}
+            {/* Кнопка анализа — только десктоп (на мобильном заменена tab bar) */}
             <button
-              className="lg:hidden flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full transition-all duration-200"
+              className="hidden lg:flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full transition-all duration-200"
               style={{
                 border: `1px solid ${analysisEntries.length > 0 ? 'var(--sim-green)' : 'var(--sim-border)'}`,
                 color: analysisEntries.length > 0 ? 'var(--sim-green)' : 'var(--sim-text-muted)',
@@ -710,7 +712,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           )}
 
           {/* Список рубрик */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto pb-14 lg:pb-0">
             {loading ? (
               <div className="p-2 space-y-px">
                 {[...Array(20)].map((_, i) => (
@@ -790,29 +792,17 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
           </div>
         </div>
 
-        {/* ─ FAB «Анализ» для mobile ─────────────── */}
-        {!showAnalysis && (
-          <button
-            onClick={() => setShowAnalysis(true)}
-            className="lg:hidden fixed bottom-6 right-4 z-20 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all duration-200 active:scale-95"
-            style={{ backgroundColor: 'var(--sim-green)', color: '#fff' }}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-            {lang === 'ru' ? 'Анализ' : 'Analysis'}
-            {analysisEntries.length > 0 && (
-              <span className="flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold" style={{ backgroundColor: 'rgba(255,255,255,0.25)' }}>
-                {analysisEntries.length}
-              </span>
-            )}
-          </button>
-        )}
+        {/* FAB убран — заменён на Bottom Tab Bar */}
 
-        {/* ─ Панель анализа (260px) ─────────────── */}
+        {/* ─ Панель анализа (260px на десктопе, полный экран на мобильном через tab) ─ */}
         <div
           data-tour="rep-analysis"
-          className={`flex-col bg-white ${showAnalysis ? 'fixed inset-0 z-50 flex lg:relative lg:inset-auto lg:z-auto lg:shrink-0 lg:border-l lg:w-[260px]' : 'hidden lg:flex lg:shrink-0 lg:border-l lg:w-[260px]'}${tutorialStep >= 7 && tutorialStep <= 9 ? ' tut-glow' : ''}`}
+          className={`flex-col bg-white ${
+            /* Мобильный: показываем только при mobileTab=analysis */
+            mobileTab === 'analysis'
+              ? 'flex flex-1 lg:shrink-0 lg:border-l lg:w-[260px] lg:flex-initial'
+              : 'hidden lg:flex lg:shrink-0 lg:border-l lg:w-[260px]'
+          }${tutorialStep >= 7 && tutorialStep <= 9 ? ' tut-glow' : ''}`}
           style={{ borderColor: colors.border }}
         >
           {/* Заголовок */}
@@ -833,15 +823,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 </span>
               )}
             </div>
-            <button
-              className="lg:hidden w-6 h-6 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.04]"
-              style={{ color: 'var(--sim-text-muted)' }}
-              onPointerDown={() => setShowAnalysis(false)}
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {/* Кнопка «×» — скрыта, переключение через tab bar */}
           </div>
 
           {analysisEntries.length === 0 ? (
@@ -1120,6 +1102,47 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       </div>
 
       {/* ══════════════════════════════════════════
+          BOTTOM TAB BAR (мобильный)
+      ══════════════════════════════════════════ */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex bg-white"
+        style={{
+          borderTop: '1px solid var(--sim-border)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          height: 52,
+        }}
+      >
+        <button
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors"
+          style={{ color: mobileTab === 'search' ? 'var(--sim-green)' : 'var(--sim-text-muted)' }}
+          onPointerDown={() => setMobileTab('search')}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={mobileTab === 'search' ? 2.5 : 1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <span className="text-[10px] font-medium">{lang === 'ru' ? 'Поиск' : 'Search'}</span>
+        </button>
+        <button
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors relative"
+          style={{ color: mobileTab === 'analysis' ? 'var(--sim-green)' : 'var(--sim-text-muted)' }}
+          onPointerDown={() => setMobileTab('analysis')}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={mobileTab === 'analysis' ? 2.5 : 1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+          </svg>
+          <span className="text-[10px] font-medium">{lang === 'ru' ? 'Анализ' : 'Analysis'}</span>
+          {analysisEntries.length > 0 && (
+            <span
+              className="absolute top-0.5 right-1/4 flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white"
+              style={{ backgroundColor: 'var(--sim-green)' }}
+            >
+              {analysisEntries.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ══════════════════════════════════════════
           МОДАЛ СОХРАНИТЬ В КОНСУЛЬТАЦИЮ
       ══════════════════════════════════════════ */}
       {showSaveModal && (
@@ -1394,9 +1417,9 @@ function RubricRow({
       >
         {/* Название рубрики */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* Хлебные крошки (только если есть родители) */}
+          {/* Хлебные крошки (только десктоп — на мобильном экономим место) */}
           {parentSegments.length > 0 && onNavigate && (
-            <div className="flex items-center gap-0.5 mb-0.5 flex-wrap">
+            <div className="hidden lg:flex items-center gap-0.5 mb-0.5 flex-wrap">
               {parentSegments.map((seg, i) => (
                 <span key={i} className="flex items-center gap-0.5">
                   {i > 0 && <span style={{ color: '#c4b89a', fontSize: 11 }}>›</span>}
@@ -1446,9 +1469,9 @@ function RubricRow({
           onPointerDown={e => { e.stopPropagation(); onAddToAnalysis() }}
           className={`shrink-0 flex items-center justify-center transition-all ${isTutorialTarget || (tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
           style={{
-            width: 32, height: 32, minWidth: 32,
+            width: 40, height: 40, minWidth: 40,
             backgroundColor: inAnalysis ? '#1a7a40' : colors.link,
-            borderRadius: 8,
+            borderRadius: 10,
             ...((tutorialStep !== undefined && tutorialStep >= 5 && tutorialStep <= 6 && !inAnalysis) ? {
               outline: '2px solid #2d6a4f',
               outlineOffset: 2,
