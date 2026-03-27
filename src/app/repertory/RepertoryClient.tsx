@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect, memo } from 'react'
 import { searchRepertory, getPatientsSimple, getPatientConsultationsSimple, type RepertoryRubric } from '@/lib/actions/repertory'
 import { saveRepertoryData } from '@/lib/actions/consultations'
 import { translateRubric } from '@/lib/repertory-translations'
@@ -260,6 +260,18 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
       const target = focusedIndex >= 0 ? rubrics[focusedIndex] : rubrics[0]
       if (target) addToAnalysis(target)
     }
+  }
+
+  function removeFromAnalysis(rubricId: number) {
+    setAnalysisEntries(prev => prev.filter(ae => ae.rubric.id !== rubricId))
+  }
+
+  function toggleAnalysis(rubric: RepertoryRubric) {
+    if (analysisEntries.find(ae => ae.rubric.id === rubric.id)) {
+      removeFromAnalysis(rubric.id)
+      return
+    }
+    addToAnalysis(rubric)
   }
 
   function addToAnalysis(rubric: RepertoryRubric) {
@@ -635,7 +647,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                   return (
                     <button
                       key={r.id}
-                      onPointerDown={() => addToAnalysis(r)}
+                      onPointerDown={() => toggleAnalysis(r)}
                       className="shrink-0 px-2.5 py-1 text-[13px] rounded-full border transition-all whitespace-nowrap"
                       style={{
                         borderColor: inA ? colors.link : colors.border,
@@ -750,7 +762,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                     tutorialStep={tutorialStep}
                     isTutorialTarget={tutorialStep >= 2 && tutorialStep <= 6 && idx === 0}
                     onToggleExpand={() => toggleExpand(rubric.id)}
-                    onAddToAnalysis={() => addToAnalysis(rubric)}
+                    onAddToAnalysis={() => toggleAnalysis(rubric)}
                     onNavigate={term => {
                       setQuery(term)
                       setGroupIndex(0) // переходим в «Все разделы»
@@ -1357,8 +1369,8 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
   )
 }
 
-// ── Строка рубрики ─────────────────────────────────────────────────
-function RubricRow({
+// ── Строка рубрики (memo — не ре-рендерится если props не изменились) ──
+const RubricRow = memo(function RubricRow({
   rubric, lang, localName, isExpanded, inAnalysis, isFocused, isTutorialTarget, tutorialStep,
   onToggleExpand, onAddToAnalysis, onNavigate,
 }: {
@@ -1587,7 +1599,7 @@ function RubricRow({
       )}
     </div>
   )
-}
+})
 
 // ── Модал "Выписать препарат" ──────────────────────────────────────
 const POTENCIES = ['6C', '12C', '30C', '200C', '1M', '10M', 'LM1', 'LM2', 'LM3', 'LM6']
