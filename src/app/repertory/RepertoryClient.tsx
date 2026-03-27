@@ -117,7 +117,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
 
   // Анализ
   const [analysisEntries, setAnalysisEntries] = useState<AnalysisEntry[]>([])
-  const [showAnalysis, setShowAnalysis] = useState(true)
+  const [showAnalysis, setShowAnalysis] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024)
   const [coverageOnly, setCoverageOnly] = useState(false)
 
   // Недавно использованные
