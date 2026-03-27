@@ -235,9 +235,11 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
         </div>
       )}
 
-      {/* Основная жалоба */}
-      <div>
-        <Label text={isAcute ? `⚡ ${labels.chief}` : labels.chief} htmlFor="chief-complaint" />
+      {/* Основная жалоба — визуально крупнее */}
+      <div className="rounded-xl p-4" style={{ backgroundColor: isAcute ? 'rgba(180,83,9,0.03)' : 'rgba(45,106,79,0.02)', border: `1px solid ${isAcute ? 'rgba(180,83,9,0.1)' : 'rgba(45,106,79,0.08)'}` }}>
+        <label htmlFor="chief-complaint" className="block mb-2" style={{ fontSize: '15px', fontWeight: 600, color: isAcute ? acuteAccent : '#2d6a4f', letterSpacing: '0.02em' }}>
+          {isAcute ? `⚡ ${labels.chief}` : labels.chief}
+        </label>
         <textarea
           id="chief-complaint"
           ref={chiefRef}
@@ -248,9 +250,9 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
           placeholder={preset?.chiefHint || labels.chiefPlaceholder}
           rows={3}
           className={taBase}
-          style={{ borderColor: 'var(--sim-border)', backgroundColor: isAcute ? acuteBg : chronicBg }}
-          onFocus={focusStyle}
-          onBlur={blurStyle}
+          style={{ borderColor: 'transparent', backgroundColor: 'transparent', padding: '0' }}
+          onFocus={e => { e.currentTarget.style.outline = 'none' }}
+          onBlur={e => { e.currentTarget.style.outline = 'none' }}
         />
       </div>
 

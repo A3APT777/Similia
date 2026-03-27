@@ -53,9 +53,10 @@ export default function RightPanel({ previousConsultation, patient, lang, preVis
   ) : null
 
   if (!previousConsultation) {
+    const hasPatientContext = patient.constitutional_type || patient.birth_date || patient.notes
     return (
       <div className="p-4 space-y-3">
-        <FirstVisitContext patient={patient} lang={lang} />
+        {hasPatientContext && <FirstVisitContext patient={patient} lang={lang} />}
         {suggestionPanel}
         {aiResult && !suggestions && <AIResultPanel aiResult={aiResult} lang={lang} onAssignRemedy={handleAIAssign} />}
       {clarifyQuestions && clarifyQuestions.length > 0 && onClarifySubmit && onClarifySkip && (
