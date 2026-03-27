@@ -1417,9 +1417,9 @@ function RubricRow({
       >
         {/* Название рубрики */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* Хлебные крошки (только десктоп — на мобильном экономим место) */}
+          {/* Хлебные крошки (компактные на мобиле, полные на десктопе) */}
           {parentSegments.length > 0 && onNavigate && (
-            <div className="hidden lg:flex items-center gap-0.5 mb-0.5 flex-wrap">
+            <div className="flex items-center gap-0.5 mb-0.5 flex-wrap">
               {parentSegments.map((seg, i) => (
                 <span key={i} className="flex items-center gap-0.5">
                   {i > 0 && <span style={{ color: '#c4b89a', fontSize: 11 }}>›</span>}
@@ -1444,9 +1444,9 @@ function RubricRow({
               const enParts = rubric.fullpath.split(', ')
               const enLast = enParts[enParts.length - 1]
               const ruLast = segments[segments.length - 1]
-              // Показываем английский только если отличается от русского
-              if (enLast.toLowerCase() !== ruLast.toLowerCase()) {
-                return <span className="text-[11px] italic" style={{ color: '#b0a890' }}>{enLast}</span>
+              // Показываем EN только если: отличается от RU, длиннее 3 символов (не предлоги of/with/in/at)
+              if (enLast.toLowerCase() !== ruLast.toLowerCase() && enLast.length > 3) {
+                return <span className="text-[10px] italic lg:text-[11px]" style={{ color: '#c4b8a0' }}>{enLast}</span>
               }
               return null
             })()}
@@ -1565,16 +1565,24 @@ function RubricRow({
               {r.abbrev}
             </span>
           ))}
-          {grade1.map(r => (
-            <span
-              key={r.abbrev}
-              className="mr-1 cursor-pointer hover:underline"
-              style={{ fontSize: '13px', color: '#8a8070' }}
-              title={r.name}
-            >
-              {r.abbrev}
+          {/* 1-я степень: на mobile — скрыта за "ещё X", на desktop — показана */}
+          <span className="hidden lg:inline">
+            {grade1.map(r => (
+              <span
+                key={r.abbrev}
+                className="mr-1 cursor-pointer hover:underline"
+                style={{ fontSize: '13px', color: '#8a8070' }}
+                title={r.name}
+              >
+                {r.abbrev}
+              </span>
+            ))}
+          </span>
+          {grade1.length > 0 && (
+            <span className="lg:hidden text-[11px] ml-1" style={{ color: 'var(--sim-text-hint)' }}>
+              +{grade1.length}
             </span>
-          ))}
+          )}
         </div>
       )}
     </div>
