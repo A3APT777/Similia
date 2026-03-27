@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
 import { sendVerificationCode, generateVerificationCode } from '@/lib/email'
-import { sendTelegramAlert } from '@/lib/telegram'
+import { sendTelegramAlert, reportError } from '@/lib/telegram'
 
 export async function POST(req: Request) {
   try {
@@ -98,6 +98,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, needsVerification: true })
   } catch (err) {
     console.error('[register] error:', err)
+    reportError('Регистрация', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

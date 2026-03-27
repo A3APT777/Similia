@@ -22,3 +22,17 @@ export async function sendTelegramAlert(message: string): Promise<void> {
     console.error('[telegram] ошибка отправки:', err)
   }
 }
+
+// Отправка ошибок сервера в Telegram (замена Sentry)
+export async function reportError(context: string, error: unknown): Promise<void> {
+  const msg = error instanceof Error ? error.message : String(error)
+  const stack = error instanceof Error ? error.stack?.slice(0, 500) : ''
+
+  sendTelegramAlert(
+    `🔴 <b>Ошибка сервера</b>\n\n` +
+    `📍 ${context}\n` +
+    `❌ ${msg}\n` +
+    (stack ? `\n<pre>${stack}</pre>` : '') +
+    `\n🕐 ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
+  )
+}

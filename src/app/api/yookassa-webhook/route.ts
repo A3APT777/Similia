@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTelegramAlert } from '@/lib/telegram'
+import { sendTelegramAlert, reportError } from '@/lib/telegram'
 
 // IP-адреса ЮKassa для webhook (из документации)
 const YOOKASSA_IPS = [
@@ -202,6 +202,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: 'ok' })
   } catch (err) {
     console.error('[webhook] unexpected error:', err)
+    reportError('YooKassa webhook', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

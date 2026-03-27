@@ -196,6 +196,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ═══ Скриншоты продукта ═══ */}
+      <section className="py-24 sm:py-32" style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
+        <div className="max-w-[1200px] mx-auto px-6">
+          <p className="text-[11px] font-medium tracking-[0.2em] uppercase mb-4 text-center" style={{ color: '#2d6a4f' }}>
+            Интерфейс
+          </p>
+          <h2 className="lr-serif text-[clamp(32px,4vw,48px)] font-light leading-[1.1] mb-16 text-center" style={{ letterSpacing: '-0.02em' }}>
+            Просто и понятно.
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <div className="rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-black/5">
+                <img src="/screenshots/ss-dashboard.png" alt="Дашборд — список пациентов, календарь, статистика" width={720} height={450} loading="lazy" />
+              </div>
+              <p className="text-[13px] mt-4 text-center" style={{ color: '#8a7e6c' }}>Дашборд — пациенты, календарь, записи</p>
+            </div>
+            <div>
+              <div className="rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-black/5">
+                <img src="/screenshots/ss-repertory.png" alt="Реперторий Кента — 74 000+ рубрик, поиск на русском" width={720} height={450} loading="lazy" />
+              </div>
+              <p className="text-[13px] mt-4 text-center" style={{ color: '#8a7e6c' }}>Реперторий — 74 000+ рубрик, поиск на русском</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ═══ Цитата ═══ */}
       <section className="py-24 sm:py-32">
         <div className="max-w-[800px] mx-auto px-6 text-center">
