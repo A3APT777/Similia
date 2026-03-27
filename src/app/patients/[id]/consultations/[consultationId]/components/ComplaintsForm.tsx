@@ -87,7 +87,7 @@ type AcutePreset = {
 
 const ACUTE_PRESETS: AcutePreset[] = [
   {
-    id: 'orvi', label: 'ОРВИ', labelEn: 'Cold/Flu', icon: '🤧',
+    id: 'orvi', label: 'ОРВИ', labelEn: 'Cold/Flu', icon: '',
     chiefHint: 'Насморк, кашель, чихание, боль в горле...',
     worseHint: 'холод, сквозняк, ночью, утром...',
     betterHint: 'тепло, горячее питьё, покой...',
@@ -95,7 +95,7 @@ const ACUTE_PRESETS: AcutePreset[] = [
     mentalHint: 'вялый или беспокойный, раздражительный, плаксивый...',
   },
   {
-    id: 'angina', label: 'Ангина', labelEn: 'Tonsillitis', icon: '🫁',
+    id: 'angina', label: 'Ангина', labelEn: 'Tonsillitis', icon: '',
     chiefHint: 'Боль в горле, трудно глотать, налёт на миндалинах...',
     worseHint: 'глотание, холодное/тёплое питьё, ночью...',
     betterHint: 'тёплое/холодное питьё, покой...',
@@ -103,7 +103,7 @@ const ACUTE_PRESETS: AcutePreset[] = [
     mentalHint: 'раздражительный, капризный, хочет компанию или один...',
   },
   {
-    id: 'otit', label: 'Отит', labelEn: 'Otitis', icon: '👂',
+    id: 'otit', label: 'Отит', labelEn: 'Otitis', icon: '',
     chiefHint: 'Боль в ухе, стреляет, выделения...',
     worseHint: 'ночью, тепло, лёжа на больной стороне...',
     betterHint: 'холод, тепло, давление...',
@@ -111,7 +111,7 @@ const ACUTE_PRESETS: AcutePreset[] = [
     mentalHint: 'кричит от боли, успокаивается когда носят...',
   },
   {
-    id: 'colic', label: 'Колики', labelEn: 'Colic', icon: '😣',
+    id: 'colic', label: 'Колики', labelEn: 'Colic', icon: '',
     chiefHint: 'Боль в животе, спазмы, вздутие...',
     worseHint: 'после еды, движение, разгибание...',
     betterHint: 'сгибание, давление, тепло, горячая грелка...',
@@ -119,7 +119,7 @@ const ACUTE_PRESETS: AcutePreset[] = [
     mentalHint: 'злой от боли, хочет покоя, нетерпеливый...',
   },
   {
-    id: 'trauma', label: 'Травма', labelEn: 'Injury', icon: '🩹',
+    id: 'trauma', label: 'Травма', labelEn: 'Injury', icon: '',
     chiefHint: 'Ушиб, удар, падение, растяжение...',
     worseHint: 'движение, прикосновение, сырость...',
     betterHint: 'покой, холод, возвышенное положение...',
@@ -225,7 +225,6 @@ export default function ComplaintsForm({ autoFocus = false }: Props) {
                       : 'bg-white text-[#1a1a1a] border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_6px_16px_rgba(0,0,0,0.05)] hover:border-[#b45309]/20'
                   }`}
                 >
-                  <span className="mr-1.5">{p.icon}</span>
                   {lang === 'ru' ? p.label : p.labelEn}
                 </button>
               )
