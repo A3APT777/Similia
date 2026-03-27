@@ -439,16 +439,33 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
         </div>
       )}
 
+      {/* Mobile sticky finish — всегда доступна кнопка завершения */}
+      {!isCompleted && mobileTab === 'editor' && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 px-4 py-2.5" style={{ backgroundColor: 'rgba(247,243,237,0.95)', backdropFilter: 'blur(8px)', borderTop: '1px solid var(--sim-border)', paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))' }}>
+          <button
+            onClick={handleFinish}
+            disabled={isSubmitting}
+            className="btn btn-primary w-full py-3 rounded-xl text-[14px] font-medium disabled:opacity-60"
+          >
+            {isSubmitting ? (lang === 'ru' ? 'Сохраняю...' : 'Saving...') : t(lang).consultation.finish}
+          </button>
+        </div>
+      )}
+
       {/* Mobile tab bar */}
       <div className="lg:hidden flex shrink-0" style={{ borderBottom: '1px solid var(--sim-border-light)', backgroundColor: 'var(--sim-bg-muted)' }}>
         <button onClick={() => setMobileTab('editor')} className="flex-1 py-3 text-xs font-semibold transition-colors border-b-2" style={{ color: mobileTab === 'editor' ? 'var(--sim-text)' : 'var(--sim-text-hint)', borderColor: mobileTab === 'editor' ? 'var(--sim-green)' : 'transparent' }}>
           {t(lang).consultation.editor}
         </button>
-        <button onClick={() => setMobileTab('context')} className="flex-1 py-3 text-xs font-semibold transition-colors border-b-2" style={{ color: mobileTab === 'context' ? 'var(--sim-text)' : 'var(--sim-text-hint)', borderColor: mobileTab === 'context' ? 'var(--sim-green)' : 'transparent' }}>
+        <button onClick={() => setMobileTab('context')} className="flex-1 py-3 text-xs font-semibold transition-colors border-b-2 relative" style={{ color: mobileTab === 'context' ? 'var(--sim-text)' : 'var(--sim-text-hint)', borderColor: mobileTab === 'context' ? 'var(--sim-green)' : 'transparent' }}>
           {state.showRepertory
             ? (lang === 'ru' ? 'Реперторий' : 'Repertory')
             : (lang === 'ru' ? 'Контекст' : 'Context')
           }
+          {/* Badge — есть данные в контексте */}
+          {mobileTab !== 'context' && (aiResult || preVisitSurvey || previousConsultation) && (
+            <span className="absolute top-2 right-[calc(50%-28px)] w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--sim-green)' }} />
+          )}
         </button>
       </div>
 
@@ -470,7 +487,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto min-h-[60vh] lg:min-h-0" style={{ backgroundColor: 'var(--sim-bg, #faf8f5)' }}>
-            <div className="px-5 lg:px-7 py-5 space-y-5">
+            <div className="px-5 lg:px-7 py-5 pb-20 lg:pb-5 space-y-5">
 
               {/* Dynamics from previous visit */}
               {previousConsultation && (
@@ -495,34 +512,19 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
                 initialPellets={consultation.pellets}
               />
 
-              {/* Plan */}
+              {/* Заметки и план (объединение notes + recommendations) */}
               <section>
-                <label className="block mb-1.5 text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
-                  {lang === 'ru' ? 'Контроль и план' : 'Plan & follow-up'}
-                </label>
-                <input
-                  type="text"
-                  value={state.recommendations}
-                  onChange={e => updateField('recommendations', e.target.value)}
-                  placeholder={lang === 'ru' ? 'Контроль через 4 нед · Отправить опрос самочувствия' : 'Follow-up in 4 weeks · Send wellbeing survey'}
-                  className="w-full px-3.5 py-2.5 rounded-xl border transition-all duration-200 focus:outline-none text-sm"
-                  style={{ backgroundColor: 'var(--sim-bg-card)', borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--sim-green)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,106,79,0.08)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--sim-border)'; e.currentTarget.style.boxShadow = 'none' }}
-                />
-              </section>
-
-              {/* Notes */}
-              <section>
-                <label className="block mb-1.5 text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: 'var(--sim-text-muted)' }}>
-                  {lang === 'ru' ? 'Заметки' : 'Notes'}
+                <label className="block mb-2 text-[13px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--sim-text-muted)' }}>
+                  {lang === 'ru' ? 'Заметки и план' : 'Notes & plan'}
                 </label>
                 <textarea
                   value={state.notes}
                   onChange={e => updateField('notes', e.target.value)}
-                  placeholder={lang === 'ru' ? 'DD: Sulphur vs Lycopodium · наблюдения...' : 'DD: Sulphur vs Lycopodium · observations...'}
+                  placeholder={lang === 'ru'
+                    ? 'DD: Sulphur vs Lycopodium · Контроль через 4 нед · Наблюдения...'
+                    : 'DD: Sulphur vs Lycopodium · Follow-up in 4 weeks · Observations...'}
                   rows={3}
-                  className="w-full px-3.5 py-2.5 rounded-xl border transition-all duration-200 focus:outline-none text-sm resize-none leading-relaxed"
+                  className="w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none text-[15px] resize-none leading-relaxed"
                   style={{ backgroundColor: 'var(--sim-bg-card)', borderColor: 'var(--sim-border)', color: 'var(--sim-text)' }}
                   onFocus={e => { e.currentTarget.style.borderColor = 'var(--sim-green)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,106,79,0.08)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--sim-border)'; e.currentTarget.style.boxShadow = 'none' }}
