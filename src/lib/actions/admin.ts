@@ -340,7 +340,15 @@ export async function adminDeleteUser(doctorId: string) {
   await requireAdmin()
 
   try {
-    await prisma.user.delete({ where: { id: doctorId } })
+    // Удаляем связанные записи с RESTRICT (не каскадируются автоматически)
+    await prisma.$transaction([
+      prisma.preVisitSurvey.deleteMany({ where: { doctorId } }),
+      prisma.prescriptionShare.deleteMany({ where: { doctorId } }),
+      prisma.referralInvitation.deleteMany({ where: { OR: [{ referrerId: doctorId }, { inviteeId: doctorId }] } }),
+      prisma.adminUser.deleteMany({ where: { userId: doctorId } }),
+      // Остальное каскадируется автоматически через onDelete: Cascade
+      prisma.user.delete({ where: { id: doctorId } }),
+    ])
   } catch (error) {
     console.error('[adminDeleteUser]', error)
     throw new Error('Не удалось удалить аккаунт')
