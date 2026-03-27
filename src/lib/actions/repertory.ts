@@ -38,6 +38,105 @@ const SYNONYMS: Record<string, string> = {
   'страх': 'страх', 'страха': 'страх', 'страхом': 'страх', 'тревога': 'тревог',
 }
 
+// Русско-английский маппинг: врач пишет по-русски → ищем английский эквивалент в fullpath
+// Ключ — стем русского слова, значение — английский стем для поиска в fullpath
+const RU_TO_EN: Record<string, string[]> = {
+  'обман': ['deceit', 'deceiv', 'cheat', 'fraud'],
+  'бред': ['delusion', 'delirium'],
+  'галлюцинац': ['hallucination'],
+  'ревнов': ['jealous'],
+  'подозрит': ['suspicious', 'distrust'],
+  'раздраж': ['irritab', 'vexation'],
+  'гнев': ['anger', 'rage', 'fury'],
+  'злос': ['malicious', 'anger'],
+  'печал': ['sadness', 'grief', 'sorrow'],
+  'тоск': ['sadness', 'grief', 'anguish'],
+  'отчаян': ['despair'],
+  'безнадежн': ['hopeless', 'despair'],
+  'равнодуш': ['indifferen'],
+  'апат': ['apathy', 'indifferen'],
+  'забывч': ['forgetful', 'memory'],
+  'рассеян': ['absent-minded', 'concentrat'],
+  'плакс': ['weeping', 'crying', 'tearful'],
+  'плач': ['weeping', 'crying'],
+  'смех': ['laughing', 'mirth'],
+  'одиноч': ['alone', 'forsaken', 'solitude'],
+  'покинут': ['forsaken', 'abandoned'],
+  'нетерп': ['impatien'],
+  'торопл': ['hurry', 'haste'],
+  'болтлив': ['loquacity', 'talking'],
+  'молчал': ['taciturn', 'silent'],
+  'застенч': ['timid', 'bashful'],
+  'стыд': ['shame'],
+  'вин': ['guilt', 'reproach'],
+  'самоубийств': ['suicide', 'kill herself'],
+  'убийств': ['kill', 'murder', 'homicid'],
+  'воровств': ['steal', 'kleptomania'],
+  'религиозн': ['religious'],
+  'проклят': ['cursing', 'swearing'],
+  'зябк': ['chilliness', 'cold'],
+  'жар': ['heat', 'fever', 'burning'],
+  'пот': ['perspiration', 'sweat'],
+  'жажд': ['thirst'],
+  'голод': ['hunger', 'appetite'],
+  'отвращ': ['aversion'],
+  'желан': ['desire', 'craving'],
+  'сладк': ['sweet', 'sugar'],
+  'солен': ['salt'],
+  'кисл': ['sour', 'acid'],
+  'горьк': ['bitter'],
+  'жирн': ['fat', 'greasy'],
+  'молок': ['milk'],
+  'мяс': ['meat'],
+  'хлеб': ['bread'],
+  'яйц': ['egg'],
+  'запор': ['constipat'],
+  'понос': ['diarr'],
+  'рвот': ['vomit', 'nausea'],
+  'отрыжк': ['eructation', 'belch'],
+  'вздут': ['distension', 'flatulen', 'bloat'],
+  'судорог': ['convulsion', 'spasm', 'cramp'],
+  'дрож': ['trembling', 'tremor', 'shaking'],
+  'онемен': ['numbness', 'tingling'],
+  'отек': ['swelling', 'edema', 'oedema'],
+  'зуд': ['itching', 'pruritus'],
+  'сыпь': ['eruption', 'rash'],
+  'кровотеч': ['hemorrhag', 'bleeding'],
+  'обморок': ['faint', 'syncope'],
+  'головокруж': ['vertigo', 'dizziness'],
+  'шум': ['noise', 'tinnitus', 'ringing'],
+  'глухот': ['deafness', 'hearing'],
+  'слепот': ['blindness', 'vision'],
+  'двоен': ['double', 'diplopia'],
+  'слез': ['lachrymation', 'tears'],
+  'насморк': ['coryza', 'rhinitis'],
+  'чихан': ['sneezing'],
+  'хрипот': ['hoarseness'],
+  'одышк': ['dyspnoea', 'breathing'],
+  'удуш': ['suffocation', 'asthma'],
+  'сердцебиен': ['palpitation'],
+  'менструац': ['menses', 'menstruat'],
+  'беременн': ['pregnancy', 'pregnant'],
+  'клим': ['climacteric', 'menopause'],
+  'лактац': ['lactation', 'nursing'],
+  'бесплод': ['sterility', 'infertil'],
+  'выкидыш': ['abortion', 'miscarriage'],
+  'выделен': ['discharge', 'leucorrhoea'],
+  'эрекц': ['erection'],
+  'импотенц': ['impotence'],
+  'мочеиспускан': ['urination', 'micturition'],
+  'недержан': ['incontinence'],
+  'камн': ['calculi', 'stone', 'gravel'],
+  'опухол': ['tumor', 'cancer', 'growth'],
+  'бородавк': ['wart', 'condyloma'],
+  'нагноен': ['suppuration', 'abscess'],
+  'перелом': ['fracture'],
+  'ушиб': ['bruise', 'contusion', 'injury'],
+  'ожог': ['burn'],
+  'прививк': ['vaccination'],
+  'подавлен': ['suppressed', 'ailments from'],
+}
+
 // Простой русский стемминг — обрезаем типичные окончания
 function stemRu(word: string): string {
   const lower = word.toLowerCase()
@@ -87,13 +186,29 @@ export async function searchRepertory(
     conditions.push(Prisma.sql`chapter = ${chapters}`)
   }
 
-  // Поиск по словам с стеммингом
+  // Поиск по словам с стеммингом + русско-английский маппинг
   if (q0.trim()) {
     const words = q0.trim().replace(/[%_.,()\\[\]*]/g, '').split(/\s+/).filter(Boolean)
     for (const word of words) {
       const stem = stemRu(word)
       const pattern = `%${stem}%`
-      conditions.push(Prisma.sql`(fullpath ILIKE ${pattern} OR fullpath_ru ILIKE ${pattern})`)
+
+      // Ищем английские эквиваленты для русского стема
+      const enVariants: Prisma.Sql[] = []
+      for (const [ruStem, enWords] of Object.entries(RU_TO_EN)) {
+        if (stem.startsWith(ruStem) || ruStem.startsWith(stem)) {
+          for (const en of enWords) {
+            enVariants.push(Prisma.sql`fullpath ILIKE ${`%${en}%`}`)
+          }
+        }
+      }
+
+      if (enVariants.length > 0) {
+        // Ищем и по русски, и по английским эквивалентам
+        conditions.push(Prisma.sql`(fullpath ILIKE ${pattern} OR fullpath_ru ILIKE ${pattern} OR ${Prisma.join(enVariants, ' OR ')})`)
+      } else {
+        conditions.push(Prisma.sql`(fullpath ILIKE ${pattern} OR fullpath_ru ILIKE ${pattern})`)
+      }
     }
   }
 
