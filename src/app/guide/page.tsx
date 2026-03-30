@@ -40,11 +40,11 @@ const sections: Section[] = [
     images: [
       { desktop: `${G}/s1-register.png`, mobile: `${G}/m-register.png`, alt: 'Регистрация',
         markers: [
-          { top: 30, left: 72, step: 1 },
+          { top: 40, left: 72, step: 1 },
         ]},
       { desktop: `${G}/s1-dashboard.png`, mobile: `${G}/m-dashboard.png`, alt: 'Рабочий стол',
         markers: [
-          { top: 7, left: 50, step: 2 },
+          { top: 6, left: 48, step: 2 },
         ]},
     ],
     steps: [
@@ -61,8 +61,8 @@ const sections: Section[] = [
     images: [
       { desktop: `${G}/s2-patient-card.png`, mobile: `${G}/m-patient-card.png`, alt: 'Карточка пациента',
         markers: [
-          { top: 20, left: 42, step: 1 },
-          { top: 31, left: 48, step: 2 },
+          { top: 24, left: 46, step: 1 },
+          { top: 34, left: 40, step: 2 },
         ]},
     ],
     steps: [
@@ -100,8 +100,8 @@ const sections: Section[] = [
     images: [
       { desktop: `${G}/s4-consultation.png`, mobile: `${G}/m-consultation.png`, alt: 'Редактор консультации',
         markers: [
-          { top: 42, left: 28, step: 1 },
-          { top: 10, left: 78, step: 2 },
+          { top: 40, left: 28, step: 1 },
+          { top: 6, left: 78, step: 2 },
         ]},
     ],
     steps: [
@@ -126,8 +126,8 @@ const sections: Section[] = [
     images: [
       { desktop: `${G}/s5-repertory.png`, mobile: `${G}/m-repertory.png`, alt: 'Реперторий — поиск',
         markers: [
-          { top: 4, left: 40, step: 1 },
-          { top: 13, left: 48, step: 2 },
+          { top: 5, left: 42, step: 1 },
+          { top: 11, left: 48, step: 2 },
         ]},
     ],
     steps: [
@@ -154,9 +154,9 @@ const sections: Section[] = [
     images: [
       { desktop: `${G}/s6-prescription-ctx.png`, mobile: `${G}/m-consultation.png`, alt: 'Назначение внизу консультации',
         markers: [
-          { top: 37, left: 28, step: 1 },
-          { top: 47, left: 18, step: 2 },
-          { top: 95, left: 20, step: 3 },
+          { top: 36, left: 28, step: 1 },
+          { top: 46, left: 18, step: 2 },
+          { top: 92, left: 22, step: 3 },
         ]},
     ],
     steps: [
@@ -174,7 +174,7 @@ const sections: Section[] = [
     images: [
       { desktop: `${G}/s7-ai.png`, mobile: `${G}/m-ai.png`, alt: 'AI-анализ',
         markers: [
-          { top: 32, left: 48, step: 1 },
+          { top: 30, left: 42, step: 1 },
         ]},
     ],
     steps: [
@@ -200,7 +200,7 @@ const sections: Section[] = [
     images: [
       { desktop: `${G}/s8-settings.png`, mobile: `${G}/m-settings.png`, alt: 'Настройки',
         markers: [
-          { top: 40, left: 50, step: 1 },
+          { top: 52, left: 48, step: 1 },
         ]},
     ],
     steps: [],
