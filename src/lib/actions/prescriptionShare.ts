@@ -61,10 +61,20 @@ export async function getPrescriptionShareByToken(token: string) {
     select: { prescriptionRules: true },
   })
 
+  // Подтянуть полное название препарата — пациент видит "Sulphur", не "Sulph."
+  let remedyDisplay = share.consultation.remedy
+  if (remedyDisplay) {
+    const found = await prisma.$queryRawUnsafe<{ name_latin: string }[]>(
+      `SELECT name_latin FROM homeo_remedies WHERE abbrev ILIKE $1 OR name_latin ILIKE $1 LIMIT 1`,
+      remedyDisplay.replace(/[%_]/g, '')
+    )
+    if (found.length > 0) remedyDisplay = found[0].name_latin
+  }
+
   return {
     share,
     consultation: {
-      remedy: share.consultation.remedy,
+      remedy: remedyDisplay,
       potency: share.consultation.potency,
       dosage: share.consultation.dosage,
       pellets: share.consultation.pellets,
