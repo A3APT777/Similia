@@ -1,311 +1,355 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
-type Slide = {
-  part: string
+const G = '/guide/new'
+
+type Section = {
+  id: string
+  nav: string          // короткое название для pill-навигации
   title: string
-  description: string
-  image: string                // Основное изображение
-  focus?: { image: string; label: string }  // Кроп-деталь
-  pair?: { image: string; label: string }   // Второе изображение (до→после)
+  subtitle: string     // зачем это нужно (1-2 предложения)
+  image: string
+  steps: string[]
+  extra?: { label: string; items: string[] }[]  // доп. блоки (типы анкет, подсказки)
 }
 
-const G = '/guide/final'
-
-const slides: Slide[] = [
-  // ═══ ЗНАКОМСТВО ═══
+const sections: Section[] = [
   {
-    part: 'Знакомство',
-    image: `${G}/01-landing.png`,
-    focus: { image: `${G}/01-cta.png`, label: 'Нажмите «Начать работу»' },
-    title: 'Добро пожаловать',
-    description: 'Similia — цифровой кабинет для гомеопата. Нажмите «Начать работу» в правом верхнем углу сайта.',
+    id: 'start',
+    nav: 'Начало',
+    title: 'Начало работы',
+    subtitle: 'Регистрация занимает 30 секунд. После входа — рабочий стол с демо-пациентом.',
+    image: `${G}/01-dashboard.png`,
+    steps: [
+      'Нажмите «Начать работу» на главной странице',
+      'Введите имя, email и пароль',
+      'Вы на рабочем столе — здесь список пациентов, статистика и приёмы на сегодня',
+    ],
   },
   {
-    part: 'Знакомство',
-    image: `${G}/02-register.png`,
-    focus: { image: `${G}/02-form.png`, label: 'Заполните форму' },
-    title: 'Регистрация',
-    description: 'Введите имя, email и пароль. Поставьте галочку согласия. На почту придёт письмо — нажмите ссылку для подтверждения.',
+    id: 'patients',
+    nav: 'Пациенты',
+    title: 'Пациенты',
+    subtitle: 'Все данные пациента в одной карточке — жалобы, консультации, назначения, динамика. Не нужно искать в папках.',
+    image: `${G}/02-patient-card.png`,
+    steps: [
+      'На рабочем столе нажмите «+ Добавить пациента»',
+      'Три варианта: заполнить вручную, отправить анкету по ссылке или записать на приём',
+      'Нажмите на имя пациента — откроется карточка со всей историей',
+    ],
   },
   {
-    part: 'Знакомство',
-    image: `${G}/03-dashboard.png`,
-    title: 'Ваш рабочий стол',
-    description: 'После входа — дашборд со списком пациентов, статистикой и быстрыми действиями. Для знакомства есть демо-пациент.',
+    id: 'forms',
+    nav: 'Анкеты',
+    title: 'Анкеты и опросники',
+    subtitle: 'Отправьте ссылку в WhatsApp — пациент заполнит анкету дома. Вы придёте на приём уже подготовленным.',
+    image: `${G}/02-patient-card.png`,
+    steps: [
+      'Откройте карточку пациента',
+      'Нажмите «Анкета острого случая», «Подробный опросник» или «Быстрый опрос»',
+      'Скопируйте ссылку → отправьте пациенту в мессенджер',
+      'Когда пациент заполнит — данные появятся в карточке автоматически',
+    ],
+    extra: [
+      { label: 'Три типа анкет', items: [
+        'Анкета острого случая — когда пациент обращается с острой проблемой',
+        'Подробный опросник (15 мин) — перед плановым визитом: сон, аппетит, настроение, реакция на препарат',
+        'Быстрый опрос — 3 вопроса: стало лучше, хуже или без изменений',
+      ]},
+    ],
   },
   {
-    part: 'Знакомство',
-    image: `${G}/03-dashboard.png`,
-    focus: { image: `${G}/04-sidebar.png`, label: 'Меню навигации' },
-    title: 'Навигация',
-    description: 'Слева — меню: Главная, Пациенты, Реперторий, AI-анализ, Настройки. Чем больше пациентов — тем больше функций открывается.',
-  },
-
-  // ═══ ДОБАВЛЕНИЕ ПАЦИЕНТА ═══
-  {
-    part: 'Добавить пациента',
-    image: `${G}/05-add-btn.png`,
-    pair: { image: `${G}/05-add-dropdown.png`, label: 'Откроется меню' },
-    title: 'Как добавить пациента',
-    description: 'Нажмите «+ Добавить пациента». Три варианта: отправить анкету новому, предконсультационный опросник существующему, или заполнить карточку вручную.',
-  },
-  {
-    part: 'Добавить пациента',
-    image: `${G}/06-patient-form.png`,
-    title: 'Заполнить вручную',
-    description: 'Имя, дата рождения, пол, телефон. Конституциональный тип — система подскажет. Нажмите «Сохранить».',
+    id: 'consultation',
+    nav: 'Приём',
+    title: 'Консультация',
+    subtitle: 'Пишите как обычно — система сохраняет автоматически. Не нужно переписывать после приёма.',
+    image: `${G}/09-consultation-editor.png`,
+    steps: [
+      'Откройте карточку пациента → нажмите «Начать повторный приём»',
+      'Слева — поля для записи: основная жалоба, модальности, психика, общие симптомы',
+      'Справа — контекст: предыдущее назначение, ответы опросника, история',
+      'Всё сохраняется автоматически — просто пишите',
+    ],
+    extra: [
+      { label: 'Хронический или острый', items: [
+        'Переключатель вверху страницы',
+        'Хронический — полный приём с анамнезом',
+        'Острый — быстрый: жалоба, препарат, дозировка',
+      ]},
+    ],
   },
   {
-    part: 'Добавить пациента',
-    image: `${G}/btn-анкета-острого.png`,
-    pair: { image: `${G}/07-intake-link.png`, label: 'Появится ссылка для отправки' },
-    title: 'Отправить анкету по ссылке',
-    description: 'Нажмите «Анкета» на карточке пациента. Появится ссылка — скопируйте и отправьте в мессенджер. Пациент заполнит анкету сам, данные появятся в карточке.',
+    id: 'repertory',
+    nav: 'Реперторий',
+    title: 'Реперторий Кента',
+    subtitle: '74 000 рубрик — весь реперторий в одном поиске. Наберите 2 слова вместо того чтобы листать книгу.',
+    image: `${G}/03-repertory-search.png`,
+    steps: [
+      'В меню слева нажмите «Реперторий» (или в консультации — кнопка «Реперторий» справа)',
+      'Введите симптом на русском или английском: «головная боль», «headache left»',
+      'Нажмите + рядом с рубрикой чтобы добавить в анализ',
+      'В разделе «Анализ» — топ препараты по выбранным рубрикам',
+    ],
+    extra: [
+      { label: 'Подсказки', items: [
+        'Жирный шрифт = препарат подтверждён клинически (grade 3–4)',
+        'Кнопка E = элиминация: препарат должен быть в этой рубрике',
+        'Фильтры по главам: Mind, Head, Chest и другие',
+      ]},
+    ],
   },
   {
-    part: 'Добавить пациента',
-    image: `${G}/btn-записать-на-приём.png`,
-    pair: { image: `${G}/10-schedule-form.png`, label: 'Форма записи на приём' },
-    title: 'Запись через ссылку',
-    description: 'Нажмите «Записать на приём». Выберите дату и время. Или отправьте пациенту ссылку — он сам выберет из вашего расписания.',
-  },
-
-  // ═══ КАРТОЧКА ПАЦИЕНТА ═══
-  {
-    part: 'Карточка пациента',
-    image: `${G}/08-patient-card.png`,
-    focus: { image: `${G}/08-hero.png`, label: 'Информация о пациенте' },
-    title: 'Всё в одном месте',
-    description: 'Карточка: имя, возраст, конституция, текущее лечение, динамика. Нажмите на пациента в списке чтобы открыть.',
+    id: 'prescription',
+    nav: 'Назначение',
+    title: 'Назначение препарата',
+    subtitle: 'Пациент получает ссылку с препаратом и правилами приёма — чётко, читаемо, не потеряется.',
+    image: `${G}/09-consultation-editor.png`,
+    steps: [
+      'Внизу консультации: начните набирать название — система подскажет',
+      'Выберите потенцию, форму (гранулы, раствор), количество',
+      'Нажмите «Завершить приём»',
+      'Нажмите «Отправить назначение пациенту» — появится ссылка',
+      'Пациент увидит: препарат, дозировку и ваши правила приёма',
+    ],
   },
   {
-    part: 'Карточка пациента',
-    image: `${G}/08-patient-card.png`,
-    focus: { image: `${G}/09-actions.png`, label: 'Кнопки действий' },
-    title: 'Быстрые действия',
-    description: '«Начать повторный приём» — консультация. «Записать на приём» — планирует визит. «Анкета острого случая» — для экстренных обращений. «Подробный опросник» — перед визитом. «Быстрый опрос» — самочувствие.',
+    id: 'ai',
+    nav: 'AI-анализ',
+    title: 'AI-анализ случая',
+    subtitle: 'Как второе мнение коллеги — опишите случай словами, система предложит топ-5 препаратов с обоснованием.',
+    image: `${G}/10-ai.png`,
+    steps: [
+      'В меню слева — «AI-анализ»',
+      'Опишите случай своими словами: жалобы, модальности, психику, анамнез',
+      'Нажмите «Анализировать» — система покажет топ-5 препаратов',
+      'Это не замена реперторию — используйте вместе для проверки',
+    ],
   },
   {
-    part: 'Карточка пациента',
-    image: `${G}/11-intakes-section.png`,
-    title: 'Анкеты и история',
-    description: 'Ниже — заполненные анкеты, история консультаций. Всё что пациент заполнил по ссылке появляется автоматически.',
-  },
-  {
-    part: 'Карточка пациента',
-    image: `${G}/btn-подробный-опросник.png`,
-    pair: { image: `${G}/12-survey-link.png`, label: 'Появится ссылка на опросник' },
-    title: 'Опросник перед визитом',
-    description: 'Нажмите «Подробный опросник (15 мин)». Пациент ответит: состояние, реакция на препарат, сон, аппетит, настроение. Ответы появятся в консультации.',
-  },
-
-  // ═══ КОНСУЛЬТАЦИЯ ═══
-  {
-    part: 'Консультация',
-    image: `${G}/btn-начать-повторный.png`,
-    pair: { image: `${G}/13-consultation.png`, label: 'Откроется редактор консультации' },
-    title: 'Начинаем приём',
-    description: 'Нажмите «Начать повторный приём». Откроется редактор: слева жалобы, справа контекст. Автосохранение каждые 2 секунды.',
-  },
-  {
-    part: 'Консультация',
-    image: `${G}/14-complaints.png`,
-    title: 'Запись жалоб',
-    description: 'Основная жалоба — верхнее поле. Ниже раскройте: «С чего началось», «Хуже от / Лучше от», «Психика», «Общие симптомы».',
-  },
-  {
-    part: 'Консультация',
-    image: `${G}/14-right-panel.png`,
-    title: 'Правая панель — контекст',
-    description: 'Справа — предыдущее назначение, ответы опросника, история. Не нужно листать карточку — всё перед глазами.',
-  },
-  {
-    part: 'Консультация',
-    image: `${G}/13-consultation.png`,
-    title: 'Пример: хронический случай',
-    description: 'Женщина 42 года. Головные боли слева, хуже от солнца, лучше от давления. Плачет наедине, хуже от утешения. Желание солёного. Горе 2 года назад.',
-  },
-
-  // ═══ РЕПЕРТОРИЙ ═══
-  {
-    part: 'Реперторий',
-    image: `${G}/17-repertory.png`,
-    title: 'Реперторий Кента — 74 000+ рубрик',
-    description: 'Отдельная страница для глубокого анализа. Поиск на русском и английском, фильтры по главам.',
-  },
-  {
-    part: 'Реперторий',
-    image: `${G}/17-repertory-results.png`,
-    title: 'Поиск и анализ',
-    description: 'Введите «головная боль» или «headache left». Нажмите + для добавления. Жирный = подтверждён клинически. Кнопка E — элиминация.',
-  },
-
-  // ═══ НАЗНАЧЕНИЕ ═══
-  {
-    part: 'Назначение',
-    image: `${G}/16-prescription.png`,
-    title: 'Выписываем препарат',
-    description: 'Внизу консультации: препарат (система подскажет), потенция (6C–LM6), форма (сухая доза, раствор, ольфакция), гранулы.',
-  },
-  {
-    part: 'Назначение',
-    image: `${G}/13-consultation.png`,
-    title: 'Отправка пациенту',
-    description: '«Завершить приём» → «Отправить назначение». Пациент получит ссылку с препаратом и правилами приёма.',
-  },
-
-  // ═══ AI ═══
-  {
-    part: 'AI-анализ',
-    image: `${G}/18-ai.png`,
-    title: 'AI-ассистент',
-    description: 'Опишите случай своими словами. AI предложит топ-5 препаратов с обоснованием. Как второе мнение коллеги.',
-  },
-
-  // ═══ НАСТРОЙКИ ═══
-  {
-    part: 'Настройки',
-    image: `${G}/19-settings.png`,
-    title: 'Настройте под себя',
-    description: 'Расписание (дни, часы), правила приёма (отправляются пациенту), напоминания, экспорт данных, смена пароля.',
-  },
-
-  // ═══ РЕФЕРАЛЫ ═══
-  {
-    part: 'Рефералы',
-    image: `${G}/20-referral.png`,
-    focus: { image: `${G}/20-ref-link.png`, label: 'Ваша реферальная ссылка' },
-    title: 'Пригласите коллегу',
-    description: 'Скопируйте ссылку, отправьте коллеге. При оплате — вам +7 дней, ему +14 дней.',
-  },
-
-  // ═══ ТАРИФЫ ═══
-  {
-    part: 'Тарифы',
-    image: `${G}/21-pricing.png`,
-    title: 'Тарифы',
-    description: 'Бесплатно: 5 пациентов. Стандарт (490 ₽/мес): безлимит. AI Pro (1 990 ₽/мес): + AI-анализ. Все до 31.05.2026 получают Стандарт бесплатно.',
-  },
-
-  // ═══ ФИНАЛ ═══
-  {
-    part: 'Начните',
-    image: `${G}/01-landing.png`,
-    title: 'Всё готово',
-    description: 'Анкеты до визита, реперторий в консультации, назначения по ссылке, контроль самочувствия. Попробуйте бесплатно.',
+    id: 'settings',
+    nav: 'Настройки',
+    title: 'Настройки',
+    subtitle: 'Пациенты записываются сами по ссылке — без звонков. Настройте расписание, правила приёма, шаблоны анкет.',
+    image: `${G}/04-settings.png`,
+    steps: [],
+    extra: [
+      { label: '', items: [
+        'Расписание — рабочие дни, часы, длительность приёма. Пациенты увидят свободные слоты',
+        'Правила приёма — текст который пациент получит вместе с назначением',
+        'Шаблоны анкет — добавляйте свои вопросы в анкеты',
+        'Экспорт данных — скачать все данные',
+      ]},
+    ],
   },
 ]
 
 export default function GuidePage() {
-  const [current, setCurrent] = useState(0)
-  const [touchStart, setTouchStart] = useState(0)
-  const slide = slides[current]
-  const parts = [...new Set(slides.map(s => s.part))]
-  const currentPartIndex = parts.indexOf(slide.part)
+  const [activeId, setActiveId] = useState(sections[0].id)
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+  const navRef = useRef<HTMLElement>(null)
 
-  const goNext = useCallback(() => setCurrent(c => Math.min(slides.length - 1, c + 1)), [])
-  const goPrev = useCallback(() => setCurrent(c => Math.max(0, c - 1)), [])
-
+  // IntersectionObserver — подсветка активной секции при скролле
   useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goNext() }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev() }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id)
+          }
+        }
+      },
+      { rootMargin: '-30% 0px -60% 0px' }
+    )
+
+    for (const section of sections) {
+      const el = sectionRefs.current[section.id]
+      if (el) observer.observe(el)
     }
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
-  }, [goNext, goPrev])
 
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [current])
+    return () => observer.disconnect()
+  }, [])
 
-  const imgStyle = { width: '100%' as const, height: 'auto' as const, display: 'block' as const }
-  const cardStyle = { borderRadius: '12px', overflow: 'hidden' as const, border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }
-  const focusCardStyle = { borderRadius: '10px', overflow: 'hidden' as const, border: '1.5px solid rgba(45,106,79,0.25)', boxShadow: '0 2px 16px rgba(45,106,79,0.08)', maxWidth: '600px' }
-  const labelStyle = { fontSize: '11px', fontWeight: 600 as const, textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '8px', display: 'flex', alignItems: 'center' as const, gap: '6px' }
-  const lineStyle = { display: 'inline-block', width: '16px', height: '2px', borderRadius: '1px' }
+  // Скролл pill-кнопки в видимую область при смене секции
+  useEffect(() => {
+    if (!navRef.current) return
+    const activeBtn = navRef.current.querySelector(`[data-nav="${activeId}"]`)
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    }
+  }, [activeId])
+
+  function scrollTo(id: string) {
+    const el = sectionRefs.current[id]
+    if (el) {
+      const offset = 120 // высота sticky header + nav
+      const top = el.getBoundingClientRect().top + window.scrollY - offset
+      window.scrollTo({ top, behavior: 'smooth' })
+    }
+  }
 
   return (
-    <div
-      style={{ minHeight: '100vh', backgroundColor: '#faf8f5' }}
-      onTouchStart={e => setTouchStart(e.touches[0].clientX)}
-      onTouchEnd={e => { const d = touchStart - e.changedTouches[0].clientX; if (d > 60) goNext(); if (d < -60) goPrev() }}
-    >
-      {/* Прогресс */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: '3px', backgroundColor: '#e8e0d4' }}>
-        <div style={{ height: '100%', width: `${((current + 1) / slides.length) * 100}%`, backgroundColor: '#2d6a4f', transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)' }} />
-      </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#faf8f5' }}>
 
       {/* Header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 99, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', backgroundColor: 'rgba(250,248,245,0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link href="/" style={{ fontSize: '13px', color: '#8a7e6c', textDecoration: 'none' }}>← На главную</Link>
-          <span style={{ width: '1px', height: '16px', backgroundColor: '#e8e0d4' }} />
-          <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: '#2d6a4f' }}>{slide.part}</span>
+      <header
+        className="sticky top-0 z-50"
+        style={{ backgroundColor: 'rgba(250,248,245,0.95)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
+      >
+        <div className="max-w-4xl mx-auto px-5 py-3 flex items-center justify-between">
+          <Link href="/" className="text-sm no-underline" style={{ color: '#8a7e6c' }}>← На главную</Link>
+          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#2d6a4f' }}>Руководство</span>
         </div>
-        <span style={{ fontSize: '12px', color: '#8a7e6c', fontVariantNumeric: 'tabular-nums' }}>{current + 1} / {slides.length}</span>
+
+        {/* Pill-навигация */}
+        <nav
+          ref={navRef}
+          className="max-w-4xl mx-auto px-5 pb-3 flex gap-1.5 overflow-x-auto"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {sections.map(s => (
+            <button
+              key={s.id}
+              data-nav={s.id}
+              onClick={() => scrollTo(s.id)}
+              className="shrink-0 text-xs font-medium px-3.5 py-1.5 rounded-full border transition-all"
+              style={{
+                backgroundColor: activeId === s.id ? 'rgba(45,106,79,0.08)' : 'transparent',
+                borderColor: activeId === s.id ? 'rgba(45,106,79,0.25)' : '#e8e0d4',
+                color: activeId === s.id ? '#2d6a4f' : '#8a7e6c',
+              }}
+            >
+              {s.nav}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      {/* Контент */}
-      <main style={{ maxWidth: '880px', margin: '0 auto', padding: '32px 20px 80px' }}>
+      {/* Секции */}
+      <main className="max-w-4xl mx-auto px-5 py-10">
 
-        {/* Пара: до → после */}
-        {slide.pair ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-            <div>
-              <div style={{ ...labelStyle, color: '#8a7e6c' }}><span style={{ ...lineStyle, backgroundColor: '#8a7e6c' }} />Нажмите</div>
-              <div style={cardStyle}><Image src={slide.image} alt="" width={700} height={500} style={imgStyle} priority /></div>
-            </div>
-            <div>
-              <div style={{ ...labelStyle, color: '#2d6a4f' }}><span style={{ ...lineStyle, backgroundColor: '#2d6a4f' }} />{slide.pair.label}</div>
-              <div style={focusCardStyle}><Image src={slide.pair.image} alt="" width={700} height={500} style={imgStyle} /></div>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Основное изображение */}
-            <div onClick={goNext} style={{ ...cardStyle, cursor: 'pointer', marginBottom: slide.focus ? '16px' : '24px' }}>
-              <Image src={slide.image} alt={slide.title} width={1440} height={900} style={imgStyle} priority />
-            </div>
+        {/* Вступление */}
+        <div className="text-center mb-16">
+          <h1
+            className="text-4xl sm:text-5xl mb-4"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, color: '#1a1a0a', letterSpacing: '-0.02em', lineHeight: 1.15 }}
+          >
+            Как работать<br />в Similia
+          </h1>
+          <p className="text-base mx-auto" style={{ color: '#8a7e6c', maxWidth: '480px', lineHeight: 1.7 }}>
+            Пошаговое руководство по всем функциям.<br />
+            Нажмите на раздел выше или листайте вниз.
+          </p>
+        </div>
 
-            {/* Кроп-фокус */}
-            {slide.focus && (
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ ...labelStyle, color: '#2d6a4f' }}><span style={{ ...lineStyle, backgroundColor: '#2d6a4f' }} />{slide.focus.label}</div>
-                <div style={focusCardStyle}><Image src={slide.focus.image} alt={slide.focus.label} width={800} height={400} style={imgStyle} /></div>
+        {sections.map((section, idx) => (
+          <section
+            key={section.id}
+            id={section.id}
+            ref={el => { sectionRefs.current[section.id] = el }}
+            className="mb-20"
+          >
+            {/* Разделитель */}
+            {idx > 0 && (
+              <div className="mb-10 flex items-center gap-4">
+                <div className="flex-1 h-px" style={{ backgroundColor: '#e8e0d4' }} />
+                <span className="text-xs font-medium uppercase tracking-widest" style={{ color: '#b5a99a' }}>{idx + 1} / {sections.length}</span>
+                <div className="flex-1 h-px" style={{ backgroundColor: '#e8e0d4' }} />
               </div>
             )}
-          </>
-        )}
 
-        {/* Навигация */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '16px' }}>
-          <button onClick={goPrev} disabled={current === 0} style={{ fontSize: '13px', fontWeight: 500, padding: '10px 20px', borderRadius: '100px', border: '1px solid #e8e0d4', backgroundColor: 'transparent', color: current === 0 ? '#d4cdc2' : '#1a1a0a', cursor: current === 0 ? 'default' : 'pointer', transition: 'all 0.2s', flexShrink: 0 }}>← Назад</button>
-          <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' as const, justifyContent: 'center' }}>
-            {slides.map((_, i) => (
-              <button key={i} onClick={() => setCurrent(i)} aria-label={`Слайд ${i + 1}`} style={{ width: i === current ? '18px' : '5px', height: '5px', borderRadius: '100px', border: 'none', padding: 0, backgroundColor: i === current ? '#2d6a4f' : i < current ? 'rgba(45,106,79,0.25)' : '#e8e0d4', cursor: 'pointer', transition: 'all 0.3s' }} />
+            {/* Заголовок */}
+            <h2
+              className="text-2xl sm:text-3xl mb-3"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, color: '#1a1a0a', letterSpacing: '-0.01em' }}
+            >
+              {section.title}
+            </h2>
+
+            {/* Подзаголовок — зачем */}
+            <p className="text-base mb-6" style={{ color: '#6b5f4f', lineHeight: 1.75, maxWidth: '640px' }}>
+              {section.subtitle}
+            </p>
+
+            {/* Скриншот */}
+            <div
+              className="mb-8 overflow-hidden"
+              style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
+            >
+              <Image
+                src={section.image}
+                alt={section.title}
+                width={1440}
+                height={900}
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+                priority={idx < 2}
+              />
+            </div>
+
+            {/* Шаги */}
+            {section.steps.length > 0 && (
+              <ol className="space-y-3 mb-6" style={{ counterReset: 'step' }}>
+                {section.steps.map((step, i) => (
+                  <li key={i} className="flex gap-3 items-start">
+                    <span
+                      className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+                      style={{ backgroundColor: 'rgba(45,106,79,0.08)', color: '#2d6a4f' }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="text-sm pt-0.5" style={{ color: '#4a4a3a', lineHeight: 1.65 }}>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+
+            {/* Доп. блоки */}
+            {section.extra?.map((block, bi) => (
+              <div key={bi} className="mt-6 rounded-xl px-5 py-4" style={{ backgroundColor: 'rgba(45,106,79,0.03)', border: '1px solid rgba(45,106,79,0.08)' }}>
+                {block.label && (
+                  <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#2d6a4f' }}>
+                    {block.label}
+                  </div>
+                )}
+                <ul className="space-y-2">
+                  {block.items.map((item, ii) => (
+                    <li key={ii} className="text-sm flex gap-2 items-start" style={{ color: '#4a4a3a', lineHeight: 1.65 }}>
+                      <span style={{ color: '#2d6a4f', marginTop: '2px' }}>•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
+          </section>
+        ))}
+
+        {/* CTA */}
+        <div className="text-center py-16">
+          <div className="mb-2 h-px mx-auto" style={{ maxWidth: '100px', backgroundColor: '#e8e0d4' }} />
+          <h2
+            className="text-2xl sm:text-3xl mb-4 mt-8"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, color: '#1a1a0a' }}
+          >
+            Попробуйте бесплатно
+          </h2>
+          <p className="text-sm mb-6" style={{ color: '#8a7e6c' }}>
+            5 пациентов, без карты. Все до 31.05.2026 получают Стандарт бесплатно.
+          </p>
+          <Link
+            href="/register"
+            className="inline-block text-sm font-medium px-8 py-3 rounded-full no-underline transition-all hover:scale-105"
+            style={{ backgroundColor: '#1e3a2f', color: '#f7f3ed' }}
+          >
+            Начать работу →
+          </Link>
+          <div className="mt-6 flex justify-center gap-6">
+            <Link href="/pricing" className="text-xs no-underline" style={{ color: '#2d6a4f' }}>Тарифы</Link>
+            <Link href="mailto:simillia@mail.ru" className="text-xs no-underline" style={{ color: '#8a7e6c' }}>simillia@mail.ru</Link>
           </div>
-          {current < slides.length - 1 ? (
-            <button onClick={goNext} style={{ fontSize: '13px', fontWeight: 500, padding: '10px 20px', borderRadius: '100px', border: 'none', backgroundColor: '#1e3a2f', color: '#f7f3ed', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}>Далее →</button>
-          ) : (
-            <Link href="/register" style={{ fontSize: '13px', fontWeight: 500, padding: '10px 20px', borderRadius: '100px', backgroundColor: '#1e3a2f', color: '#f7f3ed', textDecoration: 'none', flexShrink: 0 }}>Попробовать →</Link>
-          )}
         </div>
-
-        {/* Текст */}
-        <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '28px', fontWeight: 400, color: '#1a1a0a', marginBottom: '8px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{slide.title}</h1>
-        <p style={{ fontSize: '15px', lineHeight: 1.75, color: '#6b5f4f', maxWidth: '640px' }}>{slide.description}</p>
-
-        {/* Секции */}
-        <div style={{ display: 'flex', gap: '6px', marginTop: '28px', flexWrap: 'wrap' as const }}>
-          {parts.map((part, i) => (
-            <button key={part} onClick={() => setCurrent(slides.findIndex(s => s.part === part))} style={{ fontSize: '11px', fontWeight: 500, padding: '5px 12px', borderRadius: '100px', border: i === currentPartIndex ? '1px solid rgba(45,106,79,0.3)' : '1px solid #e8e0d4', backgroundColor: i === currentPartIndex ? 'rgba(45,106,79,0.06)' : 'transparent', color: i === currentPartIndex ? '#2d6a4f' : '#8a7e6c', cursor: 'pointer', transition: 'all 0.2s' }}>{part}</button>
-          ))}
-        </div>
-        <div style={{ textAlign: 'center', padding: '24px 0 0', fontSize: '11px', color: '#b5a99a' }}>← → клавиатура · свайп · клик по картинке</div>
       </main>
     </div>
   )
