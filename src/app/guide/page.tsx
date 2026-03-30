@@ -37,7 +37,7 @@ const sections: Section[] = [
     images: [
       { src: `${G}/s1-register.png`, alt: 'Страница регистрации',
         annotations: [
-          { top: 15, left: 53, width: 40, height: 60, label: 'Имя, email, пароль → Зарегистрироваться' },
+          { top: 25, left: 53, width: 38, height: 45, label: 'Имя, email, пароль → Зарегистрироваться' },
         ]},
       { src: `${G}/s1-dashboard.png`, alt: 'Рабочий стол после входа',
         annotations: [
@@ -74,13 +74,8 @@ const sections: Section[] = [
     id: 'forms',
     nav: 'Анкеты',
     title: 'Анкеты и опросники',
-    subtitle: 'Отправьте ссылку в WhatsApp — пациент заполнит анкету дома. Вы придёте на приём уже подготовленным.',
-    images: [
-      { src: `${G}/s2-patient-card.png`, alt: 'Кнопки анкет в карточке пациента',
-        annotations: [
-          { top: 27, left: 14, width: 68, height: 7, label: 'Нажмите нужный тип анкеты → скопируйте ссылку' },
-        ]},
-    ],
+    subtitle: 'Отправьте ссылку в WhatsApp — пациент заполнит анкету дома. Вы придёте на приём уже подготовленным. Кнопки анкет находятся в карточке пациента (см. предыдущий раздел).',
+    images: [],
     steps: [
       'Откройте карточку пациента',
       'Нажмите нужный тип анкеты — появится ссылка',
@@ -103,8 +98,8 @@ const sections: Section[] = [
     images: [
       { src: `${G}/s4-consultation.png`, alt: 'Редактор консультации',
         annotations: [
-          { top: 28, left: 1, width: 56, height: 58, label: 'Жалобы, модальности, психика' },
-          { top: 2, left: 59, width: 39, height: 32, label: 'Контекст: предыдущий приём, опросник' },
+          { top: 30, left: 1, width: 56, height: 25, label: 'Основная жалоба' },
+          { top: 2, left: 59, width: 39, height: 20, label: 'Контекст: приём, опросник' },
         ]},
     ],
     steps: [
@@ -155,10 +150,9 @@ const sections: Section[] = [
     images: [
       { src: `${G}/s6-prescription.png`, alt: 'Форма назначения',
         annotations: [
-          { top: 16, left: 2, width: 55, height: 10, label: 'Препарат — начните набирать' },
-          { top: 28, left: 2, width: 38, height: 10, label: 'Потенция' },
-          { top: 40, left: 2, width: 28, height: 8, label: 'Форма приёма' },
-          { top: 84, left: 2, width: 38, height: 10, label: '«Завершить консультацию»' },
+          { top: 18, left: 2, width: 52, height: 8, label: 'Препарат' },
+          { top: 28, left: 2, width: 35, height: 8, label: 'Потенция' },
+          { top: 84, left: 2, width: 36, height: 8, label: '«Завершить консультацию»' },
         ]},
     ],
     steps: [
@@ -353,11 +347,13 @@ export default function GuidePage() {
             </p>
 
             {/* Скриншоты с аннотациями */}
-            <div className={`mb-8 ${section.images.length > 1 ? 'grid grid-cols-1 sm:grid-cols-2 gap-4' : ''}`}>
-              {section.images.map((img, i) => (
-                <AnnotatedImage key={i} image={img} />
-              ))}
-            </div>
+            {section.images.length > 0 && (
+              <div className={`mb-8 ${section.images.length > 1 ? 'space-y-4' : ''}`}>
+                {section.images.map((img, i) => (
+                  <AnnotatedImage key={i} image={img} />
+                ))}
+              </div>
+            )}
 
             {/* Шаги */}
             {section.steps.length > 0 && (
