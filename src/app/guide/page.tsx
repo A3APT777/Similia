@@ -206,8 +206,10 @@ const sections: Section[] = [
 
 // Компонент скриншота с аннотациями (десктоп) / чистый (мобиле)
 function AnnotatedImage({ image }: { image: GuideImage }) {
+  const hasAnnotations = image.annotations && image.annotations.length > 0
   return (
-    <div className="relative" style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+    <div className={`relative ${hasAnnotations ? 'sm:pt-7' : ''}`} style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'visible' }}>
+      <div style={{ borderRadius: '12px', overflow: 'hidden' }}>
       <Image
         src={image.src}
         alt={image.alt}
@@ -215,6 +217,7 @@ function AnnotatedImage({ image }: { image: GuideImage }) {
         height={900}
         style={{ width: '100%', height: 'auto', display: 'block' }}
       />
+      </div>
       {/* Аннотации только на десктопе — на мобиле скриншоты слишком мелкие */}
       {image.annotations?.map((a, i) => (
         <div
