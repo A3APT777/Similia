@@ -37,11 +37,11 @@ const sections: Section[] = [
     images: [
       { src: `${G}/s1-register.png`, alt: 'Страница регистрации',
         annotations: [
-          { top: 18, left: 52, width: 42, height: 55, label: 'Заполните имя, email и пароль' },
+          { top: 15, left: 53, width: 40, height: 60, label: 'Имя, email, пароль → Зарегистрироваться' },
         ]},
       { src: `${G}/s1-dashboard.png`, alt: 'Рабочий стол после входа',
         annotations: [
-          { top: 3, left: 13, width: 75, height: 8, label: 'Демо-пациент — откройте карточку' },
+          { top: 2, left: 14, width: 74, height: 9, label: 'Демо-пациент — нажмите «Открыть карточку»' },
         ]},
     ],
     steps: [
@@ -59,8 +59,8 @@ const sections: Section[] = [
     images: [
       { src: `${G}/s2-patient-card.png`, alt: 'Карточка пациента',
         annotations: [
-          { top: 18, left: 13, width: 60, height: 8, label: 'Кнопка «Начать повторный приём»' },
-          { top: 28, left: 13, width: 70, height: 6, label: 'Кнопки: анкеты, запись, опросник' },
+          { top: 16, left: 14, width: 55, height: 9, label: '«Начать повторный приём»' },
+          { top: 27, left: 14, width: 68, height: 7, label: 'Анкеты, запись, опросник' },
         ]},
     ],
     steps: [
@@ -78,9 +78,7 @@ const sections: Section[] = [
     images: [
       { src: `${G}/s2-patient-card.png`, alt: 'Кнопки анкет в карточке пациента',
         annotations: [
-          { top: 28, left: 13, width: 20, height: 6, label: 'Анкета острого случая' },
-          { top: 28, left: 34, width: 18, height: 6, label: 'Быстрый опрос' },
-          { top: 28, left: 53, width: 28, height: 6, label: 'Подробный опросник' },
+          { top: 27, left: 14, width: 68, height: 7, label: 'Нажмите нужный тип анкеты → скопируйте ссылку' },
         ]},
     ],
     steps: [
@@ -105,8 +103,8 @@ const sections: Section[] = [
     images: [
       { src: `${G}/s4-consultation.png`, alt: 'Редактор консультации',
         annotations: [
-          { top: 30, left: 1, width: 58, height: 55, label: 'Жалобы, модальности, психика' },
-          { top: 3, left: 60, width: 38, height: 30, label: 'Контекст: предыдущий приём, опросник' },
+          { top: 28, left: 1, width: 56, height: 58, label: 'Жалобы, модальности, психика' },
+          { top: 2, left: 59, width: 39, height: 32, label: 'Контекст: предыдущий приём, опросник' },
         ]},
     ],
     steps: [
@@ -157,10 +155,10 @@ const sections: Section[] = [
     images: [
       { src: `${G}/s6-prescription.png`, alt: 'Форма назначения',
         annotations: [
-          { top: 17, left: 1, width: 60, height: 8, label: 'Начните набирать — система подскажет' },
-          { top: 26, left: 1, width: 40, height: 8, label: 'Потенция' },
-          { top: 36, left: 1, width: 30, height: 7, label: 'Форма приёма' },
-          { top: 85, left: 1, width: 40, height: 8, label: '«Завершить консультацию»' },
+          { top: 16, left: 2, width: 55, height: 10, label: 'Препарат — начните набирать' },
+          { top: 28, left: 2, width: 38, height: 10, label: 'Потенция' },
+          { top: 40, left: 2, width: 28, height: 8, label: 'Форма приёма' },
+          { top: 84, left: 2, width: 38, height: 10, label: '«Завершить консультацию»' },
         ]},
     ],
     steps: [
@@ -212,10 +210,10 @@ const sections: Section[] = [
   },
 ]
 
-// Компонент скриншота с аннотациями
+// Компонент скриншота с аннотациями (десктоп) / чистый (мобиле)
 function AnnotatedImage({ image }: { image: GuideImage }) {
   return (
-    <div className="relative overflow-hidden" style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+    <div className="relative" style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       <Image
         src={image.src}
         alt={image.alt}
@@ -223,29 +221,32 @@ function AnnotatedImage({ image }: { image: GuideImage }) {
         height={900}
         style={{ width: '100%', height: 'auto', display: 'block' }}
       />
+      {/* Аннотации только на десктопе — на мобиле скриншоты слишком мелкие */}
       {image.annotations?.map((a, i) => (
         <div
           key={i}
-          className="absolute pointer-events-none"
+          className="hidden sm:block absolute pointer-events-none"
           style={{
             top: `${a.top}%`,
             left: `${a.left}%`,
             width: `${a.width}%`,
             height: `${a.height}%`,
-            border: '2px solid rgba(45,106,79,0.6)',
+            border: '2.5px solid rgba(45,106,79,0.5)',
             borderRadius: '8px',
             backgroundColor: 'rgba(45,106,79,0.04)',
           }}
         >
           <span
-            className="absolute text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap"
+            className="absolute font-medium px-2.5 py-1 rounded-md whitespace-nowrap"
             style={{
-              top: '-12px',
-              left: '8px',
+              bottom: '100%',
+              left: '4px',
+              marginBottom: '4px',
               backgroundColor: '#2d6a4f',
               color: '#fff',
-              fontSize: '10px',
-              lineHeight: '18px',
+              fontSize: '11px',
+              lineHeight: '16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
           >
             {a.label}
