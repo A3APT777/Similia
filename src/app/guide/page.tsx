@@ -1,21 +1,23 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
 const G = '/guide/new'
 
-type Annotation = {
-  top: number; left: number; width: number; height: number
-  label: string
+// Номерная метка на скриншоте — кружок с цифрой
+type Marker = {
+  top: number  // % от изображения
+  left: number // %
+  step: number // номер шага (1, 2, 3...)
 }
 
 type GuideImage = {
   desktop: string
   mobile: string
   alt: string
-  annotations?: Annotation[] // только на десктопе
+  markers?: Marker[]
 }
 
 type Section = {
@@ -26,6 +28,7 @@ type Section = {
   images: GuideImage[]
   steps: string[]
   extra?: { label: string; items: string[] }[]
+  cta?: { label: string; href: string } // "Попробовать" кнопка
 }
 
 const sections: Section[] = [
@@ -36,12 +39,12 @@ const sections: Section[] = [
     subtitle: 'Регистрация занимает 30 секунд. После входа вы увидите рабочий стол — список пациентов, статистику и приёмы на сегодня. Для знакомства мы создали демо-пациента с заполненной историей.',
     images: [
       { desktop: `${G}/s1-register.png`, mobile: `${G}/m-register.png`, alt: 'Регистрация',
-        annotations: [
-          { top: 25, left: 53, width: 38, height: 45, label: 'Имя, email, пароль → Зарегистрироваться' },
+        markers: [
+          { top: 30, left: 72, step: 2 },
         ]},
       { desktop: `${G}/s1-dashboard.png`, mobile: `${G}/m-dashboard.png`, alt: 'Рабочий стол',
-        annotations: [
-          { top: 2, left: 14, width: 74, height: 9, label: 'Демо-пациент — нажмите «Открыть карточку»' },
+        markers: [
+          { top: 7, left: 50, step: 4 },
         ]},
     ],
     steps: [
@@ -50,6 +53,7 @@ const sections: Section[] = [
       'Готово — вы на рабочем столе',
       'Откройте карточку демо-пациента — посмотрите как выглядит заполненная карточка с историей приёмов',
     ],
+    cta: { label: 'Начать работу →', href: '/register' },
   },
   {
     id: 'patients',
@@ -58,17 +62,18 @@ const sections: Section[] = [
     subtitle: 'Все данные пациента в одной карточке: жалобы, консультации, назначения, динамика лечения. Больше не нужно искать записи в папках и тетрадях.',
     images: [
       { desktop: `${G}/s2-patient-card.png`, mobile: `${G}/m-patient-card.png`, alt: 'Карточка пациента',
-        annotations: [
-          { top: 16, left: 14, width: 55, height: 9, label: '«Начать повторный приём»' },
-          { top: 27, left: 14, width: 68, height: 7, label: 'Анкеты, запись на приём, опросник' },
+        markers: [
+          { top: 20, left: 42, step: 1 },
+          { top: 31, left: 48, step: 2 },
         ]},
     ],
     steps: [
-      'На рабочем столе нажмите «+ Добавить пациента»',
-      'Заполните имя и контакты — или отправьте пациенту ссылку на анкету, он заполнит сам',
-      'Нажмите на имя пациента в списке — откроется карточка',
-      'В карточке вверху — кнопки действий, ниже — вся история приёмов и анкет',
+      'Нажмите «Начать повторный приём» — зелёная кнопка вверху карточки',
+      'Ниже — кнопки анкет, записи на приём и опросника',
+      'Нажмите на имя пациента в списке на рабочем столе — откроется карточка',
+      'Внизу — вся история: консультации, анкеты, назначения',
     ],
+    cta: { label: 'Попробовать →', href: '/register' },
   },
   {
     id: 'forms',
@@ -97,9 +102,9 @@ const sections: Section[] = [
     subtitle: 'Записывайте приём как обычно — система сохраняет каждое слово автоматически. После приёма не нужно ничего переписывать — всё уже в карточке.',
     images: [
       { desktop: `${G}/s4-consultation.png`, mobile: `${G}/m-consultation.png`, alt: 'Редактор консультации',
-        annotations: [
-          { top: 30, left: 1, width: 56, height: 25, label: 'Основная жалоба и симптомы' },
-          { top: 2, left: 59, width: 39, height: 20, label: 'Контекст: прошлый приём, опросник' },
+        markers: [
+          { top: 42, left: 28, step: 2 },
+          { top: 10, left: 78, step: 4 },
         ]},
     ],
     steps: [
@@ -124,9 +129,9 @@ const sections: Section[] = [
     subtitle: 'Полный реперторий Кента — 74 000 рубрик на русском и английском. Вместо того чтобы листать книгу, наберите два слова в поиске.',
     images: [
       { desktop: `${G}/s5-repertory.png`, mobile: `${G}/m-repertory.png`, alt: 'Реперторий — поиск',
-        annotations: [
-          { top: 1, left: 13, width: 55, height: 6, label: 'Поиск — русский или английский' },
-          { top: 10, left: 13, width: 70, height: 5, label: 'Фильтры по главам реперторий' },
+        markers: [
+          { top: 4, left: 40, step: 2 },
+          { top: 13, left: 48, step: 3 },
         ]},
     ],
     steps: [
@@ -143,6 +148,7 @@ const sections: Section[] = [
         'Поиск работает и на русском, и на английском — можно комбинировать',
       ]},
     ],
+    cta: { label: 'Открыть реперторий →', href: '/repertory' },
   },
   {
     id: 'prescription',
@@ -151,10 +157,10 @@ const sections: Section[] = [
     subtitle: 'Выпишите препарат и отправьте пациенту ссылку — он увидит название, дозировку и правила приёма. Чётко, читаемо, не потеряется.',
     images: [
       { desktop: `${G}/s6-prescription-ctx.png`, mobile: `${G}/m-consultation.png`, alt: 'Назначение внизу консультации',
-        annotations: [
-          { top: 32, left: 2, width: 52, height: 8, label: 'Препарат — начните набирать название' },
-          { top: 42, left: 2, width: 35, height: 8, label: 'Потенция' },
-          { top: 92, left: 2, width: 36, height: 7, label: '«Завершить консультацию»' },
+        markers: [
+          { top: 37, left: 28, step: 2 },
+          { top: 47, left: 18, step: 3 },
+          { top: 95, left: 20, step: 4 },
         ]},
     ],
     steps: [
@@ -172,8 +178,8 @@ const sections: Section[] = [
     subtitle: 'Опишите случай своими словами — система проанализирует симптомы и предложит топ-5 препаратов с обоснованием. Как если бы вы посоветовались с опытным коллегой.',
     images: [
       { desktop: `${G}/s7-ai.png`, mobile: `${G}/m-ai.png`, alt: 'AI-анализ',
-        annotations: [
-          { top: 25, left: 15, width: 65, height: 15, label: 'Опишите случай — жалобы, модальности, психику' },
+        markers: [
+          { top: 32, left: 48, step: 2 },
         ]},
     ],
     steps: [
@@ -199,8 +205,8 @@ const sections: Section[] = [
     subtitle: 'Настройте систему под свою практику: расписание для онлайн-записи, правила приёма препаратов, шаблоны анкет, напоминания о повторных визитах.',
     images: [
       { desktop: `${G}/s8-settings.png`, mobile: `${G}/m-settings.png`, alt: 'Настройки',
-        annotations: [
-          { top: 30, left: 13, width: 75, height: 20, label: 'Расписание — пациенты записываются сами' },
+        markers: [
+          { top: 40, left: 50, step: 1 },
         ]},
     ],
     steps: [],
@@ -216,28 +222,78 @@ const sections: Section[] = [
   },
 ]
 
-// Скриншот с аннотациями (десктоп) / мобильный скриншот (мобиле)
+// Lightbox для увеличения скриншота
+function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 cursor-zoom-out"
+      style={{ backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <Image src={src} alt={alt} width={2880} height={1800} style={{ maxWidth: '95vw', maxHeight: '90vh', width: 'auto', height: 'auto', borderRadius: '12px' }} />
+      <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center text-white text-xl" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
+        ×
+      </button>
+    </div>
+  )
+}
+
+// Кружок-метка с номером шага
+function StepMarker({ step }: { step: number }) {
+  return (
+    <span
+      className="flex items-center justify-center rounded-full text-white font-bold"
+      style={{
+        width: '28px', height: '28px', fontSize: '13px',
+        backgroundColor: '#2d6a4f',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3), 0 0 0 3px rgba(255,255,255,0.8)',
+      }}
+    >
+      {step}
+    </span>
+  )
+}
+
+// Скриншот с номерными метками + lightbox
 function AnnotatedImage({ image }: { image: GuideImage }) {
+  const [lightbox, setLightbox] = useState(false)
+
   return (
     <>
-      {/* Десктоп — с аннотациями */}
-      <div className="hidden sm:block relative sm:pt-7" style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'visible' }}>
-        <div style={{ borderRadius: '12px', overflow: 'hidden' }}>
-          <Image src={image.desktop} alt={image.alt} width={1440} height={900} style={{ width: '100%', height: 'auto', display: 'block' }} />
-        </div>
-        {image.annotations?.map((a, i) => (
-          <div key={i} className="absolute pointer-events-none" style={{ top: `calc(28px + ${a.top}%)`, left: `${a.left}%`, width: `${a.width}%`, height: `${a.height}%`, border: '2.5px solid rgba(45,106,79,0.5)', borderRadius: '8px', backgroundColor: 'rgba(45,106,79,0.04)' }}>
-            <span className="absolute font-medium px-2.5 py-1 rounded-md whitespace-nowrap" style={{ bottom: '100%', left: '4px', marginBottom: '4px', backgroundColor: '#2d6a4f', color: '#fff', fontSize: '11px', lineHeight: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-              {a.label}
-            </span>
+      {/* Десктоп */}
+      <div
+        className="hidden sm:block relative cursor-zoom-in"
+        style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden' }}
+        onClick={() => setLightbox(true)}
+      >
+        <Image src={image.desktop} alt={image.alt} width={1440} height={900} style={{ width: '100%', height: 'auto', display: 'block' }} />
+        {image.markers?.map((m, i) => (
+          <div key={i} className="absolute pointer-events-none" style={{ top: `${m.top}%`, left: `${m.left}%`, transform: 'translate(-50%, -50%)' }}>
+            <StepMarker step={m.step} />
           </div>
         ))}
+        {/* Подсказка "нажмите для увеличения" */}
+        <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-md text-xs" style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff' }}>
+          Нажмите для увеличения
+        </div>
       </div>
 
-      {/* Мобиле — мобильный скриншот без аннотаций */}
-      <div className="sm:hidden" style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden', maxWidth: '320px', margin: '0 auto' }}>
+      {/* Мобиле */}
+      <div
+        className="sm:hidden cursor-zoom-in"
+        style={{ borderRadius: '12px', border: '1px solid #e8e0d4', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden', maxWidth: '320px', margin: '0 auto' }}
+        onClick={() => setLightbox(true)}
+      >
         <Image src={image.mobile} alt={image.alt} width={390} height={844} style={{ width: '100%', height: 'auto', display: 'block' }} />
       </div>
+
+      {lightbox && <Lightbox src={image.desktop} alt={image.alt} onClose={() => setLightbox(false)} />}
     </>
   )
 }
@@ -269,10 +325,10 @@ export default function GuidePage() {
     if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
   }, [activeId])
 
-  function scrollTo(id: string) {
+  const scrollTo = useCallback((id: string) => {
     const el = sectionRefs.current[id]
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 120, behavior: 'smooth' })
-  }
+  }, [])
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#faf8f5' }}>
@@ -350,6 +406,19 @@ export default function GuidePage() {
                 </ul>
               </div>
             ))}
+
+            {/* Кнопка "Попробовать" */}
+            {section.cta && (
+              <div className="mt-8">
+                <Link
+                  href={section.cta.href}
+                  className="inline-block text-sm font-medium px-6 py-2.5 rounded-full no-underline transition-all hover:scale-105"
+                  style={{ backgroundColor: '#1e3a2f', color: '#f7f3ed' }}
+                >
+                  {section.cta.label}
+                </Link>
+              </div>
+            )}
           </section>
         ))}
 
