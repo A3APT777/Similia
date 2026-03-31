@@ -10,6 +10,7 @@ export default function PublicNavbar() {
           <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '22px', fontWeight: 300, color: '#1a3020', letterSpacing: '0.04em' }}>Similia</span>
         </Link>
         <nav className="flex items-center gap-1">
+          <Link href="/guide" className="hidden sm:inline-flex px-4 py-2 rounded-full text-[14px] transition-colors" style={{ color: '#8a7e6c' }}>Руководство</Link>
           <Link href="/demo" className="hidden sm:inline-flex px-4 py-2 rounded-full text-[14px] transition-colors" style={{ color: '#8a7e6c' }}>AI-демо</Link>
           <Link href="/pricing" className="hidden sm:inline-flex px-4 py-2 rounded-full text-[14px] transition-colors" style={{ color: '#8a7e6c' }}>Тарифы</Link>
           <Link href="/login" className="px-4 py-2 rounded-full text-[14px] transition-colors" style={{ color: '#8a7e6c' }}>Войти</Link>
