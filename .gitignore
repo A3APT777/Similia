@@ -42,6 +42,7 @@ next-env.d.ts
 
 .vercel
 src/lib/mdri/data/*.json
+!src/lib/mdri/data/mm-cards.json
 
 # Приватные загрузки пациентов
 /private-uploads

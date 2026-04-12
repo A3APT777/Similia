@@ -76,7 +76,7 @@ type TestCase = {
   profile: MDRIPatientProfile
 }
 
-const CASES: TestCase[] = [
+export const CASES: TestCase[] = [
   // 1. Sulphur
   {
     id: 1, name: 'Sulphur: философ-грязнуля', expected: 'sulph',
@@ -452,13 +452,16 @@ const CASES: TestCase[] = [
   {
     id: 28, name: 'Tab: укачивание бледность', expected: 'tab',
     symptoms: [
-      { rubric: 'nausea deathly', category: 'general', present: true, weight: 3 },
-      { rubric: 'pallor deathly', category: 'particular', present: true, weight: 3 },
-      { rubric: 'cold sweat forehead', category: 'general', present: true, weight: 2 },
-      { rubric: 'better open air', category: 'general', present: true, weight: 2 },
-      { rubric: 'worse opening eyes', category: 'general', present: true, weight: 3 },
-      { rubric: 'motion sickness', category: 'general', present: true, weight: 2 },
-      { rubric: 'sinking empty feeling stomach', category: 'particular', present: true, weight: 2 },
+      // Рубрики переписаны под реальные Kent-paths (04.2026) — раньше тест
+      // использовал нереалистичные формулировки вроде "motion sickness",
+      // которых нет в реперториуме.
+      { rubric: 'stomach nausea deathly', category: 'general', present: true, weight: 3 },
+      { rubric: 'stomach nausea motion', category: 'general', present: true, weight: 3 },
+      { rubric: 'vertigo motion', category: 'general', present: true, weight: 3 },
+      { rubric: 'head perspiration forehead cold', category: 'particular', present: true, weight: 3 },
+      { rubric: 'stomach sinking', category: 'particular', present: true, weight: 2 },
+      { rubric: 'face discoloration pale', category: 'particular', present: true, weight: 2 },
+      { rubric: 'generalities open air amel', category: 'general', present: true, weight: 2 },
     ],
     modalities: [], familyHistory: [], profile: DEFAULT_PROFILE,
   },
@@ -856,4 +859,7 @@ async function main() {
   }
 }
 
-main().catch(console.error)
+// Запускаем main только при прямом запуске (node/tsx), не при импорте
+if (process.argv[1]?.includes('test-50-cases')) {
+  main().catch(console.error)
+}

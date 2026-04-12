@@ -1,0 +1,82 @@
+Загрузка данных MDRI...
+Загружено: 175020 рубрик, 3098 constellations
+Кейсов: 50
+
+========================================================================================================================
+FULL PIPELINE: engine → verifier → confidence
+========================================================================================================================
+  # 1 Sulphur: философ-грязнуля                  | eng:✓ sulph    · fin:✓ sulph    | conf:high         exp:sulph
+  # 2 Calc: зябкий потливый ребёнок              | eng:✓ calc     · fin:✓ calc     | conf:high         exp:calc
+  # 3 Lyc: вздутие справа 16-20                  | eng:✓ lyc      · fin:✓ lyc      | conf:good         exp:lyc
+  # 4 Phos: кровоточивый общительный             | eng:✓ phos     · fin:✓ phos     | conf:good         exp:phos
+  # 5 Sepia: безразличная мать                   | eng:✓ sep      · fin:✓ sep      | conf:good         exp:sep
+  # 6 Ars: педант в полночь                      | eng:✓ ars      · fin:✓ ars      | conf:high         exp:ars
+  # 7 Nux-v: нервный бизнесмен                   | eng:✓ nux-v    · fin:✓ nux-v    | conf:high         exp:nux-v
+  # 8 Puls: плаксивая девочка                    | eng:✓ puls     · fin:✓ puls     | conf:clarify      exp:puls
+  # 9 Bell: горячая красная внезапная            | eng:✓ bell     · fin:✓ bell     | conf:good         exp:bell
+  #10 Rhus-t: скованность от покоя               | eng:✓ rhus-t   · fin:✓ rhus-t   | conf:high         exp:rhus-t
+  #11 Staph vs Ign: подавленный гнев             | eng:✓ staph    · fin:✓ staph    | conf:good         exp:staph
+  #12 Aur: депрессия с виной                     | eng:✓ aur      · fin:✓ aur      | conf:good         exp:aur
+  #13 Cham: невыносимая боль зубы                | eng:✓ cham     · fin:✓ cham     | conf:good         exp:cham
+  #14 Apis vs Puls: отёк без жажды               | eng:✓ apis     · fin:✓ apis     | conf:high         exp:apis
+  #15 Gels: паралич от страха                    | eng:✓ gels     · fin:✓ gels     | conf:clarify      exp:gels
+  #16 Merc: нагноение ночью                      | eng:✓ merc     · fin:✓ merc     | conf:good         exp:merc
+  #17 Con: вертиго при повороте                  | eng:✓ con      · fin:✓ con      | conf:good         exp:con
+  #18 Kali-c: 2 часа ночи                        | eng:✓ kali-c   · fin:✓ kali-c   | conf:high         exp:kali-c
+  #19 Arg-n: тревога ожидания с поносом          | eng:✓ arg-n    · fin:✓ arg-n    | conf:good         exp:arg-n
+  #20 Petr: экзема зимой трещины                 | eng:✓ petr     · fin:✓ petr     | conf:clarify      exp:petr
+  #21 Lac-c: боль меняет сторону                 | eng:✓ lac-c    · fin:✓ lac-c    | conf:good         exp:lac-c
+  #22 Cocc: истощение от ухода                   | eng:✓ cocc     · fin:✓ cocc     | conf:good         exp:cocc
+  #23 Thuja: бородавки после прививки            | eng:✓ thuj     · fin:✓ thuj     | conf:good         exp:thuj
+  #24 Spong: лающий кашель круп                  | eng:✓ spong    · fin:✓ spong    | conf:good         exp:spong
+  #25 Ip: неукротимая тошнота                    | eng:✓ ip       · fin:✓ ip       | conf:insufficient exp:ip
+  #26 Dros: коклюшный кашель                     | eng:✓ dros     · fin:✓ dros     | conf:good         exp:dros
+  #27 Coloc: колика от гнева                     | eng:✓ coloc    · fin:✓ coloc    | conf:clarify      exp:coloc
+  #28 Tab: укачивание бледность                  | eng:✗ ip       🔄 fin:✓ tab      | conf:clarify      exp:tab
+  #29 Caust: хрипота и справедливость            | eng:✓ caust    · fin:✓ caust    | conf:good         exp:caust
+  #30 Stram: ужас темноты + насилие              | eng:✓ stram    · fin:✓ stram    | conf:good         exp:stram
+  #31 Med: сон на животе + море                  | eng:✓ med      · fin:✓ med      | conf:good         exp:med
+  #32 Tub: путешественник                        | eng:✓ tub      · fin:✓ tub      | conf:good         exp:tub
+  #33 Psor: зябкий отчаявшийся                   | eng:✓ psor     · fin:✓ psor     | conf:good         exp:psor
+  #34 Carc: перфекционист подавленный            | eng:✓ carc     · fin:✓ carc     | conf:good         exp:carc
+  #35 Sil: тонкий упрямый зябкий                 | eng:✓ sil      · fin:✓ sil      | conf:high         exp:sil
+  #36 Graph: толстый + мокнущая экзема           | eng:✓ graph    · fin:✓ graph    | conf:good         exp:graph
+  #37 Hep: крайняя чувствительность              | eng:✓ hep      · fin:✓ hep      | conf:good         exp:hep
+  #38 Bar-c: медленный ребёнок                   | eng:✓ bar-c    · fin:✓ bar-c    | conf:good         exp:bar-c
+  #39 Lach: менопауза левосторонняя              | eng:✓ lach     · fin:✓ lach     | conf:high         exp:lach
+  #40 Ph-ac: апатия от горя                      | eng:✓ ph-ac    · fin:✓ ph-ac    | conf:good         exp:ph-ac
+  #41 Bry: артрит, движение хуже                 | eng:✓ bry      · fin:✓ bry      | conf:high         exp:bry
+  #42 Nat-m: горе давнее                         | eng:✓ nat-m    · fin:✓ nat-m    | conf:good         exp:nat-m
+  #43 Arn: травма — я в порядке                  | eng:✓ arn      · fin:✓ arn      | conf:clarify      exp:arn
+  #44 Verat: понос + коллапс                     | eng:✓ verat    · fin:✓ verat    | conf:high         exp:verat
+  #45 Mag-p: спазмы + тепло лучше                | eng:✓ mag-p    · fin:✓ mag-p    | conf:clarify      exp:mag-p
+  #46 All-c: насморк жгучий                      | eng:✓ all-c    · fin:✓ all-c    | conf:clarify      exp:all-c
+  #47 Ferr: анемия + покраснение                 | eng:✓ ferr     · fin:✓ ferr     | conf:good         exp:ferr
+  #48 Nat-s: голова + сырость                    | eng:✓ nat-s    · fin:✓ nat-s    | conf:good         exp:nat-s
+  #49 Cina: скрипит зубами + черви               | eng:✓ cina     · fin:✓ cina     | conf:good         exp:cina
+  #50 Plat: высокомерная                         | eng:✓ plat     · fin:✓ plat     | conf:good         exp:plat
+
+========================================================================================================================
+ИТОГО
+========================================================================================================================
+  Engine Top-1 : 49/50 = 98%
+  Engine Top-3 : 49/50 = 98%
+  Engine Top-5 : 50/50 = 100%
+  Final  Top-1 : 50/50 = 100%  (Δ +1)
+  Final  Top-3 : 50/50 = 100%  (Δ +1)
+  Final  Top-5 : 50/50 = 100%  (Δ +0)
+
+  Verifier called      : 50
+  Verifier reranked    : 1
+  Verifier fixed miss  : 1
+  Verifier broke hit   : 0
+
+  Confidence calibration (final):
+    high        : 11/11 = 100%
+    good        : 30/30 = 100%
+    clarify     : 8/8 = 100%
+    insufficient: 1/1 = 100%
+
+========================================================================================================================
+VERIFIER ПЕРЕРАНЖИРОВАЛ TOP-1 (1):
+  #28 Tab: укачивание бледность: ip → tab (exp:tab) ✅ ПОЧИНИЛ

@@ -16,7 +16,7 @@ import type {
 import { DEFAULT_PROFILE } from '@/lib/mdri/types'
 import { mergeWithFallback, computeConfidence, validateInput, analyzeWithIdf } from '@/lib/mdri/product-layer'
 import { inferPatientProfile, toEngineProfile } from '@/lib/mdri/infer-profile'
-import { VERIFIER_SYSTEM_PROMPT } from '@/lib/mdri/verifier-prompt'
+import { renderVerifierPrompt } from '@/lib/mdri/verifier-prompt'
 
 // --- Валидация ---
 
@@ -213,17 +213,23 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     // Snapshot до verifier — для лога (см. Шаг 3.5)
     const rawEngineTop3 = mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore }))
 
-    // Шаг 3.5: Верификатор — confirmation по Materia Medica
-    try {
-      const reranked = await verifyTop5(parsed.text, mdriResults.slice(0, 5))
-      if (reranked) {
-        const rest = mdriResults.slice(5)
-        mdriResults.length = 0
-        mdriResults.push(...reranked, ...rest)
-        log(`verifier done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
+    // Шаг 3.5: Верификатор с MM-grounding (карточки Materia Medica для top-5).
+    // Замер 12.04.2026 с grounded prompt: Top-1 98% → 100% (починил #28 Tab,
+    // не сломал ни одного). Управляется флагом MDRI_VERIFIER (default: on).
+    // Отключить при подозрении на регрессию: MDRI_VERIFIER=off.
+    const verifierEnabled = process.env.MDRI_VERIFIER !== 'off'
+    if (verifierEnabled) {
+      try {
+        const reranked = await verifyTop5(parsed.text, mdriResults.slice(0, 5))
+        if (reranked) {
+          const rest = mdriResults.slice(5)
+          mdriResults.length = 0
+          mdriResults.push(...reranked, ...rest)
+          log(`verifier done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
+        }
+      } catch (e) {
+        log(`verifier skipped: ${e instanceof Error ? e.message : 'unknown error'}`)
       }
-    } catch (e) {
-      log(`verifier skipped: ${e instanceof Error ? e.message : 'unknown error'}`)
     }
 
     // Шаг 4: Confidence Layer — независимая оценка уверенности
@@ -533,7 +539,7 @@ async function parseTextWithSonnet(text: string): Promise<{
  * Sonnet получает top-5 от engine + оригинальный текст и переранжирует.
  * Возвращает переранжированный top-5 или null если не удалось.
  */
-async function verifyTop5(
+export async function verifyTop5(
   originalText: string,
   top5: MDRIResult[],
 ): Promise<MDRIResult[] | null> {
@@ -543,11 +549,14 @@ async function verifyTop5(
   const candidates = top5.map((r, i) => `${i + 1}. ${r.remedy}`).join('\n')
   const userMessage = `Текст пациента:\n"${originalText}"\n\nКандидаты от реперторизации (в текущем порядке):\n${candidates}`
 
+  // Grounded prompt: вставляем MM-карточки ровно для этих 5 средств
+  const systemPrompt = renderVerifierPrompt(top5.map(r => r.remedy))
+
   const response = await withRetry(() => client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 800,
     temperature: 0,
-    system: VERIFIER_SYSTEM_PROMPT,
+    system: systemPrompt,
     messages: [{ role: 'user', content: userMessage }],
   }))
 
