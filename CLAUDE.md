@@ -46,9 +46,11 @@ Production: https://simillia.ru | Стек: Next.js 16 + Supabase + TypeScript +
 Прочитать docs/ARCHITECTURE.md для понимания структуры.
 
 ## Деплой
-- `git push origin main` → Vercel автодеплой
-- НЕ через `vercel --prod` (нет токена)
+- Хостинг: Timeweb (`yc-user@85.239.53.148`), PM2 process `similia`, порт 3003
+- Запуск: `/deploy` (wraps `bash deploy-similia.sh`) — build локально, rsync на Timeweb, pm2 restart
+- `git push origin main` — **только** в GitHub, прод не обновится сам
 - Node v25.8.1: `tsc --noEmit` отдельно, в next.config.ts стоит ignoreBuildErrors
+- Anthropic API ходит через Hetzner nginx proxy (Timeweb IP заблокирован)
 
 ## Особенности
 - Server Actions для всех мутаций (нет REST API кроме webhooks)
