@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { analyzeText, parseOnly, logClarifyResult, logDoctorFeedback, logDisagreement } from '@/lib/actions/ai-consultation'
+import { analyzeText, parseOnly, logClarifyResult, logClarifyRound, logDoctorFeedback, logDisagreement, applyClarifyAnswerAndReplan } from '@/lib/actions/ai-consultation'
 import { createAIConsultation, savePrescription } from '@/lib/actions/consultations'
 import type { ConsensusResult } from '@/lib/mdri/types'
 import type { ClarifyQuestion } from '@/lib/mdri/question-gain'
@@ -235,6 +235,11 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   const [selectedPatient, setSelectedPatient] = useState<string>('')
   const [clarifyCount, setClarifyCount] = useState(0)
   const [top1Flipped, setTop1Flipped] = useState(false)
+  // Итеративный clarify-диалог: история заданных вопросов + визуальная метрика прогресса
+  const [clarifyHistory, setClarifyHistory] = useState<string[]>([])
+  const [clarifyProgress, setClarifyProgress] = useState<{ gapBefore: number; gapAfter: number; confBefore: string; confAfter: string } | null>(null)
+  const [clarifyPending, setClarifyPending] = useState(false)
+  const CLARIFY_MAX_ROUNDS = 3
   const [isFocused, setIsFocused] = useState(false)
   const [showRubrics, setShowRubrics] = useState(false)
   const [showLenses, setShowLenses] = useState(false)
@@ -301,6 +306,11 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   async function runEngine(fullText: string) {
     setStep('analyzing')
     setError('')
+    // Сброс состояния clarify-диалога перед новым анализом
+    setClarifyCount(0)
+    setClarifyHistory([])
+    setClarifyProgress(null)
+    setTop1Flipped(false)
     try {
       const res = await analyzeText({ text: fullText })
       if ('_error' in res && (res._error === 'NO_AI_ACCESS' || res._error === 'AI_MONTHLY_LIMIT')) { setError(res._error); setStep('input'); return }
@@ -320,51 +330,90 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
     }
   }
 
-  // QuestionGain: вопрос вычислен на сервере
+  // QuestionGain: вопрос вычислен на сервере (или перевыбран в replan на следующем раунде)
   const clarifyQ = result?._clarifyQuestion ?? null
-  const needsClarify = clarifyCount < 2 && clarifyQ !== null
+  const needsClarify = clarifyCount < CLARIFY_MAX_ROUNDS && clarifyQ !== null && !clarifyPending
 
-  function handleClarifyAnswer(optionLabel: string) {
-    if (!result?.mdriResults || !clarifyQ) return
+  async function handleClarifyAnswer(optionLabel: string) {
+    if (!result?.mdriResults || !clarifyQ || clarifyPending) return
     const option = clarifyQ.options.find(o => o.label === optionLabel)
     if (!option) return
 
-    if (option.neutral) {
-      setStep('clarify')
-      return
-    }
+    setClarifyPending(true)
+    const beforeTop1 = result.mdriResults[0]?.remedy
+    const beforeTop3 = result.mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore }))
+    const confBefore = result.productConfidence?.level ?? 'good'
+    const historyWithCurrent = [...clarifyHistory, clarifyQ.feature]
 
-    const oldTop1 = result.mdriResults[0]?.remedy
-    const adjusted = applyClarifyBonus(result.mdriResults, option)
-    const newTop1 = adjusted[0]?.remedy
+    try {
+      const replan = await applyClarifyAnswerAndReplan({
+        results: result.mdriResults,
+        option,
+        symptoms: result._parsedSymptoms ?? [],
+        modalities: result._parsedModalities ?? [],
+        askedFeatures: historyWithCurrent,
+      })
 
-    // Stability: если top-1 уже менялся — второй flip запрещён
-    const flipBlocked = newTop1 !== oldTop1 && top1Flipped
-    if (flipBlocked) {
+      const afterTop1 = replan.results[0]?.remedy
+      const afterTop3 = replan.results.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore }))
+
+      // Stability: блокируем второй flip (как и раньше)
+      const flipNow = afterTop1 !== beforeTop1
+      const flipBlocked = flipNow && top1Flipped
+      const finalResults = flipBlocked ? result.mdriResults : replan.results
+      if (flipNow && !flipBlocked) setTop1Flipped(true)
+
+      const nextClarifyQ = replan.done ? null : (replan.nextQuestion as ClarifyQuestion | null)
+
+      setResult({
+        ...result,
+        mdriResults: finalResults,
+        finalRemedy: finalResults[0]?.remedy ?? result.finalRemedy,
+        productConfidence: replan.confidence,
+        _clarifyQuestion: nextClarifyQ ?? undefined,
+      })
+      setClarifyHistory(historyWithCurrent)
+      setClarifyCount(prev => prev + 1)
+      setClarifyProgress({
+        gapBefore: replan.gapBefore,
+        gapAfter: replan.gapAfter,
+        confBefore,
+        confAfter: replan.confidence.level,
+      })
+
+      // Accumulating лог раунда
+      logClarifyRound({
+        roundIndex: clarifyCount + 1,
+        feature: clarifyQ.feature,
+        answer: optionLabel,
+        beforeTop3,
+        afterTop3,
+        gapBefore: replan.gapBefore,
+        gapAfter: replan.gapAfter,
+        confidenceBefore: confBefore,
+        confidenceAfter: replan.confidence.level,
+        reason: flipBlocked ? 'flip_blocked' : replan.reason,
+      }).catch(() => {})
+
+      // Если все раунды исчерпаны и всё ещё clarify — явно показать сравнение
+      if (!replan.done && clarifyCount + 1 >= CLARIFY_MAX_ROUNDS) {
+        setStep('clarify')
+      }
+    } catch {
+      // в случае ошибки replan — fallback на старое локальное поведение
+      const adjusted = applyClarifyBonus(result.mdriResults, option)
+      setResult({ ...result, mdriResults: adjusted, finalRemedy: adjusted[0]?.remedy ?? result.finalRemedy })
       setClarifyCount(prev => prev + 1)
       logClarifyResult({
         clarifyUsed: true, clarifyFeature: clarifyQ.feature, clarifyGain: clarifyQ.gain,
-        clarifyAnswer: optionLabel, top1Changed: false, flipBlocked: true,
-        beforeTop3: result.mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
-        afterTop3: adjusted.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+        clarifyAnswer: optionLabel, top1Changed: adjusted[0]?.remedy !== beforeTop1, flipBlocked: false,
+        beforeTop3, afterTop3: adjusted.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
         gapBefore: result.mdriResults[0].totalScore - (result.mdriResults[1]?.totalScore ?? 0),
         gapAfter: adjusted[0].totalScore - (adjusted[1]?.totalScore ?? 0),
       }).catch(() => {})
-      return
+    } finally {
+      setClarifyPending(false)
     }
-
-    if (newTop1 !== oldTop1) setTop1Flipped(true)
-    setResult({ ...result, mdriResults: adjusted, finalRemedy: adjusted[0]?.remedy ?? result.finalRemedy })
-    setClarifyCount(prev => prev + 1)
-
-    logClarifyResult({
-      clarifyUsed: true, clarifyFeature: clarifyQ.feature, clarifyGain: clarifyQ.gain,
-      clarifyAnswer: optionLabel, top1Changed: newTop1 !== oldTop1, flipBlocked: false,
-      beforeTop3: result.mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
-      afterTop3: adjusted.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
-      gapBefore: result.mdriResults[0].totalScore - (result.mdriResults[1]?.totalScore ?? 0),
-      gapAfter: adjusted[0].totalScore - (adjusted[1]?.totalScore ?? 0),
-    }).catch(() => {})
   }
 
   function handleComparisonChoice(remedy: string) {
@@ -1075,6 +1124,20 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         {/* Уточняющий вопрос — Chat Bubble UI */}
         {needsClarify && clarifyQ && (
           <div className="result-card mb-5" style={{ animationDelay: '0.5s' }}>
+            {/* Прогресс: сколько раундов и как меняется разрыв */}
+            <div className="flex items-center justify-between text-[11px] text-[#6b7280] mb-2 ml-10">
+              <span>
+                Уточнение {clarifyCount + 1} из {CLARIFY_MAX_ROUNDS}
+              </span>
+              {clarifyProgress && (
+                <span>
+                  Разрыв: {Math.round(clarifyProgress.gapBefore)}% → {Math.round(clarifyProgress.gapAfter)}%
+                  {clarifyProgress.gapAfter > clarifyProgress.gapBefore && (
+                    <span className="text-[#2d6a4f] ml-1">+{Math.round(clarifyProgress.gapAfter - clarifyProgress.gapBefore)}</span>
+                  )}
+                </span>
+              )}
+            </div>
             <ChatBubble variant="received" layout="ai" className="!mb-0">
               <ChatBubbleAvatar fallback="AI" className="!h-8 !w-8 bg-[#2d6a4f] text-white text-[11px]" />
               <div className="flex-1">
@@ -1091,7 +1154,8 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                     <button
                       key={opt.label}
                       onClick={() => handleClarifyAnswer(opt.label)}
-                      className={`text-[12px] px-4 py-2 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                      disabled={clarifyPending}
+                      className={`text-[12px] px-4 py-2 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait ${
                         opt.neutral
                           ? 'bg-white text-[#6b7280] border border-gray-200 hover:bg-gray-50'
                           : 'bg-[#2d6a4f]/[0.06] text-[#1a1a1a] border border-[#2d6a4f]/15 hover:bg-[#2d6a4f]/10'

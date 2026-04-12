@@ -1303,7 +1303,129 @@ export async function logDoctorChoice(consultationId: string, chosenRemedy: stri
 }
 
 /**
- * Логирование результата clarify (QuestionGain)
+ * Интерактивный clarify: применить ответ врача и, если уверенности ещё нет —
+ * выбрать следующий вопрос. Используется во 2-м, 3-м раундах диалога.
+ *
+ * Принимает текущие результаты, выбранную опцию и историю заданных вопросов.
+ * Возвращает новые результаты, новый уровень confidence и следующий вопрос
+ * (или null если диалог можно завершить).
+ */
+const clarifyOptionSchema = z.object({
+  label: z.string(),
+  supports: z.array(z.string()).optional(),
+  weakens: z.array(z.string()).optional(),
+  boost: z.number().optional(),
+  penalty: z.number().optional(),
+  neutral: z.boolean().optional(),
+})
+
+const mdriResultMinSchema = z.object({
+  remedy: z.string(),
+  remedyName: z.string().optional(),
+  totalScore: z.number(),
+}).passthrough()
+
+const applyClarifyInputSchema = z.object({
+  results: z.array(mdriResultMinSchema).min(2),
+  option: clarifyOptionSchema,
+  symptoms: z.array(symptomSchema),
+  modalities: z.array(modalitySchema),
+  askedFeatures: z.array(z.string()).default([]),
+})
+
+type ApplyClarifyResult = {
+  done: boolean
+  results: MDRIResult[]
+  confidence: ReturnType<typeof computeConfidence>
+  gapBefore: number
+  gapAfter: number
+  nextQuestion: unknown | null // ClarifyQuestion
+  reason: 'high' | 'good' | 'no-more-questions' | 'continue'
+}
+
+export async function applyClarifyAnswerAndReplan(
+  input: z.input<typeof applyClarifyInputSchema>,
+): Promise<ApplyClarifyResult> {
+  const parsed = applyClarifyInputSchema.parse(input)
+  await requireAuth() // только залогиненный врач
+
+  const { applyClarifyBonus, selectBestClarifyQuestion } = await import('@/lib/mdri/question-gain')
+
+  const beforeResults = parsed.results as MDRIResult[]
+  const gapBefore = (beforeResults[0]?.totalScore ?? 0) - (beforeResults[1]?.totalScore ?? 0)
+
+  // Применяем ответ (неважно neutral он или нет — applyClarifyBonus сам разберётся)
+  const adjusted = applyClarifyBonus(beforeResults, parsed.option)
+  const gapAfter = (adjusted[0]?.totalScore ?? 0) - (adjusted[1]?.totalScore ?? 0)
+
+  // Пересчитываем confidence — на симптомах тех же (bonus это UI-trick, не реальный симптом)
+  const confidence = computeConfidence(parsed.symptoms as MDRISymptom[], parsed.modalities as MDRIModality[], adjusted, [])
+
+  // Если уверенности достигли — завершаем
+  if (confidence.level === 'high') {
+    return { done: true, results: adjusted, confidence, gapBefore, gapAfter, nextQuestion: null, reason: 'high' }
+  }
+  if (confidence.level === 'good' && gapAfter >= 10) {
+    return { done: true, results: adjusted, confidence, gapBefore, gapAfter, nextQuestion: null, reason: 'good' }
+  }
+
+  // Иначе ищем следующий вопрос, исключая уже заданные
+  const data = await loadMDRIData()
+  const askedFeatures = parsed.askedFeatures
+  if (parsed.option.label && parsed.option.neutral) {
+    // «Не знаю» — тоже не спрашиваем повторно
+  }
+  const nextQuestion = selectBestClarifyQuestion(
+    adjusted,
+    data.constellations,
+    parsed.symptoms as MDRISymptom[],
+    askedFeatures,
+  )
+
+  if (!nextQuestion) {
+    return { done: true, results: adjusted, confidence, gapBefore, gapAfter, nextQuestion: null, reason: 'no-more-questions' }
+  }
+
+  return { done: false, results: adjusted, confidence, gapBefore, gapAfter, nextQuestion, reason: 'continue' }
+}
+
+/**
+ * Логирование раунда clarify в массив aiAnalysisLog.clarifyLog (накопительно).
+ * Первый вызов создаёт массив, последующие — добавляют элемент.
+ */
+export async function logClarifyRound(round: {
+  roundIndex: number
+  feature: string
+  answer: string
+  beforeTop3: { remedy: string; score: number }[]
+  afterTop3: { remedy: string; score: number }[]
+  gapBefore: number
+  gapAfter: number
+  confidenceBefore: string
+  confidenceAfter: string
+  reason: string
+}) {
+  const { userId } = await requireAuth()
+  try {
+    const lastLog = await prisma.aiAnalysisLog.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, clarifyLog: true },
+    })
+    if (!lastLog) return
+    const existing = Array.isArray(lastLog.clarifyLog) ? (lastLog.clarifyLog as Record<string, unknown>[]) : []
+    const newRounds = [...existing, round as unknown as Record<string, unknown>]
+    await prisma.aiAnalysisLog.update({
+      where: { id: lastLog.id },
+      data: { clarifyLog: newRounds as unknown as Record<string, unknown>[] },
+    })
+  } catch { /* silent */ }
+}
+
+/**
+ * Логирование результата clarify (QuestionGain) — старая версия,
+ * используется в UI для обратной совместимости. Накопительное логирование —
+ * через logClarifyRound.
  */
 export async function logClarifyResult(data: {
   clarifyUsed: boolean

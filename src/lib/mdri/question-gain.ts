@@ -240,6 +240,7 @@ export function selectBestClarifyQuestion(
   results: MDRIResult[],
   constellations: Record<string, MDRIConstellationData>,
   existingSymptoms: MDRISymptom[],
+  excludeFeatures: string[] = [],
 ): ClarifyQuestion | null {
   if (results.length < 2) return null
 
@@ -249,8 +250,11 @@ export function selectBestClarifyQuestion(
   // Не нужен clarify если gap большой (18% — зона реальной конкуренции средств)
   if (currentGap >= 18) return null
 
-  // === Шаг 1: Убрать покрытые features ===
-  const available = AXES.filter(axis => !isFeatureCovered(axis.name, existingSymptoms))
+  // === Шаг 1: Убрать покрытые features и уже заданные вопросы ===
+  const excluded = new Set(excludeFeatures)
+  const available = AXES.filter(axis =>
+    !isFeatureCovered(axis.name, existingSymptoms) && !excluded.has(axis.name),
+  )
 
   // === Шаг 2: Проверить KILLER ===
   const killers = available.filter(a => a.type === 'KILLER' && separatesTop3(a, top3))
