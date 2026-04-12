@@ -1,15 +1,13 @@
 ---
 name: deploy
-description: Задеплоить проект Similia на Vercel. Используй когда нужно выпустить новую версию.
+description: Задеплоить Similia на Timeweb через PM2. Используй когда нужно выпустить новую версию.
 allowed-tools: Bash
 ---
 
-Задеплой проект Similia на Vercel:
+Деплой Similia:
 
-1. Убедись что билд чистый: `cd c:/projects/casebook && npx next build`
-2. Если билд прошёл — деплой:
-   ```
-   export PATH="$PATH:/c/Program Files/nodejs:/c/Users/ARTASHES/AppData/Roaming/npm"
-   npx vercel --prod --yes
-   ```
-3. Сообщи пользователю URL деплоя и что он задеплоен на simillia.ru
+1. Запусти `bash /home/artur/projects/Similia/deploy-similia.sh` — скрипт соберёт
+   проект локально, отправит на Timeweb (`yc-user@85.239.53.148`), сделает
+   `pm2 restart similia` (порт 3003).
+2. Если скрипт упал на билде — покажи ошибки, не продолжай.
+3. После успешного деплоя сообщи пользователю что релиз выехал на https://simillia.ru.
