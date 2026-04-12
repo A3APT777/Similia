@@ -316,6 +316,7 @@ export type AIAnalysisLog = {
   createdAt: Date
   confirmedInput: Array<{ rubric: string; type: string; priority: string; weight: number }> | null
   engineTop3: Array<{ remedy: string; score: number }> | null
+  rawEngineTop3: Array<{ remedy: string; score: number }> | null
   doctorChoice: string | null
   correctPosition: number | null  // 1, 2, 3 или null (не в top-3)
   confidenceLevel: string | null

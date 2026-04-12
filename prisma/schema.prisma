@@ -414,6 +414,7 @@ model AiAnalysisLog {
   consultationId  String?   @map("consultation_id") @db.Uuid
   confirmedInput  Json?     @map("confirmed_input")
   engineTop3      Json?     @map("engine_top3")
+  rawEngineTop3   Json?     @map("raw_engine_top3") // top-3 до verifier (только analyzeText)
   doctorChoice    String?   @map("doctor_choice")
   confidenceLevel String?   @map("confidence_level")
   warnings        Json?

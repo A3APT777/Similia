@@ -210,6 +210,9 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     const mdriResults = analyzeWithIdf(data, symptoms, modalities, mergedFamilyHistory, profile)
     log(`MDRI v5 done (top: ${mdriResults[0]?.remedy} ${mdriResults[0]?.totalScore}%)`)
 
+    // Snapshot до verifier — для лога (см. Шаг 3.5)
+    const rawEngineTop3 = mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore }))
+
     // Шаг 3.5: Верификатор — confirmation по Materia Medica
     try {
       const reranked = await verifyTop5(parsed.text, mdriResults.slice(0, 5))
@@ -292,6 +295,7 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
           inputText: parsed.text.substring(0, 2000), // исходный русский текст (макс 2000 символов)
           confirmedInput: symptoms.map(s => ({ rubric: s.rubric, type: s.category, weight: s.weight })),
           engineTop3: mdriResults.slice(0, 3).map(r => ({ remedy: r.remedy, score: r.totalScore })),
+          rawEngineTop3,
           confidenceLevel: productConfidence?.level ?? null,
           warnings: inputWarnings.length > 0 ? inputWarnings : null,
           symptomCount: symptoms.length,

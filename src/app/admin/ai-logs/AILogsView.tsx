@@ -325,8 +325,13 @@ function LogCard({ log, expanded, onToggle, isLast }: {
 
           {/* Engine */}
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--sim-text-muted)' }}>
-              Engine Top-3
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-2 flex items-center gap-2" style={{ color: 'var(--sim-text-muted)' }}>
+              <span>Финальный Top-3</span>
+              {log.rawEngineTop3 && log.rawEngineTop3[0]?.remedy !== top3[0]?.remedy && (
+                <span className="normal-case text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>
+                  reranked by verifier
+                </span>
+              )}
             </div>
             <div className="flex gap-2">
               {top3.map((r, i) => (
@@ -345,6 +350,31 @@ function LogCard({ log, expanded, onToggle, isLast }: {
               ))}
             </div>
           </div>
+
+          {/* Raw engine top-3 (до verifier) — показываем только если есть расхождение */}
+          {log.rawEngineTop3 && JSON.stringify(log.rawEngineTop3.map(r => r.remedy)) !== JSON.stringify(top3.map(r => r.remedy)) && (
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--sim-text-muted)' }}>
+                Raw Engine Top-3 (до verifier)
+              </div>
+              <div className="flex gap-2">
+                {log.rawEngineTop3.map((r, i) => (
+                  <div
+                    key={i}
+                    className="text-sm px-4 py-2 rounded-xl"
+                    style={{
+                      backgroundColor: 'var(--sim-bg-card)',
+                      border: '1px dashed var(--sim-border)',
+                      color: 'var(--sim-text-muted)',
+                    }}
+                  >
+                    <span className="font-medium">{r.remedy}</span>
+                    <span className="ml-1.5" style={{ color: 'var(--sim-text-hint)' }}>({r.score.toFixed(1)})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Warnings */}
           {log.warnings && log.warnings.length > 0 && (
