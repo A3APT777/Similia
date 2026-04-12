@@ -497,15 +497,20 @@ model PaymentHistory {
 // ─── Doctor Schedules ──────────────────────────────────────
 
 model DoctorSchedule {
-  id        String   @id @default(uuid()) @db.Uuid
-  doctorId  String   @map("doctor_id") @db.Uuid
-  dayOfWeek Int      @map("day_of_week")
-  startTime String   @map("start_time")
-  endTime   String   @map("end_time")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String    @id @default(uuid()) @db.Uuid
+  doctorId        String    @unique @map("doctor_id") @db.Uuid
+  startTime       String    @map("start_time")
+  endTime         String    @map("end_time")
+  sessionDuration Int?      @map("session_duration")
+  breakDuration   Int?      @map("break_duration")
+  workingDays     String[]  @map("working_days")
+  lunchEnabled    Boolean?  @map("lunch_enabled")
+  lunchStart      String?   @map("lunch_start")
+  lunchEnd        String?   @map("lunch_end")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime? @map("updated_at")
 
-  doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctor          User      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@map("doctor_schedules")
 }
