@@ -699,9 +699,12 @@ export function computeConfidence(
   // Количество категорий покрытых: mental + general + particular + modalities
   const categoryCoverage = [hasMental, hasGeneral, present.some(s => s.category === 'particular'), hasModalities].filter(Boolean).length
 
-  // Расширенный набор факторов для UI — врач видит почему confidence именно такой
+  // Расширенный набор факторов для UI — врач видит почему confidence именно такой.
+  // gap может быть отрицательным когда verifier переранжировал top-1 (его score
+  // меньше чем у нового top-2) — показываем «0%» чтобы не сбивать врача с толку.
+  const displayGap = Math.max(0, gap)
   const factors: ConfidenceFactor[] = [
-    { name: 'Разрыв 1↔2', value: `${gap}%`, required: '≥15% для HIGH', passed: gap >= 15 },
+    { name: 'Разрыв 1↔2', value: `${displayGap}%`, required: '≥15% для HIGH', passed: gap >= 15 },
     { name: 'Сила симптомов', value: `${charStrength}/2`, required: '2 для HIGH (mental w≥2 или peculiar w=3)', passed: charStrength >= 2 },
     { name: 'Модальности', value: `${modalities.length}`, required: '≥1 для HIGH', passed: hasModalities },
     { name: 'Покрытие категорий', value: `${categoryCoverage}/4`, required: '≥3 для HIGH (mental, general, particular, modalities)', passed: categoryCoverage >= 3 },

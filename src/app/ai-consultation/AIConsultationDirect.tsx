@@ -316,7 +316,16 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
       const res = await analyzeText({ text: fullText })
       if ('_error' in res && (res._error === 'NO_AI_ACCESS' || res._error === 'AI_MONTHLY_LIMIT')) { setError(res._error); setStep('input'); return }
       setResult(res)
-      setStep('result')
+      // Если CLARIFY, но движок не смог придумать вопрос (всё уже спрошено) —
+      // сразу перейти к ручному сравнению top-3, иначе врач застрянет
+      // на «Требует уточнения» без кнопок.
+      const conf = res.productConfidence?.level
+      const hasClarifyQ = !!res._clarifyQuestion
+      if (conf === 'clarify' && !hasClarifyQ) {
+        setStep('clarify')
+      } else {
+        setStep('result')
+      }
     } catch {
       setError(lang === 'ru' ? 'Ошибка AI-анализа. Попробуйте ещё раз.' : 'AI analysis error. Try again.')
       setStep('input')
@@ -1208,55 +1217,37 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
               {lang === 'ru' ? 'Альтернативы' : 'Alternatives'}
             </p>
             <div className="space-y-0">
-              {[...result.mdriResults.slice(isEqual ? 2 : 1, isEqual ? 6 : 5)].sort((a, b) => b.totalScore - a.totalScore).map((r, i) => {
-                const top1Score = Math.max(...result.mdriResults.map(m => m.totalScore), 100)
-                const gap = top1Score - r.totalScore
-                const pct = Math.max(10, Math.round((r.totalScore / top1Score) * 100))
-                // Индикатор близости
-                // Индикатор по проценту от лидера, не абсолютному gap
-                const gapLabel = pct >= 90
+              {/* Сохраняем порядок от engine/verifier — не пересортируем по score, т.к. verifier
+                  переранжирует, не пересчитывая scores. Лейбл «близости» — по позиции, не по числу. */}
+              {result.mdriResults.slice(isEqual ? 2 : 1, isEqual ? 6 : 5).map((r, i) => {
+                const positionInTop = i + (isEqual ? 3 : 2) // абсолютная позиция (2-е, 3-е, 4-е, 5-е)
+                const gapLabel = positionInTop === 2
                   ? (lang === 'ru' ? 'Близкая' : 'Close')
-                  : pct >= 70
+                  : positionInTop === 3
                     ? (lang === 'ru' ? 'Возможная' : 'Possible')
                     : (lang === 'ru' ? 'Маловероятная' : 'Unlikely')
-                const gapColor = pct >= 90 ? '#2d6a4f' : pct >= 70 ? '#c8a035' : '#6b7280'
+                const gapColor = positionInTop === 2 ? '#2d6a4f' : positionInTop === 3 ? '#c8a035' : '#6b7280'
 
                 return (
                   <div key={i} className="py-3" style={{ borderBottom: i < Math.min(result.mdriResults.length - 2, 3) ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-[#9ca3af] font-medium tabular-nums w-4">#{positionInTop}</span>
                         <span className="text-[14px] font-medium text-[#1a1a1a]">{r.remedy}</span>
                         <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${gapColor}10`, color: gapColor }}>
                           {gapLabel}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-medium tabular-nums" style={{ color: gapColor }}>
-                          {pct}%
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setAssignRemedy(r.remedy); setStep('assign') }}
-                          className="text-[10px] px-2.5 py-1 rounded-full border border-[#2d6a4f]/20 text-[#2d6a4f] hover:bg-[#2d6a4f]/[0.05] transition-all"
-                        >
-                          {lang === 'ru' ? 'Назначить' : 'Assign'}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="h-1 rounded-full bg-gray-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-1000 ease-out"
-                        style={{
-                          width: `${pct}%`,
-                          background: gap < 10
-                            ? 'linear-gradient(90deg, #2d6a4f, #5a9e7c)'
-                            : 'linear-gradient(90deg, #d4d0c8, #c8c4bc)',
-                          transitionDelay: `${0.3 + i * 0.15}s`,
-                        }}
-                      />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setAssignRemedy(r.remedy); setStep('assign') }}
+                        className="text-[10px] px-2.5 py-1 rounded-full border border-[#2d6a4f]/20 text-[#2d6a4f] hover:bg-[#2d6a4f]/[0.05] transition-all"
+                      >
+                        {lang === 'ru' ? 'Назначить' : 'Assign'}
+                      </button>
                     </div>
                     {/* Чем отличается от лидера */}
                     {r.differential?.differentiatingQuestion && (
-                      <p className="text-[11px] text-[#6b7280] mt-1.5 italic">
+                      <p className="text-[11px] text-[#6b7280] mt-1.5 italic ml-6">
                         {r.differential.differentiatingQuestion}
                       </p>
                     )}
@@ -1469,11 +1460,19 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         >
           {lang === 'ru' ? 'Что ближе к пациенту?' : 'Which fits the patient?'}
         </h2>
-        <p className="text-[13px] mb-8 text-[#6b7280]">
+        <p className="text-[13px] mb-3 text-[#6b7280]">
           {lang === 'ru'
             ? 'Три ближайших препарата. Выберите наиболее подходящий.'
             : 'Three closest remedies. Choose the best fit.'}
         </p>
+        {/* Если попали сюда без вопросов — дать врачу понимание почему */}
+        {!clarifyQ && result?.productConfidence?.level === 'clarify' ? (
+          <p className="text-[12px] mb-8 text-[#92780a] bg-[#c8a035]/[0.06] border border-[#c8a035]/15 rounded-lg px-3 py-2">
+            {lang === 'ru'
+              ? 'Все ключевые модальности уже учтены — уточняющих вопросов нет. Сравните top-3 вручную.'
+              : 'All key modalities already covered — no further clarifying questions. Compare top-3 manually.'}
+          </p>
+        ) : <div className="mb-5" />}
 
         <div className="space-y-3 mb-8">
           {comparison.map((c, idx) => (
