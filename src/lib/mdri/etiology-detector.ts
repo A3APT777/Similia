@@ -38,13 +38,25 @@ const ETIOLOGY_REMEDIES: Record<string, { top: string[]; secondary: string[]; la
   'wet':                { labelRu: 'сырость', top: ['dulc', 'rhus-t', 'nat-s', 'calc'], secondary: ['ars', 'nux-m'] },
 }
 
+// Маркер этиологической рубрики в Kent-стиле: рубрика должна явно
+// сообщать о ПРИЧИНЕ, а не просто содержать упоминание слова.
+// Без маркера «anger burst quick recovery» матчилось бы как «ailments from anger»,
+// хотя это описание паттерна гнева, а не этиология.
+const ETIOLOGY_MARKERS = /\b(ailments\s+from|after|since|following|caused\s+by|due\s+to)\b/i
+
 export function detectEtiologies(symptoms: MDRISymptom[]): DetectedEtiology[] {
   const present = symptoms.filter(s => s.present)
   const detected: DetectedEtiology[] = []
 
   for (const [key, info] of Object.entries(ETIOLOGY_REMEDIES)) {
     const matched = present
-      .filter(s => s.rubric.toLowerCase().includes(key))
+      .filter(s => {
+        const rubric = s.rubric.toLowerCase()
+        if (!rubric.includes(key)) return false
+        // Требуем явный этиологический маркер — иначе это совпадение по слову,
+        // но не по смыслу «болезнь появилась после X».
+        return ETIOLOGY_MARKERS.test(s.rubric)
+      })
       .map(s => s.rubric)
     if (matched.length === 0) continue
     detected.push({
