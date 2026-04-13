@@ -656,6 +656,16 @@ export type ConfidenceResult = {
   color: 'green' | 'blue' | 'yellow' | 'gray'
   showDiff: boolean
   showAsEqual: boolean
+  // Прозрачность критериев — что именно дало (или не дало) HIGH/GOOD/CLARIFY.
+  // Показывается врачу при клике на confidence-gauge.
+  factors?: ConfidenceFactor[]
+}
+
+export type ConfidenceFactor = {
+  name: string         // «Разрыв 1↔2»
+  passed: boolean      // прошёл порог HIGH
+  value: string        // «23%»
+  required: string     // «≥15% для HIGH»
 }
 
 export function computeConfidence(
@@ -689,57 +699,55 @@ export function computeConfidence(
   // Количество категорий покрытых: mental + general + particular + modalities
   const categoryCoverage = [hasMental, hasGeneral, present.some(s => s.category === 'particular'), hasModalities].filter(Boolean).length
 
+  // Расширенный набор факторов для UI — врач видит почему confidence именно такой
+  const factors: ConfidenceFactor[] = [
+    { name: 'Разрыв 1↔2', value: `${gap}%`, required: '≥15% для HIGH', passed: gap >= 15 },
+    { name: 'Сила симптомов', value: `${charStrength}/2`, required: '2 для HIGH (mental w≥2 или peculiar w=3)', passed: charStrength >= 2 },
+    { name: 'Модальности', value: `${modalities.length}`, required: '≥1 для HIGH', passed: hasModalities },
+    { name: 'Покрытие категорий', value: `${categoryCoverage}/4`, required: '≥3 для HIGH (mental, general, particular, modalities)', passed: categoryCoverage >= 3 },
+    { name: 'Предупреждения', value: `${warningPenalty}`, required: '≤1 для HIGH', passed: warningPenalty <= 1 },
+    { name: 'Симптомов всего', value: `${present.length}`, required: '≥3', passed: present.length >= 3 },
+  ]
+
   // === INSUFFICIENT ===
   if (present.length < 3 || (!hasMental && !hasGeneral) || results.length === 0) {
-    return { level: 'insufficient', label: 'Недостаточно данных', color: 'gray', showDiff: false, showAsEqual: false }
+    return { level: 'insufficient', label: 'Недостаточно данных', color: 'gray', showDiff: false, showAsEqual: false, factors }
   }
 
   // === CLARIFY (showAsEqual) ===
   // Фактический tie ИЛИ конфликт парсинга при близких scores
   if (gap < 3 || (hasConflict && gap < 10)) {
-    return { level: 'clarify', label: 'Требует уточнения', color: 'yellow', showDiff: true, showAsEqual: true }
+    return { level: 'clarify', label: 'Требует уточнения', color: 'yellow', showDiff: true, showAsEqual: true, factors }
   }
 
   // === CLARIFY ===
   // Gap маленький ИЛИ нет characteristic (charStrength=0) ИЛИ слишком много warnings
   if (gap < 10 || charStrength === 0 || warningPenalty >= 3) {
-    return { level: 'clarify', label: 'Уточните для точности', color: 'yellow', showDiff: true, showAsEqual: false }
+    return { level: 'clarify', label: 'Уточните для точности', color: 'yellow', showDiff: true, showAsEqual: false, factors }
   }
 
   // === КОНФЛИКТ ПАРСИНГА → потолок GOOD ===
-  // При конфликте Sonnet vs keyword модальности не можем быть уверены.
-  // HIGH невозможен. Максимум GOOD.
   if (hasConflict) {
-    return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: true, showAsEqual: false }
+    return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: true, showAsEqual: false, factors }
   }
 
   // === CONFLICT CHECK (ДО HIGH — может понизить любой уровень) ===
   const conflict = checkHypothesisConflict(results)
 
-  // Hard contradiction → CLARIFY (независимо от gap/charStrength)
   if (conflict.level === 'hard') {
-    return { level: 'clarify', label: 'Есть противоречия — уточните', color: 'yellow', showDiff: true, showAsEqual: false }
+    return { level: 'clarify', label: 'Есть противоречия — уточните', color: 'yellow', showDiff: true, showAsEqual: false, factors }
   }
-
-  // Differential → max GOOD (HIGH невозможен при наличии сильных альтернатив)
   if (conflict.level === 'differential') {
-    return { level: 'good', label: 'Требует проверки альтернатив', color: 'blue', showDiff: true, showAsEqual: false }
+    return { level: 'good', label: 'Требует проверки альтернатив', color: 'blue', showDiff: true, showAsEqual: false, factors }
   }
 
   // === HIGH ===
-  // Все условия одновременно:
-  // 1) gap >= 15%
-  // 2) strong characteristic (charStrength=2)
-  // 3) modalities есть
-  // 4) >=3 категории покрыты
-  // 5) <=1 warning
-  // 6) нет конфликтов (проверено выше)
   if (gap >= 15 && charStrength >= 2 && hasModalities && categoryCoverage >= 3 && warningPenalty <= 1) {
-    return { level: 'high', label: 'Высокая уверенность', color: 'green', showDiff: false, showAsEqual: false }
+    return { level: 'high', label: 'Высокая уверенность', color: 'green', showDiff: false, showAsEqual: false, factors }
   }
 
   // === GOOD ===
-  return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: gap < 12 || charStrength < 2, showAsEqual: false }
+  return { level: 'good', label: 'Хорошее совпадение', color: 'blue', showDiff: gap < 12 || charStrength < 2, showAsEqual: false, factors }
 }
 
 // =====================================================================

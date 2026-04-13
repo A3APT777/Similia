@@ -163,9 +163,20 @@ export type ConsensusResult = {
     color: 'green' | 'blue' | 'yellow' | 'gray'
     showDiff: boolean
     showAsEqual: boolean
+    factors?: { name: string; passed: boolean; value: string; required: string }[]
   }
   warnings?: { type: string; message: string; hint: string }[]
   fallbackAdded?: { symptoms: number; modalities: number; conflicts: number }
+  // Распознанная этиология (Causa по Ганеману §5)
+  detectedEtiologies?: {
+    key: string
+    labelRu: string
+    matchedRubrics: string[]
+    topRemedies: string[]
+    secondaryRemedies: string[]
+  }[]
+  // Модальности для top-3 препаратов (из polarities.json)
+  topModalities?: Record<string, Record<string, string>>
   // Автоматически определённый профиль пациента
   inferredProfile?: {
     caseType: { value: string; confidence: number }

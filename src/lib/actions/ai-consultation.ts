@@ -249,6 +249,18 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       }
     }
 
+    // Распознанные этиологии (Causa) — для UI блока «Распознанная причина»
+    const { detectEtiologies } = await import('@/lib/mdri/etiology-detector')
+    const detectedEtiologies = detectEtiologies(symptoms)
+
+    // Модальности top-3 препаратов (из polarities.json) — для side-by-side таблицы
+    const topModalities: Record<string, Record<string, string>> = {}
+    for (const r of mdriResults.slice(0, 3)) {
+      const key = r.remedy.toLowerCase().replace(/\.$/, '')
+      const pol = data.polarities[key] || data.polarities[r.remedy]
+      if (pol && Object.keys(pol).length > 0) topModalities[r.remedy] = pol as Record<string, string>
+    }
+
     // Результат
     const topRemedy = mdriResults[0]?.remedy ?? ''
     const result: ConsensusResult = {
@@ -265,6 +277,8 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       fallbackAdded,
       usedSymptoms,
       inferredProfile,
+      detectedEtiologies,
+      topModalities,
       // Structured data для clarify engine
       _parsedSymptoms: symptoms,
       _parsedModalities: modalities,

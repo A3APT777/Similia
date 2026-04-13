@@ -243,6 +243,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
   const [isFocused, setIsFocused] = useState(false)
   const [showRubrics, setShowRubrics] = useState(false)
   const [showLenses, setShowLenses] = useState(false)
+  const [showConfidenceDetails, setShowConfidenceDetails] = useState(false)
   const [disagreeStep, setDisagreeStep] = useState<'none' | 'choose' | 'reason' | 'done'>('none')
   const [disagreeRemedy, setDisagreeRemedy] = useState('')
   const [assignRemedy, setAssignRemedy] = useState('')  // Какое средство назначаем (пусто = Top-1)
@@ -870,18 +871,163 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
             {lang === 'ru' ? 'Рекомендация' : 'Recommendation'}
           </p>
           {confLevel === 'clarify' || confLevel === 'insufficient' ? (
-            <span className="text-[11px] font-medium px-3 py-1 rounded-full bg-[#c8a035]/10 text-[#92780a]">
-              {confidenceLabel(confLevel, lang)}
-            </span>
+            <button
+              onClick={() => setShowConfidenceDetails(v => !v)}
+              className="text-[11px] font-medium px-3 py-1 rounded-full bg-[#c8a035]/10 text-[#92780a] hover:bg-[#c8a035]/20 transition-colors"
+              title={lang === 'ru' ? 'Показать детали уверенности' : 'Show confidence details'}
+            >
+              {confidenceLabel(confLevel, lang)} {showConfidenceDetails ? '▴' : '▾'}
+            </button>
           ) : (
-            <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowConfidenceDetails(v => !v)}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              title={lang === 'ru' ? 'Показать детали уверенности' : 'Show confidence details'}
+            >
               <Gauge size="small" value={gaugeValue} colors={gaugeColors} showValue={false} />
               <span className="text-[11px] font-medium text-[#2d6a4f]">
-                {confidenceLabel(confLevel, lang)}
+                {confidenceLabel(confLevel, lang)} {showConfidenceDetails ? '▴' : '▾'}
               </span>
-            </div>
+            </button>
           )}
         </div>
+
+        {/* Confidence breakdown — раскрывается при клике на gauge */}
+        {showConfidenceDetails && result.productConfidence?.factors && (
+          <div className="result-card mb-5 rounded-xl bg-[#f7f3ed]/50 border border-[#e8e4dc] p-4" style={{ animationDelay: '0.05s' }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-3 text-[#6b5f4f]">
+              {lang === 'ru' ? 'Из чего складывается уверенность' : 'Confidence breakdown'}
+            </div>
+            <div className="space-y-2">
+              {result.productConfidence.factors.map((f, i) => (
+                <div key={i} className="flex items-start gap-3 text-[12px]">
+                  <span className={`mt-0.5 ${f.passed ? 'text-[#2d6a4f]' : 'text-[#92780a]'}`}>
+                    {f.passed ? '✓' : '○'}
+                  </span>
+                  <div className="flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-medium text-[#1a1a1a]">{f.name}:</span>
+                      <span className={f.passed ? 'text-[#2d6a4f]' : 'text-[#92780a]'}>{f.value}</span>
+                    </div>
+                    <div className="text-[10px] text-[#6b7280] mt-0.5">{f.required}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-[#6b7280] mt-3 pt-3 border-t border-[#e8e4dc]">
+              {lang === 'ru'
+                ? 'HIGH = все 5 первых критериев пройдены и нет конфликтов в top-3.'
+                : 'HIGH = all 5 first criteria passed and no conflicts in top-3.'}
+            </p>
+          </div>
+        )}
+
+        {/* Распознанная этиология (Causa по Ганеману §5) */}
+        {result.detectedEtiologies && result.detectedEtiologies.length > 0 && (
+          <div className="result-card mb-5 rounded-xl bg-[#2d6a4f]/[0.04] border border-[#2d6a4f]/15 p-4" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#2d6a4f]">
+                {lang === 'ru' ? 'Распознанная причина (Causa)' : 'Recognized cause (Causa)'}
+              </span>
+              <span className="text-[10px] text-[#6b7280]">
+                {lang === 'ru' ? '— иерархически выше отдельных симптомов (Organon §5)' : '— hierarchically higher than individual symptoms'}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {result.detectedEtiologies.map((et, i) => (
+                <div key={i} className="text-[12px]">
+                  <div className="font-medium text-[#1a1a1a] mb-1">
+                    {et.labelRu}
+                    <span className="text-[10px] text-[#6b7280] ml-2">({et.matchedRubrics.length} {lang === 'ru' ? 'упомин.' : 'mentions'})</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {et.topRemedies.slice(0, 6).map(r => (
+                      <span key={r} className="text-[11px] px-2 py-0.5 rounded-full bg-[#2d6a4f]/15 text-[#2d6a4f] font-medium">
+                        {r}
+                      </span>
+                    ))}
+                    {et.secondaryRemedies.slice(0, 3).map(r => (
+                      <span key={r} className="text-[11px] px-2 py-0.5 rounded-full bg-white text-[#6b5f4f] border border-[#e8e4dc]">
+                        {r}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Модальности: пациент vs top-3 */}
+        {result.topModalities && Object.keys(result.topModalities).length > 0 && (result._parsedModalities?.length ?? 0) > 0 && (
+          <div className="result-card mb-5 rounded-xl bg-white border border-gray-100 p-4 overflow-x-auto" style={{ animationDelay: '0.15s' }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wide mb-3 text-[#6b5f4f]">
+              {lang === 'ru' ? 'Модальности — пациент vs препараты' : 'Modalities — patient vs remedies'}
+            </div>
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="text-left text-[10px] uppercase text-[#6b7280] border-b border-[#e8e4dc]">
+                  <th className="py-2 pr-3 font-medium">{lang === 'ru' ? 'Модальность' : 'Modality'}</th>
+                  <th className="py-2 pr-3 font-medium">{lang === 'ru' ? 'Пациент' : 'Patient'}</th>
+                  {result.mdriResults.slice(0, 3).map(r => (
+                    <th key={r.remedy} className="py-2 pr-3 font-medium">{r.remedy}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const allPairs = new Set<string>()
+                  for (const m of (result._parsedModalities ?? [])) allPairs.add(m.pairId)
+                  for (const rem of Object.values(result.topModalities!)) {
+                    for (const k of Object.keys(rem)) allPairs.add(k)
+                  }
+                  const labels: Record<string, string> = {
+                    heat_cold: lang === 'ru' ? 'Термика' : 'Thermal',
+                    motion_rest: lang === 'ru' ? 'Движение/покой' : 'Motion/rest',
+                    morning_evening: lang === 'ru' ? 'Утро/вечер' : 'Morning/evening',
+                    wet_dry: lang === 'ru' ? 'Сырость/сухость' : 'Wet/dry',
+                    touch_pressure: lang === 'ru' ? 'Прикосновение' : 'Touch/pressure',
+                    consolation: lang === 'ru' ? 'Утешение' : 'Consolation',
+                  }
+                  const fmtPatient = (m?: { value: 'agg' | 'amel' }) => m ? (m.value === 'agg' ? '↓ хуже' : '↑ лучше') : '—'
+                  const fmtRemedy = (val?: string) => {
+                    if (!val) return '—'
+                    if (val.startsWith('agg_')) return `↓ ${val.slice(4)}`
+                    if (val.startsWith('amel_')) return `↑ ${val.slice(5)}`
+                    return val
+                  }
+                  return [...allPairs].map(pair => {
+                    const patientMod = (result._parsedModalities ?? []).find(m => m.pairId === pair)
+                    return (
+                      <tr key={pair} className="border-b border-[#f0ebe1] last:border-b-0">
+                        <td className="py-2 pr-3 font-medium text-[#1a1a1a]">{labels[pair] ?? pair}</td>
+                        <td className="py-2 pr-3 text-[#6b5f4f]">{fmtPatient(patientMod)}</td>
+                        {result.mdriResults.slice(0, 3).map(r => {
+                          const remVal = result.topModalities![r.remedy]?.[pair]
+                          const matches = patientMod && remVal && (
+                            (patientMod.value === 'agg' && remVal.startsWith('agg_')) ||
+                            (patientMod.value === 'amel' && remVal.startsWith('amel_'))
+                          )
+                          const conflicts = patientMod && remVal && !matches
+                          return (
+                            <td key={r.remedy} className={`py-2 pr-3 ${matches ? 'text-[#2d6a4f] font-medium' : conflicts ? 'text-[#dc2626]' : 'text-[#6b7280]'}`}>
+                              {fmtRemedy(remVal)}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })
+                })()}
+              </tbody>
+            </table>
+            <p className="text-[10px] text-[#6b7280] mt-2">
+              {lang === 'ru'
+                ? '✓ зелёный — совпадение, ✗ красный — противоречие, серый — нет данных'
+                : '✓ green — match, ✗ red — conflict, gray — no data'}
+            </p>
+          </div>
+        )}
 
         {/* Hero: один или два кандидата */}
         {isEqual && top2 ? (
