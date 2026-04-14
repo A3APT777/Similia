@@ -217,8 +217,20 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
     // Замер 12.04.2026 с grounded prompt: Top-1 98% → 100% (починил #28 Tab,
     // не сломал ни одного). Управляется флагом MDRI_VERIFIER (default: on).
     // Отключить при подозрении на регрессию: MDRI_VERIFIER=off.
+    //
+    // Safety net (принцип доверия источника): verifier НЕ вмешивается если
+    //   - симптомов мало (<12) — на коротком вводе verifier хватается за
+    //     самый «звонкий» keynote из MM-карточки и ломает правильный engine
+    //     top-1 (классика: «eczema winter» → Petroleum)
+    //   - engine уже уверен (gap ≥ 25) — нет смысла переставлять при ясном
+    //     разрыве, риск регрессии больше чем потенциальная польза
+    const engineGap = (mdriResults[0]?.totalScore ?? 0) - (mdriResults[1]?.totalScore ?? 0)
     const verifierEnabled = process.env.MDRI_VERIFIER !== 'off'
-    if (verifierEnabled) {
+    const enoughSymptoms = symptoms.length >= 12
+    const engineUncertain = engineGap < 25
+    const shouldVerify = verifierEnabled && enoughSymptoms && engineUncertain
+
+    if (shouldVerify) {
       try {
         const reranked = await verifyTop5(parsed.text, mdriResults.slice(0, 5))
         if (reranked) {
@@ -230,6 +242,8 @@ export async function analyzeText(input: z.input<typeof analyzeTextSchema>): Pro
       } catch (e) {
         log(`verifier skipped: ${e instanceof Error ? e.message : 'unknown error'}`)
       }
+    } else if (verifierEnabled) {
+      log(`verifier skipped: symptoms=${symptoms.length} (need ≥12), engineGap=${engineGap}% (skip if ≥25)`)
     }
 
     // Шаг 4: Confidence Layer — независимая оценка уверенности
