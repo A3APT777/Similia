@@ -44,7 +44,9 @@ type Stats = {
     inviteeId: string
     referrerBonusDays: number
     inviteeBonusDays: number
+    referrerBonusAiCredits: number
     bonusApplied: boolean
+    createdAt: string
   }>
 }
 
@@ -128,17 +130,20 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
     return stats.users.find(u => u.id === userId)?.email || userId.slice(0, 8)
   }
 
-  // Map: invitee_id → краткая инфа о реферере (кто пригласил этого врача).
-  // Нужно чтобы в таблице врачей рядом с именем показывать «← пришёл от X».
-  const referrerByInvitee = new Map<string, { id: string; name: string; email: string } | null>()
+  // Map: invitee_id → { referrer info + invitation record }.
+  // Нужно чтобы в таблице показать «← пришёл от X» рядом с именем
+  // и статус начисления бонуса в отдельной колонке.
+  type RefInfo = {
+    referrer: { id: string; name: string; email: string } | null
+    invitation: Stats['referrals'][number]
+  }
+  const referralByInvitee = new Map<string, RefInfo>()
   for (const r of stats.referrals) {
     const referrer = doctors.find(d => d.id === r.referrerId)
-    if (referrer) {
-      referrerByInvitee.set(r.inviteeId, { id: referrer.id, name: referrer.name, email: referrer.email || '' })
-    } else {
-      // реферер по какой-то причине отсутствует в списке врачей (удалён?) — покажем всё равно
-      referrerByInvitee.set(r.inviteeId, null)
-    }
+    referralByInvitee.set(r.inviteeId, {
+      referrer: referrer ? { id: referrer.id, name: referrer.name, email: referrer.email || '' } : null,
+      invitation: r,
+    })
   }
 
   // --- Действия ---
@@ -355,7 +360,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
                   <th className="pb-3 pr-3 text-center hidden lg:table-cell">Консультации</th>
                   <th className="pb-3 pr-3">Тариф</th>
                   <th className="pb-3 pr-3 text-center hidden lg:table-cell">AI-кредиты</th>
-                  <th className="pb-3 pr-3 hidden lg:table-cell">Реф. код</th>
+                  <th className="pb-3 pr-3 hidden lg:table-cell">Реф. бонус</th>
                   <th className="pb-3">Действия</th>
                 </tr>
               </thead>
@@ -395,19 +400,19 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
                                 Заблок.
                               </span>
                             )}
-                            {referrerByInvitee.has(doc.id) && (
-                              <span
-                                className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                                style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: '#2d6a4f' }}
-                                title={
-                                  referrerByInvitee.get(doc.id)
-                                    ? `Пришёл по реферальной ссылке от ${referrerByInvitee.get(doc.id)!.name || referrerByInvitee.get(doc.id)!.email}`
-                                    : 'Пришёл по реферальной ссылке (реферер удалён)'
-                                }
-                              >
-                                🔗 от {referrerByInvitee.get(doc.id)?.name || referrerByInvitee.get(doc.id)?.email?.split('@')[0] || '—'}
-                              </span>
-                            )}
+                            {referralByInvitee.has(doc.id) && (() => {
+                              const ref = referralByInvitee.get(doc.id)!
+                              const refName = ref.referrer?.name || ref.referrer?.email?.split('@')[0] || '—'
+                              return (
+                                <span
+                                  className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                                  style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: '#2d6a4f' }}
+                                  title={ref.referrer ? `Пришёл по реферальной ссылке от ${ref.referrer.name || ref.referrer.email}` : 'Пришёл по реферальной ссылке (реферер удалён)'}
+                                >
+                                  🔗 от {refName}
+                                </span>
+                              )
+                            })()}
                           </div>
                           <div
                             className="text-xs"
@@ -483,12 +488,48 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
                           {doc.aiCredits}
                         </td>
 
-                        {/* Реферальный код */}
+                        {/* Реферальный бонус: статус начисления для invitee */}
                         <td
                           className="py-3 pr-3 text-xs hidden lg:table-cell"
                           style={{ color: 'var(--sim-text-muted)' }}
                         >
-                          {doc.referralCode || '—'}
+                          {(() => {
+                            const ref = referralByInvitee.get(doc.id)
+                            if (!ref) return <span style={{ color: 'var(--sim-text-hint)' }}>—</span>
+                            const inv = ref.invitation
+                            if (inv.bonusApplied) {
+                              return (
+                                <span
+                                  className="px-1.5 py-0.5 rounded-full font-medium"
+                                  style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: '#2d6a4f' }}
+                                  title={`Бонус начислен ${new Date(inv.createdAt).toLocaleDateString('ru-RU')}: рефереру +${inv.referrerBonusDays} дн + ${inv.referrerBonusAiCredits} AI-кр; приглашённому +${inv.inviteeBonusDays} дн`}
+                                >
+                                  ✓ {inv.referrerBonusDays}д · {inv.referrerBonusAiCredits}кр
+                                </span>
+                              )
+                            }
+                            // Бонус ещё не применён, но AI-кредиты могут быть начислены при регистрации (Вариант Б)
+                            if (inv.referrerBonusAiCredits > 0) {
+                              return (
+                                <span
+                                  className="px-1.5 py-0.5 rounded-full font-medium"
+                                  style={{ backgroundColor: 'rgba(200,160,53,0.12)', color: '#92780a' }}
+                                  title={`AI-кредиты начислены при регистрации (${inv.referrerBonusAiCredits} рефереру + 2 приглашённому). Дни подписки начислятся когда приглашённый оплатит подписку.`}
+                                >
+                                  ⏳ {inv.referrerBonusAiCredits}кр · ждёт оплаты
+                                </span>
+                              )
+                            }
+                            return (
+                              <span
+                                className="px-1.5 py-0.5 rounded-full font-medium"
+                                style={{ backgroundColor: 'rgba(0,0,0,0.04)', color: 'var(--sim-text-hint)' }}
+                                title="Бонусы не начислены — приглашённый ещё не оплачивал подписку"
+                              >
+                                — не начислен
+                              </span>
+                            )
+                          })()}
                         </td>
 
                         {/* Действия */}

@@ -55,13 +55,37 @@ export async function POST(req: Request) {
       data: { doctorId: user.id },
     }).catch(() => null)
 
-    // Реферальный код
+    // Реферальный код — Вариант Б: AI-кредиты начисляются сразу при регистрации,
+    // дни подписки — позже когда invitee оплатит (yookassa-webhook).
+    // Это даёт немедленную ценность даже на бесплатном promo-тарифе.
     if (referralCode) {
       try {
         const refCode = await prisma.referralCode.findUnique({ where: { code: referralCode } })
         if (refCode) {
-          await prisma.referralInvitation.create({
-            data: { referrerId: refCode.doctorId, inviteeId: user.id },
+          await prisma.$transaction(async (tx) => {
+            // Запись приглашения с маркером что AI-кредиты выданы (referrerBonusAiCredits=1)
+            await tx.referralInvitation.create({
+              data: {
+                referrerId: refCode.doctorId,
+                inviteeId: user.id,
+                referrerBonusAiCredits: 1, // признак что мы уже выдали — webhook не дублирует
+                // bonusApplied=false по default — дни подписки начислятся при оплате
+              },
+            })
+
+            // Рефереру: +1 AI-кредит
+            await tx.doctorSettings.upsert({
+              where: { doctorId: refCode.doctorId },
+              update: { aiCredits: { increment: 1 } },
+              create: { doctorId: refCode.doctorId, aiCredits: 1 },
+            })
+
+            // Приглашённому: +2 AI-кредита
+            await tx.doctorSettings.upsert({
+              where: { doctorId: user.id },
+              update: { aiCredits: { increment: 2 } },
+              create: { doctorId: user.id, aiCredits: 2 },
+            })
           })
         }
       } catch { /* не критично */ }

@@ -146,10 +146,12 @@ export async function POST(req: NextRequest) {
               const REFERRER_DAYS = 7
               const INVITEE_DAYS = 14
 
-              // Рефереру: +7 дней подписки + 1 AI-кредит
+              // AI-кредиты уже выданы при регистрации (Вариант Б, register/route.ts).
+              // Здесь начисляем только дни подписки — цена за реальную оплату.
+
+              // Рефереру: +7 дней подписки (с лимитом 180 дней суммарно)
               const referrerSub = await tx.subscription.findUnique({ where: { doctorId: invitation.referrerId } })
               if (referrerSub) {
-                // Считаем уже накопленные бонусные дни
                 const totalBonusDays = await tx.referralInvitation.aggregate({
                   where: { referrerId: invitation.referrerId, bonusApplied: true },
                   _sum: { referrerBonusDays: true },
@@ -166,13 +168,8 @@ export async function POST(req: NextRequest) {
                   })
                 }
               }
-              await tx.doctorSettings.upsert({
-                where: { doctorId: invitation.referrerId },
-                update: { aiCredits: { increment: 1 } },
-                create: { doctorId: invitation.referrerId, aiCredits: 1 },
-              })
 
-              // Приглашённому: +14 дней подписки + 2 AI-кредита
+              // Приглашённому: +14 дней подписки
               const inviteeSub = await tx.subscription.findUnique({ where: { doctorId: userId } })
               if (inviteeSub) {
                 const currentEnd = new Date(inviteeSub.currentPeriodEnd || Date.now())
@@ -182,19 +179,12 @@ export async function POST(req: NextRequest) {
                   data: { currentPeriodEnd: newEnd },
                 })
               }
-              await tx.doctorSettings.upsert({
-                where: { doctorId: userId },
-                update: { aiCredits: { increment: 2 } },
-                create: { doctorId: userId, aiCredits: 2 },
-              })
 
-              // Помечаем бонус как применённый
+              // Помечаем бонус (дни) как применённый
               await tx.referralInvitation.update({
                 where: { inviteeId: userId },
-                data: { bonusApplied: true, referrerBonusDays: REFERRER_DAYS },
+                data: { bonusApplied: true, referrerBonusDays: REFERRER_DAYS, inviteeBonusDays: INVITEE_DAYS },
               })
-
-              // noop
             }
           } catch {
             // noop — бонус не критичен
