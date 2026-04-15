@@ -108,11 +108,18 @@ export async function middleware(request: NextRequest) {
 
   const csp = [
     `default-src 'self'`,
-    `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://yastatic.net`,
+    // script-src: Webvisor 2.0 динамически грузит скрипты с mc.webvisor.org
+    // и *.webvisor.com — без них webvisor не запускается (visits видны
+    // в Метрике, но записей сессий нет).
+    `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://mc.webvisor.org https://*.webvisor.com https://yastatic.net`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
     `img-src 'self' data: blob: https://mc.yandex.ru https://mc.yandex.com https://mc.webvisor.org https://*.webvisor.com`,
     `connect-src 'self' https://mc.yandex.ru https://mc.yandex.com https://mc.webvisor.org https://*.webvisor.com https://yastatic.net`,
+    // worker-src нужен Webvisor для service worker'а сбора событий
+    `worker-src 'self' blob:`,
+    // media-src нужен Webvisor для записи аудио/видео-фрагментов страницы (canvas, video)
+    `media-src 'self' blob:`,
     `frame-ancestors 'self' https://metrika.yandex.ru https://metrika.yandex.by https://metrica.yandex.com https://metrica.yandex.com.tr https://webvisor.com https://*.webvisor.com`,
   ].join('; ')
 
