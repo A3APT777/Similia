@@ -40,11 +40,11 @@ type Stats = {
   }>
   referrals: Array<{
     id: string
-    referrer_id: string
-    invitee_id: string
-    referrer_bonus_days: number
-    invitee_bonus_days: number
-    bonus_applied: boolean
+    referrerId: string
+    inviteeId: string
+    referrerBonusDays: number
+    inviteeBonusDays: number
+    bonusApplied: boolean
   }>
 }
 
@@ -126,6 +126,19 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
   // Получить email по id (для таблицы платежей)
   function getUserEmail(userId: string) {
     return stats.users.find(u => u.id === userId)?.email || userId.slice(0, 8)
+  }
+
+  // Map: invitee_id → краткая инфа о реферере (кто пригласил этого врача).
+  // Нужно чтобы в таблице врачей рядом с именем показывать «← пришёл от X».
+  const referrerByInvitee = new Map<string, { id: string; name: string; email: string } | null>()
+  for (const r of stats.referrals) {
+    const referrer = doctors.find(d => d.id === r.referrerId)
+    if (referrer) {
+      referrerByInvitee.set(r.inviteeId, { id: referrer.id, name: referrer.name, email: referrer.email || '' })
+    } else {
+      // реферер по какой-то причине отсутствует в списке врачей (удалён?) — покажем всё равно
+      referrerByInvitee.set(r.inviteeId, null)
+    }
   }
 
   // --- Действия ---
@@ -369,7 +382,7 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
                       >
                         {/* Имя + Email */}
                         <td className="py-3 pr-3">
-                          <div className="font-medium flex items-center gap-2">
+                          <div className="font-medium flex items-center gap-2 flex-wrap">
                             {doc.name || 'Без имени'}
                             {isBlocked && (
                               <span
@@ -380,6 +393,19 @@ export default function AdminDashboard({ stats, doctors }: { stats: Stats; docto
                                 }}
                               >
                                 Заблок.
+                              </span>
+                            )}
+                            {referrerByInvitee.has(doc.id) && (
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                                style={{ backgroundColor: 'rgba(45,106,79,0.1)', color: '#2d6a4f' }}
+                                title={
+                                  referrerByInvitee.get(doc.id)
+                                    ? `Пришёл по реферальной ссылке от ${referrerByInvitee.get(doc.id)!.name || referrerByInvitee.get(doc.id)!.email}`
+                                    : 'Пришёл по реферальной ссылке (реферер удалён)'
+                                }
+                              >
+                                🔗 от {referrerByInvitee.get(doc.id)?.name || referrerByInvitee.get(doc.id)?.email?.split('@')[0] || '—'}
                               </span>
                             )}
                           </div>
