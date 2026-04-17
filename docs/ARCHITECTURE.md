@@ -7,8 +7,8 @@
 | Параметр | Значение |
 |----------|----------|
 | URL | https://simillia.ru |
-| Стек | Next.js 16.1.6 (App Router), React 19, TypeScript strict, Supabase, Tailwind 4 |
-| Деплой | Vercel (автодеплой при push в main) |
+| Стек | Next.js 16.1.6 (App Router), React 19, TypeScript strict, Prisma + Supabase, Tailwind 4 |
+| Деплой | Timeweb (85.239.53.148), PM2 process `similia`, порт 3003, `bash deploy-similia.sh` |
 | Репозиторий | https://github.com/A3APT777/homeocase.git |
 | Node | v25.8.1 |
 
@@ -429,32 +429,45 @@ export async function actionName(rawInput: unknown) {
 
 ## 12. Деплой
 
+Production живёт на **Timeweb** (`yc-user@85.239.53.148`), PM2 process `similia`, порт 3003.
+Vercel **не используется**.
+
 ### Процесс
 ```bash
-# 1. Проверка типов (отдельно, т.к. Node OOM при tsc внутри next build)
-npx tsc --noEmit
+# 1. Pre-check локально
+npx tsc --noEmit           # отдельно, т.к. Node v25 OOM при tsc внутри next build
+npm run test               # vitest: 220 тестов
+npm run test:parity        # архитектурные инварианты (см. §15)
 
-# 2. Билд
-npm run build
+# 2. Деплой
+bash deploy-similia.sh     # или /similia-deploy skill
+# скрипт: build локально → rsync на Timeweb → pm2 restart similia
+```
 
-# 3. Коммит и пуш
-git add <files>
-git commit -m "описание изменений"
-git push origin main
-# Vercel автоматически задеплоит
+### Push в GitHub
+```bash
+git push origin main       # ТОЛЬКО в GitHub, прод сам не обновится
 ```
 
 ### Конфигурация Next.js (`next.config.ts`)
 - `typescript.ignoreBuildErrors: true` — из-за OOM на Node v25
 - Security headers: CSP, X-Frame-Options, X-Content-Type-Options, HSTS, Permissions-Policy
 
+### Anthropic API через proxy
+Timeweb IP заблокирован у Anthropic. Запросы идут через Hetzner nginx proxy
+(см. `feedback_deploy_processes.md` в памяти).
+
 ### Переменные окружения (.env.local)
 ```
+DATABASE_URL=                         # Prisma → Postgres (Supabase или свой)
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+NEXTAUTH_URL=
+NEXTAUTH_SECRET=
 YOOKASSA_SHOP_ID=
 YOOKASSA_SECRET_KEY=
+ANTHROPIC_API_KEY=
 NEXT_PUBLIC_APP_URL=
 ```
 
@@ -473,3 +486,134 @@ NEXT_PUBLIC_APP_URL=
 | IntakeForm.tsx — 1085 строк (god component) | 🟢 Техдолг | Отложено |
 | RepertoryClient.tsx — 1768 строк (god component) | 🟢 Техдолг | Отложено |
 | ~~Нет индексов на FK~~ | ✅ | Исправлено — индексы добавлены |
+
+---
+
+## 14. Архитектурные слои (целевое состояние)
+
+Здесь описано **целевое** состояние после рефакторинга
+[.claude/plans/2026-04-17-architecture-refactor-to-zepsy-level.md](../.claude/plans/2026-04-17-architecture-refactor-to-zepsy-level.md).
+Что уже соответствует, что нет — в таблице ниже.
+
+```
+src/
+├── app/                             # Next.js роуты (Server + Client Components)
+├── components/                      # Переиспользуемые UI-примитивы
+└── lib/
+    ├── actions/                     # Server Actions — тонкие обёртки
+    │                                # (auth + validation + usecase + revalidatePath)
+    ├── usecases/                    # Бизнес-операции (single source of truth):
+    │                                # createPatient, completeConsultation, ...
+    ├── domain/                      # Чистая бизнес-логика, zero IO:
+    │   │                            # clinicalEngine, subscription-rules, schedule-slots
+    │   └── mdri/                    # ЗАЩИЩЁН (pre-commit hook) — эталон изоляции
+    ├── infrastructure/              # IO и внешние зависимости
+    │   ├── db/                      # Prisma singleton + Supabase clients
+    │   ├── email/                   # nodemailer
+    │   ├── notifications/           # Telegram
+    │   └── yookassa/                # платёжный шлюз
+    └── shared/                      # Pure utilities, zero IO, zero framework
+        ├── time.ts
+        ├── validation.ts
+        ├── i18n.ts
+        └── utils.ts
+```
+
+### Граф зависимостей (закон)
+
+```
+app/, components/ ─→ lib/actions/ ─┬─→ lib/usecases/ ─┬─→ lib/domain/
+                                   │                  └─→ lib/infrastructure/
+                                   └─→ lib/infrastructure/        │
+                                                                  └─→ lib/shared/
+lib/domain/ ─→ lib/shared/
+lib/infrastructure/ ─→ lib/shared/
+```
+
+**Ключевые принципы:**
+
+1. `lib/shared/` не знает ничего о проекте — никаких `@prisma/client`, `@supabase/*`, `next/*`.
+2. `lib/domain/` — чистая логика. Может импортировать только `lib/shared/`.
+3. `lib/usecases/` оркестрирует `domain` и `infrastructure`. Не знает про UI.
+4. `lib/actions/` — мост между Next.js и usecases. Auth, валидация, `revalidatePath`, больше ничего.
+5. `app/` и `components/` не трогают `lib/infrastructure/` и `lib/domain/` напрямую — только через actions/usecases. Исключение: Server Components могут читать БД через Prisma/Supabase напрямую (Next.js App Router pattern).
+6. **MDRI — exception**: остаётся в `lib/mdri/`, защищён pre-commit hook. Не мигрируется в `lib/domain/mdri/` чтобы не задеть защиту.
+
+### Текущее соответствие (на 2026-04-17)
+
+| Слой | Статус |
+|---|---|
+| `lib/mdri/` | ✅ Изолирован, эталон |
+| `lib/actions/` | ⚠️ Содержит бизнес-логику — перейдёт в usecases (Этап 6) |
+| `lib/usecases/` | ❌ Не создан (Этап 6) |
+| `lib/domain/` | ❌ Не создан (Этап 5) |
+| `lib/infrastructure/` | ❌ Не создан; `prisma.ts`, `email.ts`, `telegram.ts` — в корне lib/ (Этап 4) |
+| `lib/shared/` | ✅ Создан (Этап 3, 2026-04-17): `utils.ts`, `date-utils.ts`, `validation.ts`, `i18n.ts` |
+| `lib/utils/` (dead duplicate) | ✅ Удалён (Этап 3) — содержал unused `time-utils.ts`, `patient-utils.ts` |
+| Server Actions auth-pattern | ✅ Все начинают с `getUser()` / `getServerSession()` + фильтр по doctorId |
+
+---
+
+## 15. Запреты (архитектурные инварианты)
+
+Проверяются через `npm run test:parity` (см. `tests/parity-invariants.test.ts`).
+
+### Инварианты
+
+| # | Запрет | Status |
+|---|---|---|
+| 1 | `console.log/warn/error` вне `scripts/`, `tests/`, `src/lib/__tests__/` | 🔴 TODO (Этап 2) |
+| 2 | `@prisma/client` / `from '@/lib/prisma'` в файле с директивой `'use client'` | 🔴 TODO (Этап 2) |
+| 3 | `@supabase/supabase-js` / `@/lib/supabase/*` в файле с `'use client'`, кроме `supabase/client.ts` (browser-клиент) | 🔴 TODO (Этап 2) |
+| 4 | `@prisma/client` в `src/lib/shared/**` | ✅ Enforced (Этап 3) |
+| 5 | `@supabase/*` в `src/lib/shared/**` | ✅ Enforced (Этап 3) |
+| 6 | `next/*` / `next-auth` в `src/lib/shared/**` | ✅ Enforced (Этап 3); `lib/domain/**` — 🔴 после Этапа 5 |
+| 7 | `@prisma/client` в `src/lib/domain/**` (когда появится) | 🔴 Активируется после Этапа 5 |
+
+### Что допустимо
+
+- **Prisma / Supabase в Server Components** (`async function` в `src/app/**/page.tsx` без `'use client'`) — норма Next.js App Router.
+- **Server Actions** (`lib/actions/*.ts` — `'use server'`) могут использовать и `prisma`, и `supabase`.
+- **Route handlers** (`src/app/api/*/route.ts`) — могут.
+
+---
+
+## 16. Release gate
+
+Перед `bash deploy-similia.sh`:
+
+```bash
+npx tsc --noEmit                   # TS зелёный (Node v25 OOM — отдельным шагом)
+npm run test                       # vitest (220 тестов)
+npm run test:parity                # архитектурные инварианты (§15)
+npm run build                      # next build локально
+```
+
+После деплоя:
+```bash
+ssh yc-user@85.239.53.148 "pm2 logs similia --lines 50 --nostream | grep -iE 'error|typeerror'"
+curl -sI https://simillia.ru | head -1   # HTTPS OK?
+```
+
+`CHECKLIST.md` в корне проекта — обязательный прогон перед каждым деплоем.
+
+---
+
+## 17. Где должна жить логика
+
+Таблица «куда класть новое». Пока часть слоёв не создана — соответствующие строки ведут в актуальное временное место.
+
+| Что | Куда (target) | Куда (сейчас) |
+|---|---|---|
+| Новый UI-экран | `src/app/<route>/page.tsx` | то же |
+| Переиспользуемый UI-примитив | `src/components/` | то же |
+| Новая мутация (Server Action) | `lib/actions/<domain>.ts` → вызывает usecase | `lib/actions/<domain>.ts` (логика inline) |
+| Чистая бизнес-логика (без IO) | `lib/domain/<domain>/` | `lib/<domain>.ts` (clinicalEngine, subscription, slots, prescriptionDefaults) |
+| Работа с БД | `lib/infrastructure/db/` | `lib/prisma.ts`, `lib/supabase/*` |
+| Email / Telegram / внешние API | `lib/infrastructure/<service>/` | `lib/email.ts`, `lib/telegram.ts` |
+| Pure утилита (formatDate, cn, slug) | `lib/shared/` | ✅ `lib/shared/utils.ts`, `lib/shared/date-utils.ts` |
+| Валидация входа (zod) | `lib/shared/validation.ts` или рядом с usecase | ✅ `lib/shared/validation.ts` |
+| Клинический движок | `lib/domain/clinical/` | `lib/clinicalEngine.ts` |
+| MDRI (замороженный exception) | `lib/mdri/` (не мигрируется) | `lib/mdri/` |
+| Миграция Prisma | `prisma/migrations/` | то же |
+| Миграция Supabase | `supabase/migrations/` | то же |
