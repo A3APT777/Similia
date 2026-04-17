@@ -10,7 +10,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "tsc --noEmit && npm run test && next build"
+    "test:parity": "vitest run tests/parity-invariants.test.ts",
+    "check": "tsc --noEmit && npm run test && npm run test:parity && next build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -30,6 +31,7 @@
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "nodemailer": "^7.0.13",
+    "playwright": "^1.58.2",
     "prisma": "^6.19.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
