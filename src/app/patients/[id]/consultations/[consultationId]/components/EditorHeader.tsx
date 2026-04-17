@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useConsultation } from '../context/ConsultationContext'
-import { formatDate, getAge } from '@/lib/utils'
+import { formatDate, getAge } from '@/lib/shared/utils'
 import { ConsultationType } from '@/types'
 import { useLanguage } from '@/hooks/useLanguage'
 
@@ -32,7 +32,7 @@ export default function EditorHeader({ visitNumber }: Props) {
           {/* Кнопка назад */}
           <Link
             href={`/patients/${consultation.patient_id}`}
-            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 hover:bg-black/[0.04]"
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 hover:bg-black/4"
           >
             <svg className="w-4 h-4 text-[#6b7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />

@@ -5,7 +5,7 @@ import { updateConsultationType, updateConsultationAll } from '@/lib/actions/con
 import { Consultation, Patient, ConsultationType, StructuredSymptom, ClinicalAssessment, ConsultationMode, SymptomDynamics, SymptomCategory } from '@/types'
 import { computeAssessment } from '@/lib/clinicalEngine'
 import { useLanguage } from '@/hooks/useLanguage'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useToast } from '@/components/ui/toast'
 
 // === State ===

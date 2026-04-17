@@ -1,7 +1,7 @@
 'use client'
 
 import { useConsultation } from '../context/ConsultationContext'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = {

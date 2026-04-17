@@ -5,7 +5,7 @@ import { savePrescription } from '@/lib/actions/consultations'
 import { logDoctorChoice } from '@/lib/actions/ai-consultation'
 import { useToast } from '@/components/ui/toast'
 import { searchRemediesDB, RemedyResult } from '@/lib/actions/remedies'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 const POTENCY_CHIPS = ['6C', '12C', '30C', '200C', '1M', '10M', 'LM1', 'LM2', 'LM3']
@@ -170,7 +170,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
                       key={r.abbrev + i}
                       type="button"
                       onMouseDown={e => { e.preventDefault(); selectSuggestion(r) }}
-                      className={`w-full text-left px-4 py-3 transition-colors ${i === activeSuggestion ? 'bg-[#2d6a4f]/[0.04]' : 'hover:bg-gray-50'}`}
+                      className={`w-full text-left px-4 py-3 transition-colors ${i === activeSuggestion ? 'bg-[#2d6a4f]/4' : 'hover:bg-gray-50'}`}
                     >
                       <span className="text-[14px] text-[#1a1a1a] font-medium">{highlightMatch(r.name_latin, remedy)}</span>
                       {r.name_ru && <span className="text-[12px] text-[#6b7280] ml-2">{r.name_ru}</span>}
@@ -299,7 +299,7 @@ export default function PrescriptionModal({ consultationId, onSkip, onSaved, ini
           </button>
           <button
             onClick={onSkip}
-            className="text-[13px] px-5 py-3 rounded-full text-[#6b7280] border border-gray-200 transition-all duration-200 hover:bg-black/[0.02]"
+            className="text-[13px] px-5 py-3 rounded-full text-[#6b7280] border border-gray-200 transition-all duration-200 hover:bg-black/2"
           >
             {t(lang).prescription.later}
           </button>

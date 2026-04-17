@@ -5,7 +5,7 @@ import { requireAuth } from '@/lib/server-utils'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { ConsultationType } from '@/types'
-import { uuidSchema, consultationTypeSchema, isoDateTimeSchema } from '@/lib/validation'
+import { uuidSchema, consultationTypeSchema, isoDateTimeSchema } from '@/lib/shared/validation'
 import { z } from 'zod'
 
 // Закрыть все открытые консультации врача (перед началом новой)

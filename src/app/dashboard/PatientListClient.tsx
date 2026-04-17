@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Patient } from '@/types'
-import { getAge, formatDateShort, preview } from '@/lib/utils'
-import { t } from '@/lib/i18n'
+import { getAge, formatDateShort, preview } from '@/lib/shared/utils'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 /* ── Утилиты ── */

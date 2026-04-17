@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/server-utils'
-import { uuidSchema } from '@/lib/validation'
+import { uuidSchema } from '@/lib/shared/validation'
 import { DEFAULT_PRESCRIPTION_RULES } from '@/lib/prescriptionDefaults'
 
 // Создать ссылку на назначение

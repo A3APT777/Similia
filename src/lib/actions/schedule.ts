@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/server-utils'
 import { revalidatePath } from 'next/cache'
-import { doctorScheduleSchema } from '@/lib/validation'
+import { doctorScheduleSchema } from '@/lib/shared/validation'
 
 export type DoctorSchedule = {
   session_duration: number

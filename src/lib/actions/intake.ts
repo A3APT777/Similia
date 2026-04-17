@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, generateToken } from '@/lib/server-utils'
 import { redirect } from 'next/navigation'
 import { IntakeAnswers, IntakeType } from '@/types'
-import { intakeAnswersSchema, uuidSchema } from '@/lib/validation'
+import { intakeAnswersSchema, uuidSchema } from '@/lib/shared/validation'
 import { z } from 'zod'
 
 // Создать ссылку-анкету (для нового пациента — без patientId)

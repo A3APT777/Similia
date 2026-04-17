@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 // TODO: Реализовать сброс пароля через собственный API (верификация токена + обновление пароля в Prisma).
 // Supabase auth.onAuthStateChange / auth.updateUser больше не используются.
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 import Link from 'next/link'
 

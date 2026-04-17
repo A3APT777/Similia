@@ -2,8 +2,8 @@
 
 import { requireAuth } from '@/lib/server-utils'
 import { prisma } from '@/lib/prisma'
-import { uuidSchema } from '@/lib/validation'
-import { ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES, MAX_PHOTO_SIZE_BYTES } from '@/lib/utils'
+import { uuidSchema } from '@/lib/shared/validation'
+import { ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES, MAX_PHOTO_SIZE_BYTES } from '@/lib/shared/utils'
 
 export async function uploadPhoto(formData: FormData): Promise<void> {
   const { userId } = await requireAuth()

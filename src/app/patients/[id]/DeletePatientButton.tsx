@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { deletePatient } from '@/lib/actions/patients'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 export default function DeletePatientButton({ patientId, patientName }: { patientId: string; patientName: string }) {

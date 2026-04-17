@@ -45,7 +45,7 @@ export default function AddPatientWidget({ patients }: Props) {
         >
           <button
             onClick={() => { setMenuOpen(false); openFlow('intake') }}
-            className="w-full text-left px-4 py-3 transition-colors hover:bg-[var(--sim-bg-muted)]"
+            className="w-full text-left px-4 py-3 transition-colors hover:bg-(--sim-bg-muted)"
           >
             <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>Отправить анкету новому</p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--sim-text-hint)' }}>Пациент заполнит дома — данные появятся в карточке</p>
@@ -53,7 +53,7 @@ export default function AddPatientWidget({ patients }: Props) {
           <button
             onClick={() => { setMenuOpen(false); openFlow('existing') }}
             disabled={patients.length === 0}
-            className="w-full text-left px-4 py-3 transition-colors hover:bg-[var(--sim-bg-muted)] disabled:opacity-40"
+            className="w-full text-left px-4 py-3 transition-colors hover:bg-(--sim-bg-muted) disabled:opacity-40"
             style={{ borderTop: '1px solid var(--sim-border)' }}
           >
             <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>Опросник существующему</p>
@@ -62,7 +62,7 @@ export default function AddPatientWidget({ patients }: Props) {
           <Link
             href="/patients/new"
             onClick={() => setMenuOpen(false)}
-            className="block w-full text-left px-4 py-3 transition-colors hover:bg-[var(--sim-bg-muted)]"
+            className="block w-full text-left px-4 py-3 transition-colors hover:bg-(--sim-bg-muted)"
             style={{ borderTop: '1px solid var(--sim-border)' }}
           >
             <p className="text-sm font-medium" style={{ color: 'var(--sim-text)' }}>Заполнить вручную</p>

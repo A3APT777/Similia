@@ -8,7 +8,7 @@ import { decrementPaidSession } from '@/lib/actions/payments'
 import { completeConsultation } from '@/lib/actions/consultations'
 import { Consultation, Patient, PreVisitSurvey } from '@/types'
 import { useToast } from '@/components/ui/toast'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 import { ConsultationProvider, useConsultation } from './context/ConsultationContext'
 import EditorHeader from './components/EditorHeader'
@@ -349,7 +349,7 @@ function EditorInner({ paidSessionsEnabled, visitNumber, preVisitSurvey, primary
             )}
             <button
               onClick={() => router.push(`/patients/${consultation.patient_id}`)}
-              className="w-full px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 hover:bg-black/[0.03]"
+              className="w-full px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 hover:bg-black/3"
               style={{ border: '1px solid var(--sim-border)', color: 'var(--sim-text)' }}
             >
               {lang === 'ru' ? 'К пациенту' : 'Back to patient'}

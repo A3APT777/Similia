@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/server-utils'
 import { redirect } from 'next/navigation'
-import { uuidSchema, addPaidSessionsSchema } from '@/lib/validation'
+import { uuidSchema, addPaidSessionsSchema } from '@/lib/shared/validation'
 import { z } from 'zod'
 
 const followupDaysSchema = z.number().int().min(1).max(365)

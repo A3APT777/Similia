@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { t } from '../i18n'
+import { t } from '../shared/i18n'
 
 describe('i18n — русский', () => {
   const ru = t('ru')

@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/server-utils'
-import { uuidSchema } from '@/lib/validation'
+import { uuidSchema } from '@/lib/shared/validation'
 import type { PreVisitSurvey } from '@/types'
 
 // Создать опросник для пациента (вызывает врач)

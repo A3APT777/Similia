@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 // TODO: Реализовать сброс пароля через собственный API (email-токен + Prisma).
 // Supabase auth.resetPasswordForEmail больше не используется.
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 import { authInputStyle as inputStyle, authLabelStyle as labelStyle, getAuthInputFocusStyle } from '@/lib/authStyles'

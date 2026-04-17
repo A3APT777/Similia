@@ -5,7 +5,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import LogoutButton from '@/components/LogoutButton'
 import { getLang } from '@/lib/i18n-server'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { getSubscription } from '@/lib/actions/subscription'
 import { canUseAI } from '@/lib/subscription'
 import AIConsultationWrapper from './AIConsultationWrapper'
@@ -101,7 +101,7 @@ export default async function AIConsultationPage({
   return (
     <div className="min-h-[100dvh] bg-[var(--sim-bg, #faf8f5)] flex flex-col">
       {/* Шапка */}
-      <nav className="h-[54px] bg-[var(--sim-bg, #faf8f5)] border-b border-[var(--sim-border)] px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
+      <nav className="h-[54px] bg-[var(--sim-bg, #faf8f5)] border-b border-(--sim-border) px-5 flex items-center justify-between shrink-0 sticky top-0 z-10">
         <Link
           href={`/patients/${patientId}`}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors group"

@@ -143,7 +143,7 @@ export default function VerifyPage() {
               onChange={e => handleChange(i, e.target.value)}
               onKeyDown={e => handleKeyDown(i, e)}
               disabled={loading}
-              className="w-12 h-14 text-center text-[24px] font-light rounded-xl outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--sim-green)]/20 focus:border-[var(--sim-green)]"
+              className="w-12 h-14 text-center text-[24px] font-light rounded-xl outline-none transition-all duration-200 focus:ring-2 focus:ring-(--sim-green)/20 focus:border-(--sim-green)"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.6)',
                 border: '1px solid rgba(0,0,0,0.08)',

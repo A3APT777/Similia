@@ -2,7 +2,7 @@
 
 import { requireAuth, generateToken } from '@/lib/server-utils'
 import { prisma } from '@/lib/prisma'
-import { ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES, MAX_PHOTO_SIZE_BYTES } from '@/lib/utils'
+import { ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES, MAX_PHOTO_SIZE_BYTES } from '@/lib/shared/utils'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 

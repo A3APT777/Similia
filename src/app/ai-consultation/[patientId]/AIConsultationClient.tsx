@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import {
   analyzeText,
   generateQuestions,

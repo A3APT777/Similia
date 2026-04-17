@@ -5,7 +5,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
 import { createConsultation } from '@/lib/actions/consultations'
-import { getAge, formatDate } from '@/lib/utils'
+import { getAge, formatDate } from '@/lib/shared/utils'
 import FollowupSection from './FollowupSection'
 import ScheduleButton from '@/components/ScheduleButton'
 import TimelineWithFilter from './TimelineWithFilter'
@@ -25,7 +25,7 @@ import BookingLinkButton from './BookingLinkButton'
 import StartConsultationButton from './StartConsultationButton'
 import SharePrescriptionButton from './consultations/[consultationId]/SharePrescriptionButton'
 import { getDoctorSettings } from '@/lib/actions/payments'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { getLang } from '@/lib/i18n-server'
 
 
@@ -240,7 +240,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
                   href={`/patients/${id}/export`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2.5 rounded-lg transition-colors duration-200 hover:bg-black/[0.04]"
+                  className="p-2.5 rounded-lg transition-colors duration-200 hover:bg-black/4"
                   title="PDF"
                 >
                   <svg className="w-4 h-4" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -249,7 +249,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
                 </a>
                 <Link
                   href={`/patients/${id}/edit`}
-                  className="p-2.5 rounded-lg transition-colors duration-200 hover:bg-black/[0.04]"
+                  className="p-2.5 rounded-lg transition-colors duration-200 hover:bg-black/4"
                   title={t(lang).patientCard.edit}
                 >
                   <svg className="w-4 h-4" style={{ color: 'var(--sim-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

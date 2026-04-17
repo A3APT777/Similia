@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getAge, formatDate, preview, ALLOWED_IMAGE_EXTENSIONS, MAX_PHOTO_SIZE_BYTES } from '../utils'
+import { getAge, formatDate, preview, ALLOWED_IMAGE_EXTENSIONS, MAX_PHOTO_SIZE_BYTES } from '../shared/utils'
 
 // ═══════════════════════════════════════════════════════════
 // getAge — вычисление возраста с правильным склонением

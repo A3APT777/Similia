@@ -1,5 +1,5 @@
 // Все UI-строки приложения на двух языках.
-// Использование: import { t } from '@/lib/i18n'
+// Использование: import { t } from '@/lib/shared/i18n'
 // В клиентских компонентах: const { lang } = useLanguage(); t(lang).dashboard.greeting
 // В серверных компонентах: const lang = getLangFromCookies(cookies())
 

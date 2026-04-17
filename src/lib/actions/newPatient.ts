@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { requireAuth, generateToken } from '@/lib/server-utils'
 import { revalidatePath } from 'next/cache'
-import { newPatientBookingSchema, validate, uuidSchema } from '@/lib/validation'
+import { newPatientBookingSchema, validate, uuidSchema } from '@/lib/shared/validation'
 
 // Врач создаёт токен для записи нового пациента
 export async function createNewPatientToken(): Promise<string> {

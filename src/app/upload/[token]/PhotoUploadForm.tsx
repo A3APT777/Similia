@@ -152,7 +152,7 @@ export default function PhotoUploadForm({ token }: Props) {
       <button
         type="submit"
         disabled={pending || !preview}
-        className="w-full bg-[#2d6a4f] text-white font-medium py-3 rounded-xl hover:bg-[var(--sim-forest)] disabled:opacity-50 transition-colors text-sm"
+        className="w-full bg-[#2d6a4f] text-white font-medium py-3 rounded-xl hover:bg-(--sim-forest) disabled:opacity-50 transition-colors text-sm"
       >
         {pending ? 'Отправляю...' : 'Отправить фото'}
       </button>

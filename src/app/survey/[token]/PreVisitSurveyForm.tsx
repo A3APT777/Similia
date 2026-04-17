@@ -250,12 +250,12 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
         {/* Заголовок */}
         <div className="text-center mb-6">
           <h1 className="text-xl sm:text-2xl font-normal" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: 'var(--sim-forest)' }}>Предконсультационный опросник</h1>
-          <p className="text-sm text-[var(--sim-text-muted)] mt-1">{patientName}, пожалуйста, заполните перед визитом</p>
+          <p className="text-sm text-(--sim-text-muted) mt-1">{patientName}, пожалуйста, заполните перед визитом</p>
         </div>
 
         {/* Прогресс */}
         <div className="mb-6">
-          <div className="flex justify-between text-xs text-[var(--sim-text-muted)] mb-1">
+          <div className="flex justify-between text-xs text-(--sim-text-muted) mb-1">
             <span>{section.title}</span>
             <span>{currentSection + 1} / {totalSections}</span>
           </div>
@@ -271,7 +271,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
           <div className="space-y-6">
             {section.questions.map(q => (
               <div key={q.id}>
-                <label className="block text-sm font-medium text-[var(--sim-text)] mb-2">
+                <label className="block text-sm font-medium text-(--sim-text) mb-2">
                   {q.text}
                   {q.required && <span className="text-red-400 ml-1">*</span>}
                 </label>
@@ -281,14 +281,14 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                     rows={3}
                     value={(answers[q.id] as string) || ''}
                     onChange={e => updateAnswer(q.id, e.target.value)}
-                    className="w-full rounded-xl border border-[var(--sim-border)] px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
+                    className="w-full rounded-xl border border-(--sim-border) px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
                     placeholder="Ваш ответ..."
                   />
                 )}
 
                 {q.type === 'scale_10' && (
                   <div>
-                    <div className="flex justify-between text-xs text-[var(--sim-text-muted)] mb-2">
+                    <div className="flex justify-between text-xs text-(--sim-text-muted) mb-2">
                       <span>{(q as { labels?: { min: string; max: string } }).labels?.min || '1'}</span>
                       <span>{(q as { labels?: { min: string; max: string } }).labels?.max || '10'}</span>
                     </div>
@@ -301,7 +301,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                           className={`py-2 rounded-xl text-sm font-medium transition-colors ${
                             answers[q.id] === n
                               ? 'text-white'
-                              : 'bg-[rgba(0,0,0,0.03)] text-[var(--sim-text-muted)] hover:bg-[rgba(0,0,0,0.06)]'
+                              : 'bg-[rgba(0,0,0,0.03)] text-(--sim-text-muted) hover:bg-[rgba(0,0,0,0.06)]'
                           }`}
                           style={answers[q.id] === n ? { backgroundColor: 'var(--sim-green)' } : undefined}
                         >
@@ -314,7 +314,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
 
                 {q.type === 'scale_pm5' && (
                   <div>
-                    <div className="flex justify-between text-xs text-[var(--sim-text-muted)] mb-2">
+                    <div className="flex justify-between text-xs text-(--sim-text-muted) mb-2">
                       <span>Значительно хуже</span>
                       <span>Без изменений</span>
                       <span>Значительно лучше</span>
@@ -330,7 +330,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                               ? 'text-white'
                               : n < 0 ? 'bg-red-50 text-red-600 hover:bg-red-100'
                               : n > 0 ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                              : 'bg-[rgba(0,0,0,0.03)] text-[var(--sim-text-muted)] hover:bg-[rgba(0,0,0,0.06)]'
+                              : 'bg-[rgba(0,0,0,0.03)] text-(--sim-text-muted) hover:bg-[rgba(0,0,0,0.06)]'
                           }`}
                           style={answers[q.id] === n ? { backgroundColor: n < 0 ? '#dc2626' : n > 0 ? 'var(--sim-green)' : '#6b7280' } : undefined}
                         >
@@ -344,7 +344,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                 {q.type === 'scale_pm5_with_text' && (
                   <div className="space-y-3">
                     <div>
-                      <div className="flex justify-between text-xs text-[var(--sim-text-muted)] mb-2">
+                      <div className="flex justify-between text-xs text-(--sim-text-muted) mb-2">
                         <span>Значительно хуже</span>
                         <span>Без изменений</span>
                         <span>Значительно лучше</span>
@@ -362,7 +362,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                                   ? 'text-white'
                                   : n < 0 ? 'bg-red-50 text-red-600 hover:bg-red-100'
                                   : n > 0 ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                  : 'bg-[rgba(0,0,0,0.03)] text-[var(--sim-text-muted)] hover:bg-[rgba(0,0,0,0.06)]'
+                                  : 'bg-[rgba(0,0,0,0.03)] text-(--sim-text-muted) hover:bg-[rgba(0,0,0,0.06)]'
                               }`}
                               style={current?.scale === n ? { backgroundColor: n < 0 ? '#dc2626' : n > 0 ? 'var(--sim-green)' : '#6b7280' } : undefined}
                             >
@@ -379,7 +379,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                         const current = answers[q.id] as { scale: number; comment: string } | undefined
                         updateAnswer(q.id, { scale: current?.scale ?? 0, comment: e.target.value })
                       }}
-                      className="w-full rounded-xl border border-[var(--sim-border)] px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
+                      className="w-full rounded-xl border border-(--sim-border) px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
                       placeholder="Опишите подробнее..."
                     />
                   </div>
@@ -397,7 +397,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                           className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors ${
                             current?.choice === opt
                               ? 'text-white'
-                              : 'bg-[rgba(0,0,0,0.02)] text-[var(--sim-text)] hover:bg-[rgba(0,0,0,0.03)]'
+                              : 'bg-[rgba(0,0,0,0.02)] text-(--sim-text) hover:bg-[rgba(0,0,0,0.03)]'
                           }`}
                           style={current?.choice === opt ? { backgroundColor: 'var(--sim-green)' } : undefined}
                         >
@@ -414,7 +414,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                           const current = answers[q.id] as { choice: string; comment: string }
                           updateAnswer(q.id, { ...current, comment: e.target.value })
                         }}
-                        className="w-full rounded-xl border border-[var(--sim-border)] px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
+                        className="w-full rounded-xl border border-(--sim-border) px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
                         placeholder="Уточните..."
                       />
                     )}
@@ -434,7 +434,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                             className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors ${
                               current?.choice === opt
                                 ? 'text-white'
-                                : 'bg-[rgba(0,0,0,0.03)] text-[var(--sim-text-muted)] hover:bg-[rgba(0,0,0,0.06)]'
+                                : 'bg-[rgba(0,0,0,0.03)] text-(--sim-text-muted) hover:bg-[rgba(0,0,0,0.06)]'
                             }`}
                             style={current?.choice === opt ? {
                               backgroundColor: opt === 'Улучшилось' ? 'var(--sim-green)' : opt === 'Ухудшилось' ? '#dc2626' : '#6b7280'
@@ -455,7 +455,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                           const current = answers[q.id] as { choice: string; comment: string }
                           updateAnswer(q.id, { ...current, comment: e.target.value })
                         }}
-                        className="w-full rounded-xl border border-[var(--sim-border)] px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
+                        className="w-full rounded-xl border border-(--sim-border) px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
                         placeholder="Опишите подробнее..."
                       />
                     )}
@@ -474,7 +474,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                             type="button"
                             onClick={() => updateAnswer(q.id, { value: opt === 'Да', comment: current?.comment || '' })}
                             className={`px-6 py-2 rounded-xl text-sm font-medium transition-colors ${
-                              isSelected ? 'text-white' : 'bg-[rgba(0,0,0,0.03)] text-[var(--sim-text-muted)] hover:bg-[rgba(0,0,0,0.06)]'
+                              isSelected ? 'text-white' : 'bg-[rgba(0,0,0,0.03)] text-(--sim-text-muted) hover:bg-[rgba(0,0,0,0.06)]'
                             }`}
                             style={isSelected ? { backgroundColor: 'var(--sim-green)' } : undefined}
                           >
@@ -488,7 +488,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
                         rows={2}
                         value={(answers[q.id] as { value: boolean; comment: string })?.comment || ''}
                         onChange={e => updateAnswer(q.id, { value: true, comment: e.target.value })}
-                        className="w-full rounded-xl border border-[var(--sim-border)] px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
+                        className="w-full rounded-xl border border-(--sim-border) px-4 py-3 text-sm focus:outline-none transition-all duration-200 resize-none"
                         placeholder="Расскажите подробнее..."
                       />
                     )}
@@ -536,7 +536,7 @@ export default function PreVisitSurveyForm({ token, patientName, customFields }:
           )}
         </div>
 
-        <p className="text-center text-xs text-[var(--sim-text-muted)] mt-6">
+        <p className="text-center text-xs text-(--sim-text-muted) mt-6">
           Ваши ответы конфиденциальны и доступны только вашему врачу
         </p>
         <div className="text-center mt-4">

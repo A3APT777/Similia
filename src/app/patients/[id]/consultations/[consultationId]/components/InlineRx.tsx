@@ -185,7 +185,7 @@ export default function InlineRx({ consultationId, onSaved, assignedRemedy, init
             />
             {searching && (
               <div className="absolute right-2.5 top-[30px]">
-                <div className="w-3 h-3 border-2 border-[var(--sim-green)] border-t-transparent rounded-full animate-spin" />
+                <div className="w-3 h-3 border-2 border-(--sim-green) border-t-transparent rounded-full animate-spin" />
               </div>
             )}
             {showSuggestions && suggestions.length > 0 && (

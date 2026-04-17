@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { scheduleConsultation, getAppointmentsForDay } from '@/lib/actions/consultations'
 import { ConsultationType } from '@/types'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 // Рабочие слоты — каждый час с 9:00 до 18:00 (время МСК)
@@ -174,7 +174,7 @@ export default function ScheduleButton({ patientId }: { patientId: string }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="submit" disabled={loading} className="bg-[#2d6a4f] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[var(--sim-forest)] disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={loading} className="bg-[#2d6a4f] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-(--sim-forest) disabled:opacity-50 transition-colors">
             {loading ? t(lang).scheduleBtn.checking : t(lang).scheduleBtn.book}
           </button>
           <button type="button" onClick={() => { setOpen(false); resetConflict() }} className="text-gray-400 hover:text-gray-600 text-sm px-2 py-2">

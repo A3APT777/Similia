@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { IntakeAnswers, IntakeType } from '@/types'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 import { submitDoctorIntake } from '@/lib/actions/intake'
 

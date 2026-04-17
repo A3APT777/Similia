@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 // Автоматически открывает диалог печати когда страница загружена

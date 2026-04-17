@@ -137,7 +137,7 @@ export default function HelpButton() {
           <div className="p-3 space-y-2 overflow-y-auto">
             {items.map((item, i) => (
               <details key={`${pathname}-${i}`} className="group">
-                <summary className="text-sm font-medium cursor-pointer py-2 px-3 rounded-lg transition-colors hover:bg-[var(--sim-bg-muted)]" style={{ color: 'var(--sim-text)' }}>
+                <summary className="text-sm font-medium cursor-pointer py-2 px-3 rounded-lg transition-colors hover:bg-(--sim-bg-muted)" style={{ color: 'var(--sim-text)' }}>
                   {item.q}
                 </summary>
                 <p className="text-xs px-3 pb-2 leading-relaxed" style={{ color: 'var(--sim-text-muted)' }}>
@@ -149,7 +149,7 @@ export default function HelpButton() {
             <div className="pt-2 border-t space-y-1" style={{ borderColor: 'var(--sim-border)' }}>
               <Link
                 href="/guide"
-                className="block text-sm py-2 px-3 rounded-lg transition-colors hover:bg-[var(--sim-bg-muted)]"
+                className="block text-sm py-2 px-3 rounded-lg transition-colors hover:bg-(--sim-bg-muted)"
                 style={{ color: 'var(--sim-green)' }}
                 onClick={() => setOpen(false)}
               >
@@ -157,7 +157,7 @@ export default function HelpButton() {
               </Link>
               <Link
                 href="mailto:simillia@mail.ru"
-                className="block text-sm py-2 px-3 rounded-lg transition-colors hover:bg-[var(--sim-bg-muted)]"
+                className="block text-sm py-2 px-3 rounded-lg transition-colors hover:bg-(--sim-bg-muted)"
                 style={{ color: 'var(--sim-text-muted)' }}
                 onClick={() => setOpen(false)}
               >

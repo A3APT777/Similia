@@ -7,7 +7,7 @@ import PreVisitSurveyPanel from './PreVisitSurveyPanel'
 import AIResultPanel from './AIResultPanel'
 import SuggestionReview from './SuggestionReview'
 import DifferentialClarify from './DifferentialClarify'
-import { getAge } from '@/lib/utils'
+import { getAge } from '@/lib/shared/utils'
 import type { ConsensusResult, ParsedSuggestion, ParseSuggestionsResult } from '@/lib/mdri/types'
 import type { DifferentialQuestion } from '@/lib/mdri/differential'
 

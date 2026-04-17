@@ -12,7 +12,7 @@ import {
   searchQuerySchema,
   addPaidSessionsSchema,
   validate,
-} from '../validation'
+} from '../shared/validation'
 
 // ═══════════════════════════════════════════════════════════
 // patientSchema

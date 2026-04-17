@@ -6,7 +6,7 @@ import {
   intakeAnswersSchema,
   isoDateTimeSchema,
   validate,
-} from '../validation'
+} from '../shared/validation'
 
 describe('patientSchema — edge cases', () => {
   it('только пробелы в имени → ошибка (trim → пусто → < 2)', () => {

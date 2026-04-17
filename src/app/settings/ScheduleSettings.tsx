@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { saveDoctorSchedule, type DoctorSchedule } from '@/lib/actions/schedule'
 import { useToast } from '@/components/ui/toast'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']

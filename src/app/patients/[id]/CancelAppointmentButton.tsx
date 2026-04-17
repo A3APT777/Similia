@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import { cancelConsultation } from '@/lib/actions/consultations'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = { consultationId: string; patientId: string }

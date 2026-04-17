@@ -5,7 +5,7 @@ import { searchRepertory, getPatientsSimple, getPatientConsultationsSimple, type
 import { saveRepertoryData } from '@/lib/actions/consultations'
 import { translateRubric } from '@/lib/repertory-translations'
 import { useLanguage } from '@/hooks/useLanguage'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import FirstTimeHint from '@/components/FirstTimeHint'
 import { calculateRemedyScores } from '@/lib/repertory-scoring'
 
@@ -550,7 +550,7 @@ export default function RepertoryClient({ initialRubrics, initialTotal, initialQ
                 </span>
                 <button
                   onPointerDown={() => handleQueryChange('')}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-black/[0.04]"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-black/4"
                   style={{ color: 'var(--sim-text-muted)' }}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

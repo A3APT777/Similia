@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/server-utils'
-import { uuidSchema, followupStatusSchema } from '@/lib/validation'
+import { uuidSchema, followupStatusSchema } from '@/lib/shared/validation'
 import { z } from 'zod'
 
 // Создать фоллоу-ап для консультации

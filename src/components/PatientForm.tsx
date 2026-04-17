@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTransition, useState, useRef, useEffect, useCallback } from 'react'
 import { CONSTITUTIONAL_TYPES } from '@/lib/remedies'
 import { searchRemedyNames } from '@/lib/actions/repertory'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 type Props = {

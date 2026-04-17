@@ -82,7 +82,7 @@ export default function HeroStatCards({
           key={i}
           onClick={card.onClick}
           aria-label={`${card.value} ${card.label}`}
-          className="group relative text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sim-green)] focus-visible:ring-inset"
+          className="group relative text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--sim-green) focus-visible:ring-inset"
           style={{ backgroundColor: 'var(--sim-bg-card)' }}
         >
           {/* Фоновый акцент при hover */}

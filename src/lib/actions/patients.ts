@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/server-utils'
-import { patientSchema, validate } from '@/lib/validation'
+import { patientSchema, validate } from '@/lib/shared/validation'
 import { checkPatientLimit } from './subscription'
 
 export async function createPatient(formData: FormData) {

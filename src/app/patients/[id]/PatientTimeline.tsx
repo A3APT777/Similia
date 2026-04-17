@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Consultation, Followup } from '@/types'
-import { preview } from '@/lib/utils'
-import { t } from '@/lib/i18n'
+import { preview } from '@/lib/shared/utils'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 // ─── Типы событий на таймлайне ───────────────────────────────────────────────

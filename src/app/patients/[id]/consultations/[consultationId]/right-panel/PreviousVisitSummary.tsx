@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Consultation } from '@/types'
-import { formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/shared/utils'
 
 type Props = {
   previousConsultation: Consultation

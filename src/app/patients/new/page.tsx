@@ -2,7 +2,7 @@ import AppShell from '@/components/AppShell'
 import PatientForm from '@/components/PatientForm'
 import { createPatient } from '@/lib/actions/patients'
 import Link from 'next/link'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { getLang } from '@/lib/i18n-server'
 
 export default async function NewPatientPage() {

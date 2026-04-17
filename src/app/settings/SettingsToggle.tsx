@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { updatePaidSessionsEnabled } from '@/lib/actions/payments'
 import { useToast } from '@/components/ui/toast'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 export default function SettingsToggle({ initialEnabled }: { initialEnabled: boolean }) {

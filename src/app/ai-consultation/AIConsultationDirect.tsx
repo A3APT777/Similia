@@ -565,7 +565,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
         {/* Месячный лимит исчерпан */}
         {error === 'AI_MONTHLY_LIMIT' && (
-          <div className="mt-4 rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/[0.04] p-5">
+          <div className="mt-4 rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/4 p-5">
             <p className="text-[14px] font-medium text-[#1a1a1a] mb-2">
               {lang === 'ru' ? 'Лимит анализов исчерпан' : 'Monthly limit reached'}
             </p>
@@ -579,7 +579,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
         {/* Нет доступа к AI */}
         {error === 'NO_AI_ACCESS' && (
-          <div className="mt-4 rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/[0.04] p-5">
+          <div className="mt-4 rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/4 p-5">
             <p className="text-[14px] font-medium text-[#1a1a1a] mb-2">
               {lang === 'ru' ? 'Нет доступа к AI-анализу' : 'No AI access'}
             </p>
@@ -662,7 +662,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
             as="h2"
             className="text-[28px] font-light mb-3 [--base-color:#6b7280] [--base-gradient-color:#2d6a4f]"
             duration={2.5}
-            style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)' } as React.CSSProperties}
+            style={{ fontFamily: 'var(--font-cormorant, Cormorant Garamond, Georgia, serif)' }}
           >
             {lang === 'ru' ? 'Анализирую случай' : 'Analyzing case'}
           </TextShimmer>
@@ -788,7 +788,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                     className={`text-[12px] px-4 py-2 rounded-full transition-all duration-200 ${
                       preClarifyAnswers[q.id] === opt.value
                         ? 'bg-[#2d6a4f] text-white'
-                        : 'bg-[#f7f3ed] text-[#1a1a1a] hover:bg-[#2d6a4f]/[0.08]'
+                        : 'bg-[#f7f3ed] text-[#1a1a1a] hover:bg-[#2d6a4f]/8'
                     }`}
                   >
                     {opt.label}
@@ -841,8 +841,8 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
           borderWidth={1.5}
           duration={10}
           color={isEqual ? ['#c8a035', '#d97706'] : confLevel === 'high' ? ['#2d6a4f', '#5a9e7c'] : confLevel === 'good' ? ['#5a9e7c', '#c8a035'] : ['#c8a035', '#d97706']}
-          className={`w-full !min-w-0 !bg-white !p-0 ${isSecondary ? '' : 'result-card'}`}
-          style={isSecondary ? undefined : { animationDelay: '0.1s' } as React.CSSProperties}
+          className={`w-full min-w-0! bg-white! p-0! ${isSecondary ? '' : 'result-card'}`}
+          style={isSecondary ? undefined : { animationDelay: '0.1s' }}
         >
           <div className="p-5 sm:p-6">
             <p
@@ -933,7 +933,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
         {/* Распознанная этиология (Causa по Ганеману §5) */}
         {result.detectedEtiologies && result.detectedEtiologies.length > 0 && (
-          <div className="result-card mb-5 rounded-xl bg-[#2d6a4f]/[0.04] border border-[#2d6a4f]/15 p-4" style={{ animationDelay: '0.1s' }}>
+          <div className="result-card mb-5 rounded-xl bg-[#2d6a4f]/4 border border-[#2d6a4f]/15 p-4" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-baseline gap-2 mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-[#2d6a4f]">
                 {lang === 'ru' ? 'Распознанная причина (Causa)' : 'Recognized cause (Causa)'}
@@ -1048,7 +1048,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
             {needsClarify ? (
               /* Плашка: нужно уточнить */
-              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#c8a035]/[0.06] border border-[#c8a035]/15">
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#c8a035]/6 border border-[#c8a035]/15">
                 <svg className="w-4 h-4 text-[#c8a035] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
@@ -1075,7 +1075,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                       }}
                       className={`py-3 px-4 rounded-xl text-left transition-all duration-200 cursor-pointer ${
                         result.finalRemedy === r.remedy
-                          ? 'border-2 border-[#2d6a4f] bg-[#2d6a4f]/[0.04] shadow-sm'
+                          ? 'border-2 border-[#2d6a4f] bg-[#2d6a4f]/4 shadow-sm'
                           : 'border border-gray-200 hover:border-[#2d6a4f]/40 opacity-70 hover:opacity-100'
                       }`}
                     >
@@ -1109,8 +1109,8 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
             borderWidth={1.5}
             duration={10}
             color={confLevel === 'high' ? ['#2d6a4f', '#5a9e7c'] : confLevel === 'good' ? ['#5a9e7c', '#c8a035'] : ['#c8a035', '#d97706']}
-            className="w-full !min-w-0 !bg-white !p-0 mb-5 result-card"
-            style={{ animationDelay: '0.1s' } as React.CSSProperties}
+            className="w-full min-w-0! bg-white! p-0! mb-5 result-card"
+            style={{ animationDelay: '0.1s' }}
           >
             <div className="p-6 sm:p-8">
               <p
@@ -1123,7 +1123,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
               {/* Обоснование */}
               {result.aiResult?.reasoning && (
-                <div className="mt-5 pt-5 border-t border-black/[0.04]">
+                <div className="mt-5 pt-5 border-t border-black/4">
                   <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#6b7280] mb-2">
                     {lang === 'ru' ? 'Почему это средство' : 'Why this remedy'}
                   </p>
@@ -1135,7 +1135,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
               {/* Учтённые симптомы — вместо matchedRubrics */}
               {Object.keys(symptomGroups).length > 0 && (
-                <div className="mt-4 pt-4 border-t border-black/[0.04]">
+                <div className="mt-4 pt-4 border-t border-black/4">
                   <button
                     onClick={() => setShowRubrics(!showRubrics)}
                     className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity cursor-pointer"
@@ -1160,7 +1160,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                             </p>
                             <div className="flex flex-wrap gap-1.5">
                               {items.map((label, i) => (
-                                <span key={i} className="text-[11px] px-2.5 py-1 rounded-full bg-[#2d6a4f]/[0.05] text-[#1a1a1a]">
+                                <span key={i} className="text-[11px] px-2.5 py-1 rounded-full bg-[#2d6a4f]/5 text-[#1a1a1a]">
                                   {label}
                                 </span>
                               ))}
@@ -1175,7 +1175,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
               {/* Детализация по методам — только линзы с score > 0 */}
               {activeLenses.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-black/[0.04]">
+                <div className="mt-4 pt-4 border-t border-black/4">
                   <button
                     onClick={() => setShowLenses(!showLenses)}
                     className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-[#2d6a4f] hover:opacity-70 transition-opacity cursor-pointer"
@@ -1195,7 +1195,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                             <p className="text-[10px] font-medium uppercase tracking-wider text-[#6b7280] mb-1">{info.label}</p>
                             <p className="text-[18px] font-light text-[#1a1a1a]">{info.displayScore}</p>
                             {/* Progress bar */}
-                            <div className="h-1 rounded-full bg-black/[0.06] mt-1.5 overflow-hidden">
+                            <div className="h-1 rounded-full bg-black/6 mt-1.5 overflow-hidden">
                               <div className="h-full rounded-full transition-all duration-700" style={{ width: `${lens.score}%`, backgroundColor: barColor }} />
                             </div>
                             <p className="text-[10px] text-[#6b7280]/70 mt-1">{info.hint}</p>
@@ -1240,7 +1240,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); setAssignRemedy(r.remedy); setStep('assign') }}
-                        className="text-[10px] px-2.5 py-1 rounded-full border border-[#2d6a4f]/20 text-[#2d6a4f] hover:bg-[#2d6a4f]/[0.05] transition-all"
+                        className="text-[10px] px-2.5 py-1 rounded-full border border-[#2d6a4f]/20 text-[#2d6a4f] hover:bg-[#2d6a4f]/5 transition-all"
                       >
                         {lang === 'ru' ? 'Назначить' : 'Assign'}
                       </button>
@@ -1275,12 +1275,12 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                 </span>
               )}
             </div>
-            <ChatBubble variant="received" layout="ai" className="!mb-0">
-              <ChatBubbleAvatar fallback="AI" className="!h-8 !w-8 bg-[#2d6a4f] text-white text-[11px]" />
+            <ChatBubble variant="received" layout="ai" className="mb-0!">
+              <ChatBubbleAvatar fallback="AI" className="h-8! w-8! bg-[#2d6a4f] text-white text-[11px]" />
               <div className="flex-1">
                 <ChatBubbleMessage
                   variant="received"
-                  className="!bg-white !rounded-2xl !rounded-tl-sm border border-gray-100 shadow-sm !text-[13px] !text-[#1a1a1a]"
+                  className="bg-white! rounded-2xl! rounded-tl-sm! border border-gray-100 shadow-sm text-[13px]! text-[#1a1a1a]!"
                 >
                   {clarifyQ.question}
                 </ChatBubbleMessage>
@@ -1295,7 +1295,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                       className={`text-[12px] px-4 py-2 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait ${
                         opt.neutral
                           ? 'bg-white text-[#6b7280] border border-gray-200 hover:bg-gray-50'
-                          : 'bg-[#2d6a4f]/[0.06] text-[#1a1a1a] border border-[#2d6a4f]/15 hover:bg-[#2d6a4f]/10'
+                          : 'bg-[#2d6a4f]/6 text-[#1a1a1a] border border-[#2d6a4f]/15 hover:bg-[#2d6a4f]/10'
                       }`}
                     >
                       {opt.label}
@@ -1336,13 +1336,13 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
               <div className="flex gap-2">
                 <button
                   onClick={() => setDisagreeStep('choose')}
-                  className="flex-1 py-3 text-[13px] rounded-full border border-[#c8a035]/30 text-[#92780a] transition-all duration-200 hover:bg-[#c8a035]/[0.04]"
+                  className="flex-1 py-3 text-[13px] rounded-full border border-[#c8a035]/30 text-[#92780a] transition-all duration-200 hover:bg-[#c8a035]/4"
                 >
                   {lang === 'ru' ? 'Другое средство' : 'Different remedy'}
                 </button>
                 <button
                   onClick={() => { setStep('input'); setResult(null); setText(''); setClarifyCount(0); setTop1Flipped(false); setShowRubrics(false); setShowLenses(false); setDisagreeStep('none') }}
-                  className="flex-1 py-3 text-[13px] rounded-full border border-gray-200 text-[#6b7280] transition-all duration-200 hover:bg-black/[0.02]"
+                  className="flex-1 py-3 text-[13px] rounded-full border border-gray-200 text-[#6b7280] transition-all duration-200 hover:bg-black/2"
                 >
                   {lang === 'ru' ? 'Новый анализ' : 'New analysis'}
                 </button>
@@ -1352,7 +1352,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
           {/* Шаг 1: ввод средства */}
           {disagreeStep === 'choose' && (
-            <div className="rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/[0.03] p-5">
+            <div className="rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/3 p-5">
               <p className="text-[13px] text-[#1a1a1a] mb-3">
                 {lang === 'ru' ? 'Какое средство вы бы назначили?' : 'Which remedy would you prescribe?'}
               </p>
@@ -1383,7 +1383,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
           {/* Шаг 2: причина */}
           {disagreeStep === 'reason' && (
-            <div className="rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/[0.03] p-5">
+            <div className="rounded-2xl border border-[#c8a035]/20 bg-[#c8a035]/3 p-5">
               <p className="text-[13px] text-[#1a1a1a] mb-3">
                 {lang === 'ru'
                   ? `Почему ${disagreeRemedy} а не ${result?.finalRemedy}?`
@@ -1403,7 +1403,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                       logDisagreement(disagreeRemedy.trim(), r.id).catch(() => {})
                       setDisagreeStep('done')
                     }}
-                    className="text-[12px] px-4 py-2 rounded-full border border-[#c8a035]/20 text-[#92780a] hover:bg-[#c8a035]/[0.06] transition-all"
+                    className="text-[12px] px-4 py-2 rounded-full border border-[#c8a035]/20 text-[#92780a] hover:bg-[#c8a035]/6 transition-all"
                   >
                     {lang === 'ru' ? r.ru : r.en}
                   </button>
@@ -1413,7 +1413,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                     logDisagreement(disagreeRemedy.trim(), 'other').catch(() => {})
                     setDisagreeStep('done')
                   }}
-                  className="text-[12px] px-4 py-2 rounded-full border border-gray-200 text-[#6b7280] hover:bg-black/[0.02] transition-all"
+                  className="text-[12px] px-4 py-2 rounded-full border border-gray-200 text-[#6b7280] hover:bg-black/2 transition-all"
                 >
                   {lang === 'ru' ? 'Другая причина' : 'Other reason'}
                 </button>
@@ -1423,7 +1423,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
           {/* Шаг 3: спасибо */}
           {disagreeStep === 'done' && (
-            <div className="rounded-2xl border border-[#2d6a4f]/15 bg-[#2d6a4f]/[0.03] p-5 text-center">
+            <div className="rounded-2xl border border-[#2d6a4f]/15 bg-[#2d6a4f]/3 p-5 text-center">
               <p className="text-[13px] text-[#2d6a4f] font-medium mb-1">
                 {lang === 'ru' ? 'Спасибо за обратную связь' : 'Thank you for the feedback'}
               </p>
@@ -1467,7 +1467,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
         </p>
         {/* Если попали сюда без вопросов — дать врачу понимание почему */}
         {!clarifyQ && result?.productConfidence?.level === 'clarify' ? (
-          <p className="text-[12px] mb-8 text-[#92780a] bg-[#c8a035]/[0.06] border border-[#c8a035]/15 rounded-lg px-3 py-2">
+          <p className="text-[12px] mb-8 text-[#92780a] bg-[#c8a035]/6 border border-[#c8a035]/15 rounded-lg px-3 py-2">
             {lang === 'ru'
               ? 'Все ключевые модальности уже учтены — уточняющих вопросов нет. Сравните top-3 вручную.'
               : 'All key modalities already covered — no further clarifying questions. Compare top-3 manually.'}
@@ -1483,7 +1483,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
               style={{ animationDelay: `${0.1 + idx * 0.12}s`, cursor: 'pointer' }}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#2d6a4f]/[0.06] flex items-center justify-center text-[14px] font-semibold text-[#2d6a4f]">
+                <div className="w-10 h-10 rounded-xl bg-[#2d6a4f]/6 flex items-center justify-center text-[14px] font-semibold text-[#2d6a4f]">
                   {idx + 1}
                 </div>
                 <div>
@@ -1502,7 +1502,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
 
         <button
           onClick={() => setStep('result')}
-          className="w-full py-3 text-[13px] rounded-full text-[#6b7280] border border-gray-200 hover:bg-black/[0.02] transition-all duration-200"
+          className="w-full py-3 text-[13px] rounded-full text-[#6b7280] border border-gray-200 hover:bg-black/2 transition-all duration-200"
         >
           {lang === 'ru' ? '← Вернуться к результату' : '← Back to result'}
         </button>
@@ -1550,7 +1550,7 @@ export default function AIConsultationDirect({ patients, lang, aiStatus }: Props
                   border: `1px solid ${selectedPatient === p.id ? '#2d6a4f' : '#e5e7eb'}`,
                 }}
               >
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-semibold shrink-0 bg-[#2d6a4f]/[0.06] text-[#2d6a4f]">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-semibold shrink-0 bg-[#2d6a4f]/6 text-[#2d6a4f]">
                   {p.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">

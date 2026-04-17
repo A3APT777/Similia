@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getAppointmentsByMonth, scheduleConsultation, startConsultation } from '@/lib/actions/consultations'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
-import { toMskDateStr, toMskTime, todayMsk, nowMsk, getUrgency } from '@/lib/date-utils'
+import { toMskDateStr, toMskTime, todayMsk, nowMsk, getUrgency } from '@/lib/shared/date-utils'
 
 type CalendarAppt = {
   id: string
@@ -352,7 +352,7 @@ export default function CalendarWidget({ patients, lastRemedyMap, schedule }: { 
               <button
                 onClick={handleAdd}
                 disabled={!addPatientId || addLoading || freeSlots.length === 0}
-                className="flex-1 text-xs bg-[#2d6a4f] text-white py-2 rounded-xl hover:bg-[var(--sim-forest)] disabled:opacity-40 transition-colors font-semibold shadow-sm"
+                className="flex-1 text-xs bg-[#2d6a4f] text-white py-2 rounded-xl hover:bg-(--sim-forest) disabled:opacity-40 transition-colors font-semibold shadow-sm"
               >
                 {addLoading ? t(lang).calendar.saving : t(lang).calendar.save}
               </button>

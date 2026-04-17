@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { uploadPhoto, deletePhoto } from '@/lib/actions/photos'
 import { createPhotoUploadToken } from '@/lib/actions/photoUpload'
 import { useToast } from '@/components/ui/toast'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 type Photo = {
@@ -219,7 +219,7 @@ export default function PhotoSection({ patientId, photos }: Props) {
             <button
               type="submit"
               disabled={uploading}
-              className="bg-[#2d6a4f] text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-[var(--sim-forest)] disabled:opacity-50 transition-colors"
+              className="bg-[#2d6a4f] text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-(--sim-forest) disabled:opacity-50 transition-colors"
             >
               {uploading ? t(lang).photo.uploading : t(lang).photo.save}
             </button>

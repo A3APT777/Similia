@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { searchQuerySchema } from '@/lib/validation'
+import { searchQuerySchema } from '@/lib/shared/validation'
 
 export type RemedyResult = {
   abbrev: string

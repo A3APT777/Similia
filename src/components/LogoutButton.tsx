@@ -1,7 +1,7 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
-import { t } from '@/lib/i18n'
+import { t } from '@/lib/shared/i18n'
 import { useLanguage } from '@/hooks/useLanguage'
 
 export default function LogoutButton({ dark = true }: { dark?: boolean }) {
@@ -17,7 +17,7 @@ export default function LogoutButton({ dark = true }: { dark?: boolean }) {
       title={t(lang).nav.logout}
       className={`shrink-0 p-1.5 rounded-md transition-colors ${
         dark
-          ? 'text-white/20 hover:text-white/50 hover:bg-white/[0.07]'
+          ? 'text-white/20 hover:text-white/50 hover:bg-white/7'
           : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
       }`}
     >
